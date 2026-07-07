@@ -1,0 +1,26 @@
+# Dependency Directories
+node_modules/
+**/node_modules/
+
+# Compilation and Build Output
+**/lib/
+**/*.tsbuildinfo
+**/dist/
+**/plugins/
+**/lib/frontend/bundle.js
+**/lib/backend/main.js
+
+# Logs and OS Specific Files
+*.log
+**/*.log
+.DS_Store
+**/.DS_Store
+
+# TWILLM Specific Dynamic Configurations
+twillm/twillm-wiki/tiddlers/active-bag
+twillm/twillm-wiki/tiddlers/vault-loader/tiddlywiki.files
+twillm/twillm-wiki/tiddlers/vault-loader/
+
+# Test/Scratch directories
+**/scratch/
+.tempmediaStorage/

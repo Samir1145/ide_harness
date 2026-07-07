@@ -1,0 +1,40 @@
+{
+  "name": "twillm-theia-extension",
+  "version": "0.1.0",
+  "description": "TWILLM integration for Theia: upload, wiki viewer, RAG chat",
+  "keywords": [
+    "theia",
+    "twillm",
+    "wiki",
+    "rag"
+  ],
+  "license": "MIT",
+  "theiaExtensions": [
+    {
+      "frontend": "lib/browser/twillm-frontend-module",
+      "backend": "lib/electron-main/twillm-electron-main-module"
+    }
+  ],
+  "dependencies": {
+    "@theia/core": "1.73.1",
+    "@theia/editor": "1.73.1",
+    "@theia/filesystem": "1.73.1",
+    "@theia/monaco": "1.73.1",
+    "@theia/workspace": "1.73.1",
+    "react": "^18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "rimraf": "^2.7.1",
+    "typescript": "^4.9.5"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf lib *.tsbuildinfo",
+    "watch": "tsc -b --watch"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  }
+}

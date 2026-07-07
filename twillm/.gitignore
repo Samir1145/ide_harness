@@ -1,0 +1,22 @@
+node_modules/
+output/
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Claude Code local settings
+.claude/
+
+# twillm working directory — in the twillm repo itself this is a dev-time
+# build artifact (materialised from template-wiki/ by cli.js). In end-user
+# repos twillm-wiki/ IS commit-friendly; only the transient pieces below
+# should be ignored.
+twillm-wiki/
+
+# Obsidian per-user state (keep shared config like community-plugins.json)
+vault/.obsidian/workspace.json
+vault/.obsidian/workspace-mobile.json
+vault/.obsidian/workspaces.json
+vault/.obsidian/cache/
+vault/.obsidian/appearance.json

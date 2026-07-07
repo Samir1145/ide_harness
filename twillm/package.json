@@ -1,0 +1,28 @@
+{
+  "name": "twillm",
+  "version": "0.1.0",
+  "description": "Karpathy-style wiki/LLM runner for local case folders",
+  "bin": {
+    "twillm": "./cli.js"
+  },
+  "files": [
+    "cli.js",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node ./cli.js vault",
+    "test": "node tests/run_all_tests.js"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "gray-matter": "^4.0.3",
+    "mammoth": "^1.8.0",
+    "pdfexcavator": "^0.1.2",
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
