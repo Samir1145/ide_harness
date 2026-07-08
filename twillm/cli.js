@@ -5,6 +5,7 @@ const fs = require('fs');
 const { createWatcher, ingestFile } = require('./lib/watcher');
 const { readIndex } = require('./lib/indexer');
 const { query } = require('./lib/rag');
+const { loadVault } = require('./lib/vault-loader');
 
 const HELP = `Usage: twillm <case-path>
 
@@ -79,6 +80,25 @@ async function bootstrapCase(caseDir) {
 }
 
 async function main() {
+    // Load .env file if it exists
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        for (const line of envContent.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const index = trimmed.indexOf('=');
+            if (index > -1) {
+                const key = trimmed.slice(0, index).trim();
+                const val = trimmed.slice(index + 1).trim().replace(/^['"]|['"]$/g, '');
+                process.env[key] = val;
+            }
+        }
+    }
+
+    // Load encrypted law vault into RAM (no decrypted content ever touches disk)
+    loadVault();
+
     const argv = process.argv.slice(2);
     let caseArg = null;
     let watchAll = false;
@@ -158,11 +178,13 @@ async function main() {
     const index = readIndex(caseDir);
     console.log(`[twillm] indexed ${index.documents ? index.documents.length : 0} documents`);
 
-    // Bootstrap
-    await bootstrapCase(caseDir);
-
     const { startApiServer } = require('./lib/api-server');
     const apiServer = startApiServer(path.dirname(caseDir), 3210);
+
+    // Bootstrap asynchronously in background so API port 3210 binds immediately
+    bootstrapCase(caseDir).catch(err => {
+        console.error('[twillm] Bootstrap failed:', err.message);
+    });
 
     process.on('SIGINT', () => {
         console.log('\n[twillm] shutting down');
@@ -184,14 +206,22 @@ async function runWatchAll(docsRoot) {
 
     const watchers = new Map();
 
-    // Bootstrap scan for each case
-    for (const caseName of caseDirs) {
-        const caseDir = path.join(docsRoot, caseName);
-        if (!fs.existsSync(path.join(caseDir, 'concepts'))) {
-            fs.mkdirSync(path.join(caseDir, 'concepts'), { recursive: true });
+    const { startApiServer } = require('./lib/api-server');
+    const apiServer = startApiServer(docsRoot, 3210);
+
+    // Bootstrap scan for each case asynchronously
+    (async () => {
+        for (const caseName of caseDirs) {
+            const caseDir = path.join(docsRoot, caseName);
+            if (!fs.existsSync(path.join(caseDir, 'concepts'))) {
+                fs.mkdirSync(path.join(caseDir, 'concepts'), { recursive: true });
+            }
+            await bootstrapCase(caseDir);
         }
-        await bootstrapCase(caseDir);
-    }
+        console.log('[twillm] All cases bootstrapped.');
+    })().catch(err => {
+        console.error('[twillm] watch-all bootstrap failed:', err.message);
+    });
 
     // Watch each case directory
     for (const caseName of caseDirs) {
@@ -205,9 +235,6 @@ async function runWatchAll(docsRoot) {
         });
         watchers.set(caseName, watcher);
     }
-
-    const { startApiServer } = require('./lib/api-server');
-    const apiServer = startApiServer(docsRoot, 3210);
 
     console.log(`[twillm] watching ${watchers.size} directories for changes...`);
 

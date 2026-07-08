@@ -1,8 +1,8 @@
 const bm25Tests = require('./bm25_search.test');
 const splitterTests = require('./document_splitter.test');
-const timelineTests = require('./case_timeline.test');
+const treeTests = require('./pageindex_tree.test');
 
-function runAll() {
+async function runAll() {
     console.log('==================================================');
     console.log('         RUNNING ALL TWILLM BACKEND TESTS         ');
     console.log('==================================================\n');
@@ -11,10 +11,10 @@ function runAll() {
         bm25Tests.run();
         console.log('');
         
-        splitterTests.run();
+        await splitterTests.run();
         console.log('');
         
-        timelineTests.run();
+        treeTests.runTests();
         console.log('');
 
         console.log('==================================================');

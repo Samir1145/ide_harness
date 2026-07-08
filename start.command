@@ -6,7 +6,7 @@
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
 # Local Ollama LLM optimization parameters
-export OLLAMA_MODEL="qwen2.5:3b"
+export OLLAMA_MODEL="qwen2.5-coder:1.5b"
 export OLLAMA_FLASH_ATTENTION=1
 export OLLAMA_NUM_PARALLEL=1
 
@@ -35,11 +35,24 @@ TWILLM_DIR="$ROOT_DIR/twillm"
 THEIA_DIR="$ROOT_DIR/ide/applications/electron"
 LOGFILE="/tmp/hayagriva-launcher.log"
 
+# Load VAULT_KEY and any other secrets from twillm/.env (never committed to git)
+if [ -f "$TWILLM_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$TWILLM_DIR/.env"
+    set +a
+fi
+
+
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOGFILE"
 }
 
 log "Hayagriva launcher starting in $ROOT_DIR"
+if [ -n "$VAULT_KEY" ]; then
+    log "Law vault key loaded from .env"
+fi
+
 
 # Check if twillm proxy is already running
 PORT=3210

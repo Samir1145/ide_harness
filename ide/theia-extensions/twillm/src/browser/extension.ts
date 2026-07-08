@@ -1,9 +1,11 @@
+import * as monaco from '@theia/monaco-editor-core';
 import { inject, injectable } from '@theia/core/shared/inversify';
 import {
   FrontendApplicationContribution,
   FrontendApplication,
   ApplicationShell,
-  OpenHandler
+  OpenHandler,
+  WidgetManager
 } from '@theia/core/lib/browser';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
@@ -13,8 +15,7 @@ import URI from '@theia/core/lib/common/uri';
 import { TwillmEditorDecorator } from './highlight-decorator';
 import {
   sidebarHtml,
-  wikiExplorerHtml,
-  chatHtml
+  wikiExplorerHtml
 } from './templates';
 
 function getBasename(p: string): string {
@@ -28,7 +29,6 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
   readonly id = 'twillm-wiki-open-handler';
   readonly label = 'TWILLM Wiki Viewer';
 
-  private activeWikiPanels: Map<string, Widget> = new Map();
   private sidebarWidget: Widget | undefined;
   private wikiWidget: Widget | undefined;
 
@@ -37,14 +37,28 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     @inject(EditorManager) private readonly editorManager: EditorManager,
     @inject(ApplicationShell) private readonly shell: ApplicationShell,
     @inject(TwillmEditorDecorator) private readonly decorator: TwillmEditorDecorator,
-    @inject(ILogger) private readonly logger: ILogger
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(WidgetManager) private readonly widgetManager: WidgetManager
   ) {}
 
   canHandle(uri: URI): number {
+    if (uri.scheme === 'twillm-citation') {
+      return 100;
+    }
     return 0;
   }
 
   async open(uri: URI): Promise<Widget> {
+    if (uri.scheme === 'twillm-citation') {
+      const docName = decodeURIComponent(uri.authority);
+      const query = uri.query;
+      const pageMatch = query.match(/page=(\d+)/);
+      const pageNum = pageMatch ? parseInt(pageMatch[1], 10) : 1;
+      
+      await this.openCitationSideBySide(docName, pageNum);
+      return new Widget();
+    }
+    
     const filePath = uri.path.toString();
     const base = getBasename(filePath);
     const docName = base.replace(/\.wiki\.html$/i, '');
@@ -55,6 +69,8 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
 
   onStart(app: FrontendApplication): void {
     this.initializeSidebarWidget();
+    this.registerMonacoLinkProvider();
+    this.registerLawCompletion();
   }
 
   onDidInitializeLayout(app: FrontendApplication): void {
@@ -156,53 +172,24 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
   }
 
   async openRagChat(): Promise<Widget> {
-    let caseName = 'Case_Alpha';
-    const activeEditor = this.editorManager.activeEditor;
-    if (activeEditor) {
-      const uri = activeEditor.getResourceUri();
-      if (uri) {
-        caseName = this.getCaseName(uri.path.toString());
-      }
-    }
-
-    const panelKey = `${caseName}::rag-chat`;
-    const existing = this.activeWikiPanels.get(panelKey);
-    if (existing) {
-      this.shell.activateWidget(existing.id);
-      return existing;
-    }
-
-    const widget = new Widget();
-    widget.id = `twillm-rag-chat-${caseName}`;
-    widget.title.label = `RAG Chat (${caseName})`;
-    widget.title.iconClass = 'fa fa-magic';
-    widget.title.closable = true;
-    
-    widget.node.innerHTML = '';
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = 'none';
-    iframe.srcdoc = chatHtml(caseName);
-    widget.node.appendChild(iframe);
-    
-    this.activeWikiPanels.set(panelKey, widget);
-    widget.disposed.connect(() => { this.activeWikiPanels.delete(panelKey); });
-    
+    const widget = await this.widgetManager.getOrCreateWidget('chat-view-widget');
     this.shell.addWidget(widget, { area: 'right' });
     this.shell.activateWidget(widget.id);
     return widget;
   }
 
   prefillChat(text: string): void {
-    for (const [key, widget] of this.activeWikiPanels.entries()) {
-      if (key.endsWith('::rag-chat')) {
-        const iframe = widget.node.querySelector('iframe');
-        if (iframe && iframe.contentWindow) {
-          iframe.contentWindow.postMessage({ type: 'prefill-query', query: text }, '*');
+    this.widgetManager.getOrCreateWidget('chat-view-widget').then((chatWidget: any) => {
+      if (chatWidget && chatWidget.inputWidget) {
+        chatWidget.inputWidget.initialValue = text;
+        const editor = chatWidget.inputWidget.editor;
+        if (editor && editor.document && editor.document.textEditorModel) {
+          editor.document.textEditorModel.setValue(text);
         }
       }
-    }
+    }).catch(e => {
+      this.logger.error(`[TWILLM] Failed to prefill chat input: ${e.message}`);
+    });
   }
 
   initializeSidebarWidget(): void {
@@ -325,6 +312,196 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
       }
     }
+  }
+
+  async openCitationSideBySide(docName: string, pageNum: number): Promise<void> {
+    const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (!workspaceRoot) return;
+    
+    const conceptsUri = new URI(workspaceRoot.toString()).resolve(`concepts/${docName}`);
+    
+    try {
+      const treeUri = conceptsUri.resolve('pageindex_tree.json');
+      const res = await fetch(`http://127.0.0.1:3210/api/twillm/read-file?path=${encodeURIComponent(treeUri.path.toString())}`);
+      if (!res.ok) throw new Error();
+      
+      const treeData = await res.json();
+      const flatNodes: any[] = [];
+      function flatten(node: any) {
+        flatNodes.push(node);
+        if (node.children) {
+          for (const child of node.children) {
+            flatten(child);
+          }
+        }
+      }
+      flatten(treeData.tree);
+      
+      const targetNode = flatNodes.find(n => n.metadata && n.metadata.type === 'section' && n.pageStart <= pageNum && n.pageEnd >= pageNum);
+      if (targetNode) {
+        const safeTitle = targetNode.title.replace(/[^a-zA-Z0-9\s-_]/g, '').trim().replace(/\s+/g, '_') || 'untitled';
+        let cardTitle = safeTitle;
+        if (cardTitle.length > 60) {
+            let hash = 0;
+            for (let i = 0; i < targetNode.title.length; i++) {
+                hash = (hash << 5) - hash + targetNode.title.charCodeAt(i);
+                hash |= 0;
+            }
+            cardTitle = cardTitle.substring(0, 60) + '_' + Math.abs(hash);
+        }
+        
+        const cardUri = conceptsUri.resolve(`${cardTitle}.md`);
+        
+        const editor = await this.editorManager.openToSide(cardUri, {
+          selection: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 99 }
+          }
+        });
+        
+        this.decorator.applyHighlight(editor, 0);
+      }
+    } catch (e: any) {
+      this.logger.error(`[TWILLM] Failed to open side-by-side split citation: ${e.message}`);
+    }
+  }
+
+  registerMonacoLinkProvider(): void {
+    const checkMonaco = () => {
+      if (monaco && monaco.languages) {
+        monaco.languages.registerLinkProvider('markdown', {
+          provideLinks: (model: any) => {
+            const links: any[] = [];
+            const lines = model.getLinesContent();
+            const regex = /(?:see\s+|exhibit\s+)?([a-zA-Z0-9_\s-]+),\s*Page\s*(\d+)/gi;
+            
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              let match;
+              regex.lastIndex = 0;
+              while ((match = regex.exec(line)) !== null) {
+                const startCol = match.index + 1;
+                const endCol = startCol + match[0].length;
+                const docName = match[1].trim();
+                const pageNum = match[2];
+                
+                links.push({
+                  range: new monaco.Range(i + 1, startCol, i + 1, endCol),
+                  url: `twillm-citation://${encodeURIComponent(docName)}?page=${pageNum}`
+                });
+              }
+            }
+            return { links };
+          }
+        });
+        this.logger.info('[TWILLM] Successfully registered Monaco Link Provider for Citations.');
+      } else {
+        setTimeout(checkMonaco, 200);
+      }
+    };
+    checkMonaco();
+  }
+
+  // ─── Law Completion (@@-triggered ghost text) ──────────────────────────────
+
+  registerLawCompletion(): void {
+    // Small in-flight request cache to avoid hammering the API on every keystroke
+    const cache = new Map<string, any[]>();
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const fetchCompletions = async (triggerText: string): Promise<any[]> => {
+      if (cache.has(triggerText)) return cache.get(triggerText)!;
+      try {
+        const res = await fetch(
+          `http://127.0.0.1:3210/api/laws/query?q=${encodeURIComponent(triggerText)}&n=3`
+        );
+        if (!res.ok) return [];
+        const json = await res.json();
+        const results = json.results || [];
+        cache.set(triggerText, results);
+        // Evict cache when it grows large
+        if (cache.size > 200) {
+          const firstKey = cache.keys().next().value;
+          if (firstKey !== undefined) cache.delete(firstKey);
+        }
+        return results;
+      } catch {
+        return [];
+      }
+    };
+
+    const checkMonaco = () => {
+      if (!monaco || !monaco.languages || !monaco.languages.registerInlineCompletionsProvider) {
+        setTimeout(checkMonaco, 300);
+        return;
+      }
+
+      // Register for all text-based languages commonly used in this workspace
+      const LANGS = ['markdown', 'plaintext'];
+
+      for (const lang of LANGS) {
+        monaco.languages.registerInlineCompletionsProvider(lang, {
+          // Called by Monaco on every cursor position change / keystroke
+          provideInlineCompletions: async (model: any, position: any, _context: any, token: any) => {
+            // Get text from start of line up to cursor
+            const lineText: string = model.getLineContent(position.lineNumber);
+            const textUpToCursor = lineText.substring(0, position.column - 1);
+
+            // Detect @@ trigger: must be the last thing the user typed
+            // Matches @@<anything> — capture the search term after @@
+            const triggerMatch = textUpToCursor.match(/@@([\w\s./,-]*)$/);
+            if (!triggerMatch) return { items: [] };
+
+            const rawTrigger = triggerMatch[1].trim();
+            // Wait until user has typed at least 2 chars after @@ to avoid flicker
+            if (rawTrigger.length < 2) return { items: [] };
+
+            // Debounce: wait 200ms for user to stop typing before firing
+            await new Promise<void>(resolve => {
+              if (debounceTimer) clearTimeout(debounceTimer);
+              debounceTimer = setTimeout(resolve, 200);
+            });
+            if (token.isCancellationRequested) return { items: [] };
+
+            const results = await fetchCompletions(rawTrigger);
+            if (!results.length || token.isCancellationRequested) return { items: [] };
+
+            // Build inline completion items — one per result
+            const items = results.map((r: any) => {
+              // Strip YAML frontmatter from the law text before showing as ghost text
+              const cleanText = (r.text as string)
+                .replace(/^---[\s\S]*?---\r?\n?/, '')  // remove frontmatter
+                .trimStart();
+
+              // The ghost text replaces the @@ trigger + search term with the law text
+              const triggerStart = textUpToCursor.lastIndexOf('@@');
+              const insertRange = new monaco.Range(
+                position.lineNumber,
+                triggerStart + 1,          // Monaco columns are 1-indexed
+                position.lineNumber,
+                position.column
+              );
+              const typedTrigger = textUpToCursor.substring(triggerStart);
+              
+              return {
+                insertText:   typedTrigger + '\n\n' + cleanText,
+                range:        insertRange
+              };
+            });
+
+            return {
+              items
+            };
+          },
+
+          disposeInlineCompletions: (_completions: any, _reason: any) => { /* no-op */ }
+        });
+      }
+
+      this.logger.info('[TWILLM] Law completion (@@) registered for markdown and plaintext.');
+    };
+
+    checkMonaco();
   }
 
 }
