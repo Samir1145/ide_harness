@@ -52,7 +52,7 @@ function startApiServer(docsRoot, port = 3210) {
 
             if (!isVaultReady()) {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Law vault not loaded. Ensure vault/laws-open.json exists.' }));
+                res.end(JSON.stringify({ error: 'Vault is not ready or missing VAULT_KEY' }));
                 return;
             }
             if (!q) {
@@ -60,7 +60,7 @@ function startApiServer(docsRoot, port = 3210) {
                 res.end(JSON.stringify({ error: 'Missing query parameter: q' }));
                 return;
             }
-            const results = resolveTrigger(q, topN);
+            const results = await resolveTrigger(q, topN);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ query: q, results }));
 
@@ -71,10 +71,10 @@ function startApiServer(docsRoot, port = 3210) {
 
             if (!isVaultReady()) {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Law vault not loaded.' }));
+                res.end(JSON.stringify({ error: 'Vault is not ready or missing VAULT_KEY' }));
                 return;
             }
-            const results = searchLaws(q, topN).map(r => ({
+            const results = (await searchLaws(q, topN)).map(r => ({
                 id: r.id, title: r.title, section: r.section, score: r.score,
                 preview: r.text.slice(0, 300)
             }));

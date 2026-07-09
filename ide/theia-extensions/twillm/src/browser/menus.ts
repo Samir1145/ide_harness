@@ -15,6 +15,12 @@ export class TwillmMenuContribution implements MenuContribution {
     registry.registerMenuAction(WIKI_MENU, { commandId: `${TWILLM_NS}:openRagChat`, label: 'RAG Chat', order: '4' });
     registry.registerMenuAction(WIKI_MENU, { commandId: `${TWILLM_NS}:openUploadSplit`, label: 'Upload and Split...', order: '5' });
 
+    // File menu action
+    registry.registerMenuAction([...CommonMenus.FILE, '1_twillm'], {
+      commandId: `${TWILLM_NS}:openUploadSplit`,
+      label: 'Upload to Twillm...',
+    });
+
     // File Editor right click menu
     registry.registerMenuAction(['editor_context_menu'], {
       commandId: `${TWILLM_NS}:compareDocuments`,

@@ -22,6 +22,30 @@ export function sidebarHtml(initialCase: string): string {
     border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
     padding-bottom: 6px;
   }
+  .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
+    padding-bottom: 6px;
+  }
+  .header-container h3 {
+    margin: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .close-btn {
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--theia-ui-font-color1, #333);
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .close-btn:hover {
+    opacity: 1;
+  }
   .section {
     margin-bottom: 15px;
   }
@@ -75,6 +99,8 @@ export function sidebarHtml(initialCase: string): string {
   .zone-word:hover { background: rgba(59, 130, 246, 0.05); border-color: #3b82f6; }
   .zone-excel { background: rgba(16, 185, 129, 0.02); }
   .zone-excel:hover { background: rgba(16, 185, 129, 0.05); border-color: #10b981; }
+  .zone-wiki { background: rgba(139, 92, 246, 0.02); }
+  .zone-wiki:hover { background: rgba(139, 92, 246, 0.05); border-color: #8b5cf6; }
   .hidden { display: none !important; }
   .btn-secondary {
     background: #e2e8f0;
@@ -95,6 +121,11 @@ export function sidebarHtml(initialCase: string): string {
 </head>
 <body>
   
+  <div class="header-container">
+    <h3>Upload Document</h3>
+    <div class="close-btn" id="close-modal" title="Close">✕</div>
+  </div>
+
   <div class="section">
     
     <div id="zone-pdf" class="upload-box zone-pdf" style="border-color: rgba(239, 68, 68, 0.4); margin-bottom: 8px;">
@@ -110,6 +141,11 @@ export function sidebarHtml(initialCase: string): string {
     <div id="zone-excel" class="upload-box zone-excel" style="border-color: rgba(16, 185, 129, 0.4); margin-bottom: 8px;">
       <p style="margin: 0; font-weight: bold; color: #10b981;">Excel Spreadsheet</p>
       <p style="margin: 4px 0 0 0; font-size: 11px; opacity: 0.7;">Upload tabular sheets .xlsx / .xls</p>
+    </div>
+
+    <div id="zone-wiki" class="upload-box zone-wiki" style="border-color: rgba(139, 92, 246, 0.4); margin-bottom: 8px;">
+      <p style="margin: 0; font-weight: bold; color: #8b5cf6;">TiddlyWiki Report</p>
+      <p style="margin: 4px 0 0 0; font-size: 11px; opacity: 0.7;">Upload 29A or other .html wikis</p>
     </div>
     
     <input type="file" id="file-input" class="hidden" />
@@ -141,6 +177,14 @@ export function sidebarHtml(initialCase: string): string {
     const zonePdf = document.getElementById('zone-pdf');
     const zoneWord = document.getElementById('zone-word');
     const zoneExcel = document.getElementById('zone-excel');
+    const zoneWiki = document.getElementById('zone-wiki');
+    const closeBtn = document.getElementById('close-modal');
+
+    closeBtn.onclick = () => {
+      if (window.parent) {
+        window.parent.postMessage({ type: 'close-upload-modal' }, '*');
+      }
+    };
 
     let currentCaseName = '${initialCase}';
 
@@ -164,6 +208,10 @@ export function sidebarHtml(initialCase: string): string {
       fileInput.accept = '.xlsx,.xls';
       fileInput.click();
     };
+    zoneWiki.onclick = () => {
+      fileInput.accept = '.html';
+      fileInput.click();
+    };
 
     fileInput.onchange = (e) => {
       if (e.target.files.length) {
@@ -179,7 +227,13 @@ export function sidebarHtml(initialCase: string): string {
         let containerZone = zonePdf;
         if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) containerZone = zoneWord;
         else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) containerZone = zoneExcel;
+        else if (file.name.endsWith('.html') || file.name.endsWith('.wiki.html')) containerZone = zoneWiki;
         
+        let filename = file.name;
+        if (filename.endsWith('.html') && !filename.endsWith('.wiki.html')) {
+          filename = filename.replace(/\.html$/, '.wiki.html');
+        }
+
         const oldContent = containerZone.innerHTML;
         containerZone.innerHTML = '<p style="margin:0; font-size:12px; font-weight:bold; color:var(--theia-brand-color1,#0ea5e9);">Uploading...</p>';
         
@@ -188,7 +242,7 @@ export function sidebarHtml(initialCase: string): string {
           const uploadRes = await fetch('http://127.0.0.1:3210/api/twillm/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ case: currentCaseName, filename: file.name, content: base64 })
+            body: JSON.stringify({ case: currentCaseName, filename: filename, content: base64 })
           });
           const uploadData = await uploadRes.json();
           if (!uploadData.success) throw new Error(uploadData.error || 'Upload failed');
@@ -208,6 +262,9 @@ export function sidebarHtml(initialCase: string): string {
           containerZone.innerHTML = '<p style="margin:0; font-size:12px; font-weight:bold; color:#10b981;">✓ Ingested Successfully</p>';
           if (window.parent) {
             window.parent.postMessage({ type: 'refresh-wiki-explorer', caseName: currentCaseName }, '*');
+            setTimeout(() => {
+              window.parent.postMessage({ type: 'close-upload-modal' }, '*');
+            }, 1500);
           }
           setTimeout(() => { containerZone.innerHTML = oldContent; }, 4000);
         } catch (err) {
@@ -342,6 +399,161 @@ export function wikiExplorerHtml(caseName: string): string {
       }
     }
     loadCards();
+  </script>
+</body>
+</html>`;
+}
+
+export function conceptsExplorerHtml(caseName: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+    font-size: var(--theia-ui-font-size1, 13px);
+    margin: 0;
+    padding: 15px;
+    background: var(--theia-layout-color1, #f3f3f3);
+    color: var(--theia-ui-font-color1, #333333);
+  }
+  .doc-header {
+    font-weight: bold;
+    padding: 8px 4px 6px 4px;
+    margin-top: 12px;
+    cursor: default;
+    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
+    color: var(--theia-brand-color1, #0ea5e9);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pages-container {
+    padding-left: 14px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+    border-left: 1px dashed var(--theia-border-color, #ccc);
+  }
+  .page-item {
+    padding: 5px 8px;
+    margin: 3px 0;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .page-item:hover {
+    background: var(--theia-layout-color3, #ffffff);
+    color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .empty {
+    opacity: 0.5;
+    text-align: center;
+    padding-top: 20px;
+  }
+  .empty-pages {
+    opacity: 0.5;
+    font-style: italic;
+    cursor: default;
+  }
+</style>
+</head>
+<body>
+  <div id="concepts-container">Loading concepts and chunks...</div>
+
+  <script>
+    let currentCase = '${caseName}';
+    
+    function syncTheme() {
+      if (window.parent) {
+        const parentStyle = window.parent.getComputedStyle(window.parent.document.documentElement);
+        const docStyle = document.documentElement.style;
+        const vars = [
+          '--theia-layout-color1', '--theia-layout-color2', '--theia-layout-color3',
+          '--theia-ui-font-color1', '--theia-ui-font-color2', '--theia-border-color',
+          '--theia-brand-color1', '--theia-ui-font-family', '--theia-ui-font-size1'
+        ];
+        vars.forEach(v => {
+          const val = parentStyle.getPropertyValue(v);
+          if (val) docStyle.setProperty(v, val);
+        });
+      }
+    }
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    if (window.parent && window.parent.document.documentElement) {
+      observer.observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'select-case') {
+        currentCase = event.data.caseName;
+        loadConcepts();
+      }
+    });
+
+    async function loadConcepts() {
+      try {
+        const res = await fetch('http://127.0.0.1:3210/api/twillm/read-file?path=' + currentCase + '/concepts/index.json');
+        if (!res.ok) {
+          document.getElementById('concepts-container').innerHTML = '<div class="empty">No concepts indexed yet. Ingest a document to start.</div>';
+          return;
+        }
+        const index = await res.json();
+        const container = document.getElementById('concepts-container');
+        container.innerHTML = '';
+        
+        if (!index.documents || index.documents.length === 0) {
+          container.innerHTML = '<div class="empty">No concepts indexed yet. Ingest a document to start.</div>';
+          return;
+        }
+        
+        index.documents.forEach(doc => {
+          const docHeader = document.createElement('div');
+          docHeader.className = 'doc-header';
+          docHeader.innerHTML = \`📁 <strong>\${doc.title}</strong> (\${doc.sections} sections)\`;
+          container.appendChild(docHeader);
+          
+          const docPagesContainer = document.createElement('div');
+          docPagesContainer.className = 'pages-container';
+          
+          if (doc.shadowDocuments && doc.shadowDocuments.length > 0) {
+            doc.shadowDocuments.forEach(shadow => {
+              const pageItem = document.createElement('div');
+              pageItem.className = 'page-item';
+              // Display title cleanly (removing path elements)
+              const title = shadow.title;
+              pageItem.innerHTML = \`💡 \${title}\`;
+              pageItem.title = "Double-click to open page chunk";
+              pageItem.ondblclick = () => {
+                window.parent.postMessage({
+                  type: 'open-concept-chunk',
+                  absolutePath: shadow.path
+                }, '*');
+              };
+              docPagesContainer.appendChild(pageItem);
+            });
+          } else {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'page-item empty-pages';
+            emptyItem.textContent = 'No page chunks';
+            docPagesContainer.appendChild(emptyItem);
+          }
+          
+          container.appendChild(docPagesContainer);
+        });
+      } catch (e) {
+        document.getElementById('concepts-container').innerHTML = '<div style="opacity: 0.6; text-align: center; padding-top: 20px;">Connecting to concepts server...</div>';
+        setTimeout(loadConcepts, 2000);
+      }
+    }
+    loadConcepts();
   </script>
 </body>
 </html>`;

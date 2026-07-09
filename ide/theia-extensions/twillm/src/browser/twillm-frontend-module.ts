@@ -1,6 +1,7 @@
 import { ContainerModule } from 'inversify';
 import { FrontendApplicationContribution, OpenHandler } from '@theia/core/lib/browser';
 import { CommandContribution, MenuContribution } from '@theia/core/lib/common';
+import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { TwillmFrontendContribution } from './extension';
 import { TwillmCommandContribution } from './commands';
 import { TwillmMenuContribution } from './menus';
@@ -14,6 +15,7 @@ export default new ContainerModule((bind) => {
   bind(TwillmFrontendContribution).toSelf().inSingletonScope();
   bind(FrontendApplicationContribution).toService(TwillmFrontendContribution);
   bind(OpenHandler).toService(TwillmFrontendContribution);
+  bind(TabBarToolbarContribution).toService(TwillmFrontendContribution);
 
   // Bind separate commands registry
   bind(TwillmCommandContribution).toSelf().inSingletonScope();

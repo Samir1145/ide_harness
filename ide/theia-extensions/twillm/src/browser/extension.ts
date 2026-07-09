@@ -7,6 +7,7 @@ import {
   OpenHandler,
   WidgetManager
 } from '@theia/core/lib/browser';
+import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { ILogger } from '@theia/core/lib/common';
@@ -15,7 +16,8 @@ import URI from '@theia/core/lib/common/uri';
 import { TwillmEditorDecorator } from './highlight-decorator';
 import {
   sidebarHtml,
-  wikiExplorerHtml
+  wikiExplorerHtml,
+  conceptsExplorerHtml
 } from './templates';
 
 function getBasename(p: string): string {
@@ -24,13 +26,14 @@ function getBasename(p: string): string {
 }
 
 @injectable()
-export class TwillmFrontendContribution implements FrontendApplicationContribution, OpenHandler {
+export class TwillmFrontendContribution implements FrontendApplicationContribution, OpenHandler, TabBarToolbarContribution {
 
   readonly id = 'twillm-wiki-open-handler';
   readonly label = 'TWILLM Wiki Viewer';
 
-  private sidebarWidget: Widget | undefined;
+  private uploadModalElement: HTMLElement | undefined;
   private wikiWidget: Widget | undefined;
+  private conceptsWidget: Widget | undefined;
 
   constructor(
     @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
@@ -68,18 +71,29 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
   }
 
   onStart(app: FrontendApplication): void {
-    this.initializeSidebarWidget();
+    this.initializeWikiExplorerWidget();
+    this.initializeConceptsExplorerWidget();
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
+  }
+
+  registerToolbarItems(registry: TabBarToolbarRegistry): void {
+    registry.registerItem({
+      id: 'twillm-upload-toolbar-item',
+      command: 'twillm:openUploadSplit',
+      tooltip: 'Upload to Twillm',
+      icon: 'fa fa-upload',
+      priority: 0,
+    });
   }
 
   onDidInitializeLayout(app: FrontendApplication): void {
     const leftWidgets = this.shell.getWidgets('left');
     for (const widget of leftWidgets) {
       const id = widget.id.toLowerCase();
-      // Keep only explorer-view-container (File Explorer), twillm-upload-sidebar, and twillm-wiki-explorer visible.
+      // Keep only explorer-view-container (File Explorer), twillm-wiki-explorer, and twillm-concepts-explorer visible.
       // Close all other widgets in the left sidebar.
-      if (id !== 'explorer-view-container' && id !== 'twillm-upload-sidebar' && id !== 'twillm-wiki-explorer') {
+      if (id !== 'explorer-view-container' && id !== 'twillm-wiki-explorer' && id !== 'twillm-concepts-explorer') {
         widget.close();
       }
     }
@@ -164,10 +178,61 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
   }
 
   async openUploadSplit(): Promise<Widget> {
-    if (this.sidebarWidget) {
-      this.shell.activateWidget(this.sidebarWidget.id);
-      return this.sidebarWidget;
+    if (this.uploadModalElement) {
+      document.body.removeChild(this.uploadModalElement);
+      this.uploadModalElement = undefined;
+      return new Widget();
     }
+
+    let initialCase = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
+    }
+
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+    overlay.style.backdropFilter = 'blur(4px)';
+    overlay.style.setProperty('-webkit-backdrop-filter', 'blur(4px)');
+    overlay.style.zIndex = '99999';
+    overlay.style.display = 'flex';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+
+    const modalContent = document.createElement('div');
+    modalContent.style.width = '350px';
+    modalContent.style.height = '480px';
+    modalContent.style.backgroundColor = 'var(--theia-layout-color1, #f3f3f3)';
+    modalContent.style.borderRadius = '8px';
+    modalContent.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+    modalContent.style.overflow = 'hidden';
+    modalContent.style.position = 'relative';
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = sidebarHtml(initialCase);
+    
+    modalContent.appendChild(iframe);
+    overlay.appendChild(modalContent);
+    document.body.appendChild(overlay);
+
+    this.uploadModalElement = overlay;
+
+    // Click outside to close
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay && this.uploadModalElement) {
+        document.body.removeChild(this.uploadModalElement);
+        this.uploadModalElement = undefined;
+      }
+    });
+
     return new Widget();
   }
 
@@ -192,8 +257,8 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     });
   }
 
-  initializeSidebarWidget(): void {
-    if (this.sidebarWidget) return;
+  initializeWikiExplorerWidget(): void {
+    if (this.wikiWidget) return;
 
     let initialCase = 'Case_Alpha';
     const ws = this.workspaceService.getWorkspaceRootUri(undefined);
@@ -208,23 +273,6 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
         }
       }
     }
-
-    const widget = new Widget();
-    widget.id = 'twillm-upload-sidebar';
-    widget.title.label = 'Upload';
-    widget.title.caption = 'Upload and Split Document';
-    widget.title.iconClass = 'fa fa-upload';
-    widget.title.closable = false;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = 'none';
-    iframe.srcdoc = sidebarHtml(initialCase);
-    widget.node.appendChild(iframe);
-
-    this.sidebarWidget = widget;
-    this.shell.addWidget(widget, { area: 'left', rank: 500 });
 
     const wikiExplorer = new Widget();
     wikiExplorer.id = 'twillm-wiki-explorer';
@@ -254,6 +302,18 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
           }
         } else if (event.data.type === 'refresh-wiki-explorer') {
           wikiIframe.contentWindow?.postMessage({ type: 'select-case', caseName: event.data.caseName }, '*');
+        } else if (event.data.type === 'close-upload-modal') {
+          if (this.uploadModalElement) {
+            document.body.removeChild(this.uploadModalElement);
+            this.uploadModalElement = undefined;
+          }
+        } else if (event.data.type === 'open-concept-chunk') {
+          const { relativePath } = event.data;
+          const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+          if (workspaceRoot) {
+            const uri = new URI(workspaceRoot.toString()).resolve(relativePath);
+            await this.editorManager.open(uri);
+          }
         } else if (event.data.type === 'open-citation') {
           const { filePath, anchor } = event.data;
           const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
@@ -299,15 +359,56 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     });
   }
 
+  initializeConceptsExplorerWidget(): void {
+    if (this.conceptsWidget) return;
+
+    let initialCase = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
+    } else {
+      const active = this.editorManager.activeEditor;
+      if (active) {
+        const uri = active.getResourceUri();
+        if (uri) {
+          initialCase = this.getCaseName(uri.path.toString());
+        }
+      }
+    }
+
+    const conceptsExplorer = new Widget();
+    conceptsExplorer.id = 'twillm-concepts-explorer';
+    conceptsExplorer.title.label = 'Concepts';
+    conceptsExplorer.title.caption = 'Case Document Chunks & Concepts';
+    conceptsExplorer.title.iconClass = 'fa fa-lightbulb-o';
+    conceptsExplorer.title.closable = false;
+
+    const conceptsIframe = document.createElement('iframe');
+    conceptsIframe.style.width = '100%';
+    conceptsIframe.style.height = '100%';
+    conceptsIframe.style.border = 'none';
+    conceptsIframe.srcdoc = conceptsExplorerHtml(initialCase);
+    conceptsExplorer.node.appendChild(conceptsIframe);
+
+    this.conceptsWidget = conceptsExplorer;
+    this.shell.addWidget(conceptsExplorer, { area: 'left', rank: 550 });
+  }
+
   updateSidebarCase(caseName: string): void {
-    if (this.sidebarWidget) {
-      const iframe = this.sidebarWidget.node.querySelector('iframe');
+    if (this.uploadModalElement) {
+      const iframe = this.uploadModalElement.querySelector('iframe');
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
       }
     }
     if (this.wikiWidget) {
       const iframe = this.wikiWidget.node.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
+      }
+    }
+    if (this.conceptsWidget) {
+      const iframe = this.conceptsWidget.node.querySelector('iframe');
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
       }
@@ -402,24 +503,121 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     checkMonaco();
   }
 
-  // ─── Law Completion (@@-triggered ghost text) ──────────────────────────────
+  // ─── Law Completion (@@-triggered dropdown) ──────────────────────────────
 
   registerLawCompletion(): void {
-    // Small in-flight request cache to avoid hammering the API on every keystroke
+    const LAW_DOMAINS = [
+      { code: 'arb', label: 'ARB - Arbitration Act' },
+      { code: 'cca', label: 'CCA - Commercial Courts Act' },
+      { code: 'dpdp', label: 'DPDP - Digital Data Protection Act' },
+      { code: 'esi', label: 'ESI - Employee State Insurance Act' },
+      { code: 'iarb', label: 'IARB - International Arbitration Act' },
+      { code: 'ibc', label: 'IBC - Insolvency & Bankruptcy Code' },
+      { code: 'ica', label: 'ICA - Indian Contract Act' },
+      { code: 'lima', label: 'LIMA - Limitation Act' },
+      { code: 'llp', label: 'LLP - Limited Liability Partnership Act' },
+      { code: 'mca', label: 'MCA - Companies Act' },
+      { code: 'meda', label: 'MEDA - Mediation Act' },
+      { code: 'msme', label: 'MSME - MSME Enterprises Act' },
+      { code: 'nia', label: 'NIA - Negotiable Instruments Act' },
+      { code: 'pa', label: 'PA - Partnership Act' },
+      { code: 'pfa', label: 'PFA - Provident Funds Act' },
+      { code: 'pmla', label: 'PMLA - Prevention of Money Laundering Act' },
+      { code: 'rdba', label: 'RDBA - Debt Recovery Act' },
+      { code: 'rera', label: 'RERA - Real Estate Regulation Act' },
+      { code: 'sarfaesi', label: 'SARFAESI - Sarfaesi Act' },
+      { code: 'sebi', label: 'SEBI - Securities Exchange Act' },
+      { code: 'soga', label: 'SOGA - Sale of Goods Act' },
+      { code: 'tpa', label: 'TPA - Transfer of Property Act' }
+    ];
+
+    const IBC_SUBDOMAINS = [
+      { code: 'ciftp', label: 'CIFTP - Corporate Fast Track Process' },
+      { code: 'cilp', label: 'CILP - Corporate Liquidation Process' },
+      { code: 'cippp', label: 'CIPPP - Corporate Prepack Process' },
+      { code: 'cirp', label: 'CIRP - Corporate Resolution Process' },
+      { code: 'civlp', label: 'CIVLP - Corporate Voluntary Liquidation Process' },
+      { code: 'ibbi', label: 'IBBI - IBBI Processes' },
+      { code: 'iema', label: 'IEMA - Individual Estate Management' },
+      { code: 'ifsp', label: 'IFSP - Individual Fresh Start Process' },
+      { code: 'iibp', label: 'IIBP - Individual Bankruptcy Process' },
+      { code: 'iirp', label: 'IIRP - Individual Resolution Process' },
+      { code: 'insp', label: 'INSP - IBBI Inspection Process' },
+      { code: 'misc', label: 'MISC - Miscellaneous' },
+      { code: 'nclt', label: 'NCLT - NCLT Processes' },
+      { code: 'penal', label: 'PENAL - Penal Provisions' },
+      { code: 'pgbp', label: 'PGBP - Personal Guarantor Bankruptcy Process' },
+      { code: 'pgrp', label: 'PGRP - Personal Guarantor Resolution Process' },
+      { code: 'prelim', label: 'PRELIM - Preliminary Definitions' }
+    ];
+
+    const MCA_SUBDOMAINS = [
+      { code: 'cc_aaa', label: 'Companies (Audit and Auditors) Rules' },
+      { code: 'cc_acc', label: 'Companies (Accounts) Rules' },
+      { code: 'cc_acisfi', label: 'Companies (Arrests in Connection with Investigation by Serious Fraud Investigation Office) Rules' },
+      { code: 'cc_actstd', label: 'The Companies - Accounting Standards' },
+      { code: 'cc_aod', label: 'Companies (Acceptance of Deposits) Rules' },
+      { code: 'cc_aop', label: 'Companies (Adjudication of Penalties) Rules' },
+      { code: 'cc_aqd', label: 'Companies (Appointment and Qualification of Directors) Rules' },
+      { code: 'cc_armp', label: 'Companies (Appointment and Remuneration of Managerial Personnel) Rules' },
+      { code: 'cc_atr', label: 'Companies (Authorised to Register) Rules' },
+      { code: 'cc_caa', label: 'Companies (Compromises, Arrangements and Amalgamations) Rules' },
+      { code: 'cc_cmdid', label: 'The Companies - Creation and Maintenance of databank of Independent Directors' },
+      { code: 'cc_cra', label: 'Companies (Cost Records and Audit) Rules' },
+      { code: 'cc_csrp', label: 'Companies (Corporate Social Responsibility Policy) Rules' },
+      { code: 'cc_dpd', label: 'Companies (Declaration and Payment of Dividend) Rules' },
+      { code: 'cc_fdf', label: 'Companies (Filing of Documents and Forms in Extensible Business Reporting Language) Rules' },
+      { code: 'cc_ias', label: 'Companies (Indian Accounting Standards) Rules' },
+      { code: 'cc_igdr', label: 'Companies (Issue of Global Depository Receipts) Rules' },
+      { code: 'cc_iii', label: 'Companies (Inspection, Investigation and Inquiry) Rules' },
+      { code: 'cc_incorp', label: 'Companies (Incorporation) Rules' },
+      { code: 'cc_lespj', label: 'Companies (Listing of equity shares in permissible jurisdictions) Rules' },
+      { code: 'cc_maa', label: 'Companies (Management and Administration) Rules' },
+      { code: 'cc_mac', label: 'Companies (Mediation and Conciliation) Rules' },
+      { code: 'cc_mbp', label: 'Companies (Meetings of Board and its Powers) Rules' },
+      { code: 'cc_misc', label: 'Companies (Miscellaneous) Rules' },
+      { code: 'cc_pas', label: 'Companies (Prospectus and Allotment of Securities) Rules' },
+      { code: 'cc_rfc', label: 'Companies (Registration of Foreign Companies) Rules' },
+      { code: 'cc_rncrc', label: 'Companies (Removal of Names of Companies from the Register of Companies) Rules' },
+      { code: 'cc_rnol', label: 'Companies (Restriction on Number of Layers) Rules' },
+      { code: 'cc_roc', label: 'The Companies - Registration of Charges' },
+      { code: 'cc_roff', label: 'The Companies - Registration Offices and Fees' },
+      { code: 'cc_rvv', label: 'The Companies - Registered Valuers and Valuation' },
+      { code: 'cc_sbo', label: 'Companies (Significant Beneficial Owners) Rules' },
+      { code: 'cc_scd', label: 'Companies (Share Capital and Debentures) Rules' },
+      { code: 'cc_sodd', label: 'Companies (Specification of Definitions Details) Rules' },
+      { code: 'cc_tpp', label: 'Companies (Transfer of Pending Proceedings) Rules' },
+      { code: 'cc_wup', label: 'Companies (Winding Up) Rules' },
+      { code: 'sec', label: 'Companies Act Sections (1 to 470)' },
+      { code: 'iepfa_aatr', label: 'The Investor Education and Protection Fund Authority - Accounting Audit Transfer and Refund' },
+      { code: 'iepfa_acm', label: 'IEPFA (Appointment of Chairperson and Members) Rules' },
+      { code: 'nclat_rst', label: 'NCLAT (Procedure for Reduction of Share Capital) Rules' },
+      { code: 'nclat_rules', label: 'National Company Appellate Law Tribunal - Rules' },
+      { code: 'nclat_sat', label: 'NCLAT (Salary, Allowances and other Terms) Rules' },
+      { code: 'nclt_prsc', label: 'NCLT (Procedure for Reduction of Share Capital) Rules' },
+      { code: 'nclt_rst', label: 'NCLT (Salary, Allowances and other Terms) Rules' },
+      { code: 'nclt_rules', label: 'National Company Law Tribunal - Rules' },
+      { code: 'nclt_sat', label: 'NCLT (Salary, Allowances and other Terms) Rules' },
+      { code: 'nfra_aptm', label: 'NFRA (Appointment of Part Time Members) Rules' },
+      { code: 'nfra_moa', label: 'The National Financial Reporting Authority - Manner of Appointment and other Terms and Conditions of Service of Chairperson and Members' },
+      { code: 'nfra_mtb', label: 'NFRA (Meeting for Transaction of Business) Rules' },
+      { code: 'nfra_rules', label: 'National Financial Reporting Authority Rules' },
+      { code: 'nidhi_rules', label: 'Nidhi Rules' },
+      { code: 'prod_co', label: 'Producer Companies Rules' }
+    ];
+
     const cache = new Map<string, any[]>();
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const fetchCompletions = async (triggerText: string): Promise<any[]> => {
       if (cache.has(triggerText)) return cache.get(triggerText)!;
       try {
         const res = await fetch(
-          `http://127.0.0.1:3210/api/laws/query?q=${encodeURIComponent(triggerText)}&n=3`
+          `http://127.0.0.1:3210/api/laws/query?q=${encodeURIComponent(triggerText)}&n=5`
         );
         if (!res.ok) return [];
         const json = await res.json();
         const results = json.results || [];
         cache.set(triggerText, results);
-        // Evict cache when it grows large
         if (cache.size > 200) {
           const firstKey = cache.keys().next().value;
           if (firstKey !== undefined) cache.delete(firstKey);
@@ -431,74 +629,100 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     };
 
     const checkMonaco = () => {
-      if (!monaco || !monaco.languages || !monaco.languages.registerInlineCompletionsProvider) {
+      if (!monaco || !monaco.languages || !monaco.languages.registerCompletionItemProvider) {
         setTimeout(checkMonaco, 300);
         return;
       }
 
-      // Register for all text-based languages commonly used in this workspace
       const LANGS = ['markdown', 'plaintext'];
 
       for (const lang of LANGS) {
-        monaco.languages.registerInlineCompletionsProvider(lang, {
-          // Called by Monaco on every cursor position change / keystroke
-          provideInlineCompletions: async (model: any, position: any, _context: any, token: any) => {
-            // Get text from start of line up to cursor
+        monaco.languages.registerCompletionItemProvider(lang, {
+          triggerCharacters: ['@', '/'],
+          provideCompletionItems: async (model: any, position: any, _context: any, token: any) => {
             const lineText: string = model.getLineContent(position.lineNumber);
             const textUpToCursor = lineText.substring(0, position.column - 1);
 
-            // Detect @@ trigger: must be the last thing the user typed
-            // Matches @@<anything> — capture the search term after @@
             const triggerMatch = textUpToCursor.match(/@@([\w\s./,-]*)$/);
-            if (!triggerMatch) return { items: [] };
+            if (!triggerMatch) return { suggestions: [] };
 
             const rawTrigger = triggerMatch[1].trim();
-            // Wait until user has typed at least 2 chars after @@ to avoid flicker
-            if (rawTrigger.length < 2) return { items: [] };
 
-            // Debounce: wait 200ms for user to stop typing before firing
-            await new Promise<void>(resolve => {
-              if (debounceTimer) clearTimeout(debounceTimer);
-              debounceTimer = setTimeout(resolve, 200);
-            });
-            if (token.isCancellationRequested) return { items: [] };
-
-            const results = await fetchCompletions(rawTrigger);
-            if (!results.length || token.isCancellationRequested) return { items: [] };
-
-            // Build inline completion items — one per result
-            const items = results.map((r: any) => {
-              // Strip YAML frontmatter from the law text before showing as ghost text
-              const cleanText = (r.text as string)
-                .replace(/^---[\s\S]*?---\r?\n?/, '')  // remove frontmatter
-                .trimStart();
-
-              // The ghost text replaces the @@ trigger + search term with the law text
-              const triggerStart = textUpToCursor.lastIndexOf('@@');
-              const insertRange = new monaco.Range(
+            const triggerStart = textUpToCursor.lastIndexOf('@@');
+            const replaceRange = new monaco.Range(
                 position.lineNumber,
-                triggerStart + 1,          // Monaco columns are 1-indexed
+                triggerStart + 1,
                 position.lineNumber,
                 position.column
-              );
-              const typedTrigger = textUpToCursor.substring(triggerStart);
-              
-              return {
-                insertText:   typedTrigger + '\n\n' + cleanText,
-                range:        insertRange
-              };
+            );
+
+            let suggestions: any[] = [];
+            const rawTriggerLower = rawTrigger.toLowerCase();
+            const isGlobalSearch = !rawTrigger.includes('/') && rawTrigger.length > 3 && !LAW_DOMAINS.some(d => d.code === rawTriggerLower);
+
+            // Level 1: Just typed @@, or typing the short code before the first slash
+            if (!rawTrigger.includes('/')) {
+                suggestions = LAW_DOMAINS.map(domain => ({
+                    label: domain.label,
+                    kind: monaco.languages.CompletionItemKind.Folder,
+                    insertText: `@@${domain.code}/`,
+                    range: replaceRange,
+                    detail: 'Law Corpus',
+                }));
+                // If they are just typing a domain name, return early to save network calls
+                if (!isGlobalSearch) return { suggestions };
+            }
+
+            const parts = rawTrigger.split('/');
+
+            // Level 2: Detect @@ibc/ and no further characters yet
+            if (parts.length === 2 && parts[0] === 'ibc' && parts[1] === '') {
+                const ibcSuggestions = IBC_SUBDOMAINS.map(sub => ({
+                    label: sub.label,
+                    kind: monaco.languages.CompletionItemKind.Folder,
+                    insertText: `@@ibc/${sub.code}/`,
+                    range: replaceRange,
+                    detail: 'Sub-Process',
+                }));
+                return { suggestions: ibcSuggestions };
+            }
+
+            // Level 2: Detect @@mca/ and no further characters yet
+            if (parts.length === 2 && parts[0] === 'mca' && parts[1] === '') {
+                const mcaSuggestions = MCA_SUBDOMAINS.map(sub => ({
+                    label: sub.label,
+                    kind: monaco.languages.CompletionItemKind.Folder,
+                    insertText: `@@mca/${sub.code}/`,
+                    range: replaceRange,
+                    detail: 'Chapter/Rule',
+                }));
+                return { suggestions: mcaSuggestions };
+            }
+
+            // Level 3 & Global Search: Fetch from backend
+            if (rawTrigger.length < 3) return { suggestions };
+
+            const results = await fetchCompletions(rawTrigger);
+            if (!results.length || token.isCancellationRequested) return { suggestions };
+
+            const backendSuggestions = results.map((r: any) => {
+                const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+                return {
+                    label: r.title || `Section ${r.section}`,
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: cleanText,
+                    range: replaceRange,
+                    detail: r.id,
+                    documentation: cleanText.substring(0, 200) + '...'
+                };
             });
 
-            return {
-              items
-            };
-          },
-
-          disposeInlineCompletions: (_completions: any, _reason: any) => { /* no-op */ }
+            return { suggestions: [...suggestions, ...backendSuggestions] };
+          }
         });
       }
 
-      this.logger.info('[TWILLM] Law completion (@@) registered for markdown and plaintext.');
+      this.logger.info('[TWILLM] Law completion Dropdown (@@) registered for markdown and plaintext.');
     };
 
     checkMonaco();

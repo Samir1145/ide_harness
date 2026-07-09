@@ -95,8 +95,17 @@ export class TwillmCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:openUploadSplit`, label: 'Upload and Split Document' },
-      { execute: async () => { await this.contribution.openUploadSplit(); }}
+      { id: `${TWILLM_NS}:openUploadSplit`, label: 'Upload to Twillm', iconClass: 'fa fa-upload' },
+      { 
+        execute: async () => { await this.contribution.openUploadSplit(); },
+        isVisible: (widget: any) => {
+          // If called without widget (e.g. from File Menu), always return true
+          if (!widget) return true;
+          // If rendering in a toolbar, only show on the explorer view
+          const id = (widget.id || '').toLowerCase();
+          return id.includes('explorer-view-container') || id === 'files';
+        }
+      }
     );
 
     registry.registerCommand(

@@ -24,3 +24,12 @@ twillm/twillm-wiki/tiddlers/vault-loader/
 # Test/Scratch directories
 **/scratch/
 .tempmediaStorage/
+
+# Secrets and environment configs
+.env
+**/.env
+
+# Law vault database assets
+**/vault/laws.vlt*
+**/vault/manifest.json
+**/vault/version.json
