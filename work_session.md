@@ -40,7 +40,25 @@ Decoupled the massive frontend extension monolith into isolated, single-responsi
 * Terminated conflicting background processes and launched the active application bundle.
 * Implemented auto-reconnect retry polling to Case Wiki Explorer Webview load functions to handle initial proxy startup delays.
 
+# TWILLM Work Session - 2026-07-09
+
+## Completed
+
+### 1. TabBar Toolbar Contribution Bugfix
+* Fixed missing upload icon in the explorer sidebar tab bar header:
+  - Bound `TwillmFrontendContribution` to the `TabBarToolbarContribution` interface in [twillm-frontend-module.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/twillm-frontend-module.ts#L17).
+  - Added the `icon: 'fa fa-upload'` property to the `TabBarToolbarRegistry` registration in [extension.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts#L82).
+  - Made the command visibility `isVisible` callback robust by checking for both container (`explorer-view-container`) and inner content widget (`files`) view IDs in [commands.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/commands.ts#L101-L107).
+
+### 2. Workspace File Exclusions
+* Added a local workspace settings file [.theia/settings.json](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/.theia/settings.json) to filter out internal `wiki/` and `concepts/` database directories from the main File Explorer sidebar. This hides system-generated markdown cards and page chunks to keep the workspace clean.
+
+### 3. Dedicated Concepts Sidebar Panel (Lightbulb Icon)
+* Implemented a new custom Concepts sidebar panel under the lightbulb icon (`fa fa-lightbulb-o`) ranked at `550` in the Left Panel.
+* Coded a dynamic iframe view `conceptsExplorerHtml(caseName)` inside [templates.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/templates.ts#L408) that reads `concepts/index.json` to display a tree structure of document chunks.
+* Added a `open-concept-chunk` event listener in [extension.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts#L309-L315) so double-clicking page chunks opens them using the native Theia editor.
+
 ---
 
 ## Next Steps
-* Proceed with Phase 2 items (hybrid BM25 + Vector KNN search embeddings setup).
+* Proceed with hybrid search setup (BM25 + sqlite-vec vector KNN embeddings) and dynamic CodeLens/Gutter markings.
