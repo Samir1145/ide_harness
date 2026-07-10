@@ -75,6 +75,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     this.initializeConceptsExplorerWidget();
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
+    this.enableWordIllusion();
   }
 
   registerToolbarItems(registry: TabBarToolbarRegistry): void {
@@ -726,6 +727,82 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     };
 
     checkMonaco();
+  }
+
+  private wordIllusionActive = false;
+  private wordIllusionStyleElement: HTMLStyleElement | undefined;
+
+  toggleWordIllusion(): void {
+    this.wordIllusionActive = !this.wordIllusionActive;
+    if (this.wordIllusionActive) {
+      this.enableWordIllusion();
+    } else {
+      this.disableWordIllusion();
+    }
+  }
+
+  enableWordIllusion(): void {
+    if (this.wordIllusionStyleElement) return;
+
+    const style = document.createElement('style');
+    style.id = 'twillm-word-illusion-style';
+    style.innerHTML = `
+      #theia-statusBar {
+        display: none !important;
+      }
+      .editor-widget {
+        background-color: #f3f2f1 !important;
+        display: flex !important;
+        justify-content: center !important;
+      }
+      .editor-widget > .monaco-editor {
+        max-width: 850px !important;
+        width: 100% !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.12) !important;
+        border-left: 1px solid #dcdcdc !important;
+        border-right: 1px solid #dcdcdc !important;
+      }
+      .monaco-editor,
+      .monaco-editor .margin,
+      .monaco-editor .overflow-guard,
+      .monaco-editor-background {
+        background-color: #faf9f6 !important;
+      }
+      .monaco-editor .view-line {
+        font-family: Garamond, Georgia, 'Times New Roman', serif !important;
+        font-size: 16.5px !important;
+        line-height: 1.6 !important;
+        color: #1a1a1a !important;
+      }
+      .monaco-editor .minimap {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+    this.wordIllusionStyleElement = style;
+    this.wordIllusionActive = true;
+    
+    this.triggerEditorLayout();
+    this.logger.info('[TWILLM] Word Illusion Layout enabled.');
+  }
+
+  disableWordIllusion(): void {
+    if (this.wordIllusionStyleElement) {
+      document.head.removeChild(this.wordIllusionStyleElement);
+      this.wordIllusionStyleElement = undefined;
+    }
+    this.wordIllusionActive = false;
+    this.triggerEditorLayout();
+    this.logger.info('[TWILLM] Word Illusion Layout disabled.');
+  }
+
+  private triggerEditorLayout(): void {
+    setTimeout(() => {
+      const active = this.editorManager.activeEditor;
+      if (active && (active as any).editor && typeof (active as any).editor.layout === 'function') {
+        (active as any).editor.layout();
+      }
+    }, 50);
   }
 
 }

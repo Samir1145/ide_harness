@@ -207,5 +207,13 @@ export class TwillmCommandContribution implements CommandContribution {
         }
       }}
     );
+
+    registry.registerCommand(
+      { id: `${TWILLM_NS}:toggleWordIllusion`, label: 'Toggle Word Illusion Layout' },
+      { execute: async () => {
+        this.contribution.toggleWordIllusion();
+      }}
+    );
   }
 }
+

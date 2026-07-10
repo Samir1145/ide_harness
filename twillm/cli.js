@@ -19,6 +19,38 @@ Options:
 `;
 
 async function bootstrapCase(caseDir) {
+    // Dynamically write/update .theia/settings.json and .vscode/settings.json to hide 'wiki' and 'concepts' database folders from File Explorer
+    const configDirs = ['.theia', '.vscode'];
+    for (const dirName of configDirs) {
+        try {
+            const dirPath = path.join(caseDir, dirName);
+            if (!fs.existsSync(dirPath)) {
+                fs.mkdirSync(dirPath, { recursive: true });
+            }
+            const settingsPath = path.join(dirPath, 'settings.json');
+            let settings = {};
+            if (fs.existsSync(settingsPath)) {
+                try {
+                    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+                } catch (_) {}
+            }
+            if (!settings['files.exclude']) {
+                settings['files.exclude'] = {};
+            }
+            settings['files.exclude']['**/wiki'] = true;
+            settings['files.exclude']['**/concepts'] = true;
+            settings['files.exclude']['wiki'] = true;
+            settings['files.exclude']['concepts'] = true;
+            settings['files.exclude']['**/wiki/**'] = true;
+            settings['files.exclude']['**/concepts/**'] = true;
+            settings['files.exclude']['wiki/'] = true;
+            settings['files.exclude']['concepts/'] = true;
+            fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+        } catch (e) {
+            console.warn(`[twillm] failed to write ${dirName}/settings.json for case ${caseDir}:`, e.message);
+        }
+    }
+
     const index = readIndex(caseDir);
     const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.md', '.txt'];
     const nonMdFiles = [];
