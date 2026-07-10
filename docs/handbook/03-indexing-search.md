@@ -1,24 +1,32 @@
 # Chapter 3: Inverted Indexing & SSE-Streamed RAG Search
 
-This step covers how the system tokenizes document terms, indexes them in a local postings database, and streams real-time LLM answers using Server-Sent Events.
+This chapter covers how the system tokenizes document terms, indexes them in a local BM25 postings database (Phase 2), and streams real-time LLM answers using Server-Sent Events.
 
 ---
 
 ## 1. User Perspective
 
+### When Does Indexing Happen?
+
+BM25 indexing is part of **Phase 2** — it only runs when the user explicitly clicks **"⚡ Build Concepts"** or **"🔄 Rebuild Concepts"** in the Concepts panel. This ensures the search index is always built from the final, user-reviewed version of the document, never from a raw OCR draft.
+
+Until Phase 2 is triggered, full-text search on that document returns no results. This is by design — searching stale pre-edit content would be misleading.
+
 ### Conversing with RAG
-Users interact with the case database using the **RAG Case Chat** panel (bottom/right sidebar):
+Users interact with the case database using the **RAG Case Chat** panel:
 1. Type a legal query (e.g. "What outstanding debts were claimed by the financial creditors?").
 2. The assistant responds **token-by-token** in real-time.
 3. Once finished, a **Citations** list appears showing the matching documents.
-4. Clicking a citation link (e.g., `handbook.md`) automatically opens that file in the editor, scrolls to the cited page segment, and highlights it in yellow for 5 seconds.
+4. Clicking a citation opens the file in the editor, scrolls to the cited page segment, and highlights it in yellow for 5 seconds.
 
 ---
 
-## 2. Admin & Developer Perspective
+## 2. Developer Perspective
 
-### Custom BM25 Index Database
-Instead of a heavy vector database, the application builds a clean inverted index (`bm25_index.json`) for each case workspace:
+### BM25 Index Structure
+
+One `bm25_index.json` per case workspace under `concepts/`:
+
 ```json
 {
   "version": 1,
@@ -30,17 +38,28 @@ Instead of a heavy vector database, the application builds a clean inverted inde
   }
 }
 ```
-* **Tokenizer/Stemmer**: Lowercases text, strips punctuation, discards 150+ legal/English stop words, and applies simple suffix-stemming (e.g., `defaults`, `defaulting` -> `default`).
-* **Auto-Sync Watcher**: When a markdown section is edited or saved, `watcher.js` incremental sync cleans the index postings for that document and adds the revised content on the fly, avoiding full index rebuilds.
 
-### LLM Client Fallback Hierarchy
-The `llm-client.js` module unifies local and cloud inference:
-1. **Ollama (Local Default)**: Pings `127.0.0.1:11434`. If healthy, runs inference offline (e.g. using `llama3.2:latest`).
-2. **Google Gemini (Cloud Fallback)**: If Ollama is offline or times out (3s), falls back to Google Gemini using `GEMINI_API_KEY`, formatting system prompts dynamically.
-3. **OpenAI (Cloud Alternative)**: If Gemini is unavailable, falls back to OpenAI using `OPENAI_API_KEY`.
+- **Tokenizer/Stemmer**: Lowercases, strips punctuation, discards 150+ legal/English stop words, applies simple suffix-stemming (`defaults`, `defaulting` → `default`).
+- **Phase 2 only**: Written by `ingestText()` inside `ingestion-file/text_ingest.js`. Never written during Phase 1 conversion.
+- **Rebuild-safe**: `triggerBuild` in the UI calls `POST /api/hayagriva/build-concepts` which calls `ingestFile(caseDir, companionPath, { conversionOnly: false })`, which reads the current `.md` from disk (with all user edits) and rebuilds the index from scratch.
+
+### LLM Client Routing
+
+`lib/llm-client.js` unifies local and cloud inference with a priority chain:
+
+| Priority | Provider | Condition |
+|---|---|---|
+| 1 | **OpenRouter** | `OPENROUTER_API_KEY` in `.env` AND image payloads present |
+| 2 | **Ollama** | Local server healthy at `127.0.0.1:11434` |
+| 3 | **Google Gemini** | `GEMINI_API_KEY` in environment |
+| 4 | **OpenAI** | `OPENAI_API_KEY` in environment |
+
+Vision OCR requests (PDF pages with images) always route to OpenRouter → `google/gemini-2.5-flash` with a 120-second timeout.
 
 ### SSE Streaming Pipeline
-The client communicates via `POST /api/twillm/query-stream`. The server reads chunks from the active LLM generator and writes events to the client:
+
+The client communicates via `POST /api/hayagriva/query-stream`. The server reads chunks from the active LLM generator and writes events:
+
 ```javascript
 res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -48,6 +67,21 @@ res.writeHead(200, {
     'Connection': 'keep-alive'
 });
 // Stream: res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`)
-// End: res.write(`data: ${JSON.stringify({ done: true, sources })}\n\n`)
+// End:    res.write(`data: ${JSON.stringify({ done: true, sources })}\n\n`)
 ```
+
 The RAG panel reads the stream using the browser's standard `ReadableStream` reader loop.
+
+### Environment Variables (`.env`)
+
+```bash
+# Required for Vision OCR on image-heavy PDF pages
+OPENROUTER_API_KEY=sk-or-v1-...
+
+# Optional cloud fallbacks for RAG/layout inference
+GEMINI_API_KEY=...
+OPENAI_API_KEY=...
+
+# Case vault encryption (required for law vault)
+VAULT_KEY=...
+```

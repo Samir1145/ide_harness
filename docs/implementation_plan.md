@@ -189,11 +189,11 @@ graph TD
 * **Tree nodes**: Each node represents a `.md` file inside the `/wiki/` folder.
 * **Double-click behavior**: Opens the raw Markdown file directly in the editor via `EditorManager.open()`.
 * **Advantages over iframe**: Automatic theme inheritance, native drag-and-drop, direct access to Theia DI services, no `postMessage` bridge needed.
-* **Registration** in `twillm-frontend-module.ts`:
+* **Registration** in `hayagriva-frontend-module.ts`:
   ```typescript
   bind(WikiTreeWidget).toSelf();
   bind(WidgetFactory).toDynamicValue(ctx => ({
-    id: 'twillm-wiki-explorer',
+    id: 'hayagriva-wiki-explorer',
     createWidget: () => ctx.container.getAsync(WikiTreeWidget)
   }));
   bind(AbstractViewContribution).to(WikiExplorerContribution);
@@ -206,12 +206,12 @@ graph TD
   1. **PDF Zone** (Red themed) — toggle for *Digital* vs *Scanned* mode
   2. **Word Zone** (Blue themed)
   3. **Excel Zone** (Green themed)
-* Replace `window.parent.twillmXyz()` globals with a structured `postMessage` protocol:
+* Replace `window.parent.hayagrivaXyz()` globals with a structured `postMessage` protocol:
   ```javascript
-  // Instead of: window.parent.twillmOpenPreview(...)
+  // Instead of: window.parent.hayagrivaOpenPreview(...)
   // Use:
   window.parent.postMessage({
-    type: 'twillm:open-preview',
+    type: 'hayagriva:open-preview',
     payload: { caseName, filePath, profile, option }
   }, '*');
   ```
@@ -272,7 +272,7 @@ graph TD
 
 ### G. SSE Streaming for RAG Responses
 
-#### New Endpoint: `POST /api/twillm/query-stream`
+#### New Endpoint: `POST /api/hayagriva/query-stream`
 * Sets SSE headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`.
 * Pipeline:
   1. Receive query from chat panel.
@@ -314,7 +314,7 @@ graph TD
   │ Payment due within 30 days.     │ Payment due within ██ 15 days ██. │
   └─────────────────────────────────┴───────────────────────────────────┘
   ```
-* **Implementation**: Register a command `twillm:compareDocuments` that encodes two URIs via `DiffUris.encode(leftUri, rightUri)` and opens via `openerService.getOpener(diffUri).open(diffUri)`.
+* **Implementation**: Register a command `hayagriva:compareDocuments` that encodes two URIs via `DiffUris.encode(leftUri, rightUri)` and opens via `openerService.getOpener(diffUri).open(diffUri)`.
 
 ### K. Smart Outline Context Menu
 * Augment Theia's built-in **Outline view** (which shows `## Page X` headings for Markdown files) with right-click context actions on each heading node:
@@ -361,24 +361,24 @@ We will refactor the frontend monolith `extension.ts` by splitting its concerns 
 
 #### [NEW] `src/browser/highlight-decorator.ts`
 * Handles editor styling, Monco line decorations, and style sheet injections.
-* Classes: `TwillmEditorDecorator` exposing `applyHighlight(editor, lineIndex)`.
+* Classes: `HayagrivaEditorDecorator` exposing `applyHighlight(editor, lineIndex)`.
 
 #### [NEW] `src/browser/commands.ts`
 * Registers command IDs and executors.
 * Binds menu context nodes and actions for diff comparisons, outline context actions, and panels spawning.
 
-#### [MODIFY] [extension.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts)
+#### [MODIFY] [extension.ts](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/extension.ts)
 * Left as the main extension orchestration file.
 * Responsible for contribution hookups, `postMessage` broker routing between panels, and Workspace/Editor service state listeners.
 
-#### [MODIFY] [twillm-frontend-module.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/twillm-frontend-module.ts)
+#### [MODIFY] [hayagriva-frontend-module.ts](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/hayagriva-frontend-module.ts)
 * Contains standard dependency injection bindings.
 
 ---
 
 ### B. Backend — Converter, Splitter, Search, & Watcher Updates
 
-#### [MODIFY] [watcher.js](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/twillm/lib/watcher.js)
+#### [MODIFY] [watcher.js](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/hayagriva/lib/watcher.js)
 * Implement `unlink` chokidar event listener to delete index keys and concepts folders.
 
 ---
@@ -507,7 +507,7 @@ A native Theia widget (shown in the bottom panel) displaying a live overview of 
 * Extends `ReactWidget`, registered via `AbstractViewContribution` in the `bottom` area.
 * Fetches stats from `index.json`, counts files in `/wiki/` and `/concepts/`, reads `bm25_index.json` metadata.
 * Refreshes on a 30-second interval or on file system events from the watcher.
-* Action buttons call existing API endpoints (`/api/twillm/ingest`, etc.).
+* Action buttons call existing API endpoints (`/api/hayagriva/ingest`, etc.).
 
 #### New Files
 * **[NEW] `src/browser/case-health-widget.ts`** — ReactWidget subclass for the dashboard.
@@ -543,7 +543,7 @@ Clicking any segment navigates:
 
 ### Phase 2 Dependencies
 
-#### [MODIFY] `package.json` (twillm)
+#### [MODIFY] `package.json` (hayagriva)
 ```diff
   "dependencies": {
     "chokidar": "^3.6.0",
@@ -583,7 +583,7 @@ node -e "const t = require('./lib/timeline'); console.log(t.extractDates(testMd)
 node cli.js /Users/atulgrover/Documents/Case_Alpha --ingest /path/to/test.pdf
 
 # Integration test: SSE streaming query
-curl -N -X POST http://127.0.0.1:3210/api/twillm/query-stream \
+curl -N -X POST http://127.0.0.1:3210/api/hayagriva/query-stream \
   -H 'Content-Type: application/json' \
   -d '{"case":"Case_Alpha","query":"What is the CIRP timeline?"}'
 ```

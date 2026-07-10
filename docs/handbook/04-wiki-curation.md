@@ -47,4 +47,4 @@ if (hit.docId.startsWith('wiki::')) {
 ### Context Synchronization
 When a new Wiki card is saved, the webview sends a `refresh-wiki-explorer` message to the parent extension:
 * The extension dispatches a `select-case` event to the Wiki Explorer iframe.
-* The iframe queries `GET /api/twillm/wiki-cards?case=Case_Alpha` to reload the cards list instantly.
+* The iframe queries `GET /api/hayagriva/wiki-cards?case=Case_Alpha` to reload the cards list instantly.

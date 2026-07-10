@@ -31,15 +31,15 @@ set -e
 
 # Dynamically resolve root directory of the command
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TWILLM_DIR="$ROOT_DIR/twillm"
+HAYAGRIVA_DIR="$ROOT_DIR/hayagriva"
 THEIA_DIR="$ROOT_DIR/ide/applications/electron"
 LOGFILE="/tmp/hayagriva-launcher.log"
 
-# Load VAULT_KEY and any other secrets from twillm/.env (never committed to git)
-if [ -f "$TWILLM_DIR/.env" ]; then
+# Load VAULT_KEY and any other secrets from hayagriva/.env (never committed to git)
+if [ -f "$HAYAGRIVA_DIR/.env" ]; then
     set -a
     # shellcheck disable=SC1090
-    source "$TWILLM_DIR/.env"
+    source "$HAYAGRIVA_DIR/.env"
     set +a
 fi
 
@@ -54,16 +54,16 @@ if [ -n "$VAULT_KEY" ]; then
 fi
 
 
-# Check if twillm proxy is already running
+# Check if hayagriva proxy is already running
 PORT=3210
 if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1 ; then
     log "Hayagriva proxy already running on port $PORT"
 else
     log "Starting Hayagriva proxy..."
-    cd "$TWILLM_DIR"
+    cd "$HAYAGRIVA_DIR"
     nohup node cli.js --watch-all >> "$LOGFILE" 2>&1 &
-    TWILLM_PID=$!
-    log "Hayagriva proxy started (PID: $TWILLM_PID)"
+    HAYAGRIVA_PID=$!
+    log "Hayagriva proxy started (PID: $HAYAGRIVA_PID)"
     
     # Wait for proxy to be ready
     for i in {1..30}; do

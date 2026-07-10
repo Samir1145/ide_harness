@@ -1,16 +1,16 @@
-# Working on twillm
+# Working on hayagriva
 
-This is the twillm project repo, not an end-user vault. twillm is a Node CLI that materialises a TiddlyWiki working directory (`twillm-wiki/`) in a user's repo and serves their Markdown vault as a live-watched TiddlyWiki.
+This is the hayagriva project repo, not an end-user vault. hayagriva is a Node CLI that materialises a TiddlyWiki working directory (`hayagriva-wiki/`) in a user's repo and serves their Markdown vault as a live-watched TiddlyWiki.
 
 End-user docs are in [README.md](README.md). Architecture notes, design decisions, and the TODO list are in [DEVELOPMENT.md](DEVELOPMENT.md). Read both before non-trivial changes.
 
 ## Repo layout
 
-- `cli.js` — CLI entry point. Detects the user's vault, materialises `twillm-wiki/`, spawns TiddlyWiki.
-- `template-wiki/` — the wiki template that gets copied into a user's `twillm-wiki/` on first run. Edit here to change what users get.
+- `cli.js` — CLI entry point. Detects the user's vault, materialises `hayagriva-wiki/`, spawns TiddlyWiki.
+- `template-wiki/` — the wiki template that gets copied into a user's `hayagriva-wiki/` on first run. Edit here to change what users get.
 - `vault/` — test fixture. Sample Markdown content used by `npm start` and `npm run build`.
 - `handoff.md`, `README.md`, `CLAUDE.md` — docs.
-- `twillm-wiki/` — generated at runtime by `npm start` / `npm run build`. Gitignored. Don't commit.
+- `hayagriva-wiki/` — generated at runtime by `npm start` / `npm run build`. Gitignored. Don't commit.
 
 ## Editing the test vault
 
@@ -26,7 +26,7 @@ The tiddlers in `vault/` are demo content. Add to them when you want to exercise
 
 ## Editing template-wiki/
 
-This is what users get. Be conservative — every change ships to everyone who runs `npx github:Jermolene/twillm`.
+This is what users get. Be conservative — every change ships to everyone who runs `npx github:Jermolene/hayagriva`.
 
 - `template-wiki/tiddlywiki.info` — wiki configuration. Plugins listed here are required of every user.
 - `template-wiki/tiddlers/$__SiteTitle.tid`, `$__SiteSubtitle.tid` — defaults users will probably override
@@ -36,7 +36,7 @@ This is what users get. Be conservative — every change ships to everyone who r
 ## Editing cli.js
 
 - Vault detection order is documented in the file header. Don't reorder without updating docs.
-- The `twillm-wiki/` materialisation is idempotent: copy template only if the directory doesn't exist; rewrite `vault-loader/tiddlywiki.files` every run (vault path may have moved).
+- The `hayagriva-wiki/` materialisation is idempotent: copy template only if the directory doesn't exist; rewrite `vault-loader/tiddlywiki.files` every run (vault path may have moved).
 - Pass-through args after `--` go to TiddlyWiki. Default command is `--listen` if nothing was passed.
 
 ## Don't run servers without being asked
@@ -53,7 +53,7 @@ Several load-bearing pieces live in TiddlyWiki itself, on the [`bidirectional-fi
 - Boot-ordering fix for plugin-provided deserializers
 - `tiddlerserializer` module type
 
-If you find a bug whose root cause is in TiddlyWiki, surface it (don't paper over with a workaround in twillm). Jeremy maintains both repos and can fix upstream.
+If you find a bug whose root cause is in TiddlyWiki, surface it (don't paper over with a workaround in hayagriva). Jeremy maintains both repos and can fix upstream.
 
 ## Style
 

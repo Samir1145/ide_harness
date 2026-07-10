@@ -1,18 +1,18 @@
 {
-  "name": "twillm-theia-extension",
+  "name": "hayagriva-theia-extension",
   "version": "0.1.0",
-  "description": "TWILLM integration for Theia: upload, wiki viewer, RAG chat",
+  "description": "Hayagriva integration for Theia: upload, wiki viewer, RAG chat",
   "keywords": [
     "theia",
-    "twillm",
+    "hayagriva",
     "wiki",
     "rag"
   ],
   "license": "MIT",
   "theiaExtensions": [
     {
-      "frontend": "lib/browser/twillm-frontend-module",
-      "backend": "lib/electron-main/twillm-electron-main-module"
+      "frontend": "lib/browser/hayagriva-frontend-module",
+      "backend": "lib/electron-main/hayagriva-electron-main-module"
     }
   ],
   "dependencies": {

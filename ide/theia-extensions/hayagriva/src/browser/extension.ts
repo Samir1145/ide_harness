@@ -1,5 +1,6 @@
 import * as monaco from '@theia/monaco-editor-core';
 import { inject, injectable } from '@theia/core/shared/inversify';
+import { ThemeService } from '@theia/core/lib/browser/theming';
 import {
   FrontendApplicationContribution,
   FrontendApplication,
@@ -13,7 +14,7 @@ import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { ILogger } from '@theia/core/lib/common';
 import { Widget } from '@lumino/widgets';
 import URI from '@theia/core/lib/common/uri';
-import { TwillmEditorDecorator } from './highlight-decorator';
+import { HayagrivaEditorDecorator } from './highlight-decorator';
 import {
   sidebarHtml,
   wikiExplorerHtml,
@@ -26,10 +27,10 @@ function getBasename(p: string): string {
 }
 
 @injectable()
-export class TwillmFrontendContribution implements FrontendApplicationContribution, OpenHandler, TabBarToolbarContribution {
+export class HayagrivaFrontendContribution implements FrontendApplicationContribution, OpenHandler, TabBarToolbarContribution {
 
-  readonly id = 'twillm-wiki-open-handler';
-  readonly label = 'TWILLM Wiki Viewer';
+  readonly id = 'hayagriva-wiki-open-handler';
+  readonly label = 'HAYAGRIVA Wiki Viewer';
 
   private uploadModalElement: HTMLElement | undefined;
   private wikiWidget: Widget | undefined;
@@ -39,20 +40,21 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
     @inject(EditorManager) private readonly editorManager: EditorManager,
     @inject(ApplicationShell) private readonly shell: ApplicationShell,
-    @inject(TwillmEditorDecorator) private readonly decorator: TwillmEditorDecorator,
+    @inject(HayagrivaEditorDecorator) private readonly decorator: HayagrivaEditorDecorator,
     @inject(ILogger) private readonly logger: ILogger,
-    @inject(WidgetManager) private readonly widgetManager: WidgetManager
+    @inject(WidgetManager) private readonly widgetManager: WidgetManager,
+    @inject(ThemeService) private readonly themeService: ThemeService
   ) {}
 
   canHandle(uri: URI): number {
-    if (uri.scheme === 'twillm-citation') {
+    if (uri.scheme === 'hayagriva-citation') {
       return 100;
     }
     return 0;
   }
 
   async open(uri: URI): Promise<Widget> {
-    if (uri.scheme === 'twillm-citation') {
+    if (uri.scheme === 'hayagriva-citation') {
       const docName = decodeURIComponent(uri.authority);
       const query = uri.query;
       const pageMatch = query.match(/page=(\d+)/);
@@ -75,16 +77,22 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     this.initializeConceptsExplorerWidget();
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
-    this.enableWordIllusion();
   }
 
   registerToolbarItems(registry: TabBarToolbarRegistry): void {
     registry.registerItem({
-      id: 'twillm-upload-toolbar-item',
-      command: 'twillm:openUploadSplit',
-      tooltip: 'Upload to Twillm',
+      id: 'hayagriva-upload-toolbar-item',
+      command: 'hayagriva:openUploadSplit',
+      tooltip: 'Upload to Hayagriva',
       icon: 'fa fa-upload',
       priority: 0,
+    });
+    registry.registerItem({
+      id: 'hayagriva-theme-toolbar-item',
+      command: 'hayagriva:toggleTheme',
+      tooltip: 'Toggle Light/Dark Theme',
+      icon: 'fa fa-adjust',
+      priority: 1,
     });
   }
 
@@ -92,9 +100,9 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     const leftWidgets = this.shell.getWidgets('left');
     for (const widget of leftWidgets) {
       const id = widget.id.toLowerCase();
-      // Keep only explorer-view-container (File Explorer), twillm-wiki-explorer, and twillm-concepts-explorer visible.
+      // Keep only explorer-view-container (File Explorer), hayagriva-wiki-explorer, and hayagriva-concepts-explorer visible.
       // Close all other widgets in the left sidebar.
-      if (id !== 'explorer-view-container' && id !== 'twillm-wiki-explorer' && id !== 'twillm-concepts-explorer') {
+      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer') {
         widget.close();
       }
     }
@@ -120,7 +128,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
         }
       }
     } catch (e: any) {
-      this.logger.error(`[TWILLM] Error resolving workspace root relative path: ${e.message}`);
+      this.logger.error(`[HAYAGRIVA] Error resolving workspace root relative path: ${e.message}`);
     }
 
     const idx = filePath.indexOf('/Documents/');
@@ -145,19 +153,19 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
 
   async ingestDocument(filePath: string, caseName: string): Promise<void> {
     try {
-      const res = await fetch('http://127.0.0.1:3210/api/twillm/ingest', {
+      const res = await fetch('http://127.0.0.1:3210/api/hayagriva/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ case: caseName, file: filePath })
       });
       const result = await res.json();
       if (result.success) {
-        this.logger.info(`[TWILLM] Ingested ${getBasename(filePath)}`);
+        this.logger.info(`[HAYAGRIVA] Ingested ${getBasename(filePath)}`);
       } else {
         throw new Error(result.error || 'Ingest failed');
       }
     } catch (e: any) {
-      this.logger.error(`[TWILLM] Ingest failed: ${e.message}`);
+      this.logger.error(`[HAYAGRIVA] Ingest failed: ${e.message}`);
       throw e;
     }
   }
@@ -173,7 +181,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
       const targetUri = workspaceUri.resolve('index.md');
       await this.editorManager.open(targetUri);
     } catch (e: any) {
-      this.logger.error(`[TWILLM] Failed to open native markdown wiki: ${e.message}`);
+      this.logger.error(`[HAYAGRIVA] Failed to open native markdown wiki: ${e.message}`);
     }
     return new Widget();
   }
@@ -254,7 +262,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
         }
       }
     }).catch(e => {
-      this.logger.error(`[TWILLM] Failed to prefill chat input: ${e.message}`);
+      this.logger.error(`[HAYAGRIVA] Failed to prefill chat input: ${e.message}`);
     });
   }
 
@@ -276,7 +284,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     }
 
     const wikiExplorer = new Widget();
-    wikiExplorer.id = 'twillm-wiki-explorer';
+    wikiExplorer.id = 'hayagriva-wiki-explorer';
     wikiExplorer.title.label = 'Case Wiki';
     wikiExplorer.title.caption = 'Curated Case Wiki Cards';
     wikiExplorer.title.iconClass = 'fa fa-book';
@@ -323,7 +331,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
             const uri = new URI(workspaceRoot.toString()).resolve(relativePath);
             
             try {
-              const res = await fetch(`http://127.0.0.1:3210/api/twillm/read-file?path=${encodeURIComponent(uri.path.toString())}`);
+              const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/read-file?path=${encodeURIComponent(uri.path.toString())}`);
               if (!res.ok) throw new Error();
               const fileContent = await res.text();
               const lines = fileContent.split(/\r?\n/);
@@ -378,7 +386,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     }
 
     const conceptsExplorer = new Widget();
-    conceptsExplorer.id = 'twillm-concepts-explorer';
+    conceptsExplorer.id = 'hayagriva-concepts-explorer';
     conceptsExplorer.title.label = 'Concepts';
     conceptsExplorer.title.caption = 'Case Document Chunks & Concepts';
     conceptsExplorer.title.iconClass = 'fa fa-lightbulb-o';
@@ -424,7 +432,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     
     try {
       const treeUri = conceptsUri.resolve('pageindex_tree.json');
-      const res = await fetch(`http://127.0.0.1:3210/api/twillm/read-file?path=${encodeURIComponent(treeUri.path.toString())}`);
+      const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/read-file?path=${encodeURIComponent(treeUri.path.toString())}`);
       if (!res.ok) throw new Error();
       
       const treeData = await res.json();
@@ -464,7 +472,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
         this.decorator.applyHighlight(editor, 0);
       }
     } catch (e: any) {
-      this.logger.error(`[TWILLM] Failed to open side-by-side split citation: ${e.message}`);
+      this.logger.error(`[HAYAGRIVA] Failed to open side-by-side split citation: ${e.message}`);
     }
   }
 
@@ -489,14 +497,14 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
                 
                 links.push({
                   range: new monaco.Range(i + 1, startCol, i + 1, endCol),
-                  url: `twillm-citation://${encodeURIComponent(docName)}?page=${pageNum}`
+                  url: `hayagriva-citation://${encodeURIComponent(docName)}?page=${pageNum}`
                 });
               }
             }
             return { links };
           }
         });
-        this.logger.info('[TWILLM] Successfully registered Monaco Link Provider for Citations.');
+        this.logger.info('[HAYAGRIVA] Successfully registered Monaco Link Provider for Citations.');
       } else {
         setTimeout(checkMonaco, 200);
       }
@@ -644,15 +652,15 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
             const lineText: string = model.getLineContent(position.lineNumber);
             const textUpToCursor = lineText.substring(0, position.column - 1);
 
-            const triggerMatch = textUpToCursor.match(/@@([\w\s./,-]*)$/);
+            const triggerMatch = textUpToCursor.match(/@@?([\w\s./,-]*)$/);
             if (!triggerMatch) return { suggestions: [] };
 
+            const matchIdx = textUpToCursor.search(/@@?([\w\s./,-]*)$/);
             const rawTrigger = triggerMatch[1].trim();
 
-            const triggerStart = textUpToCursor.lastIndexOf('@@');
             const replaceRange = new monaco.Range(
                 position.lineNumber,
-                triggerStart + 1,
+                matchIdx + 1,
                 position.lineNumber,
                 position.column
             );
@@ -664,7 +672,8 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
             // Level 1: Just typed @@, or typing the short code before the first slash
             if (!rawTrigger.includes('/')) {
                 suggestions = LAW_DOMAINS.map(domain => ({
-                    label: domain.label,
+                    label: `@@${domain.code.toUpperCase()} - ${domain.label}`,
+                    filterText: `@@${domain.code.toLowerCase()}`,
                     kind: monaco.languages.CompletionItemKind.Folder,
                     insertText: `@@${domain.code}/`,
                     range: replaceRange,
@@ -679,7 +688,8 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
             // Level 2: Detect @@ibc/ and no further characters yet
             if (parts.length === 2 && parts[0] === 'ibc' && parts[1] === '') {
                 const ibcSuggestions = IBC_SUBDOMAINS.map(sub => ({
-                    label: sub.label,
+                    label: `@@ibc/${sub.code.toLowerCase()} - ${sub.label}`,
+                    filterText: `@@ibc/${sub.code.toLowerCase()}`,
                     kind: monaco.languages.CompletionItemKind.Folder,
                     insertText: `@@ibc/${sub.code}/`,
                     range: replaceRange,
@@ -691,7 +701,8 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
             // Level 2: Detect @@mca/ and no further characters yet
             if (parts.length === 2 && parts[0] === 'mca' && parts[1] === '') {
                 const mcaSuggestions = MCA_SUBDOMAINS.map(sub => ({
-                    label: sub.label,
+                    label: `@@mca/${sub.code.toLowerCase()} - ${sub.label}`,
+                    filterText: `@@mca/${sub.code.toLowerCase()}`,
                     kind: monaco.languages.CompletionItemKind.Folder,
                     insertText: `@@mca/${sub.code}/`,
                     range: replaceRange,
@@ -709,7 +720,8 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
             const backendSuggestions = results.map((r: any) => {
                 const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
                 return {
-                    label: r.title || `Section ${r.section}`,
+                    label: `@@${rawTrigger} → ${r.title || `Section ${r.section}`}`,
+                    filterText: `@@${rawTrigger}`,
                     kind: monaco.languages.CompletionItemKind.Snippet,
                     insertText: cleanText,
                     range: replaceRange,
@@ -723,7 +735,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
         });
       }
 
-      this.logger.info('[TWILLM] Law completion Dropdown (@@) registered for markdown and plaintext.');
+      this.logger.info('[HAYAGRIVA] Law completion Dropdown (@@) registered for markdown and plaintext.');
     };
 
     checkMonaco();
@@ -745,7 +757,7 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     if (this.wordIllusionStyleElement) return;
 
     const style = document.createElement('style');
-    style.id = 'twillm-word-illusion-style';
+    style.id = 'hayagriva-word-illusion-style';
     style.innerHTML = `
       #theia-statusBar {
         display: none !important;
@@ -777,13 +789,51 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
       .monaco-editor .minimap {
         display: none !important;
       }
+      /* Direct overrides for editor token classes in dark or light theme */
+      .monaco-editor .mtk1,
+      .monaco-editor .mtk2,
+      .monaco-editor .mtk3,
+      .monaco-editor .mtk4,
+      .monaco-editor .mtk5,
+      .monaco-editor .mtk6,
+      .monaco-editor .mtk7,
+      .monaco-editor .mtk8,
+      .monaco-editor .mtk9,
+      .monaco-editor .mtk10,
+      .monaco-editor .mtk11,
+      .monaco-editor .mtk12,
+      .monaco-editor .mtk13,
+      .monaco-editor .mtk14,
+      .monaco-editor .mtk15,
+      .monaco-editor .mtk16,
+      .monaco-editor .mtk17,
+      .monaco-editor .mtk18,
+      .monaco-editor .mtk19,
+      .monaco-editor .mtk20,
+      .monaco-editor .mtki,
+      .monaco-editor .mtkb {
+        color: #1a1a1a !important;
+      }
+      /* Override cursor and selection for readability */
+      .monaco-editor .cursor {
+        color: #1a1a1a !important;
+        background-color: #1a1a1a !important;
+        border-left: 2px solid #1a1a1a !important;
+      }
+      .monaco-editor .selected-text {
+        background-color: rgba(0, 120, 215, 0.15) !important;
+      }
+      /* Style editor line numbers for readability */
+      .monaco-editor .line-numbers {
+        color: #8c8c8c !important;
+      }
     `;
     document.head.appendChild(style);
     this.wordIllusionStyleElement = style;
     this.wordIllusionActive = true;
     
     this.triggerEditorLayout();
-    this.logger.info('[TWILLM] Word Illusion Layout enabled.');
+    this.logger.info('[HAYAGRIVA] Word Illusion Layout enabled.');
   }
 
   disableWordIllusion(): void {
@@ -793,7 +843,18 @@ export class TwillmFrontendContribution implements FrontendApplicationContributi
     }
     this.wordIllusionActive = false;
     this.triggerEditorLayout();
-    this.logger.info('[TWILLM] Word Illusion Layout disabled.');
+    this.logger.info('[HAYAGRIVA] Word Illusion Layout disabled.');
+  }
+
+  toggleTheme(): void {
+    const current = this.themeService.getCurrentTheme();
+    if (current.id === 'dark') {
+      this.themeService.setCurrentTheme('light', true);
+      this.logger.info('[HAYAGRIVA] Switched IDE Theme to Light.');
+    } else {
+      this.themeService.setCurrentTheme('dark', true);
+      this.logger.info('[HAYAGRIVA] Switched IDE Theme to Dark.');
+    }
   }
 
   private triggerEditorLayout(): void {

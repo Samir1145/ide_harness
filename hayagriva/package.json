@@ -1,9 +1,9 @@
 {
-  "name": "twillm",
+  "name": "hayagriva",
   "version": "0.1.0",
   "description": "Karpathy-style wiki/LLM runner for local case folders",
   "bin": {
-    "twillm": "./cli.js"
+    "hayagriva": "./cli.js"
   },
   "files": [
     "cli.js",

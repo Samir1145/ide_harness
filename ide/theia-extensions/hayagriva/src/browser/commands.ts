@@ -3,9 +3,9 @@ import { CommandContribution, CommandRegistry, ILogger } from '@theia/core/lib/c
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import URI from '@theia/core/lib/common/uri';
-import { TwillmFrontendContribution } from './extension';
+import { HayagrivaFrontendContribution } from './extension';
 
-const TWILLM_NS = 'twillm';
+const HAYAGRIVA_NS = 'hayagriva';
 
 function getBasename(p: string): string {
   const parts = p.split(/[\\/]/);
@@ -13,18 +13,18 @@ function getBasename(p: string): string {
 }
 
 @injectable()
-export class TwillmCommandContribution implements CommandContribution {
+export class HayagrivaCommandContribution implements CommandContribution {
 
   constructor(
     @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
     @inject(EditorManager) private readonly editorManager: EditorManager,
-    @inject(TwillmFrontendContribution) private readonly contribution: TwillmFrontendContribution,
+    @inject(HayagrivaFrontendContribution) private readonly contribution: HayagrivaFrontendContribution,
     @inject(ILogger) private readonly logger: ILogger
   ) {}
 
   registerCommands(registry: CommandRegistry): void {
     registry.registerCommand(
-      { id: `${TWILLM_NS}:ingest`, label: 'Ingest Document' },
+      { id: `${HAYAGRIVA_NS}:ingest`, label: 'Ingest Document' },
       { execute: async (uri?: URI) => {
         let resourceUri = uri;
         if (!resourceUri) {
@@ -34,7 +34,7 @@ export class TwillmCommandContribution implements CommandContribution {
           }
         }
         if (!resourceUri) {
-          this.logger.error('[TWILLM] No file selected for ingestion');
+          this.logger.error('[HAYAGRIVA] No file selected for ingestion');
           return;
         }
         const filePath = resourceUri.path.toString();
@@ -44,7 +44,7 @@ export class TwillmCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:openWiki`, label: 'Open Companion Wiki' },
+      { id: `${HAYAGRIVA_NS}:openWiki`, label: 'Open Companion Wiki' },
       { execute: async (uri?: URI) => {
         let resourceUri = uri;
         if (!resourceUri) {
@@ -54,7 +54,7 @@ export class TwillmCommandContribution implements CommandContribution {
           }
         }
         if (!resourceUri) {
-          this.logger.error('[TWILLM] No file selected to open wiki');
+          this.logger.error('[HAYAGRIVA] No file selected to open wiki');
           return;
         }
         const filePath = resourceUri.path.toString();
@@ -66,7 +66,7 @@ export class TwillmCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:openCaseDashboard`, label: 'Open Case Dashboard Wiki' },
+      { id: `${HAYAGRIVA_NS}:openCaseDashboard`, label: 'Open Case Dashboard Wiki' },
       { execute: async (uri?: URI) => {
         let resourceUri = uri;
         if (!resourceUri) {
@@ -80,7 +80,7 @@ export class TwillmCommandContribution implements CommandContribution {
           if (ws) resourceUri = new URI(ws.toString());
         }
         if (!resourceUri) {
-          this.logger.error('[TWILLM] No active workspace selected');
+          this.logger.error('[HAYAGRIVA] No active workspace selected');
           return;
         }
         const filePath = resourceUri.path.toString();
@@ -90,12 +90,12 @@ export class TwillmCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:openRagChat`, label: 'Open RAG Chat' },
+      { id: `${HAYAGRIVA_NS}:openRagChat`, label: 'Open RAG Chat' },
       { execute: async () => { await this.contribution.openRagChat(); }}
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:openUploadSplit`, label: 'Upload to Twillm', iconClass: 'fa fa-upload' },
+      { id: `${HAYAGRIVA_NS}:openUploadSplit`, label: 'Upload to Hayagriva', iconClass: 'fa fa-upload' },
       { 
         execute: async () => { await this.contribution.openUploadSplit(); },
         isVisible: (widget: any) => {
@@ -109,7 +109,7 @@ export class TwillmCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:compareDocuments`, label: 'Compare with... (Diff)' },
+      { id: `${HAYAGRIVA_NS}:compareDocuments`, label: 'Compare with... (Diff)' },
       { execute: async (uri?: URI) => {
         let resourceUri = uri;
         if (!resourceUri) {
@@ -119,13 +119,13 @@ export class TwillmCommandContribution implements CommandContribution {
           }
         }
         if (!resourceUri) {
-          this.logger.error('[TWILLM] No active document open for comparison');
+          this.logger.error('[HAYAGRIVA] No active document open for comparison');
           return;
         }
 
         const caseName = this.contribution.getCaseName(resourceUri.path.toString());
         try {
-          const indexRes = await fetch(`http://127.0.0.1:3210/api/twillm/read-file?path=${encodeURIComponent(caseName + '/concepts/index.json')}`);
+          const indexRes = await fetch(`http://127.0.0.1:3210/api/hayagriva/read-file?path=${encodeURIComponent(caseName + '/concepts/index.json')}`);
           if (!indexRes.ok) throw new Error('Index not found');
           const indexData = await indexRes.json();
           const docs = indexData.documents || [];
@@ -152,14 +152,14 @@ export class TwillmCommandContribution implements CommandContribution {
             registry.executeCommand('vscode.diff', resourceUri, rightUri, `Comparison: ${getBasename(resourceUri.path.toString())} vs ${matchedDoc.title}`);
           }
         } catch (e: any) {
-          this.logger.error(`[TWILLM] Diff comparison failed: ${e.message}`);
+          this.logger.error(`[HAYAGRIVA] Diff comparison failed: ${e.message}`);
           alert('Failed to load case files for comparison.');
         }
       }}
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:outlineAskRag`, label: 'Ask about this section' },
+      { id: `${HAYAGRIVA_NS}:outlineAskRag`, label: 'Ask about this section' },
       { execute: async (node?: any) => {
         const label = node && node.name ? node.name : '';
         if (label) {
@@ -170,7 +170,7 @@ export class TwillmCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:outlineFindRelated`, label: 'Find related pages' },
+      { id: `${HAYAGRIVA_NS}:outlineFindRelated`, label: 'Find related pages' },
       { execute: async (node?: any) => {
         const label = node && node.name ? node.name : '';
         if (label) {
@@ -178,7 +178,7 @@ export class TwillmCommandContribution implements CommandContribution {
           if (activeEditor) {
             const caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
             try {
-              const res = await fetch(`http://127.0.0.1:3210/api/twillm/query`, {
+              const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/query`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ case: caseName, query: label })
@@ -190,7 +190,7 @@ export class TwillmCommandContribution implements CommandContribution {
                 alert('No related pages found.');
               }
             } catch (e: any) {
-              this.logger.error(`[TWILLM] Search failed: ${e.message}`);
+              this.logger.error(`[HAYAGRIVA] Search failed: ${e.message}`);
             }
           }
         }
@@ -198,7 +198,7 @@ export class TwillmCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:outlineAddToWiki`, label: 'Add to Wiki' },
+      { id: `${HAYAGRIVA_NS}:outlineAddToWiki`, label: 'Add to Wiki' },
       { execute: async (node?: any) => {
         const label = node && node.name ? node.name : '';
         if (label) {
@@ -209,9 +209,16 @@ export class TwillmCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${TWILLM_NS}:toggleWordIllusion`, label: 'Toggle Word Illusion Layout' },
+      { id: `${HAYAGRIVA_NS}:toggleWordIllusion`, label: 'Toggle Word Illusion Layout' },
       { execute: async () => {
         this.contribution.toggleWordIllusion();
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:toggleTheme`, label: 'Toggle Light/Dark Theme' },
+      { execute: async () => {
+        this.contribution.toggleTheme();
       }}
     );
   }

@@ -4,7 +4,7 @@ const treeTests = require('./pageindex_tree.test');
 
 async function runAll() {
     console.log('==================================================');
-    console.log('         RUNNING ALL TWILLM BACKEND TESTS         ');
+    console.log('         RUNNING ALL HAYAGRIVA BACKEND TESTS         ');
     console.log('==================================================\n');
 
     try {

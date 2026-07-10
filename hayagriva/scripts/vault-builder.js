@@ -2,7 +2,7 @@
 /**
  * vault-builder.js  (v2 — per-section lazy format)
  * ─────────────────────────────────────────────────────────────────
- * Produces twillm/vault/laws.vlt (new chunked format) and
+ * Produces hayagriva/vault/laws.vlt (new chunked format) and
  * vault/manifest.json (pre-tokenized, used for BM25 search in RAM).
  *
  * New vault layout:

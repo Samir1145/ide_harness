@@ -1,6 +1,6 @@
-# TWILLM: The Legal IDE for Professional Drafting & Compliance
+# HAYAGRIVA: The Legal IDE for Professional Drafting & Compliance
 
-A distraction-free, professional drafting workspace designed specifically for legal professionals, backed by the raw analytical muscle of a modern compiler engine. Built on the modular architecture of Eclipse Theia, **TWILLM** bridges the gap between traditional legal drafting habits and state-of-the-art software engineering.
+A distraction-free, professional drafting workspace designed specifically for legal professionals, backed by the raw analytical muscle of a modern compiler engine. Built on the modular architecture of Eclipse Theia, **HAYAGRIVA** bridges the gap between traditional legal drafting habits and state-of-the-art software engineering.
 
 ---
 
@@ -32,7 +32,7 @@ Drafts are authored in structured, machine-readable formats. Upon clicking "Expo
 
 To push the legal drafting experience beyond basic editors, we borrow core engineering and design workflows from other successful IDE forks and non-developer workspaces:
 
-*   **The Overleaf "Split-Visual" Editor:** Like Overleaf's source/visual toggle, TWILLM allows users to write in a rich-text format while compiling clean, structured Markdown and YAML frontmatter in the background.
+*   **The Overleaf "Split-Visual" Editor:** Like Overleaf's source/visual toggle, HAYAGRIVA allows users to write in a rich-text format while compiling clean, structured Markdown and YAML frontmatter in the background.
 *   **The Scrivener "Draft Binder" Outline:** Contracts and petitions are split into modular section files (e.g., *Jurisdiction*, *Limitation Clause*). Lawyers can rearrange these chapters inside a visual outline view, and the compilation pipeline merges them chronologically for export.
 *   **The Cursor-style Multi-File Indexing:** Indexes all case exhibits, affidavits, and correspondence so the local AI assistant can fetch facts and cross-check arguments across different files simultaneously.
 
@@ -41,7 +41,7 @@ To push the legal drafting experience beyond basic editors, we borrow core engin
 ## Advanced Features & "Legal Compiler" Extensions
 
 ### I. Real-time "Malpractice Linting"
-Just as compilers check for syntax errors, TWILLM uses its LSP parser to flag high-risk legal draft issues:
+Just as compilers check for syntax errors, HAYAGRIVA uses its LSP parser to flag high-risk legal draft issues:
 *   **Undefined Capitalized Terms:** Warns the writer if a capitalized term is used in the text (e.g. *"Resolution Professional"*) but does not have a matching definition in the Definitions section.
 *   **Unused Definitions:** Highlights terms defined in Section 1 but never cited in the body of the agreement.
 *   **Contradictory Timelines:** Alerts the user if Section 3 states *"payment due in 30 days"* while Section 9 states *"payment due within 15 days of invoicing"*.
@@ -78,19 +78,19 @@ To ensure recurring renewals, the encrypted law libraries are updated weekly wit
 
 | Feature Area | Key Capability | Current Stage | Source File / Implementation Context |
 | :--- | :--- | :--- | :--- |
-| **1. Abstracted UI** *(The Word Illusion)* | Stripping workbench layout (closing non-essential sidebars) | **Partially Implemented** | Native widgets registered in [extension.ts:L90-100](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts#L90-L100) to auto-close unused panels on layout load. |
-| | Custom Serif/Sans-serif editor styling & margins | **Fully Implemented** | Overriding Monaco styling to present page margins, dynamic borders, and serif typography in [extension.ts:L730-780](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts#L730-L780). |
-| **2. Legal LSP** | Monaco `@@` autocomplete trigger for law lookup | **Fully Implemented** | Registered completion provider in [extension.ts:L508-729](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts#L508-L729) querying the `/api/laws/query` endpoint. |
-| | Monaco custom citation links (e.g. `Page 12` clickable) | **Fully Implemented** | Link Provider registered in [extension.ts:L470-504](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts#L470-L504). |
+| **1. Abstracted UI** *(The Word Illusion)* | Stripping workbench layout (closing non-essential sidebars) | **Partially Implemented** | Native widgets registered in [extension.ts:L90-100](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/extension.ts#L90-L100) to auto-close unused panels on layout load. |
+| | Custom Serif/Sans-serif editor styling & margins | **Fully Implemented** | Overriding Monaco styling to present page margins, dynamic borders, and serif typography in [extension.ts:L730-780](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/extension.ts#L730-L780). |
+| **2. Legal LSP** | Monaco `@@` autocomplete trigger for law lookup | **Fully Implemented** | Registered completion provider in [extension.ts:L508-729](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/extension.ts#L508-L729) querying the `/api/laws/query` endpoint. |
+| | Monaco custom citation links (e.g. `Page 12` clickable) | **Fully Implemented** | Link Provider registered in [extension.ts:L470-504](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/extension.ts#L470-L504). |
 | | True Abstract Syntax Tree (AST) validation & parsing | **Planned** | Planned integration of **Langium** (TypeScript) to recognize obligations, conditions, and flag invalid citation structures. |
-| **3. Privacy-First Local AI** | Off-line local embeddings & BM25 Scoring | **Fully Implemented** | Local transformer Xenova `MiniLM-L6` model running in-memory and hybrid scoring formulas in [vault-loader.js:L61-75](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/twillm/lib/vault-loader.js#L61-L75). |
+| **3. Privacy-First Local AI** | Off-line local embeddings & BM25 Scoring | **Fully Implemented** | Local transformer Xenova `MiniLM-L6` model running in-memory and hybrid scoring formulas in [vault-loader.js:L61-75](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/hayagriva/lib/vault-loader.js#L61-L75). |
 | | Model Context Protocol (MCP) server & agents | **Planned** | Planned framework to interface local Ollama models with the editor. |
 | **4. Native Version Control** | Under-the-hood Git commit abstraction | **Planned** | Background version checkpoints without command-line exposure. |
 | | Simplified "Track Changes" Webview | **Planned** | Custom Lumino webview to render human-readable insertions/deletions. |
-| **5. Invisible Data Exchange** | Multi-Format Ingestion pipeline | **Fully Implemented** | Automated parsers (Docling, Mammoth, SheetJS) converting raw uploads to Markdown in [watcher.js](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/twillm/lib/watcher.js). |
+| **5. Invisible Data Exchange** | Multi-Format Ingestion pipeline | **Fully Implemented** | Automated parsers (Docling, Mammoth, SheetJS) converting raw uploads to Markdown in [watcher.js](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/hayagriva/lib/watcher.js). |
 | | Court-Ready `.docx` Export compilation | **Planned** | Backend export compiler pipeline utilizing Pandoc. |
-| **6. Case Ingestion & RAG Wiki** | Click-to-Highlight citation navigation | **Fully Implemented** | Handles citation clicks, opens files, and triggers a fading yellow line decorator in [extension.ts:L317-346](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts#L317-L346). |
-| | Case Wiki Explorer Side panels | **Fully Implemented** | Native widgets (`Case Wiki` and `Concepts`) registered in [extension.ts:L260-395](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts#L260-L395). |
+| **6. Case Ingestion & RAG Wiki** | Click-to-Highlight citation navigation | **Fully Implemented** | Handles citation clicks, opens files, and triggers a fading yellow line decorator in [extension.ts:L317-346](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/extension.ts#L317-L346). |
+| | Case Wiki Explorer Side panels | **Fully Implemented** | Native widgets (`Case Wiki` and `Concepts`) registered in [extension.ts:L260-395](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/extension.ts#L260-L395). |
 | | Automated Timeline Compiler | **Fully Implemented** | Extractor scans documents for date patterns and writes `timeline.md` dynamically. |
 
 ---
@@ -98,17 +98,17 @@ To ensure recurring renewals, the encrypted law libraries are updated weekly wit
 ## Incremental Implementation Roadmap (Task Checklist)
 
 ### Phase 1: Visual Foundation (The Word Illusion)
-*   [x] Inject page-layout overrides into `onStart()` of [extension.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/extension.ts).
+*   [x] Inject page-layout overrides into `onStart()` of [extension.ts](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/extension.ts).
     *   [x] Hide status bar (`#theia-statusBar`).
     *   [x] Override Monaco default font family to beautiful Serif (`Garamond`, `Georgia`).
     *   [x] Set editor margins to `max-width: 850px; margin: 0 auto;` and apply subtle page shadows.
-*   [x] Register `twillm:toggleWordIllusion` command inside [commands.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/commands.ts) to toggle layout styles.
+*   [x] Register `hayagriva:toggleWordIllusion` command inside [commands.ts](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/commands.ts) to toggle layout styles.
 *   [x] Add toolbar action button to toggle the page view.
 
 
 ### Phase 2: Chronology "Time-Travel Debugger" UI
 *   [ ] Refactor the static chronology generator backend to output chronological JSON arrays.
-*   [ ] Create a custom Lumino sidebar widget `twillm-timeline-explorer` using standard Theia view contributions.
+*   [ ] Create a custom Lumino sidebar widget `hayagriva-timeline-explorer` using standard Theia view contributions.
 *   [ ] Add click event listeners to the timeline nodes that resolve file anchors and highlight target paragraphs dynamically.
 
 ### Phase 3: Exporter & Document Assembly (Compilation Pipeline)

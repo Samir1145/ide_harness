@@ -31,25 +31,25 @@ registry.executeCommand('vscode.diff', leftUri, rightUri, `Comparison: ${leftNam
 ```
 
 ### Outline Context Contributions
-Smart Outline commands are registered in [menus.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/menus.ts) under the `outline/context` menu group:
+Smart Outline commands are registered in [menus.ts](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/menus.ts) under the `outline/context` menu group:
 ```typescript
 registry.registerMenuAction(['outline.context'], {
-  commandId: 'twillm:outlineAskRag',
+  commandId: 'hayagriva:outlineAskRag',
   label: 'Ask about this section'
 });
 ```
 
 ### Monaco Highlight Decorations
-The `TwillmEditorDecorator` in [highlight-decorator.ts](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/ide/theia-extensions/twillm/src/browser/highlight-decorator.ts) applies custom CSS border-left markings over the cited line range:
+The `HayagrivaEditorDecorator` in [highlight-decorator.ts](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/ide/theia-extensions/hayagriva/src/browser/highlight-decorator.ts) applies custom CSS border-left markings over the cited line range:
 ```typescript
 const newDecorations = monacoEditor.deltaDecorations([], [{
   range: { startLineNumber, startColumn: 1, endLineNumber, endColumn: 1 },
-  options: { isWholeLine: true, className: 'twillm-citation-highlight' }
+  options: { isWholeLine: true, className: 'hayagriva-citation-highlight' }
 }]);
 ```
 The style rules are injected directly into the document frame header:
 ```css
-.twillm-citation-highlight {
+.hayagriva-citation-highlight {
   background-color: rgba(255, 200, 0, 0.18) !important;
   border-left: 4px solid #eab308 !important;
 }

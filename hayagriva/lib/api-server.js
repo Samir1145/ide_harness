@@ -3,7 +3,7 @@ const url = require('url');
 const fs = require('fs');
 const path = require('path');
 const { query, retrieveContexts, buildPrompt } = require('./rag');
-const { ingestFile, startLazyWorker } = require('./watcher');
+const { ingestFile, startLazyWorker, pendingPdfQueue, completedPdfSet } = require('./watcher');
 const { streamChat } = require('./llm-client');
 const { cancelConversion } = require('./converter');
 const { resolveTrigger, searchLaws, getVaultVersion, isVaultReady } = require('./vault-loader');
@@ -25,7 +25,7 @@ function startApiServer(docsRoot, port = 3210) {
         const parsedUrl = url.parse(req.url, true);
         const pathname = parsedUrl.pathname;
 
-        if (pathname === '/api/twillm/cases' && req.method === 'GET') {
+        if (pathname === '/api/hayagriva/cases' && req.method === 'GET') {
             try {
                 const dirs = fs.readdirSync(docsRoot).filter(f => {
                     const p = path.join(docsRoot, f);
@@ -37,11 +37,110 @@ function startApiServer(docsRoot, port = 3210) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: e.message }));
             }
-        } else if (pathname === '/api/twillm/wiki-port' && req.method === 'GET') {
+        } else if (pathname === '/api/hayagriva/wiki-port' && req.method === 'GET') {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ port: null }));
 
-        // ── Law Vault Endpoints ──────────────────────────────────────────────
+        // ── Documents list: indexed + pending_review ─────────────────────────
+        } else if (pathname === '/api/hayagriva/documents' && req.method === 'GET') {
+            try {
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = path.join(docsRoot, caseName);
+                const documents = [];
+
+                // 1. Collect indexed docs from index.json
+                const indexPath = path.join(caseDir, 'concepts', 'index.json');
+                let indexedBasenames = new Set();
+                if (fs.existsSync(indexPath)) {
+                    const idx = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+                    for (const doc of (idx.documents || [])) {
+                        documents.push({ ...doc, status: doc.status || 'indexed' });
+                        indexedBasenames.add(doc.title);
+                    }
+                }
+
+                // 2. Scan for .status sidecar files (pending_review not yet in index.json)
+                const files = fs.readdirSync(caseDir).filter(f => f.endsWith('.status'));
+                for (const f of files) {
+                    const basename = f.replace('.status', '');
+                    if (indexedBasenames.has(basename)) continue; // already in index
+                    const statusVal = fs.readFileSync(path.join(caseDir, f), 'utf8').trim();
+                    const mdPath = path.join(caseDir, basename + '.md');
+                    const pdfPath = path.join(caseDir, basename + '.pdf');
+                    // Find total pages from queue or completedPdfSet
+                    const queueEntry = pendingPdfQueue.find(q => q.filePath === pdfPath);
+                    documents.push({
+                        title: basename,
+                        filename: basename + '.pdf',
+                        status: statusVal,
+                        companionPath: mdPath,
+                        totalPages: queueEntry ? queueEntry.totalPages : null,
+                        nextPage: queueEntry ? queueEntry.nextPage : null,
+                        conversionComplete: completedPdfSet.has(pdfPath)
+                    });
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ documents }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: e.message }));
+            }
+
+        // ── Ingest progress: daemon queue status ──────────────────────────
+        } else if (pathname === '/api/hayagriva/ingest-status' && req.method === 'GET') {
+            try {
+                const caseName = parsedUrl.query.case || '';
+                const basename = parsedUrl.query.basename || '';
+                const caseDir = path.join(docsRoot, caseName);
+                const pdfPath = path.join(caseDir, basename + '.pdf');
+                const queueEntry = pendingPdfQueue.find(q => q.filePath === pdfPath);
+                const complete = completedPdfSet.has(pdfPath);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    converting: !!queueEntry,
+                    complete,
+                    nextPage: queueEntry ? queueEntry.nextPage : null,
+                    totalPages: queueEntry ? queueEntry.totalPages : null
+                }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: e.message }));
+            }
+
+        // ── Build Concepts: Phase 2 manual trigger ───────────────────────
+        } else if (pathname === '/api/hayagriva/build-concepts' && req.method === 'POST') {
+            try {
+                const body = await new Promise((resolve, reject) => {
+                    let data = '';
+                    req.on('data', chunk => data += chunk);
+                    req.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });
+                    req.on('error', reject);
+                });
+                const { case: caseName, basename } = body;
+                if (!caseName || !basename) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Missing case or basename' }));
+                    return;
+                }
+                const caseDir = path.join(docsRoot, caseName);
+                const companionPath = path.join(caseDir, basename + '.md');
+                if (!fs.existsSync(companionPath)) {
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Companion .md not found: ' + companionPath }));
+                    return;
+                }
+                console.log(`[API] Build Concepts (Phase 2) triggered for: ${basename} in ${caseName}`);
+                // Phase 2: full pipeline — BM25 + concepts + wiki
+                const result = await ingestFile(caseDir, companionPath, { conversionOnly: false });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, sections: result ? result.sections : 0 }));
+            } catch (e) {
+                console.error('[API] build-concepts error:', e.message);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: e.message }));
+            }
+
         } else if (pathname === '/api/laws/query' && req.method === 'GET') {
             // Resolve a @@ trigger or free-text search against the law vault.
             // Query params: ?q=<trigger_text>&n=<topN>
@@ -88,7 +187,7 @@ function startApiServer(docsRoot, port = 3210) {
             res.end(JSON.stringify(ver || { version: null, ready: isVaultReady() }));
         // ────────────────────────────────────────────────────────────────────
 
-        } else if (pathname === '/api/twillm/wiki-cards' && req.method === 'GET') {
+        } else if (pathname === '/api/hayagriva/wiki-cards' && req.method === 'GET') {
             try {
                 const caseName = parsedUrl.query.case || 'Case_Alpha';
                 const caseDir = path.join(docsRoot, caseName);
@@ -118,7 +217,7 @@ function startApiServer(docsRoot, port = 3210) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: e.message }));
             }
-        } else if (pathname === '/api/twillm/read-file' && req.method === 'GET') {
+        } else if (pathname === '/api/hayagriva/read-file' && req.method === 'GET') {
             try {
                 const filePath = parsedUrl.query.path;
                 if (!filePath) {
@@ -139,7 +238,7 @@ function startApiServer(docsRoot, port = 3210) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: e.message }));
             }
-        } else if (pathname === '/api/twillm/switch-context' && req.method === 'POST') {
+        } else if (pathname === '/api/hayagriva/switch-context' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
@@ -160,7 +259,7 @@ function startApiServer(docsRoot, port = 3210) {
                     res.end(JSON.stringify({ error: e.message }));
                 }
             });
-        } else if (pathname === '/api/twillm/query' && req.method === 'POST') {
+        } else if (pathname === '/api/hayagriva/query' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
@@ -180,7 +279,7 @@ function startApiServer(docsRoot, port = 3210) {
                     res.end(JSON.stringify({ error: e.message }));
                 }
             });
-        } else if (pathname === '/api/twillm/query-stream' && req.method === 'POST') {
+        } else if (pathname === '/api/hayagriva/query-stream' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
@@ -230,7 +329,7 @@ function startApiServer(docsRoot, port = 3210) {
                     res.end(JSON.stringify({ error: e.message }));
                 }
             });
-        } else if (pathname === '/api/twillm/cancel-ocr' && req.method === 'POST') {
+        } else if (pathname === '/api/hayagriva/cancel-ocr' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
@@ -250,7 +349,7 @@ function startApiServer(docsRoot, port = 3210) {
                     res.end(JSON.stringify({ error: e.message }));
                 }
             });
-        } else if (pathname === '/api/twillm/ingest' && req.method === 'POST') {
+        } else if (pathname === '/api/hayagriva/ingest' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
@@ -267,12 +366,9 @@ function startApiServer(docsRoot, port = 3210) {
                         res.end(JSON.stringify({ error: 'Missing file path' }));
                         return;
                     }
-                                        console.log(`[API Server] Ingesting ${data.file} for case ${caseName} (disableDoc2Query: ${data.disableDoc2Query === true})`);
-                    const result = await ingestFile(caseDir, data.file, data.disableDoc2Query === true);
-                    if (result && result.companionPath) {
-                        console.log(`[API Server] Slicing companion Markdown: ${result.companionPath}`);
-                        await ingestFile(caseDir, result.companionPath, data.disableDoc2Query === true);
-                    }
+                    console.log(`[API Server] Phase 1 Ingestion: converting ${data.file} for case ${caseName}`);
+                    // Phase 1: convert to companion .md only — no BM25, no concepts, no indexing
+                    const result = await ingestFile(caseDir, data.file, { conversionOnly: true });
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, result }));
                 } catch (e) {
@@ -280,7 +376,7 @@ function startApiServer(docsRoot, port = 3210) {
                     res.end(JSON.stringify({ error: e.message }));
                 }
             });
-        } else if (pathname === '/api/twillm/upload' && req.method === 'POST') {
+        } else if (pathname === '/api/hayagriva/upload' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {

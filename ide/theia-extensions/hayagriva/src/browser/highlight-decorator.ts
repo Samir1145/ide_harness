@@ -1,7 +1,7 @@
 import { injectable } from '@theia/core/shared/inversify';
 
 @injectable()
-export class TwillmEditorDecorator {
+export class HayagrivaEditorDecorator {
   private decorationType: any = null;
 
   applyHighlight(editor: any, lineIndex: number): void {
@@ -29,7 +29,7 @@ export class TwillmEditorDecorator {
         },
         options: {
           isWholeLine: true,
-          className: 'twillm-citation-highlight'
+          className: 'hayagriva-citation-highlight'
         }
       }
     ]);
@@ -46,11 +46,11 @@ export class TwillmEditorDecorator {
   }
 
   private injectStyles(): void {
-    if (document.getElementById('twillm-editor-styles')) return;
+    if (document.getElementById('hayagriva-editor-styles')) return;
     const style = document.createElement('style');
-    style.id = 'twillm-editor-styles';
+    style.id = 'hayagriva-editor-styles';
     style.textContent = `
-      .twillm-citation-highlight {
+      .hayagriva-citation-highlight {
         background-color: rgba(255, 200, 0, 0.18) !important;
         border-left: 4px solid #eab308 !important;
       }

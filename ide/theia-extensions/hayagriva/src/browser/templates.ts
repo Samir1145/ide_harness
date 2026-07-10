@@ -239,7 +239,7 @@ export function sidebarHtml(initialCase: string): string {
         
         try {
           // Step 1: Upload raw binary to server
-          const uploadRes = await fetch('http://127.0.0.1:3210/api/twillm/upload', {
+          const uploadRes = await fetch('http://127.0.0.1:3210/api/hayagriva/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ case: currentCaseName, filename: filename, content: base64 })
@@ -250,7 +250,7 @@ export function sidebarHtml(initialCase: string): string {
           // Step 2: Run conversion, layout parsing, and indexing immediately
           containerZone.innerHTML = '<p style="margin:0; font-size:12px; font-weight:bold; color:var(--theia-brand-color1,#0ea5e9);">Converting & Ingesting...</p>';
           
-          const ingestRes = await fetch('http://127.0.0.1:3210/api/twillm/ingest', {
+          const ingestRes = await fetch('http://127.0.0.1:3210/api/hayagriva/ingest', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ case: currentCaseName, file: uploadData.filePath, disableDoc2Query: true })
@@ -270,6 +270,67 @@ export function sidebarHtml(initialCase: string): string {
         } catch (err) {
           containerZone.innerHTML = '<p style="color: #ef4444; margin:0; font-size:11px; font-weight:bold;">✗ ' + err.message + '</p>';
           setTimeout(() => { containerZone.innerHTML = oldContent; }, 5000);
+        }
+
+        // Phase 1 complete: show status + Build Concepts button (disabled until daemon finishes)
+        function showConversionStatus(caseName, basename) {
+          const statusDiv = document.createElement('div');
+          statusDiv.style.cssText = 'margin-top:8px; padding:8px; background:var(--theia-layout-color3,#fff); border:1px solid var(--theia-border-color,#ccc); border-radius:4px; font-size:11px;';
+          statusDiv.innerHTML = \`
+            <div style="font-weight:bold; color:var(--theia-brand-color1,#0ea5e9); margin-bottom:4px;">⏳ Converting pages...</div>
+            <div id="conv-progress-\${basename}" style="opacity:0.7; margin-bottom:6px;">Checking progress...</div>
+            <button id="build-btn-\${basename}" disabled
+              style="width:100%; padding:5px; background:#94a3b8; color:#fff; border:none; border-radius:3px; cursor:not-allowed; font-size:11px; font-weight:bold;">
+              ⚡ Build Concepts
+            </button>
+          \`;
+          containerZone.appendChild(statusDiv);
+
+          // Poll ingest-status until conversion complete
+          const btn = statusDiv.querySelector('#build-btn-' + basename);
+          const progressEl = statusDiv.querySelector('#conv-progress-' + basename);
+          const poll = setInterval(async () => {
+            try {
+              const r = await fetch('http://127.0.0.1:3210/api/hayagriva/ingest-status?case=' + caseName + '&basename=' + basename);
+              const d = await r.json();
+              if (d.complete || (!d.converting && d.totalPages === null)) {
+                clearInterval(poll);
+                progressEl.textContent = '✓ All pages converted. Ready to build concepts.';
+                progressEl.style.color = '#10b981';
+                btn.disabled = false;
+                btn.style.background = 'var(--theia-brand-color1,#0ea5e9)';
+                btn.style.cursor = 'pointer';
+              } else if (d.converting) {
+                progressEl.textContent = 'Page ' + (d.nextPage - 1) + ' of ' + d.totalPages + ' converted...';
+              }
+            } catch(_) {}
+          }, 4000);
+
+          btn.onclick = async () => {
+            btn.disabled = true;
+            btn.textContent = '⏳ Building concepts...';
+            try {
+              const r = await fetch('http://127.0.0.1:3210/api/hayagriva/build-concepts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ case: caseName, basename })
+              });
+              const d = await r.json();
+              if (d.ok) {
+                btn.textContent = '✓ Concepts built (' + d.sections + ' sections)';
+                btn.style.background = '#10b981';
+                if (window.parent) window.parent.postMessage({ type: 'refresh-wiki-explorer', caseName }, '*');
+              } else {
+                btn.textContent = '✗ ' + (d.error || 'Failed');
+                btn.style.background = '#ef4444';
+                btn.disabled = false;
+              }
+            } catch(e) {
+              btn.textContent = '✗ Error: ' + e.message;
+              btn.style.background = '#ef4444';
+              btn.disabled = false;
+            }
+          };
         }
       };
       reader.readAsDataURL(file);
@@ -367,7 +428,16 @@ export function wikiExplorerHtml(caseName: string): string {
 
     async function loadCards() {
       try {
-        const res = await fetch('http://127.0.0.1:3210/api/twillm/wiki-cards?case=' + currentCase);
+        if (currentCase === 'TWILLM-OKF-PAGED' || currentCase === 'HAYAGRIVA' || !currentCase) {
+          const casesRes = await fetch('http://127.0.0.1:3210/api/hayagriva/cases');
+          if (casesRes.ok) {
+            const data = await casesRes.json();
+            if (data.cases && data.cases.length > 0) {
+              currentCase = data.cases[0];
+            }
+          }
+        }
+        const res = await fetch('http://127.0.0.1:3210/api/hayagriva/wiki-cards?case=' + currentCase);
         const data = await res.json();
         const container = document.getElementById('cards-container');
         container.innerHTML = '';
@@ -452,6 +522,51 @@ export function conceptsExplorerHtml(caseName: string): string {
     background: var(--theia-layout-color3, #ffffff);
     color: var(--theia-brand-color1, #0ea5e9);
   }
+  .pending-card {
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--theia-layout-color3, #fff);
+    border: 1px solid var(--theia-border-color, #ccc);
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+  }
+  .pending-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pending-status {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-bottom: 6px;
+  }
+  .action-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .btn-sm {
+    flex: 1;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: bold;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-sm:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-open { background: var(--theia-layout-color2, #e8e8e8); color: var(--theia-ui-font-color1,#333); }
+  .btn-build { background: var(--theia-brand-color1, #0ea5e9); color: #fff; }
+  .btn-rebuild { background: transparent; color: var(--theia-brand-color1,#0ea5e9); border: 1px solid var(--theia-brand-color1,#0ea5e9); }
+  .progress-bar-wrap { height: 3px; background: var(--theia-border-color,#e0e0e0); border-radius: 2px; margin: 4px 0 6px; }
+  .progress-bar { height: 3px; background: #f59e0b; border-radius: 2px; transition: width 0.4s; }
   .empty {
     opacity: 0.5;
     text-align: center;
@@ -465,11 +580,11 @@ export function conceptsExplorerHtml(caseName: string): string {
 </style>
 </head>
 <body>
-  <div id="concepts-container">Loading concepts and chunks...</div>
+  <div id="concepts-container">Loading concepts...</div>
 
   <script>
     let currentCase = '${caseName}';
-    
+
     function syncTheme() {
       if (window.parent) {
         const parentStyle = window.parent.getComputedStyle(window.parent.document.documentElement);
@@ -496,46 +611,155 @@ export function conceptsExplorerHtml(caseName: string): string {
         currentCase = event.data.caseName;
         loadConcepts();
       }
+      if (event.data && event.data.type === 'refresh-wiki-explorer') {
+        loadConcepts();
+      }
     });
 
+    // ── Build / Rebuild trigger ────────────────────────────────────────
+    async function triggerBuild(btn, caseName, basename) {
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳ Building...';
+      try {
+        const r = await fetch('http://127.0.0.1:3210/api/hayagriva/build-concepts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: caseName, basename })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          btn.textContent = '✓ Done (' + d.sections + ' sections)';
+          setTimeout(() => loadConcepts(), 800);
+        } else {
+          btn.textContent = '✗ ' + (d.error || 'Failed');
+          btn.style.background = '#ef4444';
+          btn.disabled = false;
+        }
+      } catch(e) {
+        btn.textContent = '✗ Error';
+        btn.style.background = '#ef4444';
+        btn.disabled = false;
+      }
+    }
+
+    // ── Render pending_review card ────────────────────────────────────
+    function renderPendingCard(container, doc) {
+      const converting = doc.converting || (doc.nextPage && !doc.conversionComplete);
+      const pct = (doc.totalPages && doc.nextPage)
+        ? Math.round(((doc.nextPage - 1) / doc.totalPages) * 100)
+        : (doc.conversionComplete ? 100 : 0);
+
+      const card = document.createElement('div');
+      card.className = 'pending-card';
+      card.id = 'pending-' + doc.title;
+
+      card.innerHTML = \`
+        <div class="pending-title">⚠ \\\${doc.title}</div>
+        <div class="pending-status" id="pstatus-\\\${doc.title}">
+          \\\${doc.conversionComplete
+            ? '✓ Conversion complete — awaiting review'
+            : (converting ? 'Converting page ' + (doc.nextPage - 1) + ' of ' + doc.totalPages + '...' : '⏳ Queued for conversion...')}
+        </div>
+        \\\${doc.totalPages ? \\\`
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="pbar-\\\${doc.title}" style="width:\\\${pct}%"></div>
+          </div>
+        \\\` : ''}
+        <div class="action-row">
+          <button class="btn-sm btn-open" id="open-\\\${doc.title}">📄 Open .md</button>
+          <button class="btn-sm btn-build" id="build-\\\${doc.title}" \\\${doc.conversionComplete ? '' : 'disabled'}>
+            ⚡ Build Concepts
+          </button>
+        </div>
+      \`;
+
+      container.appendChild(card);
+
+      // Open .md handler
+      card.querySelector('#open-' + doc.title).onclick = () => {
+        window.parent.postMessage({
+          type: 'open-concept-chunk',
+          absolutePath: doc.companionPath
+        }, '*');
+      };
+
+      // Build button handler
+      const buildBtn = card.querySelector('#build-' + doc.title);
+      buildBtn.onclick = () => triggerBuild(buildBtn, currentCase, doc.title);
+
+      // Poll progress if still converting
+      if (!doc.conversionComplete) {
+        const pbar = card.querySelector('#pbar-' + doc.title);
+        const pstatus = card.querySelector('#pstatus-' + doc.title);
+        const poll = setInterval(async () => {
+          try {
+            const r = await fetch('http://127.0.0.1:3210/api/hayagriva/ingest-status?case=' + currentCase + '&basename=' + doc.title);
+            const d = await r.json();
+            if (d.complete || (!d.converting && d.totalPages === null)) {
+              clearInterval(poll);
+              pstatus.textContent = '✓ Conversion complete — ready to build concepts';
+              pstatus.style.color = '#10b981';
+              if (pbar) pbar.style.width = '100%';
+              buildBtn.disabled = false;
+            } else if (d.converting && d.totalPages) {
+              const p = Math.round(((d.nextPage - 1) / d.totalPages) * 100);
+              if (pbar) pbar.style.width = p + '%';
+              pstatus.textContent = 'Converting page ' + (d.nextPage - 1) + ' of ' + d.totalPages + '...';
+            }
+          } catch(_) {}
+        }, 4000);
+      }
+    }
+
+    // ── Main load ────────────────────────────────────────────────
     async function loadConcepts() {
       try {
-        const res = await fetch('http://127.0.0.1:3210/api/twillm/read-file?path=' + currentCase + '/concepts/index.json');
+        if (currentCase === 'TWILLM-OKF-PAGED' || currentCase === 'HAYAGRIVA' || !currentCase) {
+          const casesRes = await fetch('http://127.0.0.1:3210/api/hayagriva/cases');
+          if (casesRes.ok) {
+            const data = await casesRes.json();
+            if (data.cases && data.cases.length > 0) currentCase = data.cases[0];
+          }
+        }
+
+        const res = await fetch('http://127.0.0.1:3210/api/hayagriva/documents?case=' + currentCase);
         if (!res.ok) {
-          document.getElementById('concepts-container').innerHTML = '<div class="empty">No concepts indexed yet. Ingest a document to start.</div>';
+          document.getElementById('concepts-container').innerHTML = '<div class="empty">No documents found. Upload a file to start.</div>';
           return;
         }
-        const index = await res.json();
+        const { documents } = await res.json();
         const container = document.getElementById('concepts-container');
         container.innerHTML = '';
-        
-        if (!index.documents || index.documents.length === 0) {
-          container.innerHTML = '<div class="empty">No concepts indexed yet. Ingest a document to start.</div>';
+
+        if (!documents || documents.length === 0) {
+          container.innerHTML = '<div class="empty">No documents yet. Upload a PDF to begin.</div>';
           return;
         }
-        
-        index.documents.forEach(doc => {
+
+        for (const doc of documents) {
+          if (doc.status === 'pending_review') {
+            renderPendingCard(container, doc);
+            continue;
+          }
+
+          // ── Indexed document ──
           const docHeader = document.createElement('div');
           docHeader.className = 'doc-header';
           docHeader.innerHTML = \`📁 <strong>\${doc.title}</strong> (\${doc.sections} sections)\`;
           container.appendChild(docHeader);
-          
+
           const docPagesContainer = document.createElement('div');
           docPagesContainer.className = 'pages-container';
-          
+
           if (doc.shadowDocuments && doc.shadowDocuments.length > 0) {
             doc.shadowDocuments.forEach(shadow => {
               const pageItem = document.createElement('div');
               pageItem.className = 'page-item';
-              // Display title cleanly (removing path elements)
-              const title = shadow.title;
-              pageItem.innerHTML = \`💡 \${title}\`;
-              pageItem.title = "Double-click to open page chunk";
+              pageItem.innerHTML = \`💡 \${shadow.title}\`;
+              pageItem.title = 'Double-click to open page chunk';
               pageItem.ondblclick = () => {
-                window.parent.postMessage({
-                  type: 'open-concept-chunk',
-                  absolutePath: shadow.path
-                }, '*');
+                window.parent.postMessage({ type: 'open-concept-chunk', absolutePath: shadow.path }, '*');
               };
               docPagesContainer.appendChild(pageItem);
             });
@@ -545,15 +769,27 @@ export function conceptsExplorerHtml(caseName: string): string {
             emptyItem.textContent = 'No page chunks';
             docPagesContainer.appendChild(emptyItem);
           }
-          
+
           container.appendChild(docPagesContainer);
-        });
+
+          // Rebuild Concepts button (always available for indexed docs)
+          const rebuildRow = document.createElement('div');
+          rebuildRow.style.cssText = 'padding: 0 0 10px 14px;';
+          const rebuildBtn = document.createElement('button');
+          rebuildBtn.className = 'btn-sm btn-rebuild';
+          rebuildBtn.style.width = '100%';
+          rebuildBtn.textContent = '🔄 Rebuild Concepts';
+          rebuildBtn.onclick = () => triggerBuild(rebuildBtn, currentCase, doc.title);
+          rebuildRow.appendChild(rebuildBtn);
+          container.appendChild(rebuildRow);
+        }
       } catch (e) {
         document.getElementById('concepts-container').innerHTML = '<div style="opacity: 0.6; text-align: center; padding-top: 20px;">Connecting to concepts server...</div>';
         setTimeout(loadConcepts, 2000);
       }
     }
     loadConcepts();
+    setInterval(loadConcepts, 30000); // Refresh every 30s to pick up background changes
   </script>
 </body>
 </html>`;

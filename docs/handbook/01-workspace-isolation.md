@@ -47,12 +47,12 @@ const caseName = relativePath.split(/[\\/]/)[0]; // Locks case context to first-
 ```
 
 ### Backend API Handlers
-* **`GET /api/twillm/cases`**: Returns an array of case names found in the `/Documents/` folder.
-* **`POST /api/twillm/switch-context`**: Sets the active case directory payload context for Webviews.
+* **`GET /api/hayagriva/cases`**: Returns an array of case names found in the `/Documents/` folder.
+* **`POST /api/hayagriva/switch-context`**: Sets the active case directory payload context for Webviews.
 
 ### Automatic File Explorer Exclusions
 To prevent database directories (`wiki/` and `concepts/`) from cluttering the standard File Explorer tab, the backend automatically sets up exclusions per workspace.
-* **Logic:** When `bootstrapCase(caseDir)` in [cli.js](file:///Users/atulgrover/Desktop/TWILLM-OKF-PAGED/twillm/cli.js) scans a case, it creates or updates `settings.json` inside both `caseDir/.theia/` and `caseDir/.vscode/` dynamically to inject:
+* **Logic:** When `bootstrapCase(caseDir)` in [cli.js](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/hayagriva/cli.js) scans a case, it creates or updates `settings.json` inside both `caseDir/.theia/` and `caseDir/.vscode/` dynamically to inject:
   ```json
   "files.exclude": {
     "**/wiki": true,

@@ -7,7 +7,7 @@ const { readIndex } = require('./lib/indexer');
 const { query } = require('./lib/rag');
 const { loadVault } = require('./lib/vault-loader');
 
-const HELP = `Usage: twillm <case-path>
+const HELP = `Usage: hayagriva <case-path>
 
 Options:
   --watch-all    Watch all case directories under <case-path> (or /Documents/)
@@ -47,7 +47,7 @@ async function bootstrapCase(caseDir) {
             settings['files.exclude']['concepts/'] = true;
             fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
         } catch (e) {
-            console.warn(`[twillm] failed to write ${dirName}/settings.json for case ${caseDir}:`, e.message);
+            console.warn(`[hayagriva] failed to write ${dirName}/settings.json for case ${caseDir}:`, e.message);
         }
     }
 
@@ -79,33 +79,39 @@ async function bootstrapCase(caseDir) {
     }
     scan(caseDir);
 
-    // 1. Process non-markdown files first to generate companions
+    // 1. Process non-markdown files first to generate companions (Phase 1 only)
     for (const file of nonMdFiles) {
         const alreadyIndexed = index.documents && index.documents.some(d => d.filename === file.relative);
-        if (!alreadyIndexed) {
-            console.log(`[twillm] bootstrapping companion for ${file.relative}`);
+        // Also check .status sidecar — if pending_review or indexed, skip re-conversion
+        const ext = path.extname(file.filePath).toLowerCase();
+        const basename = path.basename(file.filePath, ext);
+        const statusPath = path.join(caseDir, `${basename}.status`);
+        const alreadyConverted = fs.existsSync(statusPath);
+        if (!alreadyIndexed && !alreadyConverted) {
+            console.log(`[hayagriva] bootstrapping companion for ${file.relative}`);
             try {
-                const result = await ingestFile(caseDir, file.filePath);
-                if (result && result.companionPath) {
-                    const compRelative = path.relative(caseDir, result.companionPath);
-                    mdFiles.push({ filePath: result.companionPath, relative: compRelative });
-                }
+                // Phase 1: convert to .md only — no BM25, no index.json writes
+                await ingestFile(caseDir, file.filePath, { conversionOnly: true });
             } catch (e) {
-                console.error(`[twillm] Ingestion failed for ${file.relative}:`, e.message);
+                console.error(`[hayagriva] Ingestion failed for ${file.relative}:`, e.message);
             }
         }
     }
 
-    // 2. Process markdown, text, wiki, and generated companion files
+    // 2. Markdown, text, wiki files: only process if NOT auto-generated companions
+    //    (companions are Phase 2 — user triggers "Build Concepts" manually)
     const updatedIndex = readIndex(caseDir);
     for (const file of mdFiles) {
         const alreadyIndexed = updatedIndex.documents && updatedIndex.documents.some(d => d.filename === file.relative);
-        if (!alreadyIndexed) {
-            console.log(`[twillm] bootstrapping concepts for ${file.relative}`);
+        // Skip auto-generated companion .md files (they have a .status sidecar)
+        const companionStatusPath = file.filePath.replace(/\.md$/, '.status');
+        const isCompanion = fs.existsSync(companionStatusPath);
+        if (!alreadyIndexed && !isCompanion) {
+            console.log(`[hayagriva] bootstrapping concepts for ${file.relative}`);
             try {
                 await ingestFile(caseDir, file.filePath);
             } catch (e) {
-                console.error(`[twillm] Ingestion failed for ${file.relative}:`, e.message);
+                console.error(`[hayagriva] Ingestion failed for ${file.relative}:`, e.message);
             }
         }
     }
@@ -182,10 +188,10 @@ async function main() {
     }
 
     if (command === 'ingest' && commandArg) {
-        console.log(`[twillm] Ingesting ${commandArg}...`);
+        console.log(`[hayagriva] Ingesting ${commandArg}...`);
         const result = await ingestFile(caseDir, commandArg);
         if (result) {
-            console.log(`[twillm] Ingested ${result.sections} sections to ${result.conceptsDir}`);
+            console.log(`[hayagriva] Ingested ${result.sections} sections to ${result.conceptsDir}`);
         }
         process.exit(result ? 0 : 1);
     }
@@ -197,29 +203,32 @@ async function main() {
     }
 
     // Normal watch mode
-    console.log(`[twillm] case: ${path.basename(caseDir)}`);
-    console.log(`[twillm] watching: ${caseDir}`);
+    console.log(`[hayagriva] case: ${path.basename(caseDir)}`);
+    console.log(`[hayagriva] watching: ${caseDir}`);
 
     const watcher = createWatcher(caseDir, {
         async onFileChange(filePath) {
-            console.log(`[twillm] ingesting ${path.relative(caseDir, filePath)}`);
-            await ingestFile(caseDir, filePath);
+            const ext = path.extname(filePath).toLowerCase();
+            // .md files that have a .status sidecar are auto-generated companions — skip Phase 2
+            const isCompanion = ext === '.md' && fs.existsSync(filePath.replace(/\.md$/, '.status'));
+            console.log(`[hayagriva] ingesting ${path.relative(caseDir, filePath)}${isCompanion ? ' (conversion-only)' : ''}`);
+            await ingestFile(caseDir, filePath, { conversionOnly: isCompanion });
         }
     });
 
     const index = readIndex(caseDir);
-    console.log(`[twillm] indexed ${index.documents ? index.documents.length : 0} documents`);
+    console.log(`[hayagriva] indexed ${index.documents ? index.documents.length : 0} documents`);
 
     const { startApiServer } = require('./lib/api-server');
     const apiServer = startApiServer(path.dirname(caseDir), 3210);
 
     // Bootstrap asynchronously in background so API port 3210 binds immediately
     bootstrapCase(caseDir).catch(err => {
-        console.error('[twillm] Bootstrap failed:', err.message);
+        console.error('[hayagriva] Bootstrap failed:', err.message);
     });
 
     process.on('SIGINT', () => {
-        console.log('\n[twillm] shutting down');
+        console.log('\n[hayagriva] shutting down');
         watcher.close();
         apiServer.close();
         process.exit(0);
@@ -227,14 +236,14 @@ async function main() {
 }
 
 async function runWatchAll(docsRoot) {
-    console.log(`[twillm] watch-all mode: ${docsRoot}`);
+    console.log(`[hayagriva] watch-all mode: ${docsRoot}`);
 
     const caseDirs = fs.readdirSync(docsRoot).filter(f => {
         const p = path.join(docsRoot, f);
         return fs.statSync(p).isDirectory() && !f.startsWith('.');
     });
 
-    console.log(`[twillm] found cases: ${caseDirs.join(', ')}`);
+    console.log(`[hayagriva] found cases: ${caseDirs.join(', ')}`);
 
     const watchers = new Map();
 
@@ -250,9 +259,9 @@ async function runWatchAll(docsRoot) {
             }
             await bootstrapCase(caseDir);
         }
-        console.log('[twillm] All cases bootstrapped.');
+        console.log('[hayagriva] All cases bootstrapped.');
     })().catch(err => {
-        console.error('[twillm] watch-all bootstrap failed:', err.message);
+        console.error('[hayagriva] watch-all bootstrap failed:', err.message);
     });
 
     // Watch each case directory
@@ -261,17 +270,19 @@ async function runWatchAll(docsRoot) {
         const watcher = createWatcher(caseDir, {
             async onFileChange(filePath) {
                 const relative = path.relative(caseDir, filePath);
-                console.log(`[twillm] ingesting ${caseName}/${relative}`);
-                await ingestFile(caseDir, filePath);
+                const ext = path.extname(filePath).toLowerCase();
+                const isCompanion = ext === '.md' && fs.existsSync(filePath.replace(/\.md$/, '.status'));
+                console.log(`[hayagriva] ingesting ${caseName}/${relative}${isCompanion ? ' (conversion-only)' : ''}`);
+                await ingestFile(caseDir, filePath, { conversionOnly: isCompanion });
             }
         });
         watchers.set(caseName, watcher);
     }
 
-    console.log(`[twillm] watching ${watchers.size} directories for changes...`);
+    console.log(`[hayagriva] watching ${watchers.size} directories for changes...`);
 
     process.on('SIGINT', () => {
-        console.log('\n[twillm] shutting down');
+        console.log('\n[hayagriva] shutting down');
         watchers.forEach(w => w.close());
         apiServer.close();
         process.exit(0);

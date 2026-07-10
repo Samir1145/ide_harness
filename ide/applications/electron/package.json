@@ -131,7 +131,7 @@
     "theia-ide-launcher-ext": "1.73.100",
     "theia-ide-product-ext": "1.73.100",
     "theia-ide-updater-ext": "1.73.100",
-    "twillm-theia-extension": "0.1.0"
+    "hayagriva-theia-extension": "0.1.0"
   },
   "devDependencies": {
     "@theia/bundle-plugin": "1.73.1",
