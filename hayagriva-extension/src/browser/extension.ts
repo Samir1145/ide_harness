@@ -306,8 +306,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
     const wikiExplorer = new Widget();
     wikiExplorer.id = 'hayagriva-wiki-explorer';
-    wikiExplorer.title.label = 'Case Wiki';
-    wikiExplorer.title.caption = 'Curated Case Wiki Cards';
+    wikiExplorer.title.label = 'Case Wiki & Q&A';
+    wikiExplorer.title.caption = 'Curated Case Wiki & LLM Q&A cards';
     wikiExplorer.title.iconClass = 'fa fa-book';
     wikiExplorer.title.closable = false;
 
