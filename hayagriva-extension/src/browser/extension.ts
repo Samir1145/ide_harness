@@ -771,11 +771,15 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
             const backendSuggestions = results.map((r: any) => {
                 const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+                const { snippet, hasSnippets } = convertToSnippet(cleanText);
                 return {
                     label: `@@${rawTrigger} → ${r.title || `Section ${r.section}`}`,
                     filterText: `@@${rawTrigger}`,
                     kind: monaco.languages.CompletionItemKind.Snippet,
-                    insertText: cleanText,
+                    insertText: snippet,
+                    insertTextRules: hasSnippets
+                        ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                        : undefined,
                     range: replaceRange,
                     detail: r.id,
                     documentation: cleanText.substring(0, 200) + '...'
@@ -1084,4 +1088,29 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     return widget;
   }
 
+}
+
+export function convertToSnippet(text: string): { snippet: string, hasSnippets: boolean } {
+  let snippet = text;
+  let index = 1;
+
+  // Replace bracketed dates: [date], [insert date], [YYYY-MM-DD], [Date]
+  snippet = snippet.replace(/\[\s*(date|yyyy-mm-dd|insert date)\s*\]/gi, () => `\${${index++}:date}`);
+
+  // Replace bracketed names: [name], [insert name], [Name]
+  snippet = snippet.replace(/\[\s*(name|insert name|party name)\s*\]/gi, () => `\${${index++}:name}`);
+
+  // Replace bracketed amounts: [amount], [insert amount], [value]
+  snippet = snippet.replace(/\[\s*(amount|value|sum|insert amount)\s*\]/gi, () => `\${${index++}:amount}`);
+
+  // Replace bracketed company: [company], [company name]
+  snippet = snippet.replace(/\[\s*(company|company name|corporate debtor)\s*\]/gi, () => `\${${index++}:company_name}`);
+
+  // Replace bracketed generic place holders: [xxx], [insert]
+  snippet = snippet.replace(/\[\s*(insert|xxx|fill|placeholder)\s*\]/gi, () => `\${${index++}:fill_in}`);
+
+  // Replace generic underscores: _____
+  snippet = snippet.replace(/_{3,}/g, () => `\${${index++}:_____}`);
+
+  return { snippet, hasSnippets: index > 1 };
 }
