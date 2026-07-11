@@ -61,3 +61,15 @@ To prevent database directories (`wiki/` and `concepts/`) from cluttering the st
   ```
   This ensures that system-generated markdown page chunks and Q&A card files are hidden from the file listing, cleanly funneling them to the custom **Concepts** and **Case Wiki** panels.
 
+### WARNING: Upstream Git Pulls from Eclipse Theia
+
+The `ide/` folder represents a custom-branded, frozen fork of `eclipse-theia/theia-ide`. 
+
+> [!WARNING]
+> Do NOT add the public `eclipse-theia/theia-ide` repository as a remote or attempt to `git pull` from upstream Theia into this workspace. 
+
+Running an upstream git pull will break the following:
+1. **Product Overwrite**: Upstream `package.json` will overwrite product names, splash screen configurations (`Hayagriva` vs `Theia IDE`), and custom plugin inclusions.
+2. **API Mismatches**: Our custom extension `theia-extensions/hayagriva` is compiled against `@theia/core` version `1.73.1`. Upstream changes will throw TypeScript compile errors (`tsc -b`) due to changes in core command, menu, or webview interfaces.
+3. **Electron Incompatibility**: Upstream Electron version upgrades may conflict with the local Node version on your system, preventing the IDE client from booting.
+

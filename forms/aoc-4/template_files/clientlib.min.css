@@ -1,0 +1,7 @@
+.mca-form-rootpanel .fileuploadwithplaceholder .fileUploaderCustomError{color:#eb3c36;margin-left:0;margin-bottom:0;margin-top:0;margin-right:0;font-size:.875rem}
+.mca-form-rootpanel .fileuploadwithplaceholder .file-attachment-with-placeholder .fileUpload input:first-child+input:disabled{opacity:1}
+.mca-form-rootpanel .fileuploadwithplaceholder .file-attachment-with-placeholder .fileUpload input:first-child:disabled+input:disabled+button{opacity:.6;cursor:not-allowed}
+@media(min-width:768px){.mca-form-rootpanel .fileuploadwithplaceholder .fileUploaderCustomError{font-size:.75rem}
+}
+@media(min-width:1200px){.mca-form-rootpanel .fileuploadwithplaceholder .fileUploaderCustomError{font-size:.875rem}
+}

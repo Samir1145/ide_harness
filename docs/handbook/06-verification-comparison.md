@@ -12,6 +12,7 @@ Users can compare draft revisions or related contract files:
 2. Select **Compare with... (Diff)** from the editor context menu.
 3. Choose the document to compare against in the text input popup.
 4. The IDE opens a side-by-side split screen showing highlighted additions (green) and deletions (red).
+5. For document drafts generated via the **Drafting Panel**, users can click **Compare with previous draft (Diff)** to display the changes between the active version and the archived historical draft (e.g. `v1` vs `v2`).
 
 ### Smart Outline Queries
 In the **Outline Panel** displaying the headings hierarchy:
@@ -28,6 +29,12 @@ In the **Outline Panel** displaying the headings hierarchy:
 The `commands.ts` class handles the comparison action by calling the IDE's built-in `vscode.diff` command:
 ```typescript
 registry.executeCommand('vscode.diff', leftUri, rightUri, `Comparison: ${leftName} vs ${rightName}`);
+```
+
+### Versioned Draft Comparisons
+The drafting sidebar sends a `compare-draft-versions` event to the extension layer, which resolves the left URI to the previous archived draft version (e.g. `.v1.md`) and the right URI to the active draft file, executing:
+```typescript
+this.commandRegistry.executeCommand('vscode.diff', leftUri, rightUri, `Draft Redlines: v${version - 1} vs v${version}`);
 ```
 
 ### Outline Context Contributions

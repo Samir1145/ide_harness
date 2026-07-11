@@ -1,0 +1,17 @@
+.mca-container{--bs-gutter-x:1.5rem;--bs-gutter-y:0;padding-right:calc(var(--bs-gutter-x) * .5);padding-left:calc(var(--bs-gutter-x) * .5);margin-right:15px;margin-left:15px}
+.home-container{box-shadow:1px 2px 12px #0000001A;padding:12px 0;margin-bottom:25px}
+@media(min-width:576px){.mca-container{max-width:540px !important}
+}
+@media(min-width:768px){.mca-container{max-width:720px !important;margin-right:auto;margin-left:auto}
+}
+@media(min-width:992px){.mca-container{max-width:960px !important}
+}
+@media(min-width:1200px){.mca-container{max-width:1140px !important}
+}
+@media(min-width:1400px){.mca-container{max-width:1320px !important}
+}
+@media(max-width:991.98px){.home-container .col-md-9{width:100%}
+.home-container .col-sm-9{width:100%}
+.home-container .col-md-3{width:100%}
+.home-container .col-sm-3{width:100%}
+}

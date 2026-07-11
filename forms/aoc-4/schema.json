@@ -1,0 +1,60 @@
+{
+  "formId": "aoc-4",
+  "displayName": "Form AOC-4 (Financial Statements)",
+  "sections": [
+    {
+      "sectionId": "company_info",
+      "displayName": "🏢 Company Info",
+      "fields": [
+        { "key": "CINofCompany", "label": "CIN of Company", "type": "text", "description": "Corporate Identity Number of the company", "instruction": "Extract the 21-character CIN of the company." },
+        { "key": "nameOfCompany", "label": "Name of Company", "type": "text", "description": "Name of the Company", "instruction": "Extract the name of the company." },
+        { "key": "authorizedCapitalOfCompany", "label": "Authorized Capital", "type": "number", "description": "Authorized capital of the company", "instruction": "Extract authorized capital from Balance Sheet or Directors Report." },
+        { "key": "fromDate", "label": "Financial Year From", "type": "date", "description": "Financial Year Start Date", "instruction": "Start date of financial year (usually 01/04/YYYY)." },
+        { "key": "toDate", "label": "Financial Year To", "type": "date", "description": "Financial Year End Date", "instruction": "End date of financial year (usually 31/03/YYYY)." }
+      ]
+    },
+    {
+      "sectionId": "balance_sheet",
+      "displayName": "📊 Balance Sheet",
+      "fields": [
+        { "key": "FiguresAtEndOfCurrentReporting1", "label": "Share Capital (Current)", "type": "number", "description": "Share Capital at the end of current period", "instruction": "Extract Share Capital or Equity Share Capital for current FY." },
+        { "key": "figuresAsEndOfPreviousReporting1", "label": "Share Capital (Previous)", "type": "number", "description": "Share Capital at the end of previous period", "instruction": "Extract Share Capital or Equity Share Capital for previous FY." },
+        { "key": "FiguresAtEndOfCurrentReporting2", "label": "Reserves & Surplus (Current)", "type": "number", "description": "Reserves & Surplus for current period", "instruction": "Extract Reserves & Surplus for current FY." },
+        { "key": "figuresAsEndOfPreviousReporting2", "label": "Reserves & Surplus (Previous)", "type": "number", "description": "Reserves & Surplus for previous period", "instruction": "Extract Reserves & Surplus for previous FY." },
+        { "key": "netWorthOfCompany", "label": "Net Worth of Company", "type": "number", "description": "Calculated Net Worth of Company", "instruction": "Compute Net Worth = Share Capital + Reserves & Surplus." }
+      ]
+    },
+    {
+      "sectionId": "pnl",
+      "displayName": "📈 Profit & Loss",
+      "fields": [
+        { "key": "currentReportingPeriod1", "label": "Revenue from Operations (Current)", "type": "number", "description": "Revenue from operations", "instruction": "Extract Revenue from Operations or Turnover for current FY." },
+        { "key": "previousReportingPeriod1", "label": "Revenue from Operations (Previous)", "type": "number", "description": "Revenue from operations in previous period", "instruction": "Extract Revenue from Operations or Turnover for previous FY." }
+      ]
+    },
+    {
+      "sectionId": "auditor",
+      "displayName": "✍️ Auditor & Signatories",
+      "fields": [
+        { "key": "nameOfTheAuditor", "label": "Auditor Name", "type": "text", "description": "Name of the auditor", "instruction": "Extract the Auditor or Audit Firm Name." },
+        { "key": "membershipNumberOfAuditor", "label": "Auditor Membership/FRN", "type": "text", "description": "Membership number or Firm Registration number", "instruction": "Extract Auditor Membership Number or FRN." },
+        { "key": "DateOfSigning", "label": "Date of Board Report Signing", "type": "date", "description": "Date of signing Board Report", "instruction": "Extract date of signing the Board Report or Financial Statements by directors." },
+        { "key": "DateOfBoard", "label": "Date of Board Meeting", "type": "date", "description": "Date of board meeting approving reports", "instruction": "Extract date of board meeting approving accounts." }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "ruleId": "net_worth_calc",
+      "displayName": "Net Worth Calculation Balance",
+      "formula": "netWorthOfCompany == FiguresAtEndOfCurrentReporting1 + FiguresAtEndOfCurrentReporting2",
+      "message": "Net Worth of Company must equal Share Capital plus Reserves & Surplus."
+    },
+    {
+      "ruleId": "board_date_before_signing",
+      "displayName": "Board Date Sequence",
+      "formula": "DateOfBoard <= DateOfSigning",
+      "message": "Date of Board Meeting must be chronologically on or before the Date of Signing."
+    }
+  ]
+}

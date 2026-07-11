@@ -1,0 +1,12 @@
+{
+  "files.exclude": {
+    "**/wiki": true,
+    "**/concepts": true,
+    "wiki": true,
+    "concepts": true,
+    "**/wiki/**": true,
+    "**/concepts/**": true,
+    "wiki/": true,
+    "concepts/": true
+  }
+}

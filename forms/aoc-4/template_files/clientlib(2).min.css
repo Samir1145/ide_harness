@@ -1,0 +1,35 @@
+.fileuploadwithplaceholder .fileUploaderCustomError{color:#eb3c36;margin-left:0;margin-bottom:0;margin-top:0;margin-right:0;font-size:.875rem}
+@media(min-width:768px){.fileuploadwithplaceholder .fileUploaderCustomError{font-size:.75rem}
+}
+@media(min-width:1200px){.fileuploadwithplaceholder .fileUploaderCustomError{font-size:.875rem}
+}
+.custom-file-uploader .file-uplodaer{position:relative}
+.custom-file-uploader .file-uplodaer label.button-default{position:absolute;top:0;right:0;z-index:2}
+.custom-file-uploader .file-uplodaer input[type=file]{padding-right:140px}
+.custom-file-uploader .file-uplodaer .fileList{display:flex;flex-wrap:wrap}
+.custom-file-uploader .file-uplodaer .fileList li{list-style:none;display:flex}
+.custom-file-uploader .button-default{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;cursor:pointer;margin:0;background:#1592e6;border-color:#1592e6;color:#fff;font-family:'poppinsregular';width:auto}
+.custom-file-uploader .button-default:hover{background:#1077be;color:#fff}
+.removeFile{cursor:pointer;width:1.25rem;height:1.25rem;display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+li.guide-fu-fileItem{position:relative;padding:10px 30px}
+li.guide-fu-fileItem span.guide-fu-filePreview{width:1.25rem;height:1.25rem;background-image:url("../../../../../etc/clientlibs/fd/themes/mca-themes/mca-form-theme/assets/document-icon.svg");background-repeat:no-repeat;background-size:contain;background-position:center;position:absolute;left:5px;top:10px}
+li.guide-fu-fileItem span.guide-fu-fileName{text-overflow:unset;white-space:nowrap;display:block;overflow-y:hidden;margin:0 0 0 15px}
+li.guide-fu-fileItem span.guide-fu-fileClose{position:absolute;right:5px;top:10px;font-size:0;width:1.25rem;height:1.25rem;background-image:url("../../../../../etc/clientlibs/fd/themes/mca-themes/mca-form-theme/assets/close.svg");background-size:contain;background-repeat:no-repeat;background-position:center}
+.file-attachment-with-placeholder{position:relative}
+.file-attachment-with-placeholder .noFile{text-overflow:ellipsis;white-space:nowrap;overflow:hidden;display:block;width:100%;height:40px;padding:0 100px 0 16px;line-height:40px;position:absolute;top:0;background:#fff}
+.pdfIconInsideAttach{background-image:url(../../../../../content/dam/mca/icons/interface.png) !important}
+.imageIconInsideAttach{background-image:url(../../../../../content/dam/mca/icons/fileattachmentimageicon.png) !important}
+#snackbar{visibility:hidden;min-width:250px;margin-left:-125px;background-color:#333;color:#fff;text-align:center;border-radius:2px;padding:16px;position:fixed;z-index:1;left:50%;bottom:30px;font-size:17px}
+#snackbar.show{visibility:visible;-webkit-animation:fadein .5s,fadeout .5s 2.5s;animation:fadein .5s,fadeout .5s 2.5s}
+@-webkit-keyframes fadein{from{bottom:0;opacity:0}
+to{bottom:30px;opacity:1}
+}
+@keyframes fadein{from{bottom:0;opacity:0}
+to{bottom:30px;opacity:1}
+}
+@-webkit-keyframes fadeout{from{bottom:30px;opacity:1}
+to{bottom:0;opacity:0}
+}
+@keyframes fadeout{from{bottom:30px;opacity:1}
+to{bottom:0;opacity:0}
+}

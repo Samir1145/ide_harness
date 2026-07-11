@@ -1,0 +1,14 @@
+.cmp-breadcrumb{display:inline-block;list-style:none;padding:0}
+.cmp-breadcrumb__item{display:inline-block;vertical-align:top}
+.breadcrumb{width:100%;padding-right:15px;padding-left:15px;margin-right:auto;margin-left:auto;background-color:#fff}
+.breadcrumb .cmp-breadcrumb{padding:20px 0 10px 0;background-color:#fff;margin:0}
+.cmp-breadcrumb__item{font-size:12px;list-style-type:none;display:flex;align-items:center}
+.cmp-breadcrumb__item::after{content:" >";margin:0 5px}
+.cmp-breadcrumb__item:last-child::after{content:" "}
+.cmp-breadcrumb__item a,.cmp-breadcrumb__item a:hover{color:#666;text-decoration:none}
+.cmp-breadcrumb__item--active{color:#0f284a;font-weight:500}
+.cmp-breadcrumb__list{display:flex;align-items:center;padding-left:0;margin:0}
+.dark .cmp-breadcrumb__item-link{color:white}
+.dark .breadcrumb{background:black}
+.dark .cmp-breadcrumb__item--active{color:white}
+.dark .breadcrumb .cmp-breadcrumb{background:black}

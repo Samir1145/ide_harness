@@ -1,0 +1,12 @@
+.custom-wizard-header{padding:1rem 0;background:#fff}
+.custom-wizard-header ul{margin:0;padding:0;display:flex;flex-wrap:nowrap;justify-content:space-between;position:relative}
+.custom-wizard-header ul .progress__bar__hr{position:absolute;background-color:#ccc;top:11px;transform:translateY(-50%);height:2px;width:92%;transition:.4s ease;flex-shrink:1.5}
+.progress__bar__hr{margin-left:3%}
+.custom-wizard-header ul .progress__complete{position:absolute;background-color:#127abf;top:11px;left:3%;transform:translateY(-50%);height:2px;width:0;transition:.4s ease;flex-shrink:1}
+.custom-wizard-header ul li{list-style:none;position:relative;z-index:2}
+.custom-wizard-header ul li.completed .icon-circle{background:url("../../../../../content/dam/mca-af-forms/common/Tick.svg") no-repeat center #1592e6;background-size:10px}
+.custom-wizard-header ul li.active .icon-circle{background:#127abf}
+.custom-wizard-header ul li.completed+li.active{color:#ccc}
+.custom-wizard-header ul li{list-style:none;width:89px;display:block;text-align:center;font-size:12px;color:#444;cursor:auto;text-decoration:none}
+.custom-wizard-header ul li .icon-circle{width:1.5rem;height:1.5rem;display:block;margin:0 auto .5rem;border-radius:50%;background:#ccc}
+.custom-wizard-header ul li.sub-wizard-block{width:60px;font-size:12px}

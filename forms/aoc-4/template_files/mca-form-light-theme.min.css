@@ -1,0 +1,723 @@
+.mca-form-rootpanel *::-webkit-scrollbar{width:6px;height:0}
+.mca-form-rootpanel *::-webkit-scrollbar-track{background-color:#e3e7ec}
+.mca-form-rootpanel *::-webkit-scrollbar-thumb{background-color:#d6d6d6;outline:0;border-radius:.5rem}
+@font-face{font-family:'poppinsregular';src:url('mca-form-light-theme/webfonts/poppins-regular-webfont.woff2') format('woff2'),url('mca-form-light-theme/webfonts/poppins-regular-webfont.woff') format('woff');font-weight:normal;font-style:normal}
+@font-face{font-family:'poppinsmedium';src:url('mca-form-light-theme/webfonts/poppins-medium-webfont.woff2') format('woff2'),url('mca-form-light-theme/webfonts/poppins-medium-webfont.woff') format('woff');font-weight:normal;font-style:normal}
+@font-face{font-family:'poppinssemibold';src:url('mca-form-light-theme/webfonts/poppins-semibold-webfont.woff2') format('woff2'),url('mca-form-light-theme/webfonts/poppins-semibold-webfont.woff') format('woff');font-weight:normal;font-style:normal}
+.mca-form-rootpanel{margin-top:50px !important}
+.mca-form-rootpanel b{font-family:'poppinsmedium';font-weight:normal}
+.mca-form-rootpanel .guideImage img{height:auto;max-height:100%;margin-right:.75rem;margin-left:.75rem;margin-top:1rem;width:inherit;max-width:calc(100% - 1.5rem)}
+.mca-form-rootpanel *,.mca-form-rootpanel *:focus{outline:0}
+.mca-form-rootpanel{font-family:'poppinsregular';line-height:1.42857143;margin:0;color:#666}
+.position-relative{position:relative}
+.mca-form-rootpanel .guideChart{height:100%;width:inherit;max-width:100%;max-height:100%}
+.text-left{text-align:left}
+.text-center{text-align:center}
+.mca-form-rootpanel .guideFieldNode.validation-failure:not(.guideButton):not(.guideTextDraw):not(.guideChart) input[type=text],.mca-form-rootpanel .guideFieldNode.validation-failure:not(.guideButton):not(.guideTextDraw):not(.guideChart) input[type=email],.mca-form-rootpanel .guideFieldNode.validation-failure:not(.guideButton):not(.guideTextDraw):not(.guideChart) select,.mca-form-rootpanel .guideFieldNode.validation-failure:not(.guideButton):not(.guideTextDraw):not(.guideChart) input[type=textarea],.mca-form-rootpanel .guideFieldNode.validation-failure:not(.guideButton):not(.guideTextDraw):not(.guideChart) textarea,.mca-form-rootpanel .guideFieldNode.validation-failure:not(.guideButton):not(.guideTextDraw):not(.guideChart) input[type=date]{border-color:#eb3c36}
+.mt-2{margin-top:.4rem}
+.mca-form-rootpanel .guideFieldNode:not(.guideButton):not(.guideTextDraw):not(.guideChart){margin-bottom:2.5rem}
+.mca-form-rootpanel .guideFieldDescription.long{margin-bottom:.25rem;margin-right:0;margin-left:0;margin-top:.25rem;clear:both;border-bottom-right-radius:4px;border-bottom-left-radius:4px;border-top-right-radius:4px;border-top-left-radius:4px;display:none;font-size:.875rem;color:#333;background:rgba(0,0,0,0.05);padding-left:1rem;padding-bottom:.125rem;padding-top:.125rem;padding-right:1rem;border-left-color:#007fa2;transition:all 2s}
+.mca-form-rootpanel label{color:#333;line-height:1.42857143;font-size:.875rem;font-family:'poppinsmedium';margin-bottom:2px;margin-top:0;margin-left:0;margin-right:0}
+.mca-form-rootpanel .guideFieldLabel{width:auto;display:block}
+.mca-form-rootpanel input::-webkit-input-placeholder,.mca-form-rootpanel input::-moz-placeholder,.mca-form-rootpanel input::placeholder{color:#999;font-size:.875rem}
+.mca-form-rootpanel input,.mca-form-rootpanel select,.mca-form-rootpanel textarea,.mca-form-rootpanel .guideScribble img,.mca-form-rootpanel .afTermsAndConditions{border:1px solid transparent;border-radius:.25rem;height:2.5rem;color:#333;font-size:.875rem;padding:.625rem;background:#fff}
+.mca-form-rootpanel input:disabled,.mca-form-rootpanel input:read-only,.mca-form-rootpanel select:disabled,.mca-form-rootpanel textarea:disabled,.mca-form-rootpanel textarea:read-only,.mca-form-rootpanel .guideScribble img:disabled,.mca-form-rootpanel .guideScribble img:read-only,.mca-form-rootpanel .afTermsAndConditions:disabled,.mca-form-rootpanel .afTermsAndConditions:read-only{background:#e3eefa}
+.mca-form-rootpanel .guideFieldWidget:not(.guideFieldButtonWidget){width:100%;display:block}
+.mca-form-rootpanel .guideCheckBoxGroupItems:not(.guideImageChoice):not(.guideSwitch){width:100%;display:block}
+.mca-form-rootpanel .afCheckBoxItem .guideWidgetLabel label{margin-left:.2em;color:#333;margin-right:1.5rem;vertical-align:middle;cursor:pointer}
+.mca-form-rootpanel .guideCheckBoxItem .guideWidgetLabel{display:inline}
+.mca-form-rootpanel .XfaCheckBox input[type='checkbox']{float:none;padding-right:0;padding-bottom:0;padding-left:0;padding-top:0;width:auto;height:auto;border-top-right-radius:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-top-left-radius:0;cursor:pointer}
+.mca-form-rootpanel .guideFieldWidget.guideNumericStepper{width:40%;min-width:200px;border-top-width:1px;border-left-width:1px;border-bottom-width:1px;border-right-width:1px;border-style:solid;border-color:#ccc;background:#fff;border-bottom-right-radius:.25rem;border-bottom-left-radius:.25rem;border-top-left-radius:.25rem;border-top-right-radius:.25rem}
+.mca-form-rootpanel .guideFieldWidget.guideNumericStepper input[type='text'].ui-spinner-input{width:calc(100% - 5rem);border-top-width:0;border-left-width:0;border-bottom-width:0;border-right-width:0;text-align:center}
+.mca-form-rootpanel .guideFieldWidget.guideNumericStepper a.ui-spinner-button.ui-spinner-down:focus{background:url(mca-form-light-theme/assets/Minus_Hover.svg) center center / .75rem .75rem no-repeat}
+.mca-form-rootpanel .guideFieldWidget.guideNumericStepper a.ui-spinner-button.ui-spinner-down:hover{background:url(mca-form-light-theme/assets/Minus_Hover.svg) center center / .75rem .75rem no-repeat}
+.mca-form-rootpanel .guideFieldWidget.guideNumericStepper a.ui-spinner-button.ui-spinner-down{width:2.5rem;height:2.5rem;display:inline-block;float:left;border-top-left-radius:.25rem;border-bottom-left-radius:.25rem;background:url(mca-form-light-theme/assets/Minus.svg) center center / .75rem .75rem no-repeat;cursor:pointer}
+.mca-form-rootpanel .guideFieldWidget.guideNumericStepper a.ui-spinner-button.ui-spinner-up:focus{background:url(mca-form-light-theme/assets/Plus_Hover.svg) center center / .75rem .75rem no-repeat}
+.mca-form-rootpanel .guideFieldWidget.guideNumericStepper a.ui-spinner-button.ui-spinner-up:hover{background:url(mca-form-light-theme/assets/Plus_Hover.svg) center center / .75rem .75rem no-repeat}
+.mca-form-rootpanel .guideFieldWidget.guideNumericStepper a.ui-spinner-button.ui-spinner-up{width:2.5rem;height:2.5rem;float:right;display:inline-block;border-top-right-radius:.25rem;border-bottom-right-radius:.25rem;background:url(mca-form-light-theme/assets/Plus.svg) center center / .75rem .75rem no-repeat;cursor:pointer}
+.mca-form-rootpanel .guideRadioButtonGroupItems:not(.guideImageChoice):not(.guideSwitch){display:block;width:100%}
+.mca-form-rootpanel .afRadioButtonItem .guideWidgetLabel label{margin-left:.2rem;margin-bottom:0;margin-right:1.5rem;margin-top:0;color:#888;vertical-align:middle;cursor:pointer}
+.mca-form-rootpanel .guideRadioButtonItem .guideWidgetLabel{display:inline;float:none}
+.mca-form-rootpanel .XfaCheckBox input[type='radio']{float:none;border-bottom-right-radius:15px;border-bottom-left-radius:15px;border-top-right-radius:15px;border-top-left-radius:15px;padding-right:0;padding-left:0;width:auto;padding-bottom:0;padding-top:0;height:auto;cursor:pointer}
+.mca-form-rootpanel .multiline.textField textArea{height:80px;font-family:'poppinsregular'}
+.mca-form-rootpanel .guidePanelNode.fieldsPanel{background:#f5f5f5 !important}
+@media(max-width:767px){.mca-form-rootpanel .guide-nav-next.guide-nav-toolbar-button{margin-left:1rem;margin-bottom:0;margin-right:0;width:2.5rem;height:2.5rem;background:url(mca-form-light-theme/assets/FatChevron-Right-Default.svg) center center / auto 1.25rem no-repeat;cursor:pointer}
+}
+@media(max-width:767px){.mca-form-rootpanel .guide-nav-prev.guide-nav-toolbar-button{position:relative;background:url(mca-form-light-theme/assets/FatChevron-Left-Default.svg) center center / auto 1.25rem no-repeat;width:2.5rem;height:2.5rem;margin-right:1rem;margin-left:0;cursor:pointer}
+}
+.mca-form-rootpanel .guideSwitch .ui-switchbutton-default.ui-state-active{background:rgba(0,0,0,0);font-weight:normal}
+.mca-form-rootpanel .guideSwitch .ui-switchbutton-default{height:24px;margin-top:5px;padding-bottom:0;padding-top:0;border-left-width:1px;border-bottom-width:1px;border-top-width:1px;border-right-width:1px;border-style:solid;border-bottom-right-radius:12px;border-bottom-left-radius:12px;border-top-left-radius:12px;border-top-right-radius:12px;border-color:#ccc}
+.mca-form-rootpanel .guideSwitch .ui-switchbutton-default .ui-switchbutton-handle{background:linear-gradient(180deg,#d7d7d7,#fcfcfc);width:22px;height:22px;display:block;position:absolute;border-bottom-right-radius:12px;border-bottom-left-radius:12px;border-top-left-radius:12px;border-top-right-radius:12px;margin-top:0;margin-left:0;margin-right:0;margin-bottom:0;border-left-width:1px;border-bottom-width:1px;border-right-width:1px;border-top-width:1px;border-style:solid;border-color:#a2a2a2}
+.mca-form-rootpanel .guideSwitch .ui-switchbutton-default label.ui-switchbutton-enabled{font-size:14px;line-height:18px;font-weight:bold;text-transform:uppercase;height:20px;padding-top:4px;display:block;margin-bottom:5px;margin-top:0;overflow:hidden;position:absolute;color:#fff;background:#54b46b}
+.mca-form-rootpanel .guideSwitch .ui-switchbutton-default label.ui-switchbutton-disabled{font-size:14px;line-height:18px;font-weight:bold;text-transform:uppercase;height:20px;padding-top:4px;padding-right:0;display:block;margin-bottom:5px;margin-top:0;overflow:hidden;position:absolute;color:#7c7c7c;background:#e6e6e6}
+.mca-form-rootpanel .guideFieldWidget.afTermsAndConditions{border-left-width:0;border-bottom-width:0;border-right-width:0;border-top-width:0}
+.mca-form-rootpanel .guide-tnc-checkboxwidget input[type='checkbox']{margin-left:.5rem;margin-right:.5rem;width:1rem}
+.mca-form-rootpanel .afTncContentArea{background:#fff;overflow:auto;border-style:solid;border-top-width:1px;border-left-width:1px;border-bottom-width:1px;border-right-width:1px;border-color:#ccc;margin-bottom:.25rem;padding-left:1rem;padding-right:1rem;border-bottom-right-radius:.25rem;border-bottom-left-radius:.25rem;border-top-left-radius:.25rem;border-top-right-radius:.25rem;font-size:.875rem;line-height:1.6;color:#969696;max-height:160px}
+@media(max-width:767px){.mca-form-rootpanel .afTncContentArea{max-height:8rem}
+}
+.mca-form-rootpanel .guideImageChoice .guideRadioButtonItem.imageCheckButtonChecked .guideWidgetLabel,.mca-form-rootpanel .guideImageChoice .guideCheckBoxItem.imageCheckButtonChecked .guideWidgetLabel{background:url(mca-form-light-theme/assets/ImageChoiceSelectIcon.svg) center center no-repeat,rgba(23,107,230,0.5)}
+.mca-form-rootpanel .dropDownList select{height:2.5rem;border-left-width:1px;border-bottom-width:1px;border-top-width:1px;border-right-width:1px;border-style:solid;border-color:transparent;padding-left:.625rem;padding-bottom:.625rem;padding-top:.625rem;padding-right:1.425rem;border-bottom-right-radius:.25rem;border-bottom-left-radius:.25rem;border-top-left-radius:.25rem;border-top-right-radius:.25rem;background:url(mca-form-light-theme/assets/Chevron-Down-Default.svg) no-repeat #fff calc(100% - 6px);background-size:14px;-webkit-appearance:none;-moz-appearance:none;appearance:none}
+.mca-form-rootpanel .mca-form-rootpanel .dropDownList select:hover{background:url(mca-form-light-theme/assets/Chevron-Down-Active.svg) no-repeat #fff calc(100% - 6px)}
+.mca-form-rootpanel .dropDownList select:disabled{opacity:.6}
+.mca-form-rootpanel .guideFieldWidget.dropDownList{width:100%}
+@media(max-width:991px){.mca-form-rootpanel .guideformtitle,.mca-form-rootpanel .guideTextDraw.guideformtitle{margin-bottom:0}
+}
+.mca-form-rootpanel .guideHelpQuestionMark:hover{background:url(mca-form-light-theme/assets/questionmark.svg) left top / cover no-repeat,#777}
+.mca-form-rootpanel .guideHelpQuestionMark{display:inline-block;position:absolute;top:8px;right:8px;width:1rem;height:1rem;border-bottom-right-radius:9px;border-bottom-left-radius:9px;border-top-left-radius:9px;border-top-right-radius:9px;background:url(mca-form-light-theme/assets/questionmark.svg) center center / cover no-repeat,#969696;cursor:pointer}
+.mca-form-rootpanel .guidePanelDescription>.guideHelpQuestionMark{position:relative;left:5px;top:0}
+.mca-form-rootpanel .guidePanelDescription.long{background:rgba(0,0,0,0.05);padding-left:1rem;padding-right:1rem;padding-top:.125rem;padding-bottom:.125rem;margin-left:0;margin-right:0;margin-top:.25rem;color:#333;font-size:.875rem;border-bottom-right-radius:.25rem;border-bottom-left-radius:.25rem;border-top-left-radius:.25rem;border-top-right-radius:.25rem}
+.mca-form-rootpanel .guideGridFluidDescription.guidePanelDescription{margin-bottom:1.5rem;font-size:1.25rem;color:#333;margin-left:.75rem;margin-right:.75rem}
+@media(max-width:767px){.mca-form-rootpanel .guideGridFluidDescription.guidePanelDescription{margin-bottom:.5rem}
+}
+@media(max-width:767px){.mca-form-rootpanel .tab-navigators.tab-navigators-mobile{background:#e6e6e6;padding-left:0;padding-bottom:0;padding-top:0;padding-right:0;margin-left:0;margin-bottom:0;margin-top:0;margin-right:0;box-shadow:0 2px 10px 0 rgba(0,0,0,0.35);border-left-width:1px;border-bottom-width:1px;border-top-width:1px;border-right-width:1px;border-style:solid;border-color:#e6e6e6;list-style:none;cursor:pointer}
+}
+@media(max-width:767px){.mca-form-rootpanel .guide-mobile-navigator .navigator-toggle{border:0;float:right;cursor:pointer;margin-right:1rem;border-bottom-right-radius:0;border-bottom-left-radius:0;border-top-left-radius:0;border-top-right-radius:0;margin-left:1rem;width:2.5rem;height:2.5rem;background:url(mca-form-light-theme/assets/HamburgerMenuWmargin-Default.svg) 50% 0 / auto 2rem no-repeat;margin-bottom:.5rem}
+.mca-form-rootpanel .guide-mobile-navigator .navigator-toggle:hover{background:url(mca-form-light-theme/assets/HamburgerMenuWmargin-Hover.svg) 50% 0 / auto 2rem no-repeat}
+}
+@media(max-width:767px){.mca-form-rootpanel .tab-navigators.tab-navigators-mobile>li.wizard-tab-disabled>a,.mca-form-rootpanel .tab-navigators.tab-navigators-mobile>li.wizard-tab-disabled>a:hover{opacity:.5}
+.mca-form-rootpanel .tab-navigators.tab-navigators-mobile>li>a{color:#666;background:#e6e6e6;padding-left:1rem;width:100%;padding-right:1rem;padding-top:1rem;padding-bottom:1rem;text-decoration:none}
+.mca-form-rootpanel .tab-navigators.tab-navigators-mobile>li.active>a,.mca-form-rootpanel .tab-navigators.tab-navigators-mobile>li.active.stepped>a{background:#666;color:#fff}
+.mca-form-rootpanel .tab-navigators.tab-navigators-mobile>li>a:hover{background:#ccc;color:#666}
+}
+@media(max-width:767px){.mca-form-rootpanel .mobileScrollIndicator{display:block;z-index:55;position:fixed;bottom:20px;right:0;width:3rem;height:5rem;background:url(mca-form-light-theme/assets/ScrollDown.svg) left top / 1.5rem 1.5rem no-repeat}
+}
+@media(max-width:767px){.mca-form-rootpanel .guide-header-bar{background:#e6e6e6;color:#fff;padding-left:.5rem;text-transform:uppercase;position:static;top:0}
+}
+@media(max-width:767px){.mca-form-rootpanel .guide-header-bar .guide-breadcrumb{float:left;color:#666;margin-right:1rem;line-height:2.5rem;margin-bottom:0;margin-top:0;margin-left:0}
+}
+.mca-form-rootpanel .accordion-navigators .guideHeader>a:hover{background:url(mca-form-light-theme/assets/Chevron-Right-Hover.svg) .5rem 50% / auto 1rem no-repeat,#f0f0f0;color:#333}
+.mca-form-rootpanel .accordion-navigators .active>.guideHeader>a,.mca-form-rootpanel .accordion-navigators .active .guideHeader>a:hover{color:#333;background:url(mca-form-light-theme/assets/Chevron-Active.svg) .5rem 50% / auto 1rem no-repeat,#f5f5f5;border-left-width:2px;border-bottom-width:0;border-top-width:2px;border-right-width:2px;border-style:solid;border-color:#ccc}
+.mca-form-rootpanel .accordion-navigators .guideHeader>a{display:block;border-style:solid;border-top-width:2px;border-left-width:2px;border-right-width:2px;border-color:#ccc;padding-bottom:1rem;padding-left:2rem;padding-top:1rem;padding-right:1rem;font-size:.875rem;text-decoration:none;color:#969696;cursor:pointer;background:url(mca-form-light-theme/assets/Chevron-Right.svg) .5rem 50% / auto 1rem no-repeat,#f1f1f1;border-bottom-width:2px}
+.mca-form-rootpanel .accordion-navigators .guideHeader .repeatableButtons>button.Add:hover{background:url(mca-form-light-theme/assets/Accordion-Add-Hover.svg) 50% 40% / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .accordion-navigators .active>.guideHeader .repeatableButtons>button.Add{background:url(mca-form-light-theme/assets/Accordion-Add-Hover.svg) 50% 40% / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .accordion-navigators .guideHeader .repeatableButtons button.Add{border:0;width:1.5rem;height:1.5rem;background:url(mca-form-light-theme/assets/Accordion-Add-Default.svg) 50% 40% / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .accordion-navigators .guideHeader .repeatableButtons button.Remove:hover{background:url(mca-form-light-theme/assets/Accordion-Delete-Hover.svg) 50% 40% / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .accordion-navigators .active>.guideHeader .repeatableButtons>button.Remove{background:url(mca-form-light-theme/assets/Accordion-Delete-Hover.svg) 50% 40% / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .accordion-navigators .guideHeader .repeatableButtons button.Remove{border:0;width:1.5rem;height:1.5rem;margin-left:.5rem;background:url(mca-form-light-theme/assets/Accordion-Delete-Default.svg) 50% 40% / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .guideGridFluidLayout{color:#333;background:rgba(127,127,127,0)}
+.mca-form-rootpanel .guideTabbedPanelLayout{border-top-width:0;border-left-width:0;border-bottom-width:0;border-right-width:0;border-style:solid;border-color:#08b1cf}
+.mca-form-rootpanel .afTabLeftPanel{padding-left:3.5rem;padding-bottom:1rem;padding-right:3.5rem;padding-top:1rem;border-top-width:1px;border-left-width:1px;border-bottom-width:1px;border-right-width:1px;border-style:solid;background:#fafafa;border-color:#e6e6e6}
+@media(max-width:991px){.mca-form-rootpanel .afTabLeftPanel{border-top-width:0}
+}
+@media(max-width:767px){.mca-form-rootpanel .afTabLeftPanel{padding-top:.5rem;padding-right:.5rem;padding-left:.5rem;border-top-width:1px;background:#fff}
+}
+.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical{margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;padding-bottom:0;padding-left:0;padding-top:0;padding-right:0;list-style:none;cursor:pointer;overflow:hidden;background:#f1f1f1;border-left-width:1px;border-bottom-width:0;border-top-width:1px;border-right-width:0;border-color:#e6e6e6;border-style:solid}
+@media(max-width:991px){.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical{border-right-width:1px}
+}
+.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical>li>a.guideLeftNavIcon:hover,.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical>li.stepped>a.guideLeftNavIcon:hover{color:#333;background:url(mca-form-light-theme/assets/Tick_Hover.svg) .5rem 50% / .8125rem auto no-repeat,#e6e6e6}
+.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical>li.active>a.guideLeftNavIcon,.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical>li.active.stepped>a.guideLeftNavIcon,.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical>li.active>a.guideLeftNavIcon:hover{color:#fff;background:url(mca-form-light-theme/assets/Tick.svg) .5rem 50% / .8125rem auto no-repeat,#888}
+.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical>li>a.guideLeftNavIcon{color:#333;width:calc(100% - 35px);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;display:block;padding-bottom:1rem;padding-left:2rem;padding-top:1rem;padding-right:.25rem;text-decoration:none;border-top-width:0;border-left-width:0;border-bottom-width:1px;border-right-width:0;border-color:#e6e6e6;border-style:solid;background:#f1f1f1;box-sizing:content-box}
+.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical .tab-navigators-vertical>li>a.guideLeftNavIcon:hover,.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical .tab-navigators-vertical>li.stepped>a.guideLeftNavIcon:hover{color:#333;background:url(mca-form-light-theme/assets/DoubleTick.svg) .5rem 50% / .8125rem auto no-repeat,#fff}
+.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical .tab-navigators-vertical>li.active>a.guideLeftNavIcon,.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical .tab-navigators-vertical>li.active.stepped>a.guideLeftNavIcon,.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical .tab-navigators-vertical>li.active>a.guideLeftNavIcon:hover{background:url(mca-form-light-theme/assets/DoubleTick.svg) .5rem 50% / .8125rem auto no-repeat,#fff;border-left-width:4px;border-bottom-width:0;border-right-width:0;border-top-width:0;color:#333;border-color:#969696}
+.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical .tab-navigators-vertical>li>a.guideLeftNavIcon{background:#fff;color:#333;border-left-width:4px;border-bottom-width:0;border-top-width:0;border-right-width:0}
+.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators{margin-bottom:0;border:0;overflow-x:auto;display:flex;width:100%;list-style:none;background:#f0f7ff}
+.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators>li>a.guideTopNavIcon:hover{color:#333;background:rgba(255,255,255,0);border:0}
+.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators>li.active>a.guideTopNavIcon,.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators-vertical .tab-navigators-vertical li.active>a.guideTopNavIcon,.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators>li.stepped.active>a.guideTopNavIcon,.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators-vertical .tab-navigators-vertical li.stepped.active>a.guideTopNavIcon,.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators>li.active>a.guideTopNavIcon:hover,.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators-vertical .tab-navigators-vertical li.active>a.guideTopNavIcon:hover{color:#fff;background:#127abf;border:0}
+.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators>li>a.guideTopNavIcon{color:#333;padding:.75rem 1.25rem;background:rgba(255,255,255,0);margin:0}
+.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators>li.stepped>a.guideTopNavIcon,.mca-form-rootpanel .guideVerticalTabbedPanelLayout .tab-navigators-vertical .tab-navigators-vertical li.stepped>a.guideTopNavIcon{color:#333}
+.mca-form-rootpanel .wizard-navigators{padding-bottom:.5rem;padding-left:0;padding-top:.5rem;padding-right:0;list-style-type:none;font-size:16px;overflow:hidden;white-space:nowrap;cursor:default;text-transform:uppercase;counter-reset:item;margin-left:0;margin-bottom:0;margin-top:0;margin-right:0}
+@media(max-width:767px){.mca-form-rootpanel .wizard-navigators{margin-left:1rem;margin-right:1rem}
+}
+.mca-form-rootpanel .wizard-navigators>li>a:hover{color:#969696;text-decoration:none}
+.mca-form-rootpanel .wizard-navigators>li>a:hover::before{color:#969696;border-color:#969696}
+.mca-form-rootpanel .wizard-navigators>li.active>a,.mca-form-rootpanel .wizard-navigators>li.active.stepped>a,.mca-form-rootpanel .wizard-navigators>li.active>a:hover{color:#333}
+.mca-form-rootpanel .wizard-navigators>li.active>a::before,.mca-form-rootpanel .wizard-navigators>li.active.stepped>a::before,.mca-form-rootpanel .wizard-navigators>li.active>a:hover::before{background-color:#666;border-color:#666;color:#fff;outline:2px}
+.mca-form-rootpanel .wizard-navigators>li>a{display:inline-block;border-top-width:0;border-left-width:0;border-bottom-width:0;border-right-width:0;border-style:solid;border-color:#000;position:relative;counter-increment:item;border-top-right-radius:200px;border-bottom-right-radius:200px;border-bottom-left-radius:0;border-top-left-radius:0;color:#969696;text-transform:capitalize;font-size:.875rem;line-height:1.5rem;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mca-form-rootpanel .wizard-navigators>li>a::before{content:counter(item);float:left;bottom:0;height:1.5rem;width:1.5rem;border-radius:.75rem;padding:auto;color:#ccc;font-size:.75rem;text-align:center;line-height:1.35rem;border-style:solid;border-width:2px;border-color:#ccc;margin-right:10px}
+.mca-form-rootpanel .wizard-navigators>li.stepped>a{color:#969696}
+.mca-form-rootpanel .wizard-navigators>li.stepped>a::before{content:"";background:url(mca-form-light-theme/assets/Tick.svg) center center / .75rem .75rem no-repeat,#969696;border-color:rgba(0,0,0,0)}
+@media(max-width:767px){.mca-form-rootpanel .wizard-navigators>li>a{margin-right:4rem}
+}
+.mca-form-rootpanel .wizard-navigators>li.active .indicator,.mca-form-rootpanel .wizard-navigators>li.active.stepped .indicator,.mca-form-rootpanel .wizard-navigators>li.active:hover .indicator{display:none;border-bottom-color:#0079c1}
+.mca-form-rootpanel .wizard-navigators>li .indicator{width:0;height:0;border-style:solid;border-bottom-right-radius:0;border-bottom-left-radius:0;border-top-right-radius:0;border-top-left-radius:0;margin-top:-39px;z-index:20;border-left-width:8px;border-bottom-width:8px;border-right-width:8px;border-top-width:8px;border-color:rgba(255,255,255,0);display:none;margin-left:6px;border-bottom-color:#999}
+.mca-form-rootpanel .wizard-navigators>li.stepped .indicator{display:none;border-bottom-color:#02874e}
+.mca-form-rootpanel .wizard-navigators>li:hover .progress{background:#969696}
+.mca-form-rootpanel .wizard-navigators>li.active .progress,.mca-form-rootpanel .wizard-navigators>li.active.stepped .progress,.mca-form-rootpanel .wizard-navigators>li.active:hover .progress{background:#666}
+.mca-form-rootpanel .wizard-navigators>li .progress{height:3px;border-bottom-left-radius:0;border-top-right-radius:0;border-top-left-radius:0;border-bottom-right-radius:0;background:#ccc;margin-top:9px;display:block;margin-right:3px;margin-bottom:0;box-shadow:50px 36px 75px 80px rgba(127,127,127,0) inset}
+.mca-form-rootpanel .wizard-navigators>li.stepped .progress{background:#969696}
+.mca-form-rootpanel .wizard-nav-arrow.wizard-nav-next:hover{background:url(mca-form-light-theme/assets/Chevron-Right-White.svg) center center / 1rem 1rem no-repeat,#666;border-color:#666}
+.mca-form-rootpanel .wizard-nav-arrow.wizard-nav-next{height:2.5rem;cursor:pointer;margin-top:4.25rem;float:right;width:2.5rem;margin-right:1rem;position:absolute;border-left-width:2px;border-bottom-width:2px;border-top-width:2px;border-right-width:2px;border-style:solid;border-color:#969696;border-bottom-right-radius:1.5rem;border-bottom-left-radius:1.5rem;border-top-left-radius:1.5rem;border-top-right-radius:1.5rem;background:url(mca-form-light-theme/assets/Chevron-Right.svg) center center / 1rem 1rem no-repeat;right:2%;cursor:pointer}
+@media(max-width:767px){.mca-form-rootpanel .wizard-nav-arrow.wizard-nav-next{display:none}
+}
+.mca-form-rootpanel .wizard-nav-arrow.wizard-nav-prev:hover{background:url(mca-form-light-theme/assets/Chevron-Left-White.svg) center center / 1rem 1rem no-repeat,#969696}
+.mca-form-rootpanel .wizard-nav-arrow.wizard-nav-prev{cursor:pointer;height:2.5rem;margin-top:4.25rem;float:right;right:10%;width:2.5rem;border-left-width:2px;border-bottom-width:2px;border-top-width:2px;border-right-width:2px;border-style:solid;border-color:#969696;border-bottom-right-radius:1.5rem;border-bottom-left-radius:1.5rem;border-top-left-radius:1.5rem;border-top-right-radius:1.5rem;position:absolute;margin-right:.5rem;background:url(mca-form-light-theme/assets/Chevron-Left.svg) center center / 1rem 1rem no-repeat;cursor:pointer}
+@media(max-width:767px){.mca-form-rootpanel .wizard-nav-arrow.wizard-nav-prev{display:none}
+}
+.mca-form-rootpanel .guide-tab-scroller.guide-tab-scroller-next:hover{background:url(mca-form-light-theme/assets/Chevron-Right-Hover.svg) center center / 1rem 1rem no-repeat}
+.mca-form-rootpanel .guide-tab-scroller.guide-tab-scroller-next{cursor:pointer;height:1.5rem;background:url(mca-form-light-theme/assets/Chevron-Right.svg) center center / 1rem 1rem no-repeat;margin-top:.5rem;display:block}
+@media(max-width:991px){.mca-form-rootpanel .guide-tab-scroller.guide-tab-scroller-next{display:block}
+}
+.mca-form-rootpanel .guide-tab-scroller.guide-tab-scroller-previous:hover{background:url(mca-form-light-theme/assets/Chevron-Left-Hover.svg) center center / 1rem 1rem no-repeat}
+.mca-form-rootpanel .guide-tab-scroller.guide-tab-scroller-previous{cursor:pointer;height:1.5rem;background:url(mca-form-light-theme/assets/Chevron-Left.svg) center center / 1rem 1rem no-repeat;display:block;margin-top:.5rem;visibility:none}
+@media(max-width:991px){.mca-form-rootpanel .guide-tab-scroller.guide-tab-scroller-previous{display:block}
+}
+.mca-form-rootpanel .guideTableRuntimeAddControl:hover{background:url(mca-form-light-theme/assets/Accordion-Add-Hover.svg) center center / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .guideTableNode table .guideTableRuntimeRightControls{display:none}
+.mca-form-rootpanel .guideTableRuntimeAddControl{background:url(mca-form-light-theme/assets/Accordion-Add-Default.svg) center center / 1.2rem 1.2rem no-repeat;width:1.5rem;height:1.5rem;display:inline-block;margin-bottom:1rem;margin-top:1rem;margin-left:1rem;cursor:pointer}
+.mca-form-rootpanel .guideTableRuntimeEditControl:hover{background:url(mca-form-light-theme/assets/Table-Edit-Hover.svg) center center / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .guideTableRuntimeEditControl{display:inline-block;width:1.5rem;height:1.5rem;background:url(mca-form-light-theme/assets/Table-Edit-Default.svg) center center / 1.2rem 1.2rem no-repeat;margin-left:1rem;margin-bottom:1rem;margin-top:1rem;margin-right:1rem;cursor:pointer}
+.mca-form-rootpanel .guideTableRuntimeDeleteControl:hover{background:url(mca-form-light-theme/assets/Accordion-Delete-Hover.svg) center center / 1.2rem 1.2rem no-repeat}
+.mca-form-rootpanel .guideTableRuntimeDeleteControl{background:url(mca-form-light-theme/assets/Accordion-Delete-Default.svg) center center / 1.2rem 1.2rem no-repeat;width:1.5rem;height:1.5rem;margin-top:1rem;display:inline-block;margin-bottom:1rem;margin-right:1rem;margin-left:1rem;cursor:pointer}
+.mca-form-rootpanel .guideToolbarNode{margin-top:1.5rem;margin-bottom:1.5rem;height:2.85rem;padding-top:.125rem;padding-bottom:.125rem}
+@media(max-width:767px){.mca-form-rootpanel .guideToolbarNode{position:fixed;bottom:0;margin-top:0;margin-bottom:0;padding-right:0;padding-left:0;height:3.55rem;padding-top:.25rem;padding-bottom:.25rem;border-left-width:0;border-bottom-width:0;border-top-width:1px;border-right-width:0;border-style:solid;border-color:#e6e6e6;background:rgba(255,255,255,0.8)}
+}
+.mca-form-rootpanel button.fileattachmentlisting .iconButton-icon{background:url(mca-form-light-theme/assets/fileattachmentlisting-ip.png) center top / contain no-repeat}
+.mca-form-rootpanel button.moveNext .iconButton-icon{background:url(mca-form-light-theme/assets/Chevron-Right-White.svg) center center / auto 1.3rem no-repeat}
+.mca-form-rootpanel button.movePrev:not(.af-icon-button):hover .iconButton-icon{background:url(mca-form-light-theme/assets/Chevron-Left-White.svg) center center / auto 1.3rem no-repeat}
+.mca-form-rootpanel button.movePrev:not(.af-icon-button):active .iconButton-icon{background:url(mca-form-light-theme/assets/Chevron-Left-White.svg) center center / auto 1.3rem no-repeat}
+.mca-form-rootpanel button.movePrev .iconButton-icon{background:url(mca-form-light-theme/assets/Chevron-Left-Hover.svg) center center / auto 1.3rem no-repeat}
+.mca-form-rootpanel button.reset:not(.af-icon-button):focus .iconButton-icon{background:url(mca-form-light-theme/assets/Reset-Hover.svg) center center / auto 1.2rem no-repeat}
+.mca-form-rootpanel button.reset:not(.af-icon-button):hover .iconButton-icon{background:url(mca-form-light-theme/assets/Reset-Hover.svg) center center / auto 1.2rem no-repeat,#666}
+.mca-form-rootpanel button.reset:not(.af-icon-button):active .iconButton-icon{background:url(mca-form-light-theme/assets/Reset-Hover.svg) center center / auto 1.2rem no-repeat,#555;border-color:#555}
+.mca-form-rootpanel button.reset .iconButton-icon{background:url(mca-form-light-theme/assets/Reset.svg) center center / auto 1.2rem no-repeat}
+.mca-form-rootpanel button .iconButton-icon{display:none;width:1.5rem;height:1.5rem;background:url(mca-form-light-theme/assets/Save.svg) center center / auto 1.2rem no-repeat}
+.mca-form-rootpanel button.submit:not(.af-icon-button):focus .iconButton-icon{background:url(mca-form-light-theme/assets/Submit-Hover.svg) center center / auto 1.3rem no-repeat,#666}
+.mca-form-rootpanel button.submit:not(.af-icon-button):hover .iconButton-icon{background:url(mca-form-light-theme/assets/Submit-Hover.svg) center center / auto 1.3rem no-repeat,#555;border-color:#555}
+.mca-form-rootpanel button.submit:not(.af-icon-button):active .iconButton-icon{background:url(mca-form-light-theme/assets/Submit-Hover.svg) center center / auto 1.3rem no-repeat,#555;border-color:#555}
+.mca-form-rootpanel button.submit .iconButton-icon{background:url(mca-form-light-theme/assets/Submit-Hover.svg) center center / auto 1.3rem no-repeat}
+@media(max-width:767px){.mca-form-rootpanel .afToolbarButton .guidebutton button .iconButton-label,.mca-form-rootpanel .afToolbarButton .guidebutton button .iconButton-icon{display:none}
+}
+.mca-form-rootpanel .guideContainerWrapperNode .tooltip.bottom .tooltip-inner{background:rgba(0,0,0,0.7);max-width:350px;color:#fff;text-align:center;border-bottom-right-radius:4px;border-bottom-left-radius:4px;border-top-right-radius:4px;border-top-left-radius:4px;width:auto;text-decoration:none;white-space:normal;word-break:break-word;word-wrap:break-word}
+.mca-form-rootpanel .guideContainerWrapperNode .tooltip.bottom .tooltip-arrow{border-bottom-color:rgba(0,0,0,0.7)}
+.mca-form-rootpanel .guideFieldError{color:#eb3c36;margin-left:0;margin-bottom:0;margin-top:0;margin-right:0;font-size:.875rem}
+.mca-form-rootpanel .validation-failure .guideFieldError,.mca-form-rootpanel .validation-failure .fileUploaderCustomError{padding-top:.25rem;padding-bottom:.25rem}
+.mca-form-rootpanel .guideFieldWidget.guideDateInputWidget .comb-datefield label{font-size:.75rem;text-transform:uppercase;padding-bottom:0;padding-right:0;padding-top:0;padding-left:0;margin-left:0;margin-bottom:.125rem;margin-top:.5rem;margin-right:0;color:#888}
+.mca-form-rootpanel .guideFieldWidget.guideDateInputWidget input[type='text'].comb-form-group-month{text-transform:uppercase;width:3.625rem;padding-bottom:auto;padding-right:auto;padding-top:auto;padding-left:auto;text-align:center}
+.mca-form-rootpanel .guideFieldWidget.guideDateInputWidget input[type='text'].comb-form-group-day{width:3.625rem;text-align:center;padding-left:auto;padding-bottom:auto;padding-top:auto;padding-right:auto}
+.mca-form-rootpanel .guideFieldWidget.guideDateInputWidget input[type='text'].comb-form-group-year{width:4rem;text-align:center}
+.mca-form-rootpanel .guideTabbedPanelLayout .tab-navigators.tab-navigators-vertical .tab-navigators-vertical{border-left-width:0;border-bottom-width:0;border-top-width:0;border-right-width:0}
+.mca-form-rootpanel .afToolbarButton .guidebutton button:not(.af-icon-button){margin-right:.5rem;margin-left:0}
+.mca-form-rootpanel .afToolbarButton{display:inline-block}
+.mca-form-rootpanel .guideFieldDescription.short{font-size:.75rem;color:#969696;margin-top:.625rem}
+.mca-form-rootpanel .guideTableNode table .guideTableRowNode.guideTableHeader th{font-weight:bold;padding:.5rem;border-style:hidden;text-align:left}
+.mca-form-rootpanel .guideTableNode table p{margin-bottom:0}
+.mca-form-rootpanel .guideTableNode table td{text-align:left;padding:1rem}
+.mca-form-rootpanel .guideTableNode table{border-style:hidden}
+.mca-form-rootpanel .guideTableNode table tbody tr{border-style:hidden;background:#e7edf4}
+.guideTableNode table.nowrap td:not(.child) input{background:#fff;border:1px solid transparent}
+.mca-form-rootpanel .guideTableNode table tbody tr td{background:#e7edf4;border-bottom:.25rem solid #fff;vertical-align:top}
+.guideTableNode table.nowrap td:last-child .guidefield{width:100% !important}
+.mca-form-rootpanel .guideTableNode table td:nth-child(even){border-style:hidden}
+.mca-form-rootpanel .guideTableNode div.guidePanelDescription{color:#333;margin-left:.75rem;margin-right:.75rem}
+@media(max-width:991px){.mca-form-rootpanel .guideLayout.guideVerticalTabbedPanelLayout{padding-left:0rem;padding-right:0rem}
+}
+@media(max-width:767px){.mca-form-rootpanel .guideLayout.guideVerticalTabbedPanelLayout{padding-right:0;padding-left:0}
+}
+.mca-form-rootpanel .guideAccordionLayout{border-left-width:2px;border-bottom-width:2px;border-top-width:2px;border-right-width:2px;border-style:hidden;border-color:#fff}
+.mca-form-rootpanel hr{border-bottom-width:0 !important;margin:1.25rem 0;opacity:1;border-style:solid;border-color:#ff8000}
+.mca-form-rootpanel .guideWizardLayout{background:#fafafa;padding-top:.5rem;border-color:#e6e6e6;border-left-width:1px;border-bottom-width:1px;border-top-width:1px;border-right-width:1px;border-style:solid}
+@media(max-width:767px){.mca-form-rootpanel .guideWizardLayout{border-left-width:0;border-bottom-width:0;border-top-width:0;border-right-width:0;padding-top:0;background:#fff}
+}
+.mca-form-rootpanel button.moveNext:not(.af-icon-button):hover{background:#555;border-color:#555}
+.mca-form-rootpanel button.moveNext:not(.af-icon-button):active{background:#555;border-color:#555}
+.mca-form-rootpanel button.moveNext:not(.af-icon-button){color:#fff;padding-right:20px;padding-left:20px;margin-right:0;margin-bottom:0;margin-left:0;margin-top:0;padding-top:8px;padding-bottom:8px;background:#1592e6;border-color:#1592e6;border-top-right-radius:3px;border-bottom-left-radius:3px;border-bottom-right-radius:3px;border-top-left-radius:3px}
+@media(max-width:767px){.mca-form-rootpanel button.moveNext:not(.af-icon-button){padding-right:.625rem;padding-left:.625rem}
+}
+.mca-form-rootpanel button.submit:not(.af-icon-button):hover{background:#555;border-color:#555}
+.mca-form-rootpanel button.submit:not(.af-icon-button):active{background:#555;border-color:#555}
+.mca-form-rootpanel button.submit:not(.af-icon-button){background:#666;border-color:#666;color:#fff}
+@media(max-width:767px){.mca-form-rootpanel button.submit:not(.af-icon-button){padding-left:.625rem;padding-right:.625rem}
+}
+.mca-form-rootpanel .guideFieldWidget.dateTimeEdit input{font-family:Arial}
+.mca-form-rootpanel .afWizardPanel{padding-left:16%;padding-bottom:4rem;padding-right:3.5rem;padding-top:1rem}
+@media(max-width:767px){.mca-form-rootpanel .afWizardPanel{padding-left:.5rem;padding-right:.5rem;padding-top:.5rem;padding-bottom:.5rem}
+}
+@media(max-width:767px){.mca-form-rootpanel button.reset:not(.af-icon-button){padding-left:.625rem;padding-right:.625rem;border-left-width:2px;border-bottom-width:2px;border-top-width:2px;border-right-width:2px;border-style:solid;border-color:rgba(255,255,255,0)}
+}
+.align-items-end>.gridFluidLayout>.guideGridFluidLayout>.fd-row{align-items:flex-end}
+.mca-form-rootpanel .mbn-10{margin-bottom:10px}
+.mca-form-rootpanel button:not(.af-icon-button):focus{background:#666;color:#fff}
+.mca-form-rootpanel button:not(.af-icon-button):hover{background:#666;color:#fff}
+.mca-form-rootpanel button:not(.af-icon-button):active{color:#fff;background:#555;border-color:#555}
+.mca-form-rootpanel button:not(.af-icon-button),.mca-form-rootpanel input[type='button']{margin:0;border:2px solid #666;padding-left:.625rem 1rem;border-radius:1.5rem;line-height:normal;background:rgba(255,255,255,0);cursor:pointer}
+.mca-form-rootpanel .verticalTabbedPanelLayout .afTabTopPanel{position:static}
+.cq-Editable-dom .mca-form-rootpanel .verticalTabbedPanelLayout .afTabTopPanel .guideToolbarNode{position:static;top:initial;right:initial}
+.mca-form-rootpanel .verticalTabbedPanelLayout .afTabTopPanel .guideToolbarNode{position:absolute;top:0;right:14px;margin:0;background:#e5e7eb;height:44px;display:flex;flex-wrap:wrap;align-items:center}
+.mca-form-rootpanel .guideToolbarNode .guidetoolbar{display:flex}
+.mca-form-rootpanel .verticalTabbedPanelLayout .afTabTopPanel .guideToolbarNode .guideFieldButtonWidget button{width:2rem;height:2rem;border-radius:50% !important;padding:0 !important;font-size:0;border:none !important;background-color:#1592e6 !important;background-position:center !important;background-size:16px !important;background-repeat:no-repeat !important;margin:0 .3rem}
+.mca-form-rootpanel .verticalTabbedPanelLayout .afTabTopPanel .guideToolbarNode .guideFieldButtonWidget button.movePrev{background-image:url(mca-form-light-theme/assets/Chevron-Left-White.svg) !important}
+.mca-form-rootpanel .verticalTabbedPanelLayout .afTabTopPanel .guideToolbarNode .guideFieldButtonWidget button.moveNext{background-image:url(mca-form-light-theme/assets/Chevron-Right-White.svg) !important}
+.cq-Editable-dom .mca-form-rootpanel .verticalTabbedPanelLayout .afTabTopPanel .guideToolbarNode .guideFieldButtonWidget button{width:auto !important;height:auto !important;border-radius:.25rem !important;border:2px !important;padding:.5rem 1rem !important;font-size:.875rem !important;background-image:none !important;color:#fff !important}
+.mca-form-rootpanel .afTabTopPanel{padding:1.25rem;background:#f0f7ff;margin-top:.25rem}
+@media(max-width:991px){.mca-form-rootpanel .afTabTopPanel{padding-right:0;padding-left:0}
+}
+@media(max-width:767px){.mca-form-rootpanel .afTabTopPanel{padding-left:.5rem;padding-right:.5rem;padding-top:.5rem;padding-bottom:.5rem}
+}
+.mca-form-rootpanel .guide-tnc-checkbox .guideWidgetLabel label{font-size:.875rem;color:#888;cursor:pointer}
+.mca-form-rootpanel .afAccordionPanel{padding-left:3.5rem;padding-bottom:1rem;padding-right:3.5rem;padding-top:1rem;border-style:solid;border-left-width:2px;border-bottom-width:2px;border-top-width:0;border-right-width:2px;border-color:#ccc;background:#f5f5f5}
+@media(max-width:767px){.mca-form-rootpanel .afAccordionPanel{padding-left:0;padding-bottom:0;padding-top:0;padding-right:0}
+}
+.mca-form-rootpanel .guide-tnc-checkbox{margin-top:0}
+.mca-form-rootpanel .guideAccordionDescription.guidePanelDescription{margin-bottom:1.5rem;font-size:1.25rem;color:#333}
+@media(max-width:767px){.mca-form-rootpanel .guideAccordionDescription.guidePanelDescription{margin-bottom:.5rem;margin-top:.25rem}
+}
+.mca-form-rootpanel .afCheckBoxItem{cursor:pointer}
+.mca-form-rootpanel .afRadioButtonItem{cursor:pointer}
+@media(max-width:767px){.mca-form-rootpanel button.movePrev:not(.af-icon-button){padding-right:.625rem;padding-left:.625rem}
+}
+.mca-form-rootpanel button.save:not(.af-icon-button):focus .iconButton-icon{background:url(mca-form-light-theme/assets/Save-Hover.svg) center center / auto 1.3rem no-repeat}
+.mca-form-rootpanel button.save:not(.af-icon-button):hover .iconButton-icon{background:url(mca-form-light-theme/assets/Save-Hover.svg) center center / auto 1.3rem no-repeat,#666}
+.mca-form-rootpanel button.save:not(.af-icon-button):active .iconButton-icon{background:url(mca-form-light-theme/assets/Save-Hover.svg) center center / auto 1.3rem no-repeat,#555}
+.mca-form-rootpanel button.save .iconButton-icon{background:url(mca-form-light-theme/assets/Save.svg) center center / auto 1.3rem no-repeat}
+@media(max-width:767px){.mca-form-rootpanel button.save:not(.af-icon-button):active .iconButton-icon{border-color:#555}
+}
+@media(max-width:767px){.mca-form-rootpanel button.save:not(.af-icon-button){padding-left:.625rem;padding-right:.625rem;border-right-width:2px;border-bottom-width:2px;border-left-width:2px;border-top-width:2px;border-style:solid}
+}
+.mca-form-rootpanel .guideSummaryComponent{text-align:center;max-width:100%;position:relative;height:500px;border-top-width:1px;border-right-width:1px;border-left-width:1px;border-bottom-width:1px;border-style:solid;overflow:auto}
+.mca-form-rootpanel .guideVerifyComponent{text-align:center;max-width:100%;position:relative;height:540px;border-right-width:1px;border-bottom-width:1px;border-left-width:1px;border-top-width:1px;border-style:solid;overflow:auto}
+.mca-form-rootpanel .guideESignComponent{text-align:center;position:relative;height:540px;border-right-width:1px;border-bottom-width:1px;border-left-width:1px;border-top-width:1px;border-style:solid;overflow:auto;max-width:100%}
+.mca-form-rootpanel .adobeSignBlockText{border-top-width:1px;border-bottom-width:1px;border-left-width:1px;border-right-width:1px;border-style:solid;border-top-left-radius:4px;border-bottom-left-radius:4px;border-bottom-right-radius:4px;border-top-right-radius:4px;padding-top:.5rem;padding-bottom:.5rem;padding-left:.5rem;padding-right:.5rem;background:rgba(0,0,0,0.02);border-color:rgba(0,0,0,0.15)}
+.mca-form-rootpanel .guideAdModule{padding-right:.75rem;padding-left:.75rem}
+.mca-form-rootpanel .guideAdModuleGroup{padding-right:.75rem;padding-left:.75rem}
+.mca-form-rootpanel .afFooter{width:100%;text-align:center;background:#e6e6e6;margin-top:4rem;padding-top:.5em;padding-bottom:.5rem;box-sizing:content-box}
+@media(max-width:767px){.mca-form-rootpanel .afFooter{margin-bottom:3.55rem}
+}
+.mca-form-rootpanel .guideTextDraw.footerText{color:#969696;font-size:.75em}
+.mca-form-rootpanel .afHeader{color:#969696;top:0;right:0;left:0;border-left-width:0;border-bottom-width:1px;border-right-width:0;border-top-width:0;height:90px;vertical-align:text-top;background:#f5f5f5;border-color:#e6e6e6;margin-bottom:1rem;border-style:solid}
+@media(max-width:767px){.mca-form-rootpanel .afHeader{height:64px;padding-left:1rem;padding-right:1rem}
+}
+.mca-form-rootpanel .guideimage .logoImage img{height:3.75rem;margin-top:.9375rem;margin-left:0;width:auto;max-width:100%}
+@media(max-width:767px){.mca-form-rootpanel .guideimage .logoImage img{height:35px}
+}
+.mca-form-rootpanel .guideTextDraw.headerText{font-size:1.125rem;color:#555;vertical-align:top;height:70px}
+@media(max-width:767px){.mca-form-rootpanel .guideTextDraw.headerText{height:49px;padding-left:0}
+}
+.mca-form-rootpanel p{margin:0 0 .625rem}
+.mca-form-rootpanel .fd-row{margin-left:-0.875rem;margin-right:-0.875rem;display:flex;flex-wrap:wrap}
+.mca-form-rootpanel .df-btn-link .button-default{padding:0 !important;border:0;background:transparent !important;color:#1077be !important}
+.mca-form-rootpanel .df-btn-link .button-default .iconButton-label{border-bottom:1px solid transparent}
+.mca-form-rootpanel .df-btn-link .button-default:hover .iconButton-label{border-color:#1077be}
+.mca-form-rootpanel .btn-width-auto .button-default{width:auto}
+.mca-form-rootpanel .fd-row>[class^="fd-col-"]{padding-left:.875rem;padding-right:.875rem}
+.form-heading-h5{font-size:1.125rem;color:#1e3a73;font-family:'poppinsmedium'}
+.mca-form-rootpanel .mca-form-section-heading{font-size:1rem;position:relative;margin:1.25rem 0}
+.mca-form-rootpanel .mca-form-section-heading p{display:inline-block;padding-right:20px;background-color:#f0f7ff;z-index:3;position:relative;margin-bottom:0;font-family:'poppinsmedium'}
+.mca-form-rootpanel .mca-form-section-heading.mt-0{margin-top:0}
+.mca-form-rootpanel .form-container-inner-panel .mca-form-section-heading p{background:#e3eefa}
+.mca-form-rootpanel .mca-form-section-heading:after{content:"";display:block;position:absolute;width:calc(100% - 0.75rem);height:1px;background-color:#ff8000;left:.75rem;top:50%;transform:translateY(-50%)}
+.mca-form-rootpanel .button-default{height:40px;width:100%;border-radius:.25rem !important;padding:0 1.2rem !important;border-width:1px !important}
+.mca-form-rootpanel .button-default:disabled{position:relative;opacity:.6;cursor:no-drop}
+.mca-form-rootpanel .btn-outline-primary button{border-width:1px !important}
+.mca-form-rootpanel .mca-button-v2 button,.mca-form-rootpanel .autoSuggestionWithTable .autoSuggestion-search-btn{width:2.5rem;height:2.5rem;font-size:0;padding:0 !important;border:0;border-radius:0}
+.mca-form-rootpanel .mca-button-v2 button:hover,.mca-form-rootpanel .mca-button-v2 button:focus,.mca-form-rootpanel .autoSuggestionWithTable .autoSuggestion-search-btn:hover,.mca-form-rootpanel .autoSuggestionWithTable .autoSuggestion-search-btn:focus{background:transparent}
+.mca-form-rootpanel .mca-button-v2 button .iconButton-icon{background-image:url("mca-form-light-theme/assets/search.svg");background-repeat:no-repeat;background-position:center;width:.875rem;height:.875rem;margin:0 auto;background-size:contain;display:block}
+.mca-form-rootpanel .btn-outline-primary .button-default{color:#1592e6;border-color:#1592e6}
+.mca-form-rootpanel .btn-outline-primary .button-default:hover,.mca-form-rootpanel .btn-outline-primary .button-default:focus{background:#1592e6;color:#fff;border-color:#1592e6}
+.mca-form-rootpanel .btn-theme-primary .button-default{background:#1592e6 !important;border-color:#1592e6 !important;color:#fff !important}
+.mca-form-rootpanel .btn-theme-primary .button-default:hover,.mca-form-rootpanel .btn-theme-primary .button-default:focus{background:#1077be !important;color:#fff !important}
+.mca-form-rootpanel .align-items-center-row>.gridFluidLayout>.guideGridFluidLayout>.fd-row{display:flex;flex-wrap:wrap;align-items:center}
+.mca-form-rootpanel .container{width:100%}
+.mca-form-secondary-header{background:#ebeef2}
+.mca-form-secondary-header>.gridFluidLayout>.guideGridFluidLayout{padding:.875rem}
+.mca-form-secondary-header>.gridFluidLayout>.guideGridFluidLayout>.fd-row{display:flex;flex-wrap:wrap;align-items:center}
+.mca-form-secondary-header-logo img{margin:0 !important;width:100% !important;max-width:inherit !important}
+.mca-form-rootpanel .df-form-container-body{padding:.875rem .875rem 1.5rem;margin-bottom:1.5rem;background:#f0f7ff}
+.mca-form-rootpanel .df-form-container-body.pb-0{padding-bottom:0}
+.mca-form-secondary-header .panel-border-right{border-right:1px solid #9d9fa1}
+.mca-form-secondary-header .panel-border-right .guidefield{padding-right:.875rem}
+.mca-form-rootpanel .guideformtitle p,.mca-form-rootpanel .guideTextDraw.guideformtitle p,.mca-form-rootpanel .mca-form-secondary-header .guideTextDraw.guideformtitle p{font-size:1.5rem !important;color:#333;padding:0}
+.mca-form-rootpanel .guideform-subtitle p{font-size:.875rem;font-family:'poppinsmedium'}
+.mca-form-rootpanel .guideform-subtitle-desc p{font-size:.8125rem;font-family:'poppinsregular'}
+.mca-form-rootpanel .mb-0 p{margin-bottom:0}
+.mca-form-rootpanel .input-search-icon-placeholder .guideFieldWidget input{background-image:url("mca-form-light-theme/assets/search.svg") !important;background-repeat:no-repeat !important;background-position:calc(100% - 10px) center !important;padding-right:2rem}
+.w-100{width:100%}
+.mca-form-rootpanel div.guideFileUpload div.guideFieldWidget>input[type="file"]{visibility:visible !important;top:inherit !important;left:inherit !important;position:absolute !important;padding-right:100px;opacity:0;z-index:-1;cursor:pointer}
+.mca-form-rootpanel .fileUpload{position:relative}
+.mca-form-rootpanel .fileUpload input[type="file"]::-webkit-file-upload-button{visibility:hidden;display:none}
+.mca-form-rootpanel .fileUpload .guide-fu-attach-button{position:absolute;right:0;width:auto;background:#1592e6 !important;border-color:#1592e6 !important;color:#fff !important}
+.mca-form-rootpanel .fileUpload .guide-fu-attach-button:hover{background:#1077be !important;color:#fff !important}
+.mca-form-rootpanel hr.hr-mt-0{margin-top:0}
+@media(min-width:768px){.mca-form-rootpanel .container{max-width:720px}
+}
+@media(min-width:992px){.mca-form-rootpanel .container{max-width:940px}
+}
+@media(min-width:1200px){.mca-form-rootpanel .container{max-width:1140px}
+.inlineFormLabel{margin:0 -5px;display:flex;flex-wrap:wrap}
+.inlineFormLabel .guideFieldLabel{width:45%;padding:0 5px}
+.inlineFormLabel .guideFieldWidget{width:55% !important;padding:0 5px}
+}
+.datatable-container table{width:100%;border-collapse:collapse;margin:0}
+.datatable-container table tbody tr td{border-bottom:.25rem solid #fff}
+.datatable-container table th{position:sticky;top:0;background-color:#fff}
+.datatable-container table,.datatable-container table th,.datatable-container table td{text-align:left}
+.datatable-container table th,.datatable-container table td{padding:.5rem !important}
+button{cursor:pointer}
+.datatable-container table tr td{background:#f5f5f5}
+.datatable-container #for_numrows{padding:10px;float:left}
+.datatable-container #for_filter_by{padding:10px;float:right}
+.nic-popup-table .datatable-container-container table{max-height:310px;overflow:auto;display:block}
+.datatable-container table .custom-checkbox-label{display:flex;flex-wrap:wrap;align-items:center}
+.datatable-container table .custom-checkbox-label span.custom-checkbox{display:flex;align-items:center;justify-content:center;margin-right:.5rem;height:.875rem;width:.875rem;border-radius:2px;border:1px solid #516570;position:relative}
+.datatable-container table .custom-checkbox-label input:checked+span.custom-checkbox:before{content:"";display:block;width:.5rem;height:.5rem;background-image:url("mca-form-light-theme/assets/Tick_Hover.svg");background-repeat:no-repeat;background-position:center;background-size:contain}
+.datatable-container table .custom-checkbox-label input{margin:0;display:none}
+.nic-popup-table .input-group input.form-control{background-color:#f5f5f5}
+.input-group{display:flex}
+.input-group input.form-control{width:100%}
+.input-group .input-group-append{margin-left:1.25rem}
+.datatable-container .for_numrows select{padding:.15rem;height:auto;border:1px solid #666}
+.closebtn{background-color:DodgerBlue;border:0;color:white;padding:12px 16px;font-size:16px;cursor:pointer}
+.closebtn:hover{background-color:RoyalBlue}
+.srn-box-container{min-height:300px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;color:#8e8e8e}
+.srn-box-container>div{width:50%}
+.srn-box-container h6{font-size:1rem;margin:0 0 1rem;line-height:1.6}
+.action-block-panel{border-radius:.25rem;background:#ebeef2}
+.action-block-accordion-head-panel{padding:.8rem 1.5rem .8rem 1rem;cursor:pointer;border-bottom:1px solid #ff8000;position:relative}
+.action-block-accordion-head-panel:after{content:"";display:block;width:10px;height:10px;background-image:url(mca-form-light-theme/assets/Chevron-Down-Active.svg);background-size:contain;background-repeat:no-repeat;position:absolute;top:50%;right:10px;margin-top:-5px}
+.action-block-accordion-head-panel.active:after{transform:rotate(180deg)}
+.action-block-accordion-head-panel p{margin:0}
+.action-block-accordion-body-panel{display:none;padding:0 1rem}
+.mca-custom-table{overflow-x:auto}
+.mca-form-rootpanel .mt-22{margin-top:22px}
+.mca-form-rootpanel .mb-3{margin-bottom:1rem}
+.mca-form-rootpanel .mt-3{margin-top:1rem}
+.mca-form-rootpanel .mb-0{margin-bottom:0 !important}
+.mca-form-rootpanel .my-0{margin-top:0;margin-bottom:0}
+.mca-form-rootpanel .my-3{margin-top:1rem;margin-bottom:1rem}
+.mca-form-rootpanel .p-3{padding:1rem}
+.mca-form-rootpanel .form-container-inner-panel.p-3{padding:1rem}
+.mca-form-loader{position:fixed;top:0;right:0;bottom:0;left:0;z-index:121;display:none;background:rgba(255,255,255,0.6)}
+.mca-form-loader .mca-form-loader-container{width:100%;height:100%;display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+.mca-form-loader .mca-form-loader-container img{width:3rem;height:3rem}
+.mca-form-rootpanel .suggestionsList{display:none;padding:0;margin:0;position:absolute;top:100%;right:0;left:0;background:#fff;box-shadow:0 3px 6px rgb(0 0 0 / 10%);max-height:204px;overflow-y:auto;border-radius:3px;z-index:3}
+.mca-form-rootpanel .suggestionsList li{list-style:none;padding:12px 16px;cursor:pointer}
+.mca-form-rootpanel .suggestionsList li .companyName,.mca-form-rootpanel .suggestionsList li .cinNumber{width:100%;display:block}
+.mca-form-rootpanel .suggestionsList.suggestionsListCIN li{border-top:1px solid #d4d4d4}
+.mca-form-rootpanel .suggestionsList li:hover{background:#f5f8fc}
+.mca-form-rootpanel .phoneNoIsdStd{display:flex !important;flex-wrap:wrap;position:relative}
+.mca-form-rootpanel .phoneNoIsdStd:before{display:block;content:"";position:absolute;width:1px;height:20px;left:90px;top:50%;transform:translateY(-50%);background:#ccc;z-index:1}
+.mca-form-rootpanel .phoneNoIsdStd .isdStdCode{width:90px}
+.mca-form-rootpanel .phoneNoIsdStd .isdStdCode+input{width:calc(100% - 90px)}
+@media(min-width:240px){[id$="_guide-item-container"]{overflow:inherit !important}
+.mca-form-rootpanel{font-size:.75rem;overflow-x:hidden;padding:0 10px}
+.mca-form-rootpanel .mca-form-secondary-header .guideformtitle p{font-size:.9rem;font-family:'poppinsmedium'}
+.mca-form-rootpanel .mca-form-secondary-header p{font-size:.75rem}
+.mca-form-rootpanel label{font-size:.75rem}
+.mca-form-rootpanel input,.mca-form-rootpanel select,.mca-form-rootpanel textarea,.mca-form-rootpanel .guideScribble img,.mca-form-rootpanel .afTermsAndConditions,.mca-form-rootpanel .guideFieldWidget input[type="date"],.mca-form-rootpanel .guideFieldWidget input[type="text"],.mca-form-rootpanel .guideFieldWidget input[type="password"],.mca-form-rootpanel .guideFieldWidget select,.mca-form-rootpanel .guideFieldWidget textarea{font-size:.75rem}
+.mca-form-rootpanel .button-default{font-size:.75rem}
+.mca-form-rootpanel .guideFieldError{font-size:.75rem}
+.d-none{display:none}
+.proposed-name-modal{position:static;bottom:inherit;left:inherit}
+}
+@media(min-width:768px){.mca-form-rootpanel{font-size:.75rem;padding:0;overflow-x:inherit}
+.mca-form-rootpanel .mca-form-secondary-header p{font-size:.75rem}
+.mca-form-rootpanel label{font-size:.75rem}
+.mca-form-rootpanel input,.mca-form-rootpanel select,.mca-form-rootpanel textarea,.mca-form-rootpanel .guideScribble img,.mca-form-rootpanel .afTermsAndConditions{font-size:.75rem}
+.mca-form-rootpanel .button-default{font-size:.75rem}
+.mca-form-rootpanel .guideFieldError{font-size:.75rem}
+.d-md-block{display:block}
+.proposed-name-modal{position:absolute;left:0;bottom:60px}
+.hideDesktopLabel .guideFieldLabel{display:none}
+}
+.mca-panel-no-gutter>.gridFluidLayout>.guideGridFluidLayout>.fd-row{margin-right:0;margin-left:0}
+.mca-panel-no-gutter>.gridFluidLayout>.guideGridFluidLayout>.fd-row>.fd-col,.mca-panel-no-gutter>.gridFluidLayout>.guideGridFluidLayout>.fd-row>[class*=fd-col]{padding-right:0;padding-left:0}
+@media(min-width:1200px){.mca-form-rootpanel{font-size:.875rem}
+.mca-form-rootpanel .mca-form-secondary-header p{font-size:.875rem}
+.mca-form-rootpanel .guideform-subtitle-desc p{font-size:.8125rem;font-family:'poppinsregular'}
+.mca-form-rootpanel label{font-size:.875rem}
+.mca-form-rootpanel input,.mca-form-rootpanel select,.mca-form-rootpanel textarea,.mca-form-rootpanel .guideScribble img,.mca-form-rootpanel .afTermsAndConditions{font-size:.875rem}
+.mca-form-rootpanel .button-default{font-size:.875rem}
+.mca-form-rootpanel .guideFieldError{font-size:.875rem}
+}
+.mca-form-rootpanel .form-container-inner-panel{padding:2.5rem 1.5rem;background:#e3eefa}
+.mca-form-rootpanel .form-container-inner-panel.dark-blue-bg{padding:2.5rem 1.5rem;background:#d5e3f2}
+.mca-form-rootpanel .form-container-inner-panel.white-bg{padding:2.5rem 1.5rem;background:#fff}
+.mca-form-rootpanel .form-container-inner-panel input:disabled,.mca-form-rootpanel .form-container-inner-panel input:read-only,.mca-form-rootpanel .form-container-inner-panel select:disabled,.mca-form-rootpanel .form-container-inner-panel textarea:disabled,.mca-form-rootpanel .form-container-inner-panel textarea:read-only,.mca-form-rootpanel .form-container-inner-panel .guideScribble img:disabled,.mca-form-rootpanel .form-container-inner-panel .guideScribble img:read-only,.mca-form-rootpanel .form-container-inner-panel .afTermsAndConditions:disabled,.mca-form-rootpanel .form-container-inner-panel .afTermsAndConditions:read-only{background:#fff;opacity:.6}
+.mca-form-rootpanel .form-container-inner-panel.white-bg input,.mca-form-rootpanel .form-container-inner-panel.white-bg select,.mca-form-rootpanel .form-container-inner-panel.white-bg textarea,.mca-form-rootpanel .form-container-inner-panel.white-bg .guideScribble img,.mca-form-rootpanel .form-container-inner-panel.white-bg .afTermsAndConditions,.mca-form-rootpanel .guideTableNode.table-white-theme table input:not([type='checkbox']),.mca-form-rootpanel .guideTableNode.table-white-theme table input:not([type='radio']),.mca-form-rootpanel .guideTableNode.table-white-theme table select,.mca-form-rootpanel .guideTableNode.table-white-theme table textarea,.mca-form-rootpanel .guideTableNode.table-white-theme table .guideScribble img,.mca-form-rootpanel .guideTableNode.table-white-theme table .afTermsAndConditions,.mca-form-rootpanel .guideTableNode.table-white-theme table .afTermsAndConditions{background:#e3eefa;opacity:1}
+.mca-form-rootpanel .form-container-inner-panel.white-bg .select2-container--default .select2-selection--single,.mca-form-rootpanel .form-container-inner-panel.white-bg .select2-container--default .select2-selection--single .select2-selection__rendered,.mca-form-rootpanel .guideTableNode.table-white-theme table .select2-container--default .select2-selection--single,.mca-form-rootpanel .guideTableNode.table-white-theme table .select2-container--default .select2-selection--single .select2-selection__rendered{background-color:#e3eefa}
+.mca-form-rootpanel .form-container-inner-panel.white-bg input:disabled,.mca-form-rootpanel .form-container-inner-panel.white-bg input:read-only,.mca-form-rootpanel .form-container-inner-panel.white-bg select:disabled,.mca-form-rootpanel .form-container-inner-panel.white-bg textarea:disabled,.mca-form-rootpanel .form-container-inner-panel.white-bg textarea:read-only,.mca-form-rootpanel .form-container-inner-panel.white-bg .guideScribble img:disabled,.mca-form-rootpanel .form-container-inner-panel.white-bg .guideScribble img:read-only,.mca-form-rootpanel .form-container-inner-panel.white-bg .afTermsAndConditions:disabled,.mca-form-rootpanel .form-container-inner-panel.white-bg .afTermsAndConditions:read-only,.mca-form-rootpanel .guideTableNode.table-white-theme table input:not([type='checkbox']):disabled,.mca-form-rootpanel .guideTableNode.table-white-theme table input:not([type='checkbox']):read-only,.mca-form-rootpanel .guideTableNode.table-white-theme table input:not([type='radio']):disabled,.mca-form-rootpanel .guideTableNode.table-white-theme table input:not([type='radio']):read-only,.mca-form-rootpanel .guideTableNode.table-white-theme table select:disabled,.mca-form-rootpanel .guideTableNode.table-white-theme table select:read-only,.mca-form-rootpanel .guideTableNode.table-white-theme table textarea:disabled,.mca-form-rootpanel .guideTableNode.table-white-theme table textarea:read-only,.mca-form-rootpanel .guideTableNode.table-white-theme table .guideScribble img:disabled,.mca-form-rootpanel .guideTableNode.table-white-theme table .guideScribble img:read-only,.mca-form-rootpanel .guideTableNode.table-white-theme table .afTermsAndConditions:disabled,.mca-form-rootpanel .guideTableNode.table-white-theme table .afTermsAndConditions:read-only{background:#e3eefa;opacity:.6}
+.mca-form-rootpanel .header_image img{margin-left:0rem !important;margin-bottom:1rem !important}
+.mca-form-rootpanel .validation_text{margin-bottom:1rem}
+.mca-form-rootpanel .b3-director-verify-mobile-btn{padding-top:22px}
+.mca-form-rootpanel .b3-director-email-otp-btn{padding-top:22px}
+.mca-form-rootpanel .submittedTextIcon{position:relative;padding-left:2rem}
+.mca-form-rootpanel .submittedTextIcon:before{content:"";display:block;width:1.2rem;height:1.2rem;background-image:url("mca-form-light-theme/assets/correct.svg");background-repeat:no-repeat;background-position:center;background-size:contain;position:absolute;left:0rem}
+.mca-form-rootpanel .submittedTextFilledIcon:before{background-color:#1592e6;background-image:url("mca-form-light-theme/assets/Tick.svg");background-size:10px;background-repeat:no-repeat;background-position:center;border-radius:50%;position:absolute;left:0rem}
+.mca-form-rootpanel .documentTextIcon{position:relative;padding-left:2rem}
+.mca-form-rootpanel .documentTextIcon:before{content:"";display:block;width:1.2rem;height:1.2rem;background-image:url("mca-form-light-theme/assets/document-icon.svg");background-repeat:no-repeat;background-position:center;background-size:contain;position:absolute;left:0rem}
+.mca-form-rootpanel .mca-flex-direction-row>.gridFluidLayout>.guideGridFluidLayout>.fd-row{flex-direction:column}
+.mca-form-rootpanel .downloadPdfText a{cursor:pointer;color:#1077be;text-decoration:underline}
+.mca-form-rootpanel .form-container-inner-panel.pb-0{padding-bottom:0}
+.mca-form-rootpanel .form_common_header .guideFieldNode.mca-radioBtn-group{margin-bottom:1rem !important}
+.mca-form-rootpanel .guidetextdraw a{color:#1592e6}
+.inline-declaration-panel>.gridFluidLayout>.guideGridFluidLayout>.fd-row{margin-left:0;margin-right:0}
+.inline-declaration-panel>.gridFluidLayout>.guideGridFluidLayout>.fd-row>div{width:max-content;max-width:100%;margin:0;padding-left:0}
+.mca-form-rootpanel .inline-declaration-panel .guideFieldNode:not(.guideButton):not(.guideTextDraw):not(.guideChart){margin-bottom:8px}
+.mobileLayout{display:none}
+.searchNicCodePanel{position:relative}
+.mca-form-rootpanel .autoSuggestionWithTable .autoSuggestion-search-btn{position:absolute;top:0;right:0}
+.mca-form-rootpanel .mca-button-v2-wrapper{position:absolute;top:2px;right:0;padding:0;width:auto}
+#guideContainer-rootPanel-modal_container_copy_1810572534-guidetextdraw__{text-align:center}
+#guideContainer-rootPanel-modal_container_copy_1810572534-guidebutton_copy_cop___widget{top:15px;width:105px}
+#guideContainer-rootPanel-panel-panel1641194752705_c-saveguidedraft___widget{margin-top:25px}
+#guideContainer-rootPanel-panel-panel1641194752705_c-nextitemnav___guide-item{margin-top:25px}
+#guideContainer-rootPanel-panel_copy-panel1641194851926_c-previtemnav___widget{margin-top:25px}
+#guideContainer-rootPanel-panel_copy-panel1641194851926_c-saveguidedraft___widget{margin-top:25px}
+#guideContainer-rootPanel-panel_copy-panel1641194851926_c-nextitemnav___widget{margin-top:25px}
+#guideContainer-rootPanel-modal_container_copy-panel-guidebutton_copy___widget{bottom:22px;margin-top:30px}
+.mca-form-rootpanel .multiselect.btn{width:100% !important;border:1px solid transparent;border-radius:.25rem;height:2.5rem;color:#333 !important;font-size:.875rem;padding:.625rem;background:#fff !important;text-align:left;margin:0}
+.mca-form-rootpanel .multiselect.btn:focus{outline:none !important}
+.mca-form-rootpanel .validation-failure .multiselect.btn{border-color:#eb3c36}
+.mca-form-rootpanel .multiselect-container{position:absolute;list-style-type:none;margin:0;padding:0;display:none;z-index:1;background:#fff;left:15px;right:15px}
+.mca-form-rootpanel .btn-group.open .multiselect-container{display:block}
+.mca-form-rootpanel .multiselect-container .input-group{margin:5px}
+.mca-form-rootpanel .multiselect-container>li>a.multiselect-all label{font-weight:bold}
+.mca-form-rootpanel .multiselect-container>li>label.multiselect-group{margin:0;padding:3px 20px 3px 20px;height:100%;font-weight:bold}
+.mca-form-rootpanel .multiselect-container>li>a{text-decoration:none}
+.mca-form-rootpanel .multiselect-container>li>a>label{margin:0;height:100%;font-weight:normal;padding:.65rem .8rem .65rem;cursor:pointer;display:block;font-family:'poppinsregular'}
+.mca-form-rootpanel .multiselect-container>li.active>a>label,.mca-form-rootpanel .multiselect-container>li>a>label:hover{background-color:#efefef}
+.mca-form-rootpanel .multiselect-container>li>a>label.radio,.mca-form-rootpanel .multiselect-container>li>a>label.checkbox{margin:0}
+.mca-form-rootpanel .multiselect-container>li>a>label>input{display:none}
+.mca-form-rootpanel .multiselect-container>li>a>label>input[type="checkbox"]{margin-bottom:5px}
+.mca-form-rootpanel .btn-group>.btn-group:nth-child(2)>.multiselect.btn{border-top-left-radius:4px;border-bottom-left-radius:4px}
+.mca-form-rootpanel .nicCode-custom-radio-group{padding-top:0;margin-top:0}
+.mca-form-rootpanel .nicCode-custom-radio-group{display:flex !important;flex-wrap:wrap}
+.mca-form-rootpanel .nicCode-custom-radio-group.guideRadioButtonItem .guideFieldWidget{margin-right:.5rem;width:.875rem}
+.mca-form-rootpanel .nicCode-custom-radio-group.guideRadioButtonItem{width:calc(50% - 6px);padding:.5rem;margin:0 3px 5px;background:#ebeef2;display:flex;flex-wrap:wrap;justify-content:space-between}
+.mca-form-rootpanel .nicCode-custom-radio-group.guideRadioButtonItem .guideFieldWidget input[type=radio]{width:.875rem;height:.875rem;border-radius:50%;padding:0;background:transparent;border:1px solid #1592e6;position:relative;-webkit-appearance:none;-moz-appearance:none;appearance:none;-webkit-print-color-adjust:exact;color-adjust:exact}
+.mca-form-rootpanel .nicCode-custom-radio-group.guideRadioButtonItem .guideFieldWidget input[type=radio]:checked{background-image:url("mca-form-light-theme/assets/radio-checked.svg")}
+.mca-form-rootpanel .nicCode-custom-radio-group.guideRadioButtonItem .guideWidgetLabel{margin:0;display:block;width:calc(100% - 1.5rem);position:relative;padding-right:.75rem}
+.mca-form-rootpanel .nicCode-custom-radio-group.guideRadioButtonItem .guideWidgetLabel label{margin:0;display:block;width:100%;line-height:1.1rem;font-size:.625rem}
+.mca-form-rootpanel .nicCode-custom-radio-group.guideRadioButtonItem .guideWidgetLabel .removeSelectedNicCode{position:absolute;top:50%;margin-top:-6px;right:-0.25rem;width:.75rem;height:.75rem;display:block}
+.mca-form-rootpanel .nicCode-custom-radio-group.guideRadioButtonItem .guideWidgetLabel .removeSelectedNicCode img{width:100%}
+.mca-form-rootpanel .mca-radioBtn-group{padding-top:0;margin-top:0}
+.mca-form-rootpanel .mca-radioBtn-group .guideFieldLabel label{margin-bottom:.5rem}
+.mca-form-rootpanel .mca-form-secondary-header .mca-radioBtn-group .guideFieldDescription.short{color:#333}
+.mca-form-rootpanel .mca-form-secondary-header .mca-radioBtn-group .guideFieldDescription.short p{margin-bottom:0}
+.mca-form-rootpanel .guideRadioButtonGroupItems{display:flex !important;flex-wrap:wrap}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem{margin:0 2rem 0 0;display:flex;flex-wrap:wrap}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem.guideFieldVerticalAlignment{width:100%}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem .guideFieldWidget,.mca-form-rootpanel .guideCheckBoxGroupItems .guideCheckBoxItem .guideFieldWidget{margin-right:.5rem;width:.875rem;position:absolute;top:0;left:0}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem .guideFieldWidget input[type=radio],input[type=radio]{width:.875rem;height:.875rem;border-radius:50%;padding:0;background:transparent;border:1px solid #1592e6;position:relative;-webkit-appearance:none;-moz-appearance:none;appearance:none;-webkit-print-color-adjust:exact;color-adjust:exact;margin:0}
+.mca-form-rootpanel .guideCheckBoxGroupItems .guideCheckBoxItem .guideFieldWidget input[type=checkbox],input[type=checkbox]{width:.875rem;height:.875rem;border-radius:.25rem;padding:0;background:transparent;border:1px solid #1592e6;position:relative;-webkit-appearance:none;-moz-appearance:none;appearance:none;-webkit-print-color-adjust:exact;color-adjust:exact;margin:0}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem.guideItemSelected .guideFieldWidget input[type=radio],input[type=radio]:checked{background-image:url("mca-form-light-theme/assets/radio-checked.svg")}
+.mca-form-rootpanel .guideCheckBoxGroupItems .guideCheckBoxItem.guideItemSelected .guideFieldWidget input[type=checkbox],input[type=checkbox]:checked{background-image:url("mca-form-light-theme/assets/check-icon.svg") !important;background-size:8px !important;background-position:center !important;background-repeat:no-repeat !important}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem,.mca-form-rootpanel .guideCheckBoxGroupItems .guideCheckBoxItem{position:relative}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideFieldVerticalAlignment.guideRadioButtonItem,.mca-form-rootpanel .guideCheckBoxGroupItems .guideFieldVerticalAlignment.guideCheckBoxItem{padding-left:25px;margin:0 0 10px}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideFieldVerticalAlignment.guideRadioButtonItem:last-child,.mca-form-rootpanel .guideCheckBoxGroupItems .guideFieldVerticalAlignment.guideCheckBoxItem:last-child{margin-bottom:0}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem.guideFieldHorizontalAlignment .guideFieldWidget,.mca-form-rootpanel .guideCheckBoxGroupItems .guideCheckBoxItem.guideFieldHorizontalAlignment .guideFieldWidget{position:absolute;top:0;left:0}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem.guideFieldHorizontalAlignment .guideWidgetLabel,.mca-form-rootpanel .guideCheckBoxGroupItems .guideCheckBoxItem.guideFieldHorizontalAlignment .guideWidgetLabel{padding-left:1.5rem;display:inline-block}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem.guideFieldVerticalAlignment .guideWidgetLabel label,.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem.guideFieldHorizontalAlignment .guideWidgetLabel label,.mca-form-rootpanel .guideCheckBoxGroupItems .guideCheckBoxItem.guideFieldVerticalAlignment .guideWidgetLabel label,.mca-form-rootpanel .guideCheckBoxGroupItems .guideCheckBoxItem.guideFieldHorizontalAlignment .guideWidgetLabel label{line-height:1.6;font-weight:400;font-family:'poppinsregular'}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem .guideWidgetLabel{margin:0;display:block}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem .guideWidgetLabel label{margin:0;display:block;width:100%;line-height:1.1rem;font-size:.875rem;font-family:'poppinsregular';color:#333}
+.custom-radio-group .form-check label{padding-left:1.365rem;display:block;position:relative;cursor:pointer;font-family:'poppinsregular';color:#666}
+.custom-radio-group .form-check label .checked-icon{width:.875rem;height:.875rem;border-radius:50%;background:transparent;border:1px solid #1592e6;position:absolute;left:0;top:0}
+.custom-radio-group .form-check input:checked~label .checked-icon:before{content:"";display:block;width:.3125rem;height:.3125rem;border-radius:50%;background:#1592e6;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.custom-radio-primary-group .form-check label .checked-icon{border:1px solid #1592e6}
+.custom-radio-primary-group .form-check input:checked~label .checked-icon:before{background:#1592e6}
+.custom-radio-group .form-check .short-description{padding-left:1.365rem;font-size:.625rem}
+.nicCodeCheckboxLabel{display:flex;flex-wrap:wrap;align-items:center}
+.nicCodeCheckboxLabel input[type=checkbox]{margin-right:.5rem}
+.mca-form-rootpanel .custom_checkbox .form-check-label>.guidePanelNode>.gridFluidLayout>.guideGridFluidLayout>.fd-row{display:inline-block}
+.mca-form-rootpanel .custom_checkbox .form-check-label>.guidePanelNode>.gridFluidLayout>.guideGridFluidLayout>.fd-row [class*=col-]{width:auto}
+.mca-form-rootpanel .custom_radiobox .guidePanelNode{width:auto;display:inline}
+.mca-form-rootpanel .custom_radiobox .guidePanelNode *{display:inline}
+.mca-form-rootpanel .custom_radiobox .fd-row{display:inline;flex-wrap:unset;margin-left:0;margin-right:0}
+.mca-form-rootpanel .custom_radiobox .guidePanelNode [class*=fd-col-]{width:auto}
+.custom_input_selection{margin-bottom:1rem}
+.custom_input_selection label{display:block;padding-left:1.75rem;position:relative;color:#333;cursor:pointer;line-height:1.6;font-weight:400;font-family:'poppinsregular'}
+.custom_input_selection label+label{margin-top:1rem}
+.custom_input_selection label>input[type=radio],.custom_input_selection label>input[type=checkbox]{position:absolute;top:.875rem;left:0}
+.custom_input_selection label input[type=text],.custom_input_selection label select{max-width:10rem;min-width:10rem;margin:0 .25rem}
+.guideCheckBoxItem+.guideCheckBoxItem{margin-top:1rem}
+.guideWidgetLabel.right label,.guideWidgetLabel.left label{line-height:initial}
+@media(min-width:992px){.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem.guideRadioButtonItem-inline-33{width:33.33%;margin:0;padding:0 1.25rem}
+.mca-form-rootpanel .guideRadioButtonGroupItems .guideRadioButtonItem.guideRadioButtonItem-inline-50{width:50%;margin:0 0 10px;padding:0 1.25rem}
+}
+.mca-form-rootpanel .custom_input_selection label.select-type-none{padding-left:0;cursor:auto}
+.mca-form-rootpanel .mca-modal .modal-sub-heading{margin-bottom:1rem}
+.mca-form-rootpanel .mca-modal.fade.show{opacity:1 !important}
+.modal-backdrop.fade.show{opacity:.6 !important}
+.mca-form-rootpanel .mca-modal .modal-dialog-centered{display:flex;align-items:center}
+.mca-form-rootpanel .mca-modal .modal-dialog{max-width:490px;width:96%;margin:0 auto}
+.mca-form-rootpanel .modal.show .modal-dialog{-webkit-transform:translate(0,0) !important;transform:translate(0,0) !important}
+.mca-form-rootpanel .mca-modal .modal-dialog.modal-dialog-md{max-width:550px;width:98%}
+.mca-form-rootpanel .mca-modal .modal-dialog.modal-dialog-otp-verification{max-width:400px;width:98%}
+.mca-form-rootpanel .mca-modal .modal-dialog .modal-content{box-shadow:none;border:0;width:100%;border-radius:3px}
+@media(min-width:240px){.mca-form-rootpanel .mca-modal .modal-body{padding:calc(1rem - 2px)}
+.mca-form-rootpanel .mca-modal .modal-dialog-centered{min-height:calc(100% - 3.5rem)}
+}
+@media(min-width:768px){.mca-form-rootpanel .mca-modal .modal-body{padding:calc(2rem - 2px)}
+}
+.mca-form-rootpanel #nic-code-modaldd .modal-dialog .modal-content,.mca-form-rootpanel #llp_modal_container .modal-dialog .modal-content{background:#f0f7ff}
+.mca-form-rootpanel .validate-form-panel{background-color:#d5e3f2;border-radius:.25rem;padding:1rem 1rem 1rem 2.5rem;position:relative}
+.mca-form-rootpanel .validate-form-panel:before{content:"";display:block;width:1rem;height:1rem;background-position:center;background-size:contain;position:absolute;left:.875rem}
+.mca-form-rootpanel .validate-form-panel.validate-form-panel-invalid:before{background-image:url("mca-form-light-theme/assets/invalid.svg")}
+.mca-form-rootpanel .validate-form-panel.validate-form-panel-error:before{background-image:url("mca-form-light-theme/assets/error-circle.svg")}
+.mca-form-rootpanel .validate-form-panel.validate-form-panel-validated:before{background-image:url("mca-form-light-theme/assets/correct.svg")}
+.mca-form-rootpanel .validate-form-panel p{margin:0}
+.mca-form-rootpanel .afTncContentArea.guide-modal-body{margin-left:20px;margin-bottom:20px;margin-right:20px;margin-top:20px}
+.mca-form-rootpanel .afTermsAndConditions .guide-modal-header{background:#afb0b5;min-height:16.42857143px;border-top-right-radius:6px;border-top-left-radius:6px;padding-left:15px;padding-bottom:15px;padding-right:15px;padding-top:15px;border-left-width:0;border-bottom-width:1px;border-right-width:0;border-top-width:0;border-style:solid;border-color:#e5e5e5}
+#error_info_modal .modal-dialog{margin-top:30px}
+#error_info_modal .modal-dialog .modal-content{max-height:calc(100vh - 100px);overflow-y:auto}
+.proposed-name-modal{width:100%;padding:1rem;background-color:#fff;z-index:12;border-radius:.25rem;box-shadow:0 3px 6px rgba(0,0,0,0.1)}
+@media(min-width:992px){.proposed-name-modal-2{width:140%}
+}
+.proposed-name-modal-static{position:static}
+.proposed-name-modal:before{content:"";display:block;position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:10px solid #fff}
+.proposed-name-modal *{font-size:.75rem}
+.continue-payment-modal-text{padding-left:2rem;position:relative}
+.continue-payment-modal-text:before{content:"";display:block;position:absolute;width:.9rem;height:.9rem;background-image:url("mca-form-light-theme/assets/Tick.svg");background-size:contain;top:5px;left:3px;z-index:2;background-repeat:no-repeat}
+.continue-payment-modal-text:after{content:"";display:block;position:absolute;width:1.25rem;height:1.25rem;background:#1592e6;border-radius:50%;top:0;left:0}
+.mca-form-rootpanel .errorWarningModalBody{padding:1rem}
+.mca-form-rootpanel .errorWarningModalBody .error-modal-row{padding:.7rem .7rem .7rem 2rem;background:#e3eefa;position:relative}
+.mca-form-rootpanel .errorWarningModalBody .error-modal-row:before{content:"";display:block;position:absolute;top:.7rem;left:.5rem;width:.875rem;height:.875rem;background:url("mca-form-light-theme/assets/exclamation-icon.svg") no-repeat center;background-size:contain}
+.mca-form-rootpanel .errorWarningModalBody .fd-col-12:not(:last-child) .error-modal-row{margin-bottom:.5rem}
+.mca-form-rootpanel .mca-modal input,.mca-form-rootpanel .mca-modal select,.mca-form-rootpanel .mca-modal textarea,.mca-form-rootpanel .mca-modal .guideFieldWidget input[type="date"],.mca-form-rootpanel .mca-modal .guideFieldWidget input[type="text"],.mca-form-rootpanel .mca-modal .guideFieldWidget input[type="password"],.mca-form-rootpanel .mca-modal .guideFieldWidget select,.mca-form-rootpanel .mca-modal .guideFieldWidget textarea{background:#f0f7ff}
+.nic-code-modal .mca-custom-table{overflow-y:auto;max-height:300px;display:block}
+.mca-form-rootpanel table tr th{font-size:.8rem}
+.mca-form-rootpanel table tr td{font-size:.8rem;font-weight:normal}
+.mca-form-rootpanel table tr td strong{color:#444}
+.mca-form-rootpanel .dataTables_wrapper.no-footer .dataTables_scrollBody{border:0}
+.mca-form-rootpanel .dataTables_scrollBody table.dataTable thead{display:none}
+.mca-form-rootpanel .dataTables_wrapper .dataTables_length{float:right}
+.mca-form-rootpanel .dataTables_wrapper .dataTables_length label{font-size:.75rem;color:#666;font-family:'poppinsregular';font-weight:bold}
+.mca-form-rootpanel .dataTables_wrapper .dataTables_length select{height:auto;font-size:.75rem;text-align:center}
+.mca-form-rootpanel .dataTables_wrapper .dataTables_paginate .paginate_button.previous,.dataTables_wrapper .dataTables_paginate .paginate_button.next{display:none}
+.mca-form-rootpanel .dataTables_wrapper .dataTables_paginate .pagesControllers{text-align:right !important;margin-top:1rem}
+.mca-form-rootpanel .dataTables_wrapper .dataTables_paginate .paginate_button.current,.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover{background:#1592e6 !important;color:#fff !important}
+.mca-form-rootpanel .dataTables_wrapper .dataTables_paginate span .paginate_button{border:1px solid #1592e6 !important;color:#1592e6 !important;background:#fff !important;border-radius:.25rem;padding:0 2px;min-width:18px;height:18px;font-size:.75rem;margin:0 3px}
+.mca-form-rootpanel .dataTables_wrapper .dataTables_paginate span .paginate_button:hover,.mca-form-rootpanel .dataTables_wrapper .dataTables_paginate span .paginate_button:focus,.mca-form-rootpanel .dataTables_wrapper .dataTables_paginate span .paginate_button:active{color:#fff !important;background:#1592e6 !important;box-shadow:none}
+.table-manager .dashboard-form-table{background:#f5f5f5}
+.table-manager .dashboard-form-table thead tr{border-bottom:0}
+.table-manager .dashboard-form-table tr{border-bottom:.1rem solid #fff}
+.table-manager .dashboard-form-table thead tr th{background:transparent}
+.table-manager .dashboard-form-table tr td{background:#ebebeb}
+.table-manager .dashboard-form-table tr td:nth-child(2){background:#dfe1e6}
+.mca-form-rootpanel .application-history-table .df-btn-link{display:flex;flex-wrap:wrap;flex-direction:column}
+.mca-form-rootpanel .application-history-table .df-btn-link .Button{width:auto;height:2rem;font-size:.75rem !important}
+.mca-form-rootpanel .application-history-table .df-btn-link .Button:disabled{color:#666 !important}
+.mca-form-rootpanel .application-history-table .df-btn-link .Button:disabled:hover .iconButton-label{border-color:#666 !important}
+.mca-form-rootpanel .proposed-name-modal table strong{color:#444}
+.mca-form-rootpanel .proposed-name-modal table th,.proposed-name-modal table th *{font-size:.625rem}
+.mca-form-rootpanel .proposed-name-modal table .proposed-name-table-status-column{position:relative;text-align:center}
+.mca-form-rootpanel .proposed-name-modal table .proposed-name-table-status-column:before{content:"";display:block;width:1px;height:80%;background:rgba(81,101,112,0.31);position:absolute;left:0;top:10px;bottom:10px}
+.mca-form-rootpanel .nic-code-modal .Button{padding:0 !important}
+.mca-form-rootpanel .nic-code-modal .nicPopupTableSearchBox{padding:0 !important;margin:0 !important}
+.mca-form-rootpanel .nic-code-modal .nicPopupTableSearchBox input{background-color:#f5f5f5}
+@media(min-width:1200px){.mca-form-rootpanel .nic-code-modal .dataTables_wrapper .dataTables_length{position:absolute;z-index:3;right:20px;top:0}
+}
+.mca-form-rootpanel .nic-code-modal .dataTables_wrapper .dataTables_length{background:#fff}
+.mca-custom-table .dataTables_wrapper .dataTables_filter{display:none}
+.mca-form-rootpanel .datatable-container.nicPopupTable{max-height:300px;overflow-y:auto;display:block;position:relative}
+.mca-form-rootpanel .datatable-container.nicPopupTable .dataTables_info,.mca-form-rootpanel .datatable-container.nicPopupTable .dataTables_paginate{position:sticky;bottom:0;background:#fff}
+.mca-form-rootpanel .nicPopupTable thead tr{border-bottom:0}
+.mca-form-rootpanel .nicPopupTable thead tr th{font-size:.75rem;position:sticky;top:0;z-index:2}
+.mca-form-rootpanel .nicPopupTable thead tr th:last-child{padding-right:165px !important}
+.mca-form-rootpanel .datatable-container table.fetchSrnTabel th{background:transparent}
+.mca-form-rootpanel .datatable-container table.fetchSrnTabel tbody tr td{border-color:#f5f5f5;background:#ebeef2}
+.mca-form-rootpanel .card-title{padding:1rem .875rem;background:#f5f5f5;border-bottom:1px solid #ff8000;font-family:'poppinsmedium'}
+.mca-form-rootpanel .card-title p{margin:0}
+.mca-form-rootpanel .card-title .gridFluidLayout .guideGridFluidLayout>.fd-row{align-items:center}
+.mca-form-rootpanel .application-history-srn-records ul{margin:0;padding:0;display:flex;flex-wrap:wrap}
+.mca-form-rootpanel .application-history-srn-records ul li{list-style:none;padding-right:.675rem;margin-right:.675rem;border-right:1px solid #666}
+.mca-form-rootpanel .application-history-srn-records ul li:last-child{padding-right:0;margin-right:0;border-right:0}
+.mca-form-rootpanel .afTabTopPanel .datatable-container table th{background-color:transparent}
+.mca-form-rootpanel .afTabTopPanel .datatable-container table td{border-bottom:.25rem solid #f5f5f5;background:#ebeef2}
+.mca-form-rootpanel .afTabTopPanel .datatable-container table.basicInformationTable td{border-bottom:0;background:transparent}
+.dashboard-form-table{background:#f0f7ff;height:350px;overflow-y:auto;color:#333}
+.mca-form-rootpanel .guideTableNode.dashboard-form-table table thead th{background:#f0f7ff;position:sticky;top:0;z-index:2;padding:1rem !important;font-family:'poppinsmedium'}
+.mca-form-rootpanel .guideTableNode.dashboard-form-table table tbody tr td{background:#e7edf4;padding-top:1rem;padding-bottom:1rem}
+.mca-form-rootpanel .guideTableNode.table-vCol-align table tbody tr td{vertical-align:middle}
+.mca-form-rootpanel .guideTableNode.table-vCol-align table .guideFieldNode:not(.guideButton):not(.guideTextDraw):not(.guideChart){margin-bottom:0}
+.mca-form-rootpanel .guideTableNode{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.mca-form-rootpanel .guideTableNode::-webkit-scrollbar{height:6px}
+.mca-form-rootpanel .guideTableNode table.headersLeft{table-layout:inherit}
+.mca-form-rootpanel .headersLeft.nonIETable td::before{display:none}
+.mca-form-rootpanel .guideTableNode table .guideFieldNode,.mca-form-rootpanel .guideTableNode table .guideAdModuleGroup,.mca-form-rootpanel .guideTableNode table .guideAdModule{word-break:inherit}
+@media(max-width :1024px){.mca-form-rootpanel .headersLeft.nonIETable thead tr{position:static}
+.mca-form-rootpanel .headersLeft.nonIETable table,.mca-form-rootpanel .headersLeft.nonIETable thead,.mca-form-rootpanel .headersLeft.nonIETable tbody,.mca-form-rootpanel .headersLeft.nonIETable th,.mca-form-rootpanel .headersLeft.nonIETable td,.mca-form-rootpanel .headersLeft.nonIETable tr{display:revert}
+.mca-form-rootpanel .headersLeft.nonIETable td::before{display:none}
+.mca-form-rootpanel .guideTableNode table .guideFieldNode,.mca-form-rootpanel .guideTableNode table .guideAdModuleGroup,.mca-form-rootpanel .guideTableNode table .guideAdModule{word-break:inherit !important}
+.mca-form-rootpanel .guideTableNode table .guideButton.guideFieldNode,.mca-form-rootpanel .guideTableNode table .guideButton.guideAdModuleGroup,.mca-form-rootpanel .guideTableNode table .guideButton.guideAdModule{white-space:inherit !important}
+}
+.mca-form-rootpanel .guideTableNode.table-white-theme table{background:#fff}
+.mca-form-rootpanel .guideTableNode.table-white-theme table thead tr th,.mca-form-rootpanel .guideTableNode.table-white-theme table tbody tr td{padding:1rem !important;border:1px solid #dbdbdb}
+.mca-form-rootpanel .guideTableNode.table-white-theme table tbody tr,.mca-form-rootpanel .guideTableNode.table-white-theme table tbody tr td{background:transparent}
+.mca-form-rootpanel .guideTableNode.table-white-theme table .guideTableRowNode.guideTableHeader th{border-style:solid}
+.mca-form-rootpanel .guideTableNode.table-white-theme table tbody tr{border-style:none}
+.mca-form-rootpanel .guideTableNode table tbody tr td .guideFieldNode:not(.guideButton):not(.guideTextDraw):not(.guideChart):not(.guideCheckBoxGroup){width:180px}
+.mca-form-rootpanel .guideTableNode table tbody tr td:last-child .guidetextbox{width:180px !important}
+.mca-form-rootpanel .guideTableNode table tbody tr td .sNoInput{width:80px !important}
+.mca-form-rootpanel .guideTableNode table tbody tr td .sNoInput input{background:transparent !important;color:#333 !important;opacity:1 !important}
+.mca-form-rootpanel .guideTableNode table tbody tr td input,.headersLeft.nonIETable td:not(.child) input{border-color:transparent !important}
+.mca-form-rootpanel .guideTableNode table thead tr th .guideFieldNode:not(.guideButton):not(.guideTextDraw):not(.guideChart),.mca-form-rootpanel .guideTableNode table tbody tr td .guideFieldNode:not(.guideButton):not(.guideTextDraw):not(.guideChart){margin-bottom:0}
+.mca-form-rootpanel .guideTableNode table thead tr th .partBCurrentReportingPeriodFrom,.mca-form-rootpanel .guideTableNode table thead tr th .partBPreviousReportingPeriodFrom{margin-bottom:1rem !important}
+.mca-form-rootpanel .guideTableNode.show-tableruntimecontrol table .guideTableRuntimeRightControls{display:block !important}
+.mca-form-rootpanel .guidedatepicker .datepicker-calendar-icon{width:16px;height:16px;background-size:contain;right:11px;top:50%;transform:translateY(-50%);background-image:url("mca-form-light-theme/assets/Calender.svg") !important;background-size:16px !important}
+.datetimepicker{outline:0;width:300px !important}
+.datetimepicker .dp-header{margin-bottom:0;display:flex;flex-wrap:wrap;justify-content:space-between}
+.datetimepicker .dp-header .dp-caption{width:auto !important}
+.datetimepicker .view ul li{font-size:14px;border-radius:.25rem}
+.datetimepicker .view.dp-monthview ul li{width:40px !important;height:40px !important}
+.datetimepicker .view.dp-yearview ul li{width:33.33% !important;height:40px !important;line-height:40px !important}
+.datetimepicker .dp-header .dp-leftnav,.datetimepicker .dp-header .dp-rightnav{background-size:14px !important}
+.datetimepicker .view ul{padding:0 10px}
+.datetimepicker .view ul li.dp-selected{background-color:#1692e6}
+.datetimepicker .view ul li.dp-focus{border-color:#1692e6}
+.mca-form-rootpanel .guidedatepicker input[type=date],.mca-form-rootpanel .guidedatepicker input[type=text]{padding-right:2.5rem;background-image:url("mca-form-light-theme/assets/Calender.svg") !important;background-size:16px !important;background-position-y:center !important;background-position-x:calc(100% - 10px) !important;background-repeat:no-repeat !important}
+.mca-form-rootpanel .guidedatepicker input[type=date]::-webkit-calendar-picker-indicator{background:transparent;bottom:0;color:transparent;cursor:pointer;height:auto;left:0;position:absolute;right:0;top:0;width:auto}
+.mca-form-rootpanel .guidedatepicker input[type=text]:read-only+.datepicker-calendar-icon,.mca-form-rootpanel .guidedatepicker input[type=text]:disabled+.datepicker-calendar-icon{display:none}
+.datetimepicker .dp-header .dp-rightnav{float:right;background:url(mca-form-light-theme/assets/rightnav.png) no-repeat center center !important;width:40px;background-size:1rem !important}
+.datetimepicker .dp-header .dp-leftnav{width:40px;background:url(mca-form-light-theme/assets/leftnav.png) no-repeat center center !important;background-size:1rem !important}
+.datetimepicker .dp-header .dp-rightnav:hover{background:url(mca-form-light-theme/assets/rightnav_hover.png) no-repeat center center !important;background-size:1rem !important}
+.datetimepicker .dp-header .dp-leftnav:hover{background:url(mca-form-light-theme/assets/leftnav_hover.png) no-repeat center center !important;background-size:1rem !important}
+.mca-form-rootpanel .custom-file-uploader .file-uplodaer{position:relative}
+.mca-form-rootpanel .custom-file-uploader .file-uplodaer label.button-default{position:absolute;top:0;right:0;z-index:2}
+.mca-form-rootpanel .custom-file-uploader .file-uplodaer input[type=file]{padding-right:140px}
+.mca-form-rootpanel .custom-file-uploader .file-uplodaer .fileList{display:flex;flex-wrap:wrap}
+.mca-form-rootpanel .custom-file-uploader .file-uplodaer .fileList li{list-style:none;display:flex}
+.mca-form-rootpanel .custom-file-uploader .button-default{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;cursor:pointer;margin:0;background:#1592e6;border-color:#1592e6;color:#fff;font-family:'poppinsregular';width:auto}
+.mca-form-rootpanel .custom-file-uploader .button-default:hover{background:#1077be;color:#fff}
+.mca-form-rootpanel .removeFile{cursor:pointer;width:1.25rem;height:1.25rem;display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+.mca-form-rootpanel li.guide-fu-fileItem{position:relative;padding:10px 30px}
+.mca-form-rootpanel li.guide-fu-fileItem span.guide-fu-filePreview{width:1.25rem;height:1.25rem;background-image:url("mca-form-light-theme/assets/document-icon.svg");background-repeat:no-repeat;background-size:contain;background-position:center;position:absolute;left:5px;top:10px}
+.mca-form-rootpanel li.guide-fu-fileItem span.guide-fu-fileName{text-overflow:ellipsis;white-space:nowrap;display:block;overflow-y:hidden}
+.mca-form-rootpanel li.guide-fu-fileItem span.guide-fu-fileClose{position:absolute;right:5px;top:10px;font-size:0;width:1.25rem;height:1.25rem;background-image:url("mca-form-light-theme/assets/close.svg");background-size:contain;background-repeat:no-repeat;background-position:center}
+.file-attachment-with-placeholder{position:relative}
+.file-attachment-with-placeholder .noFile{text-overflow:ellipsis;white-space:nowrap;overflow:hidden;display:block;width:100%;height:40px;padding:0 100px 0 16px;line-height:40px;position:absolute;top:0;background:#fff}
+.mca-form-rootpanel .guide-tab-scroller{display:none !important}
+.mca-form-rootpanel .verticalTabbedPanelLayout .guideVerticalTabbedPanelLayout>div>.col-md-10,.mca-form-rootpanel .verticalTabbedPanelLayout .guideVerticalTabbedPanelLayout>div>.col-sm-10{width:100%}
+@media(max-width:767px){.mca-form-rootpanel .verticalTabbedPanelLayout .guideVerticalTabbedPanelLayout>div.hidden-xs{display:block !important}
+.mca-form-rootpanel .verticalTabbedPanelLayout .afTabTopPanel .toolbar{display:none}
+}
+.mca-form-rootpanel .autocheck-warning-panel .guideVerticalTabbedPanelLayout .tab-navigators{background:#e9ebf0}
+.mca-form-rootpanel .autocheck-warning-panel .guideVerticalTabbedPanelLayout .afTabTopPanel{background:#fff;margin-top:0}
+.run-submit-action-modal .custom-radio-group{display:flex;flex-wrap:wrap;margin:0 -10px}
+.run-submit-action-modal .custom-radio-group .form-check{width:50%;padding:0 10px}
+.mca-form-rootpanel .ApplicationHistoryPanel{padding:1rem}
+.mca-form-rootpanel .ApplicationHistoryFilterPanel{padding:1rem .875rem;background:#e3eefa;min-height:265px;max-height:265px}
+.mca-form-rootpanel .ApplicationHistoryFilterPanel .ApplicationHistoryFilterPanelBody{height:170px;overflow-y:auto;overflow-x:hidden}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody table{padding:0 6px}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody .dataTables_filter,.mca-form-rootpanel .ApplicationHistoryFilterPanelBody .dataTables_length,.mca-form-rootpanel .ApplicationHistoryFilterPanelBody .dataTables_info{display:none}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody .dataTables_wrapper{padding:0 6px;width:100%}
+.mca-form-rootpanel .ApplicationHistoryFilterPanel .guideFieldNode:not(.guideButton):not(.guideTextDraw):not(.guideChart){margin:0;padding:0}
+.mca-form-rootpanel .ApplicationHistoryFilterPanel .guideFieldNode .textField input{background:rgba(255,255,255,0.6);font-size:12px}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody table label{display:block;position:relative;padding:0 1.5rem .5rem 0;cursor:pointer}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody table label input[type=checkbox]{position:absolute;top:0;right:0}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody input[type=checkbox]{width:.875rem;height:.875rem;border-radius:.25rem;background:transparent;border:1px solid #1592e6;-webkit-appearance:none;-moz-appearance:none;appearance:none;-webkit-print-color-adjust:exact;color-adjust:exact;margin:0;padding:0}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody input[type=checkbox]:checked{background-image:url("mca-form-light-theme/assets/check-icon.svg");background-size:8px;background-position:center;background-repeat:no-repeat}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody table thead{height:0;overflow:hidden}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody table.dataTable tbody tr{background-color:transparent}
+.mca-form-rootpanel .ApplicationHistoryFilterPanelBody table thead th,.mca-form-rootpanel .ApplicationHistoryFilterPanelBody table tbody td{padding:0}
+.mca-form-rootpanel .ApplicationHistoryPanel .gridFluidLayout .guideGridFluidLayout .fd-row{margin:0 -6px}
+.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-1,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-1,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-1,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-1,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-2,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-2,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-2,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-2,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-3,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-3,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-3,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-3,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-4,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-4,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-4,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-4,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-5,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-5,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-5,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-5,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-6,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-6,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-6,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-6,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-7,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-7,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-7,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-7,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-8,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-8,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-8,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-8,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-9,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-9,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-9,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-9,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-10,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-10,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-10,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-10,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-11,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-11,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-11,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-11,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-xs-12,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-sm-12,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-md-12,.mca-form-rootpanel .ApplicationHistoryPanel .fd-col-lg-12{padding:0 6px}
+.mega-filter-scrollPanel{overflow-x:auto}
+.mega-filter-scrollPanel>.gridFluidLayout>.guideLayout>.fd-row{display:inline-flex;flex-wrap:inherit;overflow-x:auto}
+.mega-filter-scrollPanel>.gridFluidLayout>.guideLayout>.fd-row>.fd-col-lg-3{width:250px}
+.mca-form-rootpanel .autocheck-status-modal-row{padding:.5rem 1rem .5rem 2rem;background:#e3eefa;margin-bottom:4px;position:relative}
+.mca-form-rootpanel .autocheck-status-modal-row:before{content:"";display:block;position:absolute;left:.5rem;width:.875rem;height:.875rem;background-size:contain;background-repeat:no-repeat;background-position:center}
+.mca-form-rootpanel .autocheck-status-modal-row.autocheck-status-error:before{background-image:url("mca-form-light-theme/assets/error-circle.svg")}
+.mca-form-rootpanel .autocheck-status-modal-row.autocheck-status-info:before{background-image:url("mca-form-light-theme/assets/info.svg")}
+.mca-form-rootpanel .autocheck-status-modal-row.autocheck-status-warning:before{background-image:url("mca-form-light-theme/assets/invalid.svg")}
+.strong input[type = text]{font-weight:bold}
+.bg-none input[type = text]{background:transparent !important;text-align:center;text-align:center;color:#000;font-size:14px !important}
+.mb-2{margin-bottom:10px}
+.checkSecuritiesShares[data-disabled = "true"]{opacity:.3 !important}
+.checkSecuritiesShares[data-disabled = "false"]{opacity:1 !important}
+.checkFreereserves label,.checkPremiumAccount label,.checkOtherSpecified label,.freeReserveCheckbox label,.securityPremiumAccountCheckbox label,.proceedOutFreshIssuesCheckbox label{font-size:0 !important}
+.unauditedFinancialAt label,.statutoryApprovalsAt label,.optionalAttachmentAt label{margin-bottom:0}
+.mca-form-rootpanel .guideCheckBoxGroupItems .checkSecuritiesShares:last-child label{text-transform:capitalize !important}
+.cinNoSearchBoxPanel.disabledPanel{position:relative;z-index:1}
+.cinNoSearchBoxPanel.disabledPanel:after{position:absolute;content:"";width:100%;height:100%;top:0;left:0;z-index:2}
+.textBox1-field-margin .guideFieldWidget.textField input,.textBox1-field-margin .guideFieldWidget.numericInput input,.textBox1-field-margin .guideFieldWidget.dateTimeEdit input,.textBox1-field-margin .guideFieldWidget.fileUpload,.textBox1-field-margin .guideFieldWidget.dropDownList select{margin-top:20px}
+.textBox2-field-margin .guideFieldWidget.textField input,.textBox2-field-margin .guideFieldWidget.numericInput input,.textBox2-field-margin .guideFieldWidget.dateTimeEdit input,.textBox2-field-margin .guideFieldWidget.fileUpload,.textBox2-field-margin .guideFieldWidget.dropDownList select{margin-top:40px}

@@ -1,6 +1,9 @@
 const bm25Tests = require('./bm25_search.test');
 const splitterTests = require('./document_splitter.test');
 const treeTests = require('./pageindex_tree.test');
+const validatorTests = require('./form_rules_validator.test');
+const agentsTests = require('./agents_coordinator.test');
+const mergeTests = require('./multimodal_merge.test');
 
 async function runAll() {
     console.log('==================================================');
@@ -15,6 +18,19 @@ async function runAll() {
         console.log('');
         
         treeTests.runTests();
+        console.log('');
+
+        validatorTests.run();
+        console.log('');
+
+        agentsTests.run();
+        console.log('');
+
+        mergeTests.run();
+        console.log('');
+
+        const sanityTests = require('./comprehensive_sanity.test');
+        sanityTests.run();
         console.log('');
 
         console.log('==================================================');

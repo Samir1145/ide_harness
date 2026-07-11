@@ -1,0 +1,10 @@
+/*
+ Image Map Resizer (imageMapResizer.min.js ) - v1.0.10 - 2019-04-10
+  Desc: Resize HTML imageMap to scaled image.
+  Copyright: (c) 2019 David J. Bradshaw - dave@bradshaw.net
+  License: MIT
+*/
+!function(){function h(){function c(){var e={width:b.width/b.naturalWidth,height:b.height/b.naturalHeight},p={width:parseInt(window.getComputedStyle(b,null).getPropertyValue("padding-left"),10),height:parseInt(window.getComputedStyle(b,null).getPropertyValue("padding-top"),10)};k.forEach(function(q,r){var l=0;f[r].coords=q.split(",").map(function(t){var m=1==(l=1-l)?"width":"height";return p[m]+Math.floor(Number(t)*e[m])}).join(",")})}function d(e){return e.coords.replace(/ *, */g,",").replace(/ +/g,
+",")}function a(){clearTimeout(n);n=setTimeout(c,250)}var f=null,k=null,b=null,n=null;"function"!=typeof this._resize?(f=this.getElementsByTagName("area"),k=Array.prototype.map.call(f,d),b=document.querySelector('img[usemap\x3d"#'+this.name+'"]')||document.querySelector('img[usemap\x3d"'+this.name+'"]'),this._resize=c,b.addEventListener("load",c,!1),window.addEventListener("focus",c,!1),window.addEventListener("resize",a,!1),window.addEventListener("readystatechange",c,!1),document.addEventListener("fullscreenchange",
+c,!1),b.width===b.naturalWidth&&b.height===b.naturalHeight||c()):this._resize()}function g(){function c(a){if(a){if(!a.tagName)throw new TypeError("Object is not a valid DOM element");if("MAP"!==a.tagName.toUpperCase())throw new TypeError("Expected \x3cMAP\x3e tag, found \x3c"+a.tagName+"\x3e.");!0;h.call(a);d.push(a)}}var d;return function(a){switch(d=[],typeof a){case "undefined":case "string":Array.prototype.forEach.call(document.querySelectorAll(a||"map"),c);break;case "object":c(a);break;default:throw new TypeError("Unexpected data type ("+
+typeof a+").");}return d}}"function"==typeof define&&define.amd?define([],g):"object"==typeof module&&"object"==typeof module.exports?module.exports=g():window.imageMapResize=g();"jQuery"in window&&(window.jQuery.fn.imageMapResize=function(){return this.filter("map").each(h).end()})}();

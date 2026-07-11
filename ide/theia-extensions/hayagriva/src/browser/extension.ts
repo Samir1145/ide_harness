@@ -11,14 +11,17 @@ import {
 import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
-import { ILogger } from '@theia/core/lib/common';
+import { ILogger, CommandRegistry } from '@theia/core/lib/common';
 import { Widget } from '@lumino/widgets';
 import URI from '@theia/core/lib/common/uri';
 import { HayagrivaEditorDecorator } from './highlight-decorator';
 import {
   sidebarHtml,
   wikiExplorerHtml,
-  conceptsExplorerHtml
+  conceptsExplorerHtml,
+  kvEditorHtml,
+  formEditorHtml,
+  draftingPanelHtml
 } from './templates';
 
 function getBasename(p: string): string {
@@ -43,12 +46,20 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     @inject(HayagrivaEditorDecorator) private readonly decorator: HayagrivaEditorDecorator,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(WidgetManager) private readonly widgetManager: WidgetManager,
-    @inject(ThemeService) private readonly themeService: ThemeService
+    @inject(ThemeService) private readonly themeService: ThemeService,
+    @inject(CommandRegistry) private readonly commandRegistry: CommandRegistry
   ) {}
 
   canHandle(uri: URI): number {
     if (uri.scheme === 'hayagriva-citation') {
       return 100;
+    }
+    const filePath = uri.path.toString();
+    if (filePath.endsWith('case_kv_dictionary.json')) {
+      return 600;
+    }
+    if (filePath.includes('/reviews/filled-') && filePath.endsWith('.json')) {
+      return 600;
     }
     return 0;
   }
@@ -65,9 +76,19 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     }
     
     const filePath = uri.path.toString();
+    const caseName = this.getCaseName(filePath);
+
+    if (filePath.endsWith('case_kv_dictionary.json')) {
+      return await this.openKvEditor(caseName);
+    }
+    if (filePath.includes('/reviews/filled-') && filePath.endsWith('.json')) {
+      const base = getBasename(filePath);
+      const formId = base.replace(/^filled-/, '').replace(/\.json$/, '');
+      return await this.openFormEditor(caseName, formId);
+    }
+
     const base = getBasename(filePath);
     const docName = base.replace(/\.wiki\.html$/i, '');
-    const caseName = this.getCaseName(filePath);
     await this.openWiki(docName, caseName);
     return new Widget();
   }
@@ -351,6 +372,36 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
             } catch (err: any) {
               await this.editorManager.open(uri);
             }
+          }
+        } else if (event.data.type === 'focus-editor-line') {
+          const { relativePath, line } = event.data;
+          const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+          if (workspaceRoot) {
+            const uri = new URI(workspaceRoot.toString()).resolve(relativePath);
+            const lineIndex = Math.max(0, line - 1);
+            try {
+              const editor = await this.editorManager.open(uri, {
+                selection: {
+                  start: { line: lineIndex, character: 0 },
+                  end: { line: lineIndex, character: 99 }
+                }
+              });
+              this.decorator.applyHighlight(editor, lineIndex);
+            } catch (err) {}
+          }
+        } else if (event.data.type === 'compare-draft-versions') {
+          const { draftName, version } = event.data;
+          const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+          if (workspaceRoot) {
+            const leftRelative = draftName.replace(/\.md$/, `.v${version - 1}.md`);
+            const leftUri = new URI(workspaceRoot.toString()).resolve(leftRelative);
+            const rightUri = new URI(workspaceRoot.toString()).resolve(draftName);
+            this.commandRegistry.executeCommand(
+              'vscode.diff',
+              leftUri,
+              rightUri,
+              `Draft Redlines: v${version - 1} vs v${version}`
+            );
           }
         }
       }
@@ -864,6 +915,90 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
         (active as any).editor.layout();
       }
     }, 50);
+  }
+
+  async openKvEditor(caseName: string): Promise<Widget> {
+    const id = 'hayagriva-kv-editor';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+    
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = `Case KV Dictionary`;
+    widget.title.caption = 'View and edit case variables';
+    widget.title.iconClass = 'fa fa-database';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = kvEditorHtml(caseName);
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
+  async openFormEditor(caseName: string, formId: string): Promise<Widget> {
+    const id = `hayagriva-form-editor-${formId}`;
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+    
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = `${formId.toUpperCase()} Review`;
+    widget.title.caption = 'Review and validate extracted fields';
+    widget.title.iconClass = 'fa fa-check-square-o';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = formEditorHtml(caseName, formId);
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
+  async openDraftingPanel(caseName: string): Promise<Widget> {
+    const id = 'hayagriva-drafting-panel';
+    let widget = this.shell.getWidgets('right').find(w => w.id === id);
+    
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Drafting Panel';
+    widget.title.caption = 'Draft corporate compliance documents';
+    widget.title.iconClass = 'fa fa-magic';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = draftingPanelHtml(caseName);
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'right' });
+    this.shell.activateWidget(widget.id);
+    return widget;
   }
 
 }

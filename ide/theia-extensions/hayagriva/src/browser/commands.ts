@@ -221,6 +221,52 @@ export class HayagrivaCommandContribution implements CommandContribution {
         this.contribution.toggleTheme();
       }}
     );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openKvEditor`, label: 'Open Case KV Dictionary' },
+      { execute: async () => {
+        const activeEditor = this.editorManager.activeEditor;
+        const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+        let caseName = 'Case_Alpha';
+        if (activeEditor) {
+          caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
+        } else if (ws) {
+          caseName = this.contribution.getCaseName(new URI(ws.toString()).path.toString());
+        }
+        await this.contribution.openKvEditor(caseName);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openFormEditor`, label: 'Open Form Review Dashboard' },
+      { execute: async () => {
+        const activeEditor = this.editorManager.activeEditor;
+        const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+        let caseName = 'Case_Alpha';
+        if (activeEditor) {
+          caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
+        } else if (ws) {
+          caseName = this.contribution.getCaseName(new URI(ws.toString()).path.toString());
+        }
+        const formId = prompt('Enter Form ID (e.g. aoc-4):') || 'aoc-4';
+        await this.contribution.openFormEditor(caseName, formId.toLowerCase().trim());
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openDraftingPanel`, label: 'Open Drafting Panel' },
+      { execute: async () => {
+        const activeEditor = this.editorManager.activeEditor;
+        const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+        let caseName = 'Case_Alpha';
+        if (activeEditor) {
+          caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
+        } else if (ws) {
+          caseName = this.contribution.getCaseName(new URI(ws.toString()).path.toString());
+        }
+        await this.contribution.openDraftingPanel(caseName);
+      }}
+    );
   }
 }
 
