@@ -33,6 +33,10 @@ async function runAll() {
         await docxTests.run();
         console.log('');
 
+        const toggleTests = require('./multimodal_toggle.test');
+        await toggleTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');

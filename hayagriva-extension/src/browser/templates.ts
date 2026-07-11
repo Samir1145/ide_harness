@@ -148,6 +148,13 @@ export function sidebarHtml(initialCase: string): string {
       <p style="margin: 4px 0 0 0; font-size: 11px; opacity: 0.7;">Upload 29A or other .html wikis</p>
     </div>
     
+    <div style="margin: 12px 0 6px 0; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--theia-ui-font-color1, #fff); opacity: 0.85;">
+      <input type="checkbox" id="toggle-multimodal" style="cursor: pointer;" />
+      <label for="toggle-multimodal" style="cursor: pointer; user-select: none; font-weight: bold;">
+        Force Gemini Multimodal Visual Parse (PDF only)
+      </label>
+    </div>
+    
     <input type="file" id="file-input" class="hidden" />
   </div>
 
@@ -250,10 +257,16 @@ export function sidebarHtml(initialCase: string): string {
           // Step 2: Run conversion, layout parsing, and indexing immediately
           containerZone.innerHTML = '<p style="margin:0; font-size:12px; font-weight:bold; color:var(--theia-brand-color1,#0ea5e9);">Converting & Ingesting...</p>';
           
+          const forceMultimodal = !!document.getElementById('toggle-multimodal').checked;
           const ingestRes = await fetch('http://127.0.0.1:3210/api/hayagriva/ingest', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ case: currentCaseName, file: uploadData.filePath, disableDoc2Query: true })
+            body: JSON.stringify({ 
+              case: currentCaseName, 
+              file: uploadData.filePath, 
+              disableDoc2Query: true,
+              multimodal: forceMultimodal
+            })
           });
           const ingestData = await ingestRes.json();
           if (!ingestData.success) throw new Error(ingestData.error || 'Ingestion failed');
