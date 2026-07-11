@@ -97,21 +97,33 @@ A lightweight sidecar sits alongside each companion `.md`:
 
 The sidecar is read by the `/api/hayagriva/documents` endpoint to surface pending documents in the UI even before they appear in `index.json`.
 
-### Background Page Daemon
+### Background Page Daemon (Cache-and-Stitch)
 
-Large PDFs (>3 pages) are processed by a **serial async daemon** in [lazy_pdf_worker.js](file:///Users/atulgrover/Desktop/HAYAGRIVA/hayagriva/lib/lazy_pdf_worker.js) (unless forced multimodal is requested, in which case the daemon queue is skipped entirely):
+Large PDFs (>3 pages) are processed by a **serial async daemon** in [lazy_pdf_worker.js](file:///Users/atulgrover/Desktop/HAYAGRIVA/hayagriva/lib/lazy_pdf_worker.js) (unless forced multimodal is requested, in which case the daemon queue is skipped entirely). 
+
+To prevent concurrent write locks in the editor, intermediate page blocks are cached into a hidden `.md.cache` file. We consolidate the cache file and stitch it back into the master companion `.md` file in a single write operation only when the conversion reaches 100% completion:
 
 ```
 _runDaemonLoop() — fully serial, one 3-page batch at a time
    └─ await convertPdfBlock(filePath, nextPage, endPage)   ← OCR if needed
-   └─ fs.appendFileSync(companionPath, blockMd)
-   └─ await ingestFile(caseDir, companionPath, { conversionOnly: true })
-   └─ setTimeout(_runDaemonLoop, 4000)    ← next batch only after this completes
+   └─ fs.appendFileSync(companionPath + '.cache', blockMd)  ← write to cache
+   └─ If nextPage > totalPages:
+        └─ fs.appendFileSync(companionPath, cacheContent)  ← stitch cache to master
+        └─ fs.unlinkSync(companionPath + '.cache')
+        └─ await ingestFile(caseDir, companionPath, { conversionOnly: true }) ← single watcher sync
+   └─ setTimeout(_runDaemonLoop, 4000)
 ```
 
 Key guards against duplicate daemon instances:
 - `isPdfDaemonRunning` — set **eagerly inside the worker** to prevent multiple loops spawning concurrently.
 - `completedPdfSet` — tracks fully-converted PDFs by absolute path, prevents re-queuing when the watcher fires on `.md` companion changes.
+
+### In-Memory Parent-Child Indexing
+
+To handle long document sections without cluttering the concepts directory or breaking the `pageindex_tree.json` heading structures:
+* **The Disk Structure:** Exactly **one** `.md` file is saved to disk per heading to keep the user's concepts directory tidy and readable.
+* **In-Memory Sub-chunking:** If a section exceeds 3000 characters during Phase 2 concept compilation, `text_ingest.js` splits the content in-memory using a sliding paragraph window and indexes each chunk separately in the BM25 search index database under a composite ID (`basename::heading::partIndex`).
+* **Sub-chunk RAG Resolution:** In `rag.js`, the query retriever intercepts composite IDs, resolves them to the correct parent file on disk, runs the same chunking algorithm, and extracts **only** the matched child chunk content to construct the final LLM prompt. This keeps context sizes precise and avoids token dilution.
 
 ### Vision OCR Pipeline
 
