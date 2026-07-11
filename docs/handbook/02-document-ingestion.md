@@ -6,31 +6,54 @@ This chapter covers how PDF, Word, and Excel files are converted to Markdown com
 
 ## 1. User Perspective
 
-### Two-Phase Workflow
+### The 4-Step Ingestion & Indexing Pipeline
 
-Document ingestion is now a **two-phase process** designed to let users verify and edit the converted Markdown before committing it to the knowledge base.
+Document processing in Hayagriva is split into four distinct steps to ensure users can review raw conversions, clean up document errors, and build a highly connected search index.
 
 ```
-Phase 1 (Automatic)          Phase 2 (Manual)
-─────────────────────        ──────────────────────────────
-Upload PDF                   Open .md companion in editor
-    ↓                        Review & edit headers/tables
-PDF → .md conversion         Click "⚡ Build Concepts"
-Vision OCR (if needed)           ↓
-Background page daemon       BM25 search index built
-.status = pending_review     Concept chunks created
-                             Wiki Q&A cards generated
-                             .status = indexed
+┌─────────────────────────────────┐
+│  Step 1: Upload & Convert       │ ──► Convert PDF/Word/Excel to conversions/my_doc.md
+└─────────────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────┐
+│  Step 2: Review & Clean         │ ──► Edit companion .md in editor (fix OCR, layout)
+└─────────────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────┐
+│  Step 3: Concept Splitting      │ ──► Click "⚡ Build Concepts" to split to concepts/*.md
+└─────────────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────┐
+│  Step 4: Background Q&A & RAG   │ ──► Auto-generate summaries, Q&As, & update BM25 index
+└─────────────────────────────────┘
 ```
 
-### Phase 1 — Upload & Convert
-1. Select a document and choose your options:
-   * **For PDFs:** You can check the **"Force Gemini Multimodal Visual Parse"** toggle. When enabled, it bypasses local parsing and page limits, sending the entire document to the Google Gemini Multimodal API in one pass for a high-fidelity visual layout reconstruction (perfect for multi-column documents and complex nested tables).
-   * **For other files:** Word and Excel files are handled locally.
-2. Drag or upload the file onto its respective format **drop zone** in the upload sidebar.
-3. The server converts the first 3 pages of the PDF immediately (or full document if Multimodal Parse is forced) and queues the remaining pages for background OCR.
-4. The **Concepts panel** shows the document as a **pending card** with an amber left border and a live progress bar showing page conversion status (e.g. "Converting page 18 of 41...").
-5. The "⚡ Build Concepts" button remains **disabled** until all pages are converted.
+#### Step 1: Upload & Convert (Phase 1)
+* Select a document drop zone in the upload sidebar:
+  * **PDFs:** You can check the **"Force Gemini Multimodal Visual Parse"** toggle to upload the entire document to the Google Gemini Multimodal API in one pass for a high-fidelity visual layout reconstruction.
+  * **Word/Excel:** Handled locally.
+* The server converts the first 3 pages immediately and queues the remaining pages for background processing.
+* The **Concepts panel** shows a **pending card** with an amber border and a live progress bar representing background page conversions.
+
+#### Step 2: Review & Clean
+* Click **"📄 Open .md"** to open the companion file (`conversions/my_doc.md`) directly in the editor.
+* Correct layout gaps, clean OCR errors, format tables, or add custom annotations.
+* Save the file. The "⚡ Build Concepts" button unlocks once background conversion hits 100%.
+
+#### Step 3: Concept Splitting (Phase 2)
+* Click **"⚡ Build Concepts"** on the card.
+* The server reads your cleaned `.md` file, splits it into individual concept files under `concepts/my_doc/` based on headings, and populates `pageindex_tree.json`.
+* **Upgrade A (Ancestor Pathing):** Adds hierarchical parents stack (e.g. `ancestors: [services_doc, Services Agreement]`) into each card's frontmatter.
+* **Upgrade B (Auto-Concept Linking):** Scans the text for references to other case concepts and registers them in the `links` metadata array automatically, building a connected case network.
+
+#### Step 4: Background Q&A & RAG Search
+* **LLM Summaries & Q&As:** The lazy background worker automatically scans newly created cards to generate a 1-sentence summary, 4 hypothetical questions (Doc2Query), and saves Q&A Wiki cards to the sidebar.
+* **RAG Retrieval:** Your queries search the enriched BM25 index. The retriever extracts the precise matched sub-chunk and its ancestor hierarchy, feeding Gemini with precise context for the case chat.
+
+---
 
 ### Word/DOCX Conversion Pipeline
 Word document conversion operates as a high-fidelity hybrid pipeline:
@@ -39,6 +62,8 @@ Word document conversion operates as a high-fidelity hybrid pipeline:
 
 ### Excel/XLSX Conversion Pipeline
 Excel spreadsheets are processed locally by the SheetJS `xlsx` library, parsing cell sheets row-by-row into Markdown tables chunked in blocks of 100 lines.
+
+---
 
 ---
 
