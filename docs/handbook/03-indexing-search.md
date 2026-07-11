@@ -108,6 +108,16 @@ The vault stores compressed, AES-256-GCM encrypted legal statutes under `vault/`
 2. **RAM Decryption:** To keep memory usage low, the loader reads ONLY the exact segment requested using `fs.readSync` with file offsets. It reads the IV/AuthTag headers, decrypts the block via `aes-256-gcm` using the `VAULT_KEY` environment variable, and decompresses it using `zlib.gunzipSync` in RAM.
 3. **User-Space Overlays & Decryption Bypass:** Custom JSON files containing statutory amendments or rule edits can be saved under `vault/user_overlays/`. The loader parses and merges these definitions in RAM during initialization. If a request matches an overridden ID, the system returns the custom plain-text description directly, bypassing disk offset reads and AES decryption entirely.
 
+### 3D Case Concept Graph Viewer
+The visual layout network explorer maps connections between case documents, concept cards, and wiki logs:
+* **Relational API Scanner (`/api/hayagriva/case-graph`):** Scans the `concepts/` and `wiki/` folders dynamically to parse YAML frontmatter for parent-child hierarchies (`ancestors` list) and internal cross-references (`links` array).
+* **Color-Coded Nodes:**
+  - **Amber Node (Document):** Represents a raw case document folder.
+  - **Blue Node (Concept Card):** Represents a single fact/concept chunk.
+  - **Green Node (Wiki/Q&A):** Represents researcher notes and LLM question-answer records.
+* **Interactive Navigation:** Supports zoom/pan controls, drag layout positioning, and single-click node redirection. Clicking any node sends a message to the IDE shell to instantly open and focus the corresponding Markdown file.
+
+
 ### Hybrid Semantic Search
 Autocomplete queries execute hybrid search:
 * **BM25 Keyword Matching (40% Weight):** Stemmed tokens are matched against the local postings database.
