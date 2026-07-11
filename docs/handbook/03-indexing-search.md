@@ -101,6 +101,7 @@ Monaco registers dynamic UI listeners inside `extension.ts`:
 The vault stores compressed, AES-256-GCM encrypted legal statutes under `vault/`:
 1. **Offsets Indexing:** Metadata, tokens, and vectors are queried in `vault/manifest.json`.
 2. **RAM Decryption:** To keep memory usage low, the loader reads ONLY the exact segment requested using `fs.readSync` with file offsets. It reads the IV/AuthTag headers, decrypts the block via `aes-256-gcm` using the `VAULT_KEY` environment variable, and decompresses it using `zlib.gunzipSync` in RAM.
+3. **User-Space Overlays & Decryption Bypass:** Custom JSON files containing statutory amendments or rule edits can be saved under `vault/user_overlays/`. The loader parses and merges these definitions in RAM during initialization. If a request matches an overridden ID, the system returns the custom plain-text description directly, bypassing disk offset reads and AES decryption entirely.
 
 ### Hybrid Semantic Search
 Autocomplete queries execute hybrid search:
