@@ -37,6 +37,10 @@ async function runAll() {
         await toggleTests.run();
         console.log('');
 
+        const xlsTests = require('./xls_conversion.test');
+        xlsTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');
