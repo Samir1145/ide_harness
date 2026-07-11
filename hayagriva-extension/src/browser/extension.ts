@@ -704,6 +704,197 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
             const lineText: string = model.getLineContent(position.lineNumber);
             const textUpToCursor = lineText.substring(0, position.column - 1);
 
+            // ── Notion-Style Slash Commands ─────────────────────────────────
+            const slashMatch = textUpToCursor.match(/(?:^|\s)\/([\w\s./,-]*)$/);
+            if (slashMatch) {
+              const slashIdx = textUpToCursor.search(/(?:^|\s)\/([\w\s./,-]*)$/);
+              const startIdx = textUpToCursor.substring(slashIdx).indexOf('/') + slashIdx;
+              
+              const replaceRange = new monaco.Range(
+                position.lineNumber,
+                startIdx + 1,
+                position.lineNumber,
+                position.column
+              );
+              
+              const rawSlash = slashMatch[1];
+              const rawSlashLower = rawSlash.toLowerCase();
+              
+              const CLAUSES = [
+                {
+                  id: 'arbitration',
+                  title: 'Arbitration Clause',
+                  text: 'Any dispute, controversy, or claim arising out of or relating to this contract, including its formation, breach, termination, or invalidity, shall be referred to and finally resolved by arbitration under the Arbitration and Conciliation Act, 1996. The tribunal shall consist of ${1:one} arbitrator(s). The venue/seat of arbitration shall be ${2:city_name}, and the language of the proceedings shall be English.'
+                },
+                {
+                  id: 'governing_law',
+                  title: 'Governing Law & Jurisdiction',
+                  text: 'This Agreement shall be governed by, construed, and enforced in accordance with the laws of India. The parties agree that the courts located in ${1:city_name} shall have exclusive jurisdiction to settle any disputes arising under this Agreement.'
+                },
+                {
+                  id: 'indemnity',
+                  title: 'Indemnification Clause',
+                  text: 'The ${1:Indemnifying Party} shall defend, indemnify, and hold harmless the ${2:Indemnified Party} from and against any and all claims, losses, damages, liabilities, and expenses (including reasonable legal fees) arising from any breach of this Agreement or negligent acts.'
+                },
+                {
+                  id: 'confidentiality',
+                  title: 'Confidentiality Clause',
+                  text: 'Each party agrees to hold in strict confidence all confidential information disclosed by the other party. Neither party shall disclose such information to any third party without the prior written consent of the disclosing party, except as required by law. This obligation survives for ${1:number} year(s) post-termination.'
+                },
+                {
+                  id: 'force_majeure',
+                  title: 'Force Majeure Clause',
+                  text: 'Neither party shall be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, war, riot, fire, flood, labor dispute, or government actions, provided prompt notice is given.'
+                }
+              ];
+
+              let currentCase = 'Case_Alpha';
+              const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+              if (ws) {
+                currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
+              }
+
+              // A. Level 1: Just typed "/", or typing the command prefix
+              if (!rawSlash.includes(' ') && !rawSlash.startsWith('law') && !rawSlash.startsWith('concept') && !rawSlash.startsWith('qa') && !rawSlash.startsWith('clause')) {
+                const commandSuggestions = [
+                  {
+                    label: '/law - Search Statutory Laws',
+                    filterText: '/law',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: 'law ',
+                    range: replaceRange,
+                    detail: 'AES Encrypted Law Vault',
+                  },
+                  {
+                    label: '/concept - Link Case Facts',
+                    filterText: '/concept',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: 'concept ',
+                    range: replaceRange,
+                    detail: 'Workspace Concept Nodes',
+                  },
+                  {
+                    label: '/qa - Link Case Q&A cards',
+                    filterText: '/qa',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: 'qa ',
+                    range: replaceRange,
+                    detail: 'Generated Case Q&As',
+                  },
+                  {
+                    label: '/clause - Insert Drafting Boilerplate',
+                    filterText: '/clause',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: 'clause ',
+                    range: replaceRange,
+                    detail: 'Interactive Templates',
+                  }
+                ].filter(s => s.filterText.startsWith('/' + rawSlashLower));
+                
+                return { suggestions: commandSuggestions };
+              }
+
+              // B. Level 2: Command matches "/law <query>"
+              if (rawSlashLower.startsWith('law')) {
+                const query = rawSlash.substring(3).trim();
+                if (query.length < 3) return { suggestions: [] };
+                
+                const results = await fetchCompletions(query);
+                if (token.isCancellationRequested) return { suggestions: [] };
+                
+                const suggestions = results.map((r: any) => {
+                  const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+                  const { snippet, hasSnippets } = convertToSnippet(cleanText);
+                  return {
+                    label: `/law → ${r.title || `Section ${r.section}`}`,
+                    filterText: `/law ${query}`,
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: snippet,
+                    insertTextRules: hasSnippets
+                        ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                        : undefined,
+                    range: replaceRange,
+                    detail: r.id,
+                    documentation: cleanText.substring(0, 200) + '...'
+                  };
+                });
+                return { suggestions };
+              }
+
+              // C. Level 2: Command matches "/concept <query>"
+              if (rawSlashLower.startsWith('concept')) {
+                const query = rawSlash.substring(7).trim().toLowerCase();
+                try {
+                  const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/concepts?case=${encodeURIComponent(currentCase)}`);
+                  if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
+                  const data = await res.json();
+                  const list = data.concepts || [];
+                  
+                  const filtered = list.filter((c: any) => c.title.toLowerCase().includes(query));
+                  const suggestions = filtered.map((c: any) => ({
+                    label: `/concept → ${c.title}`,
+                    filterText: `/concept ${query}`,
+                    kind: monaco.languages.CompletionItemKind.Reference,
+                    insertText: `[${c.title}](${c.relativePath})`,
+                    range: replaceRange,
+                    detail: 'Concept Link',
+                    documentation: `Path: ${c.relativePath}`
+                  }));
+                  return { suggestions };
+                } catch {
+                  return { suggestions: [] };
+                }
+              }
+
+              // D. Level 2: Command matches "/qa <query>"
+              if (rawSlashLower.startsWith('qa')) {
+                const query = rawSlash.substring(2).trim().toLowerCase();
+                try {
+                  const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/wiki-cards?case=${encodeURIComponent(currentCase)}`);
+                  if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
+                  const data = await res.json();
+                  const list = data.cards || [];
+                  
+                  const filtered = list.filter((c: any) => c.title.toLowerCase().includes(query) || c.filename.toLowerCase().includes(query));
+                  const suggestions = filtered.map((c: any) => ({
+                    label: `/qa → ${c.title}`,
+                    filterText: `/qa ${query}`,
+                    kind: monaco.languages.CompletionItemKind.Reference,
+                    insertText: `[${c.title}](wiki/${c.filename})`,
+                    range: replaceRange,
+                    detail: 'Wiki Q&A Link',
+                    documentation: `Filename: wiki/${c.filename}`
+                  }));
+                  return { suggestions };
+                } catch {
+                  return { suggestions: [] };
+                }
+              }
+
+              // E. Level 2: Command matches "/clause <query>"
+              if (rawSlashLower.startsWith('clause')) {
+                const query = rawSlash.substring(6).trim().toLowerCase();
+                const filtered = CLAUSES.filter(c => c.title.toLowerCase().includes(query) || c.id.toLowerCase().includes(query));
+                const suggestions = filtered.map(c => {
+                  const { snippet, hasSnippets } = convertToSnippet(c.text);
+                  return {
+                    label: `/clause → ${c.title}`,
+                    filterText: `/clause ${query}`,
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: snippet,
+                    insertTextRules: hasSnippets
+                        ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                        : undefined,
+                    range: replaceRange,
+                    detail: 'Standard Clause',
+                    documentation: c.text.substring(0, 150) + '...'
+                  };
+                });
+                return { suggestions };
+              }
+            }
+
+            // ── @@ Inline Citations ─────────────────────────────────────────
             const triggerMatch = textUpToCursor.match(/@@?([\w\s./,-]*)$/);
             if (!triggerMatch) return { suggestions: [] };
 

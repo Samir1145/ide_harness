@@ -65,6 +65,10 @@ async function runAll() {
         await overlayTests.run();
         console.log('');
 
+        const slashCommandTests = require('./monaco_slash_commands.test');
+        await slashCommandTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');
