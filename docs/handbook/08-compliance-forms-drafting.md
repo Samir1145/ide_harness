@@ -72,16 +72,38 @@ To bypass heavy browser parsing libraries, the exporter uses a client-side hydra
 
 ---
 
-## 3. Node.js-Native Specialized Agents
+## 3. Node.js-Native Specialized Agents & Agent Management System (AMS)
 
-To achieve seamless desktop packaging and zero-configuration installation for thousands of users, the AI capabilities are implemented as zero-dependency Node.js modules running inside the backend process:
+To achieve seamless desktop packaging and zero-configuration installation, the AI capabilities are implemented as zero-dependency Node.js modules running inside the backend process. The Agent Management System (AMS) controls this lifecycle:
 
-* **Intent Classification Router (`agent-coordinator.js`)**: Serves as the primary query gate. It runs a fast classification model to analyze the user message and routes the prompt context to the correct specialized subagent.
-* **Advisor Agent (`advisor-agent/`)**: Answers laws, regulations, and board chronology questions. It dynamically queries the local law vault index using BM25 RAG tools and injects text citations.
-* **Forms Agent (`forms-agent/`)**: Performs form populating and validation audits. It executes equation checks and flags dates that violate chronology.
-* **Document Agent (`document-agent/`)**: Assembles markdown files using outline skeletons and prompt rules. It places unresolved placeholder markers `[INSERT PLACEHOLDER]` for manual user review.
+```
+[User Chat Prompt] ──► [AgentCoordinator] (Intent Classifier Prompt)
+                             │
+            ┌────────────────┼────────────────┐
+            ▼ ("advisor")    ▼ ("forms")      ▼ ("document")
+      [Advisor Agent]  [Forms Agent]    [Document Agent]
+            │                │                │
+            ▼                ▼                ▼
+     - Local RAG      - Form Mapper    - Drafting Engine
+       Retrieval        Extraction       Compilation
+     - Inject top 4   - Rule Auditor   - Parse missing
+       ref chunks.      Rule Failures    placeholders
+            │                │                │
+            └────────────────┼────────────────┘
+                             │
+                             ▼
+                    [LLM Chat Response]
+```
 
-The system dynamically loads agent personas and guidelines from companion `.md` markdown files on startup, separating prompts from execution code.
+* **Intent Classification Router (`agent-coordinator.js`)**: Serves as the primary query gate. When a message is received, it runs a classification prompt instructing the LLM to output exactly one of three categories (`advisor`, `forms`, or `document`) in lowercase, with no wrapper or explanations. It then forwards the user query and chat history to the matching specialized subagent.
+* **Advisor Agent (`advisor-agent/`)**: Specializes in legal advisory, chronology questions, and compliance rules. 
+  - **Context Piping:** It executes a semantic and BM25 RAG query search via `rag.js`, slices the top 4 matching document and statute chunks, and prepends them as a structured `[Context Information]` block to the user prompt.
+* **Forms Agent (`forms-agent/`)**: Automates MCA compliance form auditing. 
+  - **Context Piping:** When triggered, it invokes `populateFormInstance` and the rules validator (`rules_validator.js`). It gathers all populated fields and validation failures (e.g., balance sheet equation discrepancies), formatting them as a flat text audit log injected directly into the LLM system context.
+* **Document Agent (`document-agent/`)**: Handles document assembly. 
+  - **Context Piping:** It triggers the native `drafting.js` compiler to generate the document draft and scans the file for unresolved brackets `[...]` or blank lines. It compiles these placeholders into a numbered checklist attached to the LLM prompt, letting the LLM review what fields require final user inputs.
+
+The system dynamically loads agent personas and guidelines from companion `.md` markdown files on startup, keeping prompts clean and separate from JavaScript execution code.
 
 ---
 
