@@ -61,15 +61,35 @@ To prevent database directories (`wiki/` and `concepts/`) from cluttering the st
   ```
   This ensures that system-generated markdown page chunks and Q&A card files are hidden from the file listing, cleanly funneling them to the custom **Concepts** and **Case Wiki** panels.
 
-### WARNING: Upstream Git Pulls from Eclipse Theia
+### Upstream Theia Upgrades — Correct Procedure
 
-The `ide/` folder represents a custom-branded, frozen fork of `eclipse-theia/theia-ide`. 
+The `hayagriva-extension/` folder at the repo root is now a **fully decoupled, standalone TypeScript package**. It is linked into `ide/applications/electron/package.json` via:
+```json
+"hayagriva-theia-extension": "link:../../hayagriva-extension"
+```
 
 > [!WARNING]
-> Do NOT add the public `eclipse-theia/theia-ide` repository as a remote or attempt to `git pull` from upstream Theia into this workspace. 
+> Do NOT `git pull` from `eclipse-theia/theia-ide` upstream. That would overwrite your customized `package.json`, splash screen, and branding config.
 
-Running an upstream git pull will break the following:
-1. **Product Overwrite**: Upstream `package.json` will overwrite product names, splash screen configurations (`Hayagriva` vs `Theia IDE`), and custom plugin inclusions.
-2. **API Mismatches**: Our custom extension `theia-extensions/hayagriva` is compiled against `@theia/core` version `1.73.1`. Upstream changes will throw TypeScript compile errors (`tsc -b`) due to changes in core command, menu, or webview interfaces.
-3. **Electron Incompatibility**: Upstream Electron version upgrades may conflict with the local Node version on your system, preventing the IDE client from booting.
+> [!TIP]
+> **To upgrade Theia to a newer version**, follow this safe procedure:
+
+```bash
+# Step 1: Edit @theia/* version numbers in ide/applications/electron/package.json
+#         Change e.g. "1.73.1" → "1.75.0" for all @theia/* packages
+
+# Step 2: Re-install with the existing lockfile resolution
+cd ide/applications/electron
+PUPPETEER_SKIP_DOWNLOAD=true yarn install
+
+# Step 3: Rebuild the Electron application
+yarn build
+
+# Step 4: If TypeScript errors appear in hayagriva-extension/,
+#         fix API changes in hayagriva-extension/src/ and rebuild
+cd ../../hayagriva-extension
+yarn build
+```
+
+Your custom sidebar, commands, and menus live entirely in `hayagriva-extension/` and are never touched by the upgrade. Only the underlying Theia shell upgrades.
 

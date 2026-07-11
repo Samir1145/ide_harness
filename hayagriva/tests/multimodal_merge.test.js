@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { convertPdfVisually } = require('../lib/multimodal_parser');
+const { convertPdfVisually } = require('../lib/utils/multimodal_parser');
 
 function run() {
     console.log('[Multimodal Ingestion & Concept Merging Unit Tests]');
@@ -34,7 +34,7 @@ Initial content for share capital.`,
         );
 
         // We require the internal module directly to verify existing topic scanning
-        const textIngestModule = require('../lib/ingestion-file/text_ingest');
+        const textIngestModule = require('../lib/pipeline/common/text_ingest');
         
         // Find existing topics excluding current document "doc_b"
         const existing = textIngestModule.ingestText ? getMockTopics(mockCaseDir, 'doc_b') : [];

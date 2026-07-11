@@ -2,7 +2,7 @@ const http = require('http');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
-const { startLazyWorker } = require('./watcher');
+const { startLazyWorker } = require('./daemon/watcher');
 const routes = require('./routes');
 
 function startApiServer(docsRoot, port = 3210) {

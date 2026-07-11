@@ -1,4 +1,4 @@
-const bm25 = require('../lib/bm25');
+const bm25 = require('../lib/core/bm25');
 const assert = require('assert');
 
 function testTokenizerAndStemmer() {

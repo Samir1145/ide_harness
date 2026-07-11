@@ -1,4 +1,4 @@
-const { validateFormRules } = require('../lib/ingestion-file/form_rules_validator');
+const { validateFormRules } = require('../lib/pipeline/forms/rules_validator');
 
 function run() {
     console.log('[Form Rules Validator Unit Tests]');

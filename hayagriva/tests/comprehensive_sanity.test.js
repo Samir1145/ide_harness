@@ -1,8 +1,8 @@
 const path = require('path');
 const fs = require('fs');
-const { queuePdfTask, pendingPdfQueue } = require('../lib/lazy_pdf_worker');
-const { validateFormRules } = require('../lib/ingestion-file/form_rules_validator');
-const { draftDocument } = require('../lib/drafting');
+const { queuePdfTask, pendingPdfQueue } = require('../lib/daemon/lazy_pdf_worker');
+const { validateFormRules } = require('../lib/pipeline/forms/rules_validator');
+const { draftDocument } = require('../lib/core/drafting');
 
 function run() {
     console.log('[Comprehensive Sanity Unit Tests]');

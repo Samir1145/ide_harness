@@ -2,10 +2,10 @@
 
 const path = require('path');
 const fs = require('fs');
-const { createWatcher, ingestFile } = require('./lib/watcher');
-const { readIndex } = require('./lib/indexer');
-const { query } = require('./lib/rag');
-const { loadVault } = require('./lib/vault-loader');
+const { createWatcher, ingestFile } = require('./lib/daemon/watcher');
+const { readIndex } = require('./lib/core/indexer');
+const { query } = require('./lib/core/rag');
+const { loadVault } = require('./lib/utils/vault-loader');
 
 const HELP = `Usage: hayagriva <case-path>
 

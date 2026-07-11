@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 // We will add exports to watcher.js for tree building helpers to test them cleanly.
-const watcher = require('../lib/watcher');
+const watcher = require('../lib/daemon/watcher');
 
 function runTests() {
     console.log('[PageIndex Tree Unit Tests]');

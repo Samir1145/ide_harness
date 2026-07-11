@@ -1,5 +1,5 @@
-const splitter = require('../lib/splitter');
-const converter = require('../lib/converter');
+const splitter = require('../lib/core/splitter');
+const converter = require('../lib/core/converter');
 const assert = require('assert');
 const fs = require('fs');
 
