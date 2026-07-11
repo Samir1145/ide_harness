@@ -9,9 +9,9 @@ const whiteIconPng = path.join(resourcesDir, 'icon_white_512.png');
 const base64White = fs.readFileSync(path.join(resourcesDir, 'logo_white_base64.txt'), 'utf8');
 
 function main() {
-    console.log('Applying premium transparent Hayagriva branding (gradient-floating splash + pulsing glow loader)...');
+    console.log('Applying all-white transparent Hayagriva branding...');
 
-    // 1. Update resources/resources/preload.html with glowing color-shift animation
+    // 1. Update resources/resources/preload.html with clean white pulsing animation
     const preloadPath = path.join(resourcesDir, 'preload.html');
     let preloadContent = fs.readFileSync(preloadPath, 'utf8');
     
@@ -35,24 +35,24 @@ function main() {
         }`
     );
 
-    // Modify the animation to have a pulsing scale, fading opacity, and a shifting neon color glow
+    // Modify the animation to have a pulsing scale and fading opacity in pure white (no color-shift filters)
     preloadContent = preloadContent.replace(
         /@keyframes\s+theia-ide-spinner\s*\{[\s\S]*?\}/g,
         `@keyframes theia-ide-spinner {
             0% {
                 transform: scale(1.0);
                 opacity: 0.95;
-                filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.7)) sepia(30%) saturate(1500%) hue-rotate(190deg);
+                filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
             }
             50% {
                 transform: scale(0.96);
-                opacity: 0.65;
-                filter: drop-shadow(0 0 24px rgba(6, 182, 212, 0.9)) sepia(30%) saturate(1500%) hue-rotate(145deg);
+                opacity: 0.55;
+                filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.3));
             }
             100% {
                 transform: scale(1.0);
                 opacity: 0.95;
-                filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.7)) sepia(30%) saturate(1500%) hue-rotate(190deg);
+                filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
             }
         }`
     );
@@ -60,31 +60,22 @@ function main() {
     fs.writeFileSync(preloadPath, preloadContent, 'utf8');
     console.log(`- Updated preload.html: ${preloadPath}`);
 
-    // 2. Generate new resources/resources/TheiaIDESplash.svg with transparent background and gradient mask
+    // 2. Generate new resources/resources/TheiaIDESplash.svg with transparent background and solid white mask
     const splashSvgPath = path.join(resourcesDir, 'TheiaIDESplash.svg');
     const splashSvgContent = `<?xml version="1.1" encoding="UTF-8" standalone="no"?>
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1160 484" width="445.5" height="186">
   <defs>
-    <!-- Define a premium linear gradient from Cyber Cyan to Neon Violet -->
-    <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#06b6d4" />
-      <stop offset="50%" stop-color="#3b82f6" />
-      <stop offset="100%" stop-color="#8b5cf6" />
-    </linearGradient>
-    
     <!-- Define a mask using the base64 white logo -->
     <mask id="logo-mask">
       <image href="data:image/png;base64,${base64White}" x="0" y="0" width="1160" height="484" />
     </mask>
   </defs>
   
-  <!-- Transparent background: removed solid rect background -->
-  
-  <!-- Rect filled with our beautiful gradient, masked by the logo -->
-  <rect x="0" y="0" width="1160" height="484" fill="url(#logo-gradient)" mask="url(#logo-mask)" />
+  <!-- Rect filled with pure white (#ffffff), masked by the logo -->
+  <rect x="0" y="0" width="1160" height="484" fill="#ffffff" mask="url(#logo-mask)" />
 </svg>`;
     fs.writeFileSync(splashSvgPath, splashSvgContent, 'utf8');
-    console.log(`- Generated transparent gradient-masked splash screen: ${splashSvgPath}`);
+    console.log(`- Generated transparent solid-white splash screen: ${splashSvgPath}`);
 
     // 3. Copy files to ide/theia-extensions/product
     const productIconsDir = path.join(repoRoot, 'ide/theia-extensions/product/src/browser/icons');
