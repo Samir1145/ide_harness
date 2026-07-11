@@ -85,3 +85,25 @@ OPENAI_API_KEY=...
 # Case vault encryption (required for law vault)
 VAULT_KEY=...
 ```
+
+---
+
+## 3. Monaco Autocomplete & Encrypted Law Vault
+
+This subsystem integrates offline legal reference lookups directly into the editor.
+
+### Monaco Completion & Hover Providers
+Monaco registers dynamic UI listeners inside `extension.ts`:
+* **Autocomplete Triggers (`@@`):** Typing `@@` lists domains (e.g. `@@IBC`). Typing `@@ibc/` lists sub-processes (e.g. `@@ibc/cirp`). Typing `@@ibc/cirp/section 7` executes a local API fetch and inserts the decrypted legal section as a plain-text snippet.
+* **Hover Previews (Look Up Without Inserting):** Hovering your cursor over a citation token (e.g. `@@ibc/cirp/s7`) triggers `monaco.languages.registerHoverProvider`. The provider executes a local request, decrypts the text block in RAM, and displays it in a scrollable, styled markdown popup card.
+
+### Vault Decryption Pipeline
+The vault stores compressed, AES-256-GCM encrypted legal statutes under `vault/`:
+1. **Offsets Indexing:** Metadata, tokens, and vectors are queried in `vault/manifest.json`.
+2. **RAM Decryption:** To keep memory usage low, the loader reads ONLY the exact segment requested using `fs.readSync` with file offsets. It reads the IV/AuthTag headers, decrypts the block via `aes-256-gcm` using the `VAULT_KEY` environment variable, and decompresses it using `zlib.gunzipSync` in RAM.
+
+### Hybrid Semantic Search
+Autocomplete queries execute hybrid search:
+* **BM25 Keyword Matching (40% Weight):** Stemmed tokens are matched against the local postings database.
+* **Semantic Vector Similarity (60% Weight):** Generates query vectors locally on CPU via `@xenova/transformers` running the `Xenova/all-MiniLM-L6-v2` model.
+* **Privacy Assurance:** All processing runs strictly local. No law queries are sent to cloud APIs.
