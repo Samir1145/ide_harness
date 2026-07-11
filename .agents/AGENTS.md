@@ -7,10 +7,10 @@ These guidelines document key architectural decisions and term alignments to kee
 ## 1. System Terminology Alignment
 * **Context Management System (CMS):** Manages document slicing, pageindex hierarchy indexing, companion markdown conversion, and keyword/semantic text retrieval.
 * **Vault Management System (VMS):** Manages local encrypted legal databases, RAM decryption/decompression pipelines, user overlays, Monaco completion and hover providers, and the D3.js 3D Case Graph Viewer.
-* **Agent Management System (AMS):** Manages specialized Node.js-native subagents:
-  - **Advisor Agent:** Legal research and RAG references solver.
-  - **Forms Agent:** Compliance math audits and date validation.
-  - **Document Agent:** Template draftsman and missing gap detector.
+* **Agent Management System (AMS):** Manages specialized Node.js-native subagents (Advisor Agent, Forms Agent, Document Agent) and their programmatic integration via Eclipse Theia AI's ChatAgent registry and delegation.
+* **Ingestion Management System (IMS):** Manages document parsing pipelines (PDF, Word, Excel, TiddlyWiki), Pandoc fallback routing, and multimodal visual OCR.
+* **Drafting Management System (DMS):** Manages legal document templates (skeletons and prompts), unresolved gap/placeholder parsing, and version history archiving.
+* **Workspace Management System (WMS):** Manages case directories isolation, local API server hosting, central variable dictionary overlays, and background worker loops.
 
 ---
 
