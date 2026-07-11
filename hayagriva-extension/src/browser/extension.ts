@@ -98,6 +98,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     this.initializeConceptsExplorerWidget();
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
+    this.registerLawHoverProvider();
   }
 
   registerToolbarItems(registry: TabBarToolbarRegistry): void {
@@ -790,6 +791,88 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     };
 
     checkMonaco();
+  }
+
+  registerLawHoverProvider(): void {
+    const checkMonacoHover = () => {
+      if (!monaco || !monaco.languages || !monaco.languages.registerHoverProvider) {
+        setTimeout(checkMonacoHover, 300);
+        return;
+      }
+
+      const LANGS = ['markdown', 'plaintext'];
+      const hoverCache = new Map<string, any>();
+
+      for (const lang of LANGS) {
+        monaco.languages.registerHoverProvider(lang, {
+          provideHover: async (model: any, position: any, token: any) => {
+            const lineText: string = model.getLineContent(position.lineNumber);
+            
+            // Regex to find all @@citations in the line text
+            const rx = /@@([\w/.-]+)/g;
+            let match;
+            let matchedCitation = '';
+            let startCol = 0;
+            let endCol = 0;
+
+            while ((match = rx.exec(lineText)) !== null) {
+              const start = match.index + 1; // 1-indexed column index
+              const end = start + match[0].length;
+              if (position.column >= start && position.column <= end) {
+                matchedCitation = match[1];
+                startCol = start;
+                endCol = end;
+                break;
+              }
+            }
+
+            if (!matchedCitation || token.isCancellationRequested) {
+              return null;
+            }
+
+            try {
+              let results: any[] = [];
+              if (hoverCache.has(matchedCitation)) {
+                results = hoverCache.get(matchedCitation);
+              } else {
+                const res = await fetch(
+                  `http://127.0.0.1:3210/api/laws/query?q=${encodeURIComponent(matchedCitation)}&n=1`
+                );
+                if (res.ok) {
+                  const json = await res.json();
+                  results = json.results || [];
+                  hoverCache.set(matchedCitation, results);
+                  if (hoverCache.size > 200) {
+                    const firstKey = hoverCache.keys().next().value;
+                    if (firstKey !== undefined) hoverCache.delete(firstKey);
+                  }
+                }
+              }
+
+              if (!results.length || token.isCancellationRequested) {
+                return null;
+              }
+
+              const bestMatch = results[0];
+              const cleanText = (bestMatch.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+
+              return {
+                range: new monaco.Range(position.lineNumber, startCol, position.lineNumber, endCol),
+                contents: [
+                  { value: `**Law Reference:** \`${bestMatch.title || bestMatch.id}\`` },
+                  { value: cleanText.substring(0, 1500) + (cleanText.length > 1500 ? '...' : '') }
+                ]
+              };
+            } catch (e) {
+              return null;
+            }
+          }
+        });
+      }
+      this.logger.info('[HAYAGRIVA] Law hover preview provider registered for markdown and plaintext.');
+    };
+
+    checkMonacoHover();
   }
 
   private wordIllusionActive = false;

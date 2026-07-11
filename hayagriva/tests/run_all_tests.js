@@ -53,6 +53,10 @@ async function runAll() {
         await enrichmentTests.run();
         console.log('');
 
+        const hoverTests = require('./monaco_hover.test');
+        await hoverTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');
