@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Hayagriva Launcher — Embedded in App Bundle
+
+# Robust PATH setup for macOS environment
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+
+# Load NVM (Node Version Manager) if installed
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    . "$NVM_DIR/nvm.sh"
+fi
+
+# Source standard profiles as fallback
+if [ -f "$HOME/.zprofile" ]; then
+    source "$HOME/.zprofile"
+fi
+if [ -f "$HOME/.zshrc" ]; then
+    source "$HOME/.zshrc"
+fi
+if [ -f "$HOME/.profile" ]; then
+    source "$HOME/.profile"
+fi
+
+set -e
+
+# Derive project root relative to this script's own location inside the .app bundle.
+# Bundle structure: Hayagriva.app/Contents/MacOS/Hayagriva
+#   → dirname once  : Hayagriva.app/Contents/MacOS
+#   → dirname twice : Hayagriva.app/Contents
+#   → dirname three : Hayagriva.app
+#   → dirname four  : HAYAGRIVA/ (project root)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_CONTENTS="$(dirname "$SCRIPT_DIR")"
+APP_BUNDLE="$(dirname "$APP_CONTENTS")"
+PROJECT_ROOT="$(dirname "$APP_BUNDLE")"
+
+BACKEND_DIR="$PROJECT_ROOT/hayagriva"
+THEIA_DIR="$PROJECT_ROOT/ide/applications/electron"
+PORT=3210
+
+LOGFILE="/tmp/hayagriva-launcher.log"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOGFILE"
+}
+
+# Load VAULT_KEY and any other secrets from hayagriva/.env
+if [ -f "$BACKEND_DIR/.env" ]; then
+    set -a
+    source "$BACKEND_DIR/.env"
+    set +a
+fi
+
+log "Hayagriva launcher starting — project root: $PROJECT_ROOT"
+
+# Check if hayagriva backend is already running
+if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    log "Hayagriva backend already running on port $PORT"
+else
+    log "Starting Hayagriva backend..."
+    cd "$BACKEND_DIR"
+    nohup node cli.js --watch-all >> "$LOGFILE" 2>&1 &
+    BACKEND_PID=$!
+    log "Hayagriva backend started (PID: $BACKEND_PID)"
+
+    # Wait for backend to be ready
+    for i in {1..30}; do
+        if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+            log "Hayagriva backend ready on port $PORT"
+            break
+        fi
+        sleep 1
+    done
+fi
+
+# Start Hayagriva Electron app
+log "Starting Hayagriva Electron app..."
+cd "$THEIA_DIR"
+unset ELECTRON_RUN_AS_NODE
+yarn start
+
+# Clean up all background servers when user quits the app
+"$PROJECT_ROOT/stop.command"
