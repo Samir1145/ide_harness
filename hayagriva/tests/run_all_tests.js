@@ -49,6 +49,10 @@ async function runAll() {
         await parentChildTests.run();
         console.log('');
 
+        const enrichmentTests = require('./concept_enrichment.test');
+        await enrichmentTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');
