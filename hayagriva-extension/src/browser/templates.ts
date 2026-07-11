@@ -1739,3 +1739,211 @@ export function draftingPanelHtml(caseName: string): string {
 </body>
 </html>`;
 }
+
+export function caseGraphHtml(caseName: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Case Connection Map</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--theia-layout-color0, #1e1e1e);
+      color: var(--theia-ui-font-color0, #f3f3f3);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+    .node {
+      stroke-width: 1.5px;
+      cursor: pointer;
+      transition: r 0.2s, stroke-width 0.2s;
+    }
+    .node:hover {
+      stroke-width: 3px !important;
+    }
+    .link {
+      stroke: var(--theia-border-color, #555);
+      stroke-opacity: 0.6;
+      stroke-width: 1.5px;
+    }
+    .label {
+      font-size: 10px;
+      pointer-events: none;
+      font-weight: bold;
+      fill: var(--theia-ui-font-color1, #ccc);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+    .control-panel {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--theia-border-color, #444);
+      font-size: 11px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <div class="control-panel">
+      <div style="font-weight:bold; margin-bottom:6px; font-size:12px;">Case Visual Map</div>
+      <div class="legend-item">
+        <div class="legend-color" style="background:#fbbf24;"></div> Parent Documents
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background:#3b82f6;"></div> Split Concepts
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background:#10b981;"></div> Case Q&A / Wiki Cards
+      </div>
+      <div style="margin-top:6px; opacity:0.6; font-size:9px;">Drag nodes to layout. Click to open file.</div>
+    </div>
+    <svg id="graph-svg"></svg>
+  </div>
+
+  <script>
+    async function initGraph() {
+      try {
+        const res = await fetch('http://127.0.0.1:3210/api/hayagriva/case-graph?case=' + encodeURIComponent('${caseName}'));
+        if (!res.ok) throw new Error("Failed to load graph data");
+        const graph = await res.json();
+
+        const svg = d3.select("#graph-svg");
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        // Add zoom capability
+        const g = svg.append("g");
+        svg.call(d3.zoom().on("zoom", (event) => {
+          g.attr("transform", event.transform);
+        }));
+
+        const simulation = d3.forceSimulation(graph.nodes)
+            .force("link", d3.forceLink(graph.links).id(d => d.id).distance(80))
+            .force("charge", d3.forceManyBody().strength(-150))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(30));
+
+        // Links
+        const link = g.append("g")
+            .attr("class", "links")
+          .selectAll("line")
+          .data(graph.links)
+          .join("line")
+            .attr("class", "link");
+
+        // Nodes
+        const node = g.append("g")
+            .attr("class", "nodes")
+          .selectAll("circle")
+          .data(graph.nodes)
+          .join("circle")
+            .attr("class", "node")
+            .attr("r", d => d.type === 'document' ? 14 : d.type === 'wiki' ? 10 : 8)
+            .attr("fill", d => d.type === 'document' ? '#fbbf24' : d.type === 'wiki' ? '#10b981' : '#3b82f6')
+            .attr("stroke", d => d.type === 'document' ? '#d97706' : d.type === 'wiki' ? '#047857' : '#1d4ed8')
+            .call(drag(simulation));
+
+        // Labels
+        const label = g.append("g")
+            .attr("class", "labels")
+          .selectAll("text")
+          .data(graph.nodes)
+          .join("text")
+            .attr("class", "label")
+            .attr("dx", d => d.type === 'document' ? 16 : 12)
+            .attr("dy", 4)
+            .text(d => d.name);
+
+        // Click actions
+        node.on("click", (event, d) => {
+          if (d.path) {
+            window.parent.postMessage({
+              type: 'open-concept-chunk',
+              relativePath: d.path
+            }, '*');
+          }
+        });
+
+        simulation.on("tick", () => {
+          link
+              .attr("x1", d => d.source.x)
+              .attr("y1", d => d.source.y)
+              .attr("x2", d => d.target.x)
+              .attr("y2", d => d.target.y);
+
+          node
+              .attr("cx", d => d.x)
+              .attr("cy", d => d.y);
+
+          label
+              .attr("x", d => d.x)
+              .attr("y", d => d.y);
+        });
+
+        // Resize support
+        window.addEventListener("resize", () => {
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          simulation.force("center", d3.forceCenter(w / 2, h / 2));
+          simulation.alpha(0.3).restart();
+        });
+
+      } catch (err) {
+        console.error("Graph init error:", err);
+      }
+    }
+
+    function drag(simulation) {
+      return d3.drag()
+          .on("start", (event, d) => {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+          })
+          .on("drag", (event, d) => {
+            d.fx = event.x;
+            d.fy = event.y;
+          })
+          .on("end", (event, d) => {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+          });
+    }
+
+    initGraph();
+  </script>
+</body>
+</html>`;
+}

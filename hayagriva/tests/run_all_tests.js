@@ -69,6 +69,10 @@ async function runAll() {
         await slashCommandTests.run();
         console.log('');
 
+        const graphTests = require('./monaco_graph.test');
+        await graphTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');

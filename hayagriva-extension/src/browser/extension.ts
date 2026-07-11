@@ -21,7 +21,8 @@ import {
   conceptsExplorerHtml,
   kvEditorHtml,
   formEditorHtml,
-  draftingPanelHtml
+  draftingPanelHtml,
+  caseGraphHtml
 } from './templates';
 
 function getBasename(p: string): string {
@@ -38,6 +39,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   private uploadModalElement: HTMLElement | undefined;
   private wikiWidget: Widget | undefined;
   private conceptsWidget: Widget | undefined;
+  private caseGraphSidebarWidget: Widget | undefined;
+  private graphWidget: Widget | undefined;
 
   constructor(
     @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
@@ -96,6 +99,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   onStart(app: FrontendApplication): void {
     this.initializeWikiExplorerWidget();
     this.initializeConceptsExplorerWidget();
+    this.initializeCaseGraphSidebarWidget();
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
     this.registerLawHoverProvider();
@@ -110,11 +114,18 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       priority: 0,
     });
     registry.registerItem({
+      id: 'hayagriva-graph-toolbar-item',
+      command: 'hayagriva:openCaseGraph',
+      tooltip: 'Open Visual Case Map',
+      icon: 'fa fa-share-alt',
+      priority: 1,
+    });
+    registry.registerItem({
       id: 'hayagriva-theme-toolbar-item',
       command: 'hayagriva:toggleTheme',
       tooltip: 'Toggle Light/Dark Theme',
       icon: 'fa fa-adjust',
-      priority: 1,
+      priority: 2,
     });
   }
 
@@ -122,9 +133,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     const leftWidgets = this.shell.getWidgets('left');
     for (const widget of leftWidgets) {
       const id = widget.id.toLowerCase();
-      // Keep only explorer-view-container (File Explorer), hayagriva-wiki-explorer, and hayagriva-concepts-explorer visible.
-      // Close all other widgets in the left sidebar.
-      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer') {
+      // Keep only explorer-view-container, wiki, concepts, and graph explorer visible
+      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer' && id !== 'hayagriva-case-graph-explorer') {
         widget.close();
       }
     }
@@ -418,6 +428,68 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
         }
       }
     });
+  }
+
+  initializeCaseGraphSidebarWidget(): void {
+    if (this.caseGraphSidebarWidget) return;
+
+    let initialCase = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
+    }
+
+    const graphExplorer = new Widget();
+    graphExplorer.id = 'hayagriva-case-graph-explorer';
+    graphExplorer.title.label = 'Case Map';
+    graphExplorer.title.caption = 'Visual map of case concepts';
+    graphExplorer.title.iconClass = 'fa fa-share-alt';
+    graphExplorer.title.closable = false;
+
+    const graphIframe = document.createElement('iframe');
+    graphIframe.style.width = '100%';
+    graphIframe.style.height = '100%';
+    graphIframe.style.border = 'none';
+    graphIframe.srcdoc = caseGraphHtml(initialCase);
+    graphExplorer.node.appendChild(graphIframe);
+
+    this.caseGraphSidebarWidget = graphExplorer;
+    this.shell.addWidget(graphExplorer, { area: 'left', rank: 800 });
+  }
+
+  async openCaseGraph(): Promise<Widget> {
+    const id = 'hayagriva-case-graph-main';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+    
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    let initialCase = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Visual Case Map';
+    widget.title.caption = 'Interactive 3D case connection graph';
+    widget.title.iconClass = 'fa fa-share-alt';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = caseGraphHtml(initialCase);
+    widget.node.appendChild(iframe);
+
+    this.graphWidget = widget;
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
   }
 
   initializeConceptsExplorerWidget(): void {

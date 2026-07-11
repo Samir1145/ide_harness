@@ -17,11 +17,16 @@ export class HayagrivaMenuContribution implements MenuContribution {
     registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openKvEditor`, label: 'Case KV Dictionary', order: '6' });
     registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openFormEditor`, label: 'Form Review Dashboard', order: '7' });
     registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openDraftingPanel`, label: 'Drafting Panel', order: '8' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openCaseGraph`, label: 'Visual Case Map', order: '9' });
 
-    // File menu action
+    // File menu actions
     registry.registerMenuAction([...CommonMenus.FILE, '1_hayagriva'], {
       commandId: `${HAYAGRIVA_NS}:openUploadSplit`,
       label: 'Upload to Hayagriva...',
+    });
+    registry.registerMenuAction([...CommonMenus.FILE, '1_hayagriva'], {
+      commandId: `${HAYAGRIVA_NS}:openCaseGraph`,
+      label: 'Visual Case Map...',
     });
 
     // File Editor right click menu

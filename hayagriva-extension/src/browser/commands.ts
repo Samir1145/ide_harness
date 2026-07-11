@@ -95,6 +95,18 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCaseGraph`, label: 'Open Visual Case Map', iconClass: 'fa fa-share-alt' },
+      { 
+        execute: async () => { await this.contribution.openCaseGraph(); },
+        isVisible: (widget: any) => {
+          if (!widget) return true;
+          const id = (widget.id || '').toLowerCase();
+          return id.includes('explorer-view-container') || id === 'files';
+        }
+      }
+    );
+
+    registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openUploadSplit`, label: 'Upload to Hayagriva', iconClass: 'fa fa-upload' },
       { 
         execute: async () => { await this.contribution.openUploadSplit(); },
