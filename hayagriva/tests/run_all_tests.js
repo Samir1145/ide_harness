@@ -41,6 +41,14 @@ async function runAll() {
         xlsTests.run();
         console.log('');
 
+        const cacheStitchTests = require('./cache_stitch.test');
+        await cacheStitchTests.run();
+        console.log('');
+
+        const parentChildTests = require('./parent_child_split.test');
+        await parentChildTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');
