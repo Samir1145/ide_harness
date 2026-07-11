@@ -14,8 +14,7 @@
     </mask>
   </defs>
   
-  <!-- Premium dark gradient background -->
-  <rect width="100%" height="100%" fill="#0a0b0d" />
+  <!-- Transparent background: removed solid rect background -->
   
   <!-- Rect filled with our beautiful gradient, masked by the logo -->
   <rect x="0" y="0" width="1160" height="484" fill="url(#logo-gradient)" mask="url(#logo-mask)" />

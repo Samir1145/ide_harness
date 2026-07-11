@@ -9,7 +9,7 @@ const whiteIconPng = path.join(resourcesDir, 'icon_white_512.png');
 const base64White = fs.readFileSync(path.join(resourcesDir, 'logo_white_base64.txt'), 'utf8');
 
 function main() {
-    console.log('Applying premium Hayagriva branding (gradients + neon glows)...');
+    console.log('Applying premium transparent Hayagriva branding (gradient-floating splash + pulsing glow loader)...');
 
     // 1. Update resources/resources/preload.html with glowing color-shift animation
     const preloadPath = path.join(resourcesDir, 'preload.html');
@@ -60,7 +60,7 @@ function main() {
     fs.writeFileSync(preloadPath, preloadContent, 'utf8');
     console.log(`- Updated preload.html: ${preloadPath}`);
 
-    // 2. Generate new resources/resources/TheiaIDESplash.svg with gradient mask
+    // 2. Generate new resources/resources/TheiaIDESplash.svg with transparent background and gradient mask
     const splashSvgPath = path.join(resourcesDir, 'TheiaIDESplash.svg');
     const splashSvgContent = `<?xml version="1.1" encoding="UTF-8" standalone="no"?>
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1160 484" width="445.5" height="186">
@@ -78,14 +78,13 @@ function main() {
     </mask>
   </defs>
   
-  <!-- Premium dark gradient background -->
-  <rect width="100%" height="100%" fill="#0a0b0d" />
+  <!-- Transparent background: removed solid rect background -->
   
   <!-- Rect filled with our beautiful gradient, masked by the logo -->
   <rect x="0" y="0" width="1160" height="484" fill="url(#logo-gradient)" mask="url(#logo-mask)" />
 </svg>`;
     fs.writeFileSync(splashSvgPath, splashSvgContent, 'utf8');
-    console.log(`- Generated gradient masked splash screen: ${splashSvgPath}`);
+    console.log(`- Generated transparent gradient-masked splash screen: ${splashSvgPath}`);
 
     // 3. Copy files to ide/theia-extensions/product
     const productIconsDir = path.join(repoRoot, 'ide/theia-extensions/product/src/browser/icons');
