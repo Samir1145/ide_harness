@@ -12,7 +12,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "node ./cli.js vault",
+    "start": "node ./cli.js --watch-all",
     "test": "node tests/run_all_tests.js"
   },
   "dependencies": {
