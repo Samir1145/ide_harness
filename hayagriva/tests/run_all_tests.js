@@ -61,6 +61,10 @@ async function runAll() {
         await snippetTests.run();
         console.log('');
 
+        const overlayTests = require('./monaco_overlays.test');
+        await overlayTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');
