@@ -105,6 +105,27 @@ To achieve seamless desktop packaging and zero-configuration installation, the A
 
 The system dynamically loads agent personas and guidelines from companion `.md` markdown files on startup, keeping prompts clean and separate from JavaScript execution code.
 
+### Leveraging Eclipse Theia AI Framework for Critique Loops
+Rather than constructing a custom multi-agent platform, the system leverages the native **Eclipse Theia AI Framework** APIs to implement self-correction and critique loops inside the IDE's extension host:
+
+```
+[User Chat Input]
+       │
+       ▼
+ ┌──────────────┐          [Delegate]          ┌─────────────┐
+ │  Document    │ ───────────────────────────► │    Forms    │ (Auditor Agent)
+ │   Agent      │ ◄─────────────────────────── │    Agent    │
+ └──────┬───────┘         [Critique Report]    └─────────────┘
+        │
+        ▼ (Self-Correction Turn)
+ [Refined Draft & Warnings]
+```
+
+* **Theia AI ChatAgent Service Integration:** We register the specialized agents (`DocumentAgent` and `FormsAgent`) using Theia's `ChatAgent` registry.
+* **Agent-to-Agent Delegation:** During document drafting tasks, the `DocumentAgent` compiles the initial text and programmatically delegates the intermediate results to the `FormsAgent` using the **`ChatAgentService.delegateToAgent`** API.
+* **Critique & Refinement Turn:** The `FormsAgent` runs the rules engine and returns a structured critique report outlining validation errors. The `DocumentAgent` consumes this report, performs a secondary refinement turn to resolve discrepancies (or highlights inline warnings), and outputs the finalized draft.
+* **Advantages:** Avoids UI thread freezing, uses native IDE workspaces tool functions (e.g. `getFileContent`, `writeFileContent`), and allows developers to inspect prompt transitions and agent calls inside the built-in Theia AI console.
+
 ---
 
 ## 4. Subsystem File Layout
