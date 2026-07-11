@@ -24,20 +24,21 @@ Background page daemon       BM25 search index built
 ```
 
 ### Phase 1 — Upload & Convert
-1. Drag a PDF onto the **PDF drop zone** in the upload sidebar.
-2. The server converts the first 3 pages immediately and queues the remaining pages for background OCR.
-3. The **Concepts panel** shows the document as a **pending card** with an amber left border and a live progress bar showing page conversion status (e.g. "Converting page 18 of 41...").
-4. The "⚡ Build Concepts" button remains **disabled** until all pages are converted.
+1. Select a document and choose your options:
+   * **For PDFs:** You can check the **"Force Gemini Multimodal Visual Parse"** toggle. When enabled, it bypasses local parsing and page limits, sending the entire document to the Google Gemini Multimodal API in one pass for a high-fidelity visual layout reconstruction (perfect for multi-column documents and complex nested tables).
+   * **For other files:** Word and Excel files are handled locally.
+2. Drag or upload the file onto its respective format **drop zone** in the upload sidebar.
+3. The server converts the first 3 pages of the PDF immediately (or full document if Multimodal Parse is forced) and queues the remaining pages for background OCR.
+4. The **Concepts panel** shows the document as a **pending card** with an amber left border and a live progress bar showing page conversion status (e.g. "Converting page 18 of 41...").
+5. The "⚡ Build Concepts" button remains **disabled** until all pages are converted.
 
-### Phase 2 — Review & Build
-1. Click **"📄 Open .md"** on the pending card to open the companion file in the editor.
-2. Edit the Markdown as needed — fix OCR errors, clean up table formatting, remove repeated headers.
-3. Once satisfied, click **"⚡ Build Concepts"** (enabled when conversion completes).
-4. The system reads your edited `.md`, builds BM25 search, creates concept chunks, generates `pageindex_tree.json`, and queues wiki Q&A card generation.
-5. The panel updates to show the full outline with 💡 page chunks.
+### Word/DOCX Conversion Pipeline
+Word document conversion operates as a high-fidelity hybrid pipeline:
+* **Primary (Pandoc):** Auto-detects the CPU architecture (ARM64 vs x64) and runs a local precompiled `pandoc` static binary (version 3.6, downloaded on-demand in `start.command`). It converts files using GitHub Flavored Markdown (`-t gfm`) to preserve tabular matrices, headers, footnotes, and lists with exact structural integrity.
+* **Failsafe Fallback (Mammoth):** If Pandoc fails to execute (e.g., due to permissions or architecture restrictions), the parser throws a warning and falls back to `mammoth` to complete the conversion.
 
-### Rebuild After Edits
-For documents already indexed, a **"🔄 Rebuild Concepts"** button is always visible below the outline. Clicking it re-runs Phase 2 on the current state of the `.md` file, allowing you to incorporate any further manual edits into the knowledge base.
+### Excel/XLSX Conversion Pipeline
+Excel spreadsheets are processed locally by the SheetJS `xlsx` library, parsing cell sheets row-by-row into Markdown tables chunked in blocks of 100 lines.
 
 ---
 
@@ -46,32 +47,20 @@ For documents already indexed, a **"🔄 Rebuild Concepts"** button is always vi
 ### Subsystem Layout
 
 ```
-hayagriva/lib/
-├── upload-file/
-│   ├── pdf_upload.js       — PDF layout reconstruction + Vision OCR
-│   ├── docx_upload.js      — Mammoth Word-to-Markdown converter
-│   ├── xls_upload.js       — Excel-to-Markdown grid tables
-│   ├── wiki_upload.js      — TiddlyWiki HTML scraper
-│   └── form_exporter.js    — Prefills HTML forms and compiles bookmarklets
-├── splitting-file/
-│   └── *_splitter.js       — Format-specific chunk segmenters
-├── ingestion-file/
-│   ├── *_ingest.js         — Load → split → BM25 → concepts coordinators
-│   ├── extract-file.js     — Schema-less facts extractor (central database)
-│   ├── form_mapper.js      — Schema mapping and targeted RAG lookup
-│   └── form_rules_validator.js — Programmatic rules validation
-├── agents/
-│   ├── agent-coordinator.js — Intent classification router
-│   ├── advisor-agent/      — Legal Q&A and law vault RAG provider
-│   ├── forms-agent/        — Form auditor and validations
-│   └── document-agent/     — Template drafter and placeholder checks
-├── drafting.js             — Assemblies template drafts and archives edits
-├── watcher.js              — File watcher chokidar event boundaries
-├── lazy_pdf_worker.js      — Background PDF conversion daemons and queue tasks
-├── api-server.js           — HTTP API server boundaries
-├── routes.js               — Route dispatch endpoint list mappings
-└── llm-client.js           — LLM routing (OpenRouter / Ollama / Gemini)
+hayagriva/
+├── bin/
+│   ├── pandoc-arm64        — Precompiled Pandoc v3.6 binary for Apple Silicon Macs
+│   └── pandoc-x64          — Precompiled Pandoc v3.6 binary for Intel Macs
+├── lib/
+│   ├── upload-file/
+│   │   ├── pdf_upload.js   — PDF layout reconstruction + Vision OCR
+│   │   ├── docx_upload.js  — Pandoc compiler with Mammoth fallback
+│   │   ├── xls_upload.js   — Excel-to-Markdown grid tables
+│   │   ├── wiki_upload.js  — TiddlyWiki HTML scraper
+│   │   └── form_exporter.js — Prefills HTML forms and compiles bookmarklets
 ```
+
+---
 
 ### `ingestFile(caseDir, filePath, opts)` — Phase Gate
 
@@ -79,7 +68,10 @@ The central gate is the `opts.conversionOnly` flag in `watcher.js`:
 
 ```js
 // Phase 1 — conversion only (zero index/BM25 writes)
-await ingestFile(caseDir, filePath, { conversionOnly: true });
+await ingestFile(caseDir, filePath, { 
+    conversionOnly: true,
+    multimodal: true // Force Gemini Multimodal Parse if requested
+});
 
 // Phase 2 — full pipeline (BM25 + concepts + wiki)
 await ingestFile(caseDir, filePath, { conversionOnly: false });
@@ -87,11 +79,11 @@ await ingestFile(caseDir, filePath, { conversionOnly: false });
 
 | `conversionOnly: true` | `conversionOnly: false` |
 |---|---|
-| Runs `ingestPdf()` — creates `.md` companion | Runs `ingestText()` — reads (edited) `.md` |
+| Runs `ingestPdf(..., { multimodal })` — creates `.md` companion | Runs `ingestText()` — reads (edited) `.md` |
 | Writes `.status = "pending_review"` sidecar | Writes BM25 `bm25_index.json` |
 | Skips `index.json` | Writes `index.json` |
 | Skips `buildPageIndexTree()` | Generates `pageindex_tree.json` |
-| Skips lazy worker queue | Queues wiki Q&A card generation |
+| Skips lazy worker queue (if multimodal is forced) | Queues wiki Q&A card generation |
 | Updates `.status = "indexed"` | ✓ |
 
 ### `.status` Sidecar File
@@ -107,7 +99,7 @@ The sidecar is read by the `/api/hayagriva/documents` endpoint to surface pendin
 
 ### Background Page Daemon
 
-Large PDFs (>3 pages) are processed by a **serial async daemon** in [lazy_pdf_worker.js](file:///Users/atulgrover/Desktop/HAYAGRIVA/hayagriva/lib/lazy_pdf_worker.js):
+Large PDFs (>3 pages) are processed by a **serial async daemon** in [lazy_pdf_worker.js](file:///Users/atulgrover/Desktop/HAYAGRIVA/hayagriva/lib/lazy_pdf_worker.js) (unless forced multimodal is requested, in which case the daemon queue is skipped entirely):
 
 ```
 _runDaemonLoop() — fully serial, one 3-page batch at a time
@@ -137,7 +129,7 @@ pdf_upload.js → convertPdfBlock() → pdfexcavator (text)
 
 #### Multimodal Visual Fallback (Entire File OCR)
 To bypass local rendering bottlenecks and improve conversion speed for completely scanned, corrupted, or highly visual PDF papers, the pipeline includes a **direct multimodal fallback** in [multimodal_parser.js](file:///Users/atulgrover/Desktop/HAYAGRIVA/hayagriva/lib/multimodal_parser.js):
-* **Trigger**: Automatically fires if the raw text extracted from the entire document is extremely short ($<50$ characters total) and `process.env.GEMINI_API_KEY` is configured, or if `options.multimodal` is requested.
+* **Trigger**: Automatically fires if the raw text extracted from the entire document is extremely short ($<50$ characters total) and `process.env.GEMINI_API_KEY` is configured, or if the user checks the **Force Gemini Multimodal Visual Parse** toggle (passing `options.multimodal: true` in the API payload).
 * **Flow**: Encodes the entire PDF binary in base64 and uploads it as a single request payload inline to Google Gemini (`gemini-1.5-flash`). Gemini visually transcribes the document's tables, forms, and columns into clean Markdown.
 * **Daemon Skip**: Because the entire document is resolved in one multimodal pass, `isPartial` is set to `false`, and the background pagination loop is skipped entirely to conserve resources.
 
