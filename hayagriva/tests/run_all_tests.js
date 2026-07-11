@@ -29,6 +29,10 @@ async function runAll() {
         mergeTests.run();
         console.log('');
 
+        const docxTests = require('./docx_conversion.test');
+        await docxTests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');

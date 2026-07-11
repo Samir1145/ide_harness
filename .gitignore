@@ -33,3 +33,7 @@ twillm/twillm-wiki/tiddlers/vault-loader/
 **/vault/laws.vlt*
 **/vault/manifest.json
 **/vault/version.json
+
+# Local binaries
+hayagriva/bin/
+

@@ -53,6 +53,36 @@ if [ -n "$VAULT_KEY" ]; then
     log "Law vault key loaded from .env"
 fi
 
+# Verify Pandoc binaries exist, otherwise download them on-demand
+PANDOC_BIN_DIR="$HAYAGRIVA_DIR/bin"
+PANDOC_ARM="$PANDOC_BIN_DIR/pandoc-arm64"
+PANDOC_X64="$PANDOC_BIN_DIR/pandoc-x64"
+
+if [ ! -f "$PANDOC_ARM" ] || [ ! -f "$PANDOC_X64" ]; then
+    log "Pandoc binaries missing in $PANDOC_BIN_DIR. Downloading on-demand..."
+    mkdir -p "$PANDOC_BIN_DIR"
+    
+    if [ ! -f "$PANDOC_ARM" ]; then
+        log "Downloading Pandoc ARM64..."
+        curl -L -o /tmp/pandoc-arm.zip https://github.com/jgm/pandoc/releases/download/3.6/pandoc-3.6-arm64-macOS.zip
+        unzip -o -j /tmp/pandoc-arm.zip "*/bin/pandoc" -d "$PANDOC_BIN_DIR/"
+        mv "$PANDOC_BIN_DIR/pandoc" "$PANDOC_ARM"
+        rm -f /tmp/pandoc-arm.zip
+    fi
+    
+    if [ ! -f "$PANDOC_X64" ]; then
+        log "Downloading Pandoc x86_64..."
+        curl -L -o /tmp/pandoc-x64.zip https://github.com/jgm/pandoc/releases/download/3.6/pandoc-3.6-x86_64-macOS.zip
+        unzip -o -j /tmp/pandoc-x64.zip "*/bin/pandoc" -d "$PANDOC_BIN_DIR/"
+        mv "$PANDOC_BIN_DIR/pandoc" "$PANDOC_X64"
+        rm -f /tmp/pandoc-x64.zip
+    fi
+    
+    chmod +x "$PANDOC_ARM" "$PANDOC_X64"
+    log "Pandoc binaries configured successfully."
+fi
+
+
 
 # Check if hayagriva proxy is already running
 PORT=3210
