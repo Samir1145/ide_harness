@@ -94,7 +94,7 @@ This subsystem integrates offline legal reference lookups directly into the edit
 
 ### Monaco Completion & Hover Providers
 Monaco registers dynamic UI listeners inside `extension.ts`:
-* **Autocomplete Triggers (`@@`):** Typing `@@` lists domains (e.g. `@@IBC`). Typing `@@ibc/` lists sub-processes (e.g. `@@ibc/cirp`). Typing `@@ibc/cirp/section 7` executes a local API fetch and inserts the decrypted legal section as a plain-text snippet.
+* **Autocomplete Triggers & Interactive Snippets (`@@`):** Typing `@@` lists domains (e.g. `@@IBC`). Typing `@@ibc/` lists sub-processes (e.g. `@@ibc/cirp`). Typing a full reference executes a local fetch. If the matching law or custom template contains fillable placeholders (e.g. `[date]`, `[amount]`, `[name]`) or underscores `_____`, the completion helper compiles them into Monaco tab-stops (e.g. `${1:date}`) and registers `InsertAsSnippet` insert rules. Users can press `Tab` to cycle and fill out values interactively.
 * **Hover Previews (Look Up Without Inserting):** Hovering your cursor over a citation token (e.g. `@@ibc/cirp/s7`) triggers `monaco.languages.registerHoverProvider`. The provider executes a local request, decrypts the text block in RAM, and displays it in a scrollable, styled markdown popup card.
 
 ### Vault Decryption Pipeline
