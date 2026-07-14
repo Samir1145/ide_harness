@@ -3,7 +3,10 @@ import { CommandContribution, CommandRegistry, ILogger } from '@theia/core/lib/c
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import URI from '@theia/core/lib/common/uri';
+import { SelectionService } from '@theia/core/lib/common/selection-service';
+import { UriSelection } from '@theia/core/lib/common/selection';
 import { HayagrivaFrontendContribution } from './extension';
+import { HayagrivaTreeDecorator } from './tree-decorator';
 
 const HAYAGRIVA_NS = 'hayagriva';
 
@@ -19,8 +22,94 @@ export class HayagrivaCommandContribution implements CommandContribution {
     @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
     @inject(EditorManager) private readonly editorManager: EditorManager,
     @inject(HayagrivaFrontendContribution) private readonly contribution: HayagrivaFrontendContribution,
+    @inject(HayagrivaTreeDecorator) private readonly treeDecorator: HayagrivaTreeDecorator,
+    @inject(SelectionService) private readonly selectionService: SelectionService,
     @inject(ILogger) private readonly logger: ILogger
   ) {}
+
+  private getRelativePath(uri: URI): string {
+    const filePath = uri.path.toString();
+    try {
+      const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+      if (wsRoot) {
+        const rootPath = decodeURIComponent(wsRoot.path.toString());
+        if (filePath.startsWith(rootPath)) {
+          return filePath.substring(rootPath.length).replace(/^[\/\\]/, '');
+        }
+      }
+    } catch (_) {}
+    return filePath;
+  }
+
+  private getCasePath(): string {
+    try {
+      const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+      if (wsRoot) {
+        return decodeURIComponent(wsRoot.path.toString());
+      }
+    } catch (_) {}
+    return 'Case_Alpha';
+  }
+
+  private resolveUri(uri?: any): URI | undefined {
+    console.log('[HAYAGRIVA-CMD] resolveUri input:', typeof uri, uri ? JSON.stringify(uri) : 'null');
+    
+    // Check if the input object is a valid URI
+    if (uri && typeof uri === 'object' && ('path' in uri || 'scheme' in uri) && typeof uri.toString === 'function') {
+      try {
+        const res = new URI(uri.toString());
+        console.log('[HAYAGRIVA-CMD] resolveUri matched URI object:', res.toString());
+        return res;
+      } catch (e: any) {
+        console.log('[HAYAGRIVA-CMD] resolveUri URI object parse error:', e.message);
+      }
+    }
+    
+    // Check if the input is a node with a uri property (like FileStatNode)
+    if (uri && typeof uri === 'object' && uri.uri) {
+      try {
+        const res = new URI(uri.uri.toString());
+        console.log('[HAYAGRIVA-CMD] resolveUri matched node.uri object:', res.toString());
+        return res;
+      } catch (e: any) {
+        console.log('[HAYAGRIVA-CMD] resolveUri node.uri parse error:', e.message);
+      }
+    }
+    
+    // Check if the input is an array (e.g. multi-selection list)
+    if (Array.isArray(uri) && uri.length > 0) {
+      console.log('[HAYAGRIVA-CMD] resolveUri matched array, parsing first item');
+      return this.resolveUri(uri[0]);
+    }
+
+    // Try SelectionService fallback (critical when context menu passes coordinates)
+    try {
+      const activeSelection = this.selectionService.selection;
+      if (activeSelection) {
+        const selUri = UriSelection.getUri(activeSelection);
+        if (selUri) {
+          const res = new URI(selUri.toString());
+          console.log('[HAYAGRIVA-CMD] resolveUri resolved via SelectionService:', res.toString());
+          return res;
+        }
+      }
+    } catch (e: any) {
+      console.log('[HAYAGRIVA-CMD] resolveUri SelectionService error:', e.message);
+    }
+
+    // Secondary fallback: active editor
+    if (!uri || (typeof uri === 'object' && 'x' in uri && 'y' in uri)) {
+      const activeEditor = this.editorManager.activeEditor;
+      if (activeEditor) {
+        const res = activeEditor.getResourceUri();
+        console.log('[HAYAGRIVA-CMD] resolveUri fallback to active editor:', res?.toString());
+        return res;
+      }
+    }
+
+    console.log('[HAYAGRIVA-CMD] resolveUri failed to resolve');
+    return undefined;
+  }
 
   registerCommands(registry: CommandRegistry): void {
     registry.registerCommand(
@@ -66,6 +155,57 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCompanionSideBySide`, label: '2. Review/Edit Markdown' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected to open companion');
+            return;
+          }
+
+          const originalPath = resourceUri.path.toString();
+          const lowerPath = originalPath.toLowerCase();
+          if (!lowerPath.endsWith('.docx') && !lowerPath.endsWith('.doc') &&
+              !lowerPath.endsWith('.xlsx') && !lowerPath.endsWith('.xls') &&
+              !lowerPath.endsWith('.pdf')) {
+            this.logger.warn('[HAYAGRIVA] Open Companion Side-by-Side only supported for DOCX, XLSX, and PDF');
+            return;
+          }
+
+          const companionPath = originalPath.replace(/\.[a-zA-Z0-9]+$/, '.md');
+          const companionUri = resourceUri.withPath(companionPath);
+
+          // Open original file/preview first
+          await this.contribution.open(resourceUri);
+          // Split open the companion Markdown file to the right side
+          await this.editorManager.openToSide(companionUri);
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) {
+            console.log('[HAYAGRIVA-CMD] openCompanionSideBySide isEnabled: resolved URI is empty -> false');
+            return false;
+          }
+          const lower = resolved.path.toString().toLowerCase();
+          if (lower.endsWith('.wiki.html')) {
+            console.log('[HAYAGRIVA-CMD] openCompanionSideBySide isEnabled for wiki.html -> true (pre-converted)');
+            return true;
+          }
+          if (!lower.endsWith('.pdf') && !lower.endsWith('.docx') && !lower.endsWith('.doc') && !lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
+            console.log('[HAYAGRIVA-CMD] openCompanionSideBySide isEnabled for unsupported file extension:', lower, '-> false');
+            return false;
+          }
+          const rel = this.getRelativePath(resolved);
+          const status = this.treeDecorator.statusCache[rel];
+          const hasCompanion = !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+          console.log('[HAYAGRIVA-CMD] openCompanionSideBySide isEnabled:', rel, 'statusCache dot1:', status ? status.dot1 : 'undefined', '->', hasCompanion);
+          return hasCompanion;
+        }
+      }
+    );
+
+    registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openCaseDashboard`, label: 'Open Case Dashboard Wiki' },
       { execute: async (uri?: URI) => {
         let resourceUri = uri;
@@ -92,6 +232,18 @@ export class HayagrivaCommandContribution implements CommandContribution {
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openRagChat`, label: 'Open RAG Chat' },
       { execute: async () => { await this.contribution.openRagChat(); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openSettingsPanel`, label: 'Open Case Settings', iconClass: 'fa fa-cog' },
+      { 
+        execute: async () => { await this.contribution.openSettingsPanel(); },
+        isVisible: (widget: any) => {
+          if (!widget) return true;
+          const id = (widget.id || '').toLowerCase();
+          return id.includes('explorer-view-container') || id === 'files';
+        }
+      }
     );
 
     registry.registerCommand(
@@ -125,7 +277,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
 
         const caseName = this.contribution.getCaseName(resourceUri.path.toString());
         try {
-          const indexRes = await fetch(`http://127.0.0.1:3210/api/hayagriva/read-file?path=${encodeURIComponent(caseName + '/concepts/index.json')}`);
+          const indexRes = await fetch(`${this.contribution.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(caseName + '/concepts/index.json')}`);
           if (!indexRes.ok) throw new Error('Index not found');
           const indexData = await indexRes.json();
           const docs = indexData.documents || [];
@@ -178,7 +330,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
           if (activeEditor) {
             const caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
             try {
-              const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/query`, {
+              const res = await fetch(`${this.contribution.getBackendUrl()}/api/hayagriva/query`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ case: caseName, query: label })
@@ -267,6 +419,173 @@ export class HayagrivaCommandContribution implements CommandContribution {
         await this.contribution.openDraftingPanel(caseName);
       }}
     );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:convertToMd`, label: '1. Extract Document Text' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected for conversion');
+            return;
+          }
+          const filePath = resourceUri.path.toString();
+          const caseName = this.getCasePath();
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/convert-to-md`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: filePath, force: true })
+            });
+            const result = await res.json();
+            if (result.success) {
+              this.logger.info(`[HAYAGRIVA] Started conversion of ${getBasename(filePath)}`);
+              await this.treeDecorator.refreshStatuses();
+            } else {
+              alert(result.error || 'Conversion failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Conversion failed: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) {
+            console.log('[HAYAGRIVA-CMD] convertToMd isEnabled: resolved URI is empty -> false');
+            return false;
+          }
+          const lower = resolved.path.toString().toLowerCase();
+          const matches = lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
+          console.log('[HAYAGRIVA-CMD] convertToMd isEnabled for', lower, '->', matches);
+          return matches;
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:ingestToAi`, label: '2. Index into AI Memory' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected for Ingestion');
+            return;
+          }
+          const filePath = resourceUri.path.toString();
+          const caseName = this.getCasePath();
+
+          // Auto-save the companion .md file if open and dirty before indexing
+          const companionPath = filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
+          const companionUri = resourceUri.withPath(companionPath);
+          try {
+            const editorWidget = await this.editorManager.getByUri(companionUri);
+            if (editorWidget) {
+              await editorWidget.saveable.save();
+            }
+          } catch (e: any) {
+            console.warn('[HAYAGRIVA] Save check failed:', e.message);
+          }
+
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/ingest-to-ai`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: filePath })
+            });
+            const result = await res.json();
+            if (result.success) {
+              this.logger.info(`[HAYAGRIVA] Indexing started for ${getBasename(filePath)}`);
+              await this.treeDecorator.refreshStatuses();
+            } else {
+              alert(result.error || 'Indexing failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Indexing failed: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const rel = this.getRelativePath(resolved);
+          const status = this.treeDecorator.statusCache[rel];
+          return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:archiveCase`, label: 'Archive Case (One File)' },
+      {
+        execute: async () => {
+          const caseName = this.getCasePath();
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/archive-case`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName })
+            });
+            const result = await res.json();
+            if (result.success) {
+              this.logger.info('[HAYAGRIVA] Case archived successfully in concepts/case_vault.db');
+              alert('✓ Case archived successfully inside concepts/case_vault.db!');
+            } else {
+              alert(result.error || 'Archiving failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Archiving failed: ${e.message}`);
+          }
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:restoreCase`, label: 'Restore Case from Vault' },
+      {
+        execute: async () => {
+          const caseName = this.getCasePath();
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/restore-case`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName })
+            });
+            const result = await res.json();
+            if (result.success) {
+              this.logger.info('[HAYAGRIVA] Case restored successfully from concepts/case_vault.db');
+              alert('✓ Case workspace files restored successfully!');
+            } else {
+              alert(result.error || 'Restoration failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Restoration failed: ${e.message}`);
+          }
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCaseVault`, label: 'Open Database Viewer' },
+      {
+        execute: async () => {
+          try {
+            const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+            if (wsRoot) {
+              const dbUri = new URI(wsRoot.toString()).resolve('concepts/case_vault.db');
+              this.logger.info(`[HAYAGRIVA] Opening database: ${dbUri.toString()}`);
+              await this.editorManager.open(dbUri);
+            } else {
+              alert('No active workspace root found.');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Failed to open Database Viewer: ${e.message}`);
+            alert(`Failed to open Database Viewer: ${e.message}`);
+          }
+        }
+      }
+    );
   }
 }
-

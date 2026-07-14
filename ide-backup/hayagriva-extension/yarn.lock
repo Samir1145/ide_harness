@@ -445,6 +445,17 @@
     vscode-oniguruma "2.0.1"
     vscode-textmate "^9.3.2"
 
+"@theia/navigator@1.73.1":
+  version "1.73.1"
+  resolved "https://registry.yarnpkg.com/@theia/navigator/-/navigator-1.73.1.tgz#3c2b15da7fccbe99da81d284670f679efe2b3a69"
+  integrity sha512-jKZP6FIMMfdv8mzoK6G3wXhMQUmEpYpTS4tgfX4zyKeDw5uAwvoytmTnhPUVXH1L+lcJi57TPIJG5EPMM57ihA==
+  dependencies:
+    "@theia/core" "1.73.1"
+    "@theia/filesystem" "1.73.1"
+    "@theia/workspace" "1.73.1"
+    minimatch "^10.2.5"
+    tslib "^2.8.1"
+
 "@theia/outline-view@1.73.1":
   version "1.73.1"
   resolved "https://registry.yarnpkg.com/@theia/outline-view/-/outline-view-1.73.1.tgz#2f1fa7257303d9c33ff6dde557805c4818857140"

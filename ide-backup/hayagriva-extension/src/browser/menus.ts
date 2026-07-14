@@ -1,6 +1,7 @@
 import { injectable } from '@theia/core/shared/inversify';
 import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
 import { CommonMenus } from '@theia/core/lib/browser/common-frontend-contribution';
+import { NavigatorContextMenu } from '@theia/navigator/lib/browser/navigator-contribution';
 
 const HAYAGRIVA_NS = 'hayagriva';
 const WIKI_MENU = [...CommonMenus.VIEW, 'wiki'];
@@ -34,6 +35,13 @@ export class HayagrivaMenuContribution implements MenuContribution {
       commandId: `${HAYAGRIVA_NS}:compareDocuments`,
       label: 'Compare with... (Diff)',
       order: '1'
+    });
+
+    // Explorer tree right click menu
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:ingest`,
+      label: '⚡ Generate Companion File',
+      order: 'a_hayagriva'
     });
 
     // Outline panel context menu node actions

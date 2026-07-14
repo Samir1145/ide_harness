@@ -657,31 +657,28 @@ export function conceptsExplorerHtml(caseName: string): string {
     }
 
     // ── Render pending_review card ────────────────────────────────────
+    // ── Render pending_review / companion_ready card ────────────────────────────────────
     function renderPendingCard(container, doc) {
-      const converting = doc.converting || (doc.nextPage && !doc.conversionComplete);
-      const pct = (doc.totalPages && doc.nextPage)
-        ? Math.round(((doc.nextPage - 1) / doc.totalPages) * 100)
-        : (doc.conversionComplete ? 100 : 0);
+      const converting = doc.status === 'processing' || doc.converting || (doc.nextPage && !doc.conversionComplete);
+      const isReady = doc.status === 'companion_ready' || doc.conversionComplete;
 
       const card = document.createElement('div');
       card.className = 'pending-card';
       card.id = 'pending-' + doc.title;
 
+      // Color-coding indicator: Red if ready for concepts build, Orange/Amber if processing/unprocessed
+      card.style.borderLeft = isReady ? '3px solid #ef4444' : '3px solid #f59e0b';
+
       card.innerHTML = \`
         <div class="pending-title">⚠ \\\${doc.title}</div>
         <div class="pending-status" id="pstatus-\\\${doc.title}">
-          \\\${doc.conversionComplete
-            ? '✓ Conversion complete — awaiting review'
-            : (converting ? 'Converting page ' + (doc.nextPage - 1) + ' of ' + doc.totalPages + '...' : '⏳ Queued for conversion...')}
+          \\\${isReady
+            ? '✓ Companion generated (.md) — awaiting concept build'
+            : (doc.status === 'unprocessed' ? '⏳ Not ingested' : '⏳ Generating companion...')}
         </div>
-        \\\${doc.totalPages ? \\\`
-          <div class="progress-bar-wrap">
-            <div class="progress-bar" id="pbar-\\\${doc.title}" style="width:\\\${pct}%"></div>
-          </div>
-        \\\` : ''}
         <div class="action-row">
           <button class="btn-sm btn-open" id="open-\\\${doc.title}">📄 Open .md</button>
-          <button class="btn-sm btn-build" id="build-\\\${doc.title}" \\\${doc.conversionComplete ? '' : 'disabled'}>
+          <button class="btn-sm btn-build" id="build-\\\${doc.title}" \\\${isReady ? '' : 'disabled'}>
             ⚡ Build Concepts
           </button>
         </div>
@@ -693,7 +690,7 @@ export function conceptsExplorerHtml(caseName: string): string {
       card.querySelector('#open-' + doc.title).onclick = () => {
         window.parent.postMessage({
           type: 'open-concept-chunk',
-          absolutePath: doc.companionPath
+          absolutePath: doc.companionPath || ('conversions/' + doc.title + '.md')
         }, '*');
       };
 
@@ -702,26 +699,24 @@ export function conceptsExplorerHtml(caseName: string): string {
       buildBtn.onclick = () => triggerBuild(buildBtn, currentCase, doc.title);
 
       // Poll progress if still converting
-      if (!doc.conversionComplete) {
-        const pbar = card.querySelector('#pbar-' + doc.title);
-        const pstatus = card.querySelector('#pstatus-' + doc.title);
+      if (!isReady && doc.status === 'processing') {
+        const pstatus = card.querySelector('#pstatus-\\\${doc.title}');
         const poll = setInterval(async () => {
           try {
-            const r = await fetch('http://127.0.0.1:3210/api/hayagriva/ingest-status?case=' + currentCase + '&basename=' + doc.title);
+            const r = await fetch('http://127.0.0.1:3210/api/hayagriva/documents?case=' + currentCase);
             const d = await r.json();
-            if (d.complete || (!d.converting && d.totalPages === null)) {
+            const currentDoc = (d.documents || []).find(docItem => docItem.title === doc.title);
+            if (currentDoc && currentDoc.status === 'companion_ready') {
               clearInterval(poll);
-              pstatus.textContent = '✓ Conversion complete — ready to build concepts';
-              pstatus.style.color = '#10b981';
-              if (pbar) pbar.style.width = '100%';
+              if (pstatus) {
+                pstatus.textContent = '✓ Companion generated (.md) — ready to build concepts';
+                pstatus.style.color = '#ef4444';
+              }
+              card.style.borderLeft = '3px solid #ef4444';
               buildBtn.disabled = false;
-            } else if (d.converting && d.totalPages) {
-              const p = Math.round(((d.nextPage - 1) / d.totalPages) * 100);
-              if (pbar) pbar.style.width = p + '%';
-              pstatus.textContent = 'Converting page ' + (d.nextPage - 1) + ' of ' + d.totalPages + '...';
             }
           } catch(_) {}
-        }, 4000);
+        }, 3000);
       }
     }
 
@@ -751,7 +746,7 @@ export function conceptsExplorerHtml(caseName: string): string {
         }
 
         for (const doc of documents) {
-          if (doc.status === 'pending_review') {
+          if (doc.status === 'companion_ready' || doc.status === 'processing' || doc.status === 'unprocessed') {
             renderPendingCard(container, doc);
             continue;
           }
@@ -801,6 +796,380 @@ export function conceptsExplorerHtml(caseName: string): string {
     loadConcepts();
     setInterval(loadConcepts, 30000); // Refresh every 30s to pick up background changes
   </script>
+</body>
+</html>`;
+}
+
+export function fileStatusPanelHtml(caseName: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    font-size: var(--theia-ui-font-size1, 13px);
+    background: var(--theia-layout-color1, #f3f3f3);
+    color: var(--theia-ui-font-color1, #333);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px 6px;
+    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
+    flex-shrink: 0;
+  }
+  .toolbar-title {
+    font-weight: bold;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--theia-brand-color1, #0ea5e9);
+    flex: 1;
+    letter-spacing: 0.04em;
+  }
+  .refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--theia-ui-font-color1, #666);
+    opacity: 0.6;
+    font-size: 13px;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+  .refresh-btn:hover { opacity: 1; background: var(--theia-layout-color3, #e8e8e8); }
+  .filter-bar {
+    display: flex;
+    gap: 4px;
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
+    flex-shrink: 0;
+  }
+  .filter-btn {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid var(--theia-border-color, #ccc);
+    background: none;
+    cursor: pointer;
+    color: var(--theia-ui-font-color1, #555);
+    transition: all 0.15s;
+  }
+  .filter-btn.active { color: #fff; border-color: transparent; }
+  .filter-btn.f-all.active { background: var(--theia-brand-color1, #0ea5e9); }
+  .filter-btn.f-red.active { background: #ef4444; }
+  .filter-btn.f-orange.active { background: #f59e0b; }
+  .filter-btn.f-green.active { background: #10b981; }
+  .file-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .file-list::-webkit-scrollbar { width: 4px; }
+  .file-list::-webkit-scrollbar-thumb { background: var(--theia-border-color, #ccc); border-radius: 2px; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+    position: relative;
+    user-select: none;
+  }
+  .file-item:hover { background: var(--theia-layout-color3, #e8e8e8); }
+  .file-item:active { background: var(--theia-layout-color2, #ddd); }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+  .file-item:hover .dot { transform: scale(1.3); }
+  .dot-red    { background: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2); }
+  .dot-orange { background: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,0.2); }
+  .dot-green  { background: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,0.2); }
+  .dot-orange { animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+  .file-ext {
+    font-size: 10px;
+    opacity: 0.5;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+  .context-menu {
+    position: fixed;
+    background: var(--theia-layout-color3, #fff);
+    border: 1px solid var(--theia-border-color, #ccc);
+    border-radius: 5px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    z-index: 9999;
+    min-width: 200px;
+    padding: 4px 0;
+    display: none;
+  }
+  .context-menu.visible { display: block; }
+  .ctx-item {
+    padding: 7px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s;
+  }
+  .ctx-item:hover { background: var(--theia-layout-color2, #e8e8e8); }
+  .ctx-item.disabled { opacity: 0.4; pointer-events: none; }
+  .ctx-separator { height: 1px; background: var(--theia-border-color, #e0e0e0); margin: 3px 0; }
+  .empty { opacity: 0.5; text-align: center; padding: 24px 16px; font-size: 12px; line-height: 1.5; }
+  .summary-bar {
+    padding: 4px 10px;
+    font-size: 10px;
+    opacity: 0.55;
+    border-top: 1px solid var(--theia-border-color, #e0e0e0);
+    flex-shrink: 0;
+    display: flex;
+    gap: 10px;
+  }
+  .sum-red { color: #ef4444; }
+  .sum-orange { color: #f59e0b; }
+  .sum-green { color: #10b981; }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <span class="toolbar-title">📂 File Status</span>
+  <button class="refresh-btn" id="refresh-btn" title="Refresh">↻</button>
+</div>
+<div class="filter-bar">
+  <button class="filter-btn f-all active" data-filter="all">All</button>
+  <button class="filter-btn f-red" data-filter="unprocessed">🔴 Unprocessed</button>
+  <button class="filter-btn f-orange" data-filter="processing">🟠 Processing</button>
+  <button class="filter-btn f-green" data-filter="ready">🟢 Ready</button>
+</div>
+<div class="file-list" id="file-list">
+  <div class="empty">Loading files...</div>
+</div>
+<div class="summary-bar" id="summary-bar"></div>
+
+<div class="context-menu" id="ctx-menu">
+  <div class="ctx-item" id="ctx-open">📄 Open File</div>
+  <div class="ctx-separator"></div>
+  <div class="ctx-item" id="ctx-ingest">⚡ Generate Companion File</div>
+  <div class="ctx-item" id="ctx-build">🧠 Build Concepts</div>
+</div>
+
+<script>
+  let currentCase = '${caseName}';
+  let allFiles = [];
+  let activeFilter = 'all';
+  let ctxTarget = null;
+
+  // ── Theme sync ────────────────────────────────────
+  function syncTheme() {
+    if (!window.parent) return;
+    const ps = window.parent.getComputedStyle(window.parent.document.documentElement);
+    const ds = document.documentElement.style;
+    ['--theia-layout-color1','--theia-layout-color2','--theia-layout-color3',
+     '--theia-ui-font-color1','--theia-border-color','--theia-brand-color1',
+     '--theia-ui-font-family','--theia-ui-font-size1'].forEach(v => {
+      const val = ps.getPropertyValue(v); if (val) ds.setProperty(v, val);
+    });
+  }
+  syncTheme();
+  if (window.parent && window.parent.document.documentElement) {
+    new MutationObserver(syncTheme).observe(
+      window.parent.document.documentElement,
+      { attributes: true, attributeFilter: ['class', 'style'] }
+    );
+  }
+
+  // ── Message from parent ────────────────────────────
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'select-case') {
+      currentCase = e.data.caseName;
+      loadFiles();
+    }
+  });
+
+  // ── Status helpers ────────────────────────────────
+  function statusClass(s) {
+    if (s === 'unprocessed') return 'dot-red';
+    if (s === 'processing') return 'dot-orange';
+    return 'dot-green'; // companion_ready, pending_review, indexed
+  }
+  function statusLabel(s) {
+    if (s === 'unprocessed') return 'Not yet ingested';
+    if (s === 'processing') return 'Converting to Markdown...';
+    if (s === 'companion_ready' || s === 'pending_review') return 'Companion ready — Build Concepts';
+    if (s === 'indexed') return 'Fully indexed';
+    return s;
+  }
+
+  // ── Render ────────────────────────────────────────
+  function render() {
+    const list = document.getElementById('file-list');
+    let files = allFiles;
+    if (activeFilter === 'unprocessed') files = allFiles.filter(f => f.status === 'unprocessed');
+    if (activeFilter === 'processing') files = allFiles.filter(f => f.status === 'processing');
+    if (activeFilter === 'ready') files = allFiles.filter(f => f.status !== 'unprocessed' && f.status !== 'processing');
+
+    if (files.length === 0) {
+      list.innerHTML = '<div class="empty">No files match the current filter.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    for (const f of files) {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.dataset.relative = f.relative;
+      item.dataset.status = f.status;
+      item.title = statusLabel(f.status);
+
+      const dot = document.createElement('div');
+      dot.className = 'dot ' + statusClass(f.status);
+
+      const name = document.createElement('div');
+      name.className = 'file-name';
+      const parts = f.relative.split(/[\\/]/);
+      name.textContent = parts[parts.length - 1];
+
+      const ext = document.createElement('div');
+      ext.className = 'file-ext';
+      const dotIdx = f.relative.lastIndexOf('.');
+      ext.textContent = dotIdx !== -1 ? f.relative.substring(dotIdx + 1).toUpperCase() : '';
+
+      item.appendChild(dot);
+      item.appendChild(name);
+      item.appendChild(ext);
+
+      // Click → open file
+      item.addEventListener('click', () => {
+        window.parent.postMessage({
+          type: 'open-file-status',
+          relative: f.relative,
+          caseName: currentCase
+        }, '*');
+      });
+
+      // Right-click → context menu
+      item.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showCtxMenu(e.clientX, e.clientY, f);
+      });
+
+      list.appendChild(item);
+    }
+
+    // Summary bar
+    const red = allFiles.filter(f => f.status === 'unprocessed').length;
+    const orange = allFiles.filter(f => f.status === 'processing').length;
+    const green = allFiles.filter(f => f.status !== 'unprocessed' && f.status !== 'processing').length;
+    document.getElementById('summary-bar').innerHTML =
+      \`<span class="sum-red">🔴 \${red}</span><span class="sum-orange">🟠 \${orange}</span><span class="sum-green">🟢 \${green}</span><span>\${allFiles.length} total</span>\`;
+  }
+
+  // ── Context menu ──────────────────────────────────
+  function showCtxMenu(x, y, file) {
+    ctxTarget = file;
+    const menu = document.getElementById('ctx-menu');
+    const buildBtn = document.getElementById('ctx-build');
+    const ingestBtn = document.getElementById('ctx-ingest');
+
+    ingestBtn.className = 'ctx-item' + (file.status !== 'unprocessed' ? ' disabled' : '');
+    buildBtn.className = 'ctx-item' + (file.status === 'companion_ready' || file.status === 'pending_review' ? '' : ' disabled');
+
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    menu.classList.add('visible');
+  }
+
+  document.addEventListener('click', () => {
+    document.getElementById('ctx-menu').classList.remove('visible');
+  });
+  document.getElementById('ctx-menu').addEventListener('click', e => e.stopPropagation());
+
+  document.getElementById('ctx-open').onclick = () => {
+    if (!ctxTarget) return;
+    window.parent.postMessage({ type: 'open-file-status', relative: ctxTarget.relative, caseName: currentCase }, '*');
+    document.getElementById('ctx-menu').classList.remove('visible');
+  };
+
+  document.getElementById('ctx-ingest').onclick = async () => {
+    if (!ctxTarget || ctxTarget.status !== 'unprocessed') return;
+    document.getElementById('ctx-menu').classList.remove('visible');
+    window.parent.postMessage({ type: 'hayagriva-ingest', filePath: ctxTarget.relative, caseName: currentCase }, '*');
+    ctxTarget.status = 'processing';
+    render();
+  };
+
+  document.getElementById('ctx-build').onclick = () => {
+    if (!ctxTarget) return;
+    document.getElementById('ctx-menu').classList.remove('visible');
+    window.parent.postMessage({ type: 'build-concepts', basename: ctxTarget.basename, caseName: currentCase }, '*');
+  };
+
+  // ── Load ──────────────────────────────────────────
+  async function loadFiles() {
+    try {
+      const res = await fetch('http://127.0.0.1:3210/api/hayagriva/file-statuses?case=' + encodeURIComponent(currentCase));
+      if (!res.ok) { document.getElementById('file-list').innerHTML = '<div class="empty">Could not connect to server.</div>'; return; }
+      const data = await res.json();
+      const statuses = data.statuses || {};
+      allFiles = Object.entries(statuses).map(([rel, status]) => {
+        const dotIdx = rel.lastIndexOf('.');
+        return {
+          relative: rel,
+          status: status,
+          basename: dotIdx !== -1 ? rel.substring(0, dotIdx).split(/[\\/]/).pop() : rel
+        };
+      }).sort((a, b) => {
+        // Sort: unprocessed first, then processing, then ready
+        const order = { unprocessed: 0, processing: 1 };
+        const ao = order[a.status] !== undefined ? order[a.status] : 2;
+        const bo = order[b.status] !== undefined ? order[b.status] : 2;
+        return ao !== bo ? ao - bo : a.relative.localeCompare(b.relative);
+      });
+      render();
+    } catch (e) {
+      document.getElementById('file-list').innerHTML = '<div class="empty">⚠ Connecting to Hayagriva server...</div>';
+    }
+  }
+
+  // ── Filters ───────────────────────────────────────
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  document.getElementById('refresh-btn').onclick = loadFiles;
+
+  // ── Init ──────────────────────────────────────────
+  loadFiles();
+  setInterval(loadFiles, 4000);
+</script>
 </body>
 </html>`;
 }

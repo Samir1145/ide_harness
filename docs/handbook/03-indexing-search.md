@@ -4,20 +4,28 @@ This chapter covers how the system tokenizes document terms, indexes them in a l
 
 ---
 
-## 1. User Perspective
+## 1. User Perspective: The Red-Orange-Green Ingestion Pipeline
 
-### When Does Indexing Happen?
+To protect system memory and CPU, raw case documents are treated like uncompiled code. They progress through a manual, color-coded state machine:
 
-BM25 indexing is part of **Phase 2** — it only runs when the user explicitly clicks **"⚡ Build Concepts"** or **"🔄 Rebuild Concepts"** in the Concepts panel. This ensures the search index is always built from the final, user-reviewed version of the document, never from a raw OCR draft.
+### File Explorer Statuses (Raw Files: PDF, DOCX, XLSX)
+* **`unprocessed` (Color: Red):** Discovered or uploaded files start in **Red** in the File Explorer.
+* **`processing` (Color: Orange):** Right-clicking the file and selecting **"⚡ Generate Companion File"** initiates conversion in the background, turning the filename **Orange**.
+* **`companion_ready` (Color: Green):** Once the companion Markdown is compiled and written to disk, the filename in the explorer turns **Green**.
 
-Until Phase 2 is triggered, full-text search on that document returns no results. This is by design — searching stale pre-edit content would be misleading.
+### Concepts Panel Statuses (Companion Markdown Files)
+* **`companion_ready` (Color: Red Card):** Newly generated companions display as Red-bordered pending cards in the Concepts sidebar, warning the user it has not been compiled into OKF concepts yet.
+* **`indexed` (Color: Green Chunks):** Clicking **"⚡ Build Concepts"** on the card parses, splits, and indexes the document (Phase 2), rendering the file as a Green list of page chunks.
+
+### Background Q&A Queueing
+Once a document transitions to `indexed`, the system automatically pushes its sections to the background lazy worker queue (`lazyQueue`). Over time, the worker generates Q&A wiki cards sequentially without locking the UI.
 
 ### Conversing with RAG
-Users interact with the case database using the **RAG Case Chat** panel:
-1. Type a legal query (e.g. "What outstanding debts were claimed by the financial creditors?").
+Users interact with the compiled case database using the **RAG Case Chat** panel:
+1. Type a legal query (e.g., "What outstanding debts were claimed by the financial creditors?").
 2. The assistant responds **token-by-token** in real-time.
 3. Once finished, a **Citations** list appears showing the matching documents.
-4. Clicking a citation opens the file in the editor, scrolls to the cited page segment, and highlights it in yellow for 5 seconds.
+4. Clicking a citation opens the companion file in the editor, scrolls to the cited page segment, and highlights it in yellow for 5 seconds.
 
 ---
 

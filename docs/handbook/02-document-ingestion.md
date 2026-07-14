@@ -111,16 +111,22 @@ await ingestFile(caseDir, filePath, { conversionOnly: false });
 | Skips lazy worker queue (if multimodal is forced) | Queues wiki Q&A card generation |
 | Updates `.status = "indexed"` | ✓ |
 
-### `.status` Sidecar File
+### Hidden Companion & Sidecar Files
 
-A lightweight sidecar sits alongside each companion `.md`:
+To prevent cluttering the main workspace, all intermediate companion files (`.md`, `.status`, `.footer`, and `.cache`) are completely hidden from the standard File Explorer using settings exclusions. The user manages these files strictly via context menu options on the source documents.
 
+The primary sidecars are:
+* **Companion Markdown (`.md`)**: The editable visual layout text representation.
+* **Status File (`.status`)**: A lightweight sidecar tracking current processing state (e.g. `converting`, `pending_review`, `indexed`, `failed_convert`).
+* **Footer File (`.footer`)**: Temporary footer templates extracted during parse.
+* **Cache File (`.cache`)**: Temporary serial cache for background page workers.
+
+A sidecar is written for each document:
 ```
-/Documents/Atty3/7f0bd0ea687bddd9b1197e79a2a1aee9.md      ← editable companion
-/Documents/Atty3/7f0bd0ea687bddd9b1197e79a2a1aee9.status  ← "pending_review" | "indexed"
+/Documents/Atty3/conversions/7f0bd0ea687bddd9b1197e79a2a1aee9.status  ← Hidden status sidecar
+/Documents/Atty3/7f0bd0ea687bddd9b1197e79a2a1aee9.md                 ← Hidden markdown companion
 ```
-
-The sidecar is read by the `/api/hayagriva/documents` endpoint to surface pending documents in the UI even before they appear in `index.json`.
+The sidecar is read dynamically by the `/api/hayagriva/documents` and `/api/hayagriva/file-statuses` endpoints to surface progress status dot colors in the UI explorer.
 
 ### Background Page Daemon (Cache-and-Stitch)
 

@@ -11,39 +11,19 @@ import {
 import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
-import { ILogger, CommandRegistry, PreferenceService, MessageService } from '@theia/core/lib/common';
-import { PreferenceSchema } from '@theia/core/lib/common/preferences';
+import { ILogger, CommandRegistry } from '@theia/core/lib/common';
 import { Widget } from '@lumino/widgets';
 import URI from '@theia/core/lib/common/uri';
-import { StatusBar, StatusBarAlignment } from '@theia/core/lib/browser/status-bar/status-bar';
-
-export const hayagrivaPreferenceSchema: PreferenceSchema = {
-  properties: {
-    'hayagriva.apiPort': {
-      type: 'number',
-      description: 'The port of the Hayagriva API backend server.',
-      default: 3210
-    },
-    'hayagriva.rag.citationLimit': {
-      type: 'number',
-      description: 'Top N limit for RAG citation matching.',
-      default: 5
-    },
-    'hayagriva.rag.hoverLimit': {
-      type: 'number',
-      description: 'Top N limit for RAG hover completions.',
-      default: 1
-    }
-  }
-};
 import { HayagrivaEditorDecorator } from './highlight-decorator';
-import { HayagrivaTreeDecorator } from './tree-decorator';
 import {
+  sidebarHtml,
   wikiExplorerHtml,
   conceptsExplorerHtml,
+  fileStatusPanelHtml,
   kvEditorHtml,
   formEditorHtml,
-  draftingPanelHtml
+  draftingPanelHtml,
+  caseGraphHtml
 } from './templates';
 
 function getBasename(p: string): string {
@@ -60,9 +40,9 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   private uploadModalElement: HTMLElement | undefined;
   private wikiWidget: Widget | undefined;
   private conceptsWidget: Widget | undefined;
-
-  isBackendOnline: boolean = true;
-  private showOfflineWarning: boolean = true;
+  private caseGraphSidebarWidget: Widget | undefined;
+  private graphWidget: Widget | undefined;
+  private fileStatusWidget: Widget | undefined;
 
   constructor(
     @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
@@ -72,43 +52,18 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     @inject(ILogger) private readonly logger: ILogger,
     @inject(WidgetManager) private readonly widgetManager: WidgetManager,
     @inject(ThemeService) private readonly themeService: ThemeService,
-    @inject(CommandRegistry) private readonly commandRegistry: CommandRegistry,
-    @inject(PreferenceService) private readonly preferenceService: PreferenceService,
-    @inject(HayagrivaTreeDecorator) private readonly treeDecorator: HayagrivaTreeDecorator,
-    @inject(StatusBar) private readonly statusBar: StatusBar,
-    @inject(MessageService) private readonly messageService: MessageService
+    @inject(CommandRegistry) private readonly commandRegistry: CommandRegistry
   ) {}
-
-  getApiPort(): number {
-    return this.preferenceService.get<number>('hayagriva.apiPort', 3210);
-  }
-
-  getBackendUrl(): string {
-    return `http://127.0.0.1:${this.getApiPort()}`;
-  }
-
-  getCitationLimit(): number {
-    return this.preferenceService.get<number>('hayagriva.rag.citationLimit', 5);
-  }
-
-  getHoverLimit(): number {
-    return this.preferenceService.get<number>('hayagriva.rag.hoverLimit', 1);
-  }
 
   canHandle(uri: URI): number {
     if (uri.scheme === 'hayagriva-citation') {
       return 100;
     }
-    const filePath = uri.path.toString().toLowerCase();
+    const filePath = uri.path.toString();
     if (filePath.endsWith('case_kv_dictionary.json')) {
       return 600;
     }
     if (filePath.includes('/reviews/filled-') && filePath.endsWith('.json')) {
-      return 600;
-    }
-    if (filePath.endsWith('.docx') ||
-        filePath.endsWith('.xlsx') || filePath.endsWith('.xls') ||
-        filePath.endsWith('.wiki.html') || filePath.endsWith('.pdf')) {
       return 600;
     }
     return 0;
@@ -137,30 +92,6 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       return await this.openFormEditor(caseName, formId);
     }
 
-    const lowerPath = filePath.toLowerCase();
-    if (lowerPath.endsWith('.wiki.html')) {
-      return await this.openWikiHtmlViewer(filePath, caseName);
-    }
-    if (lowerPath.endsWith('.docx') || lowerPath.endsWith('.doc') ||
-        lowerPath.endsWith('.xlsx') || lowerPath.endsWith('.xls') ||
-        lowerPath.endsWith('.pdf')) {
-      
-      const rel = this.getRelativePath(uri);
-      const status = this.treeDecorator.statusCache[rel];
-      const hasCompanion = !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
-      
-      const previewWidget = await this.openOfficePreview(filePath, caseName);
-      
-      if (hasCompanion) {
-        const companionPath = filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
-        const companionUri = uri.withPath(companionPath);
-        // Split open the companion MD to the side of the preview widget
-        await this.editorManager.openToSide(companionUri);
-      }
-      
-      return previewWidget;
-    }
-
     const base = getBasename(filePath);
     const docName = base.replace(/\.wiki\.html$/i, '');
     await this.openWiki(docName, caseName);
@@ -168,32 +99,13 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   }
 
   onStart(app: FrontendApplication): void {
-    // Inject CSS to hide filetype icons for leaf nodes & hide the Open Editors panel
-    const style = document.createElement('style');
-    style.id = 'hayagriva-hide-filetype-icons';
-    style.textContent = `
-      .theia-FileStatNode:not(.theia-DirNode) .file-icon,
-      .theia-FileStatNode:not(.theia-DirNode) .theia-FileStatIcon,
-      .theia-FileStatNode:not(.theia-DirNode) [class*="file-icon"] {
-          display: none !important;
-      }
-      #theia-open-editors-widget,
-      .theia-open-editors-widget,
-      .theia-NavigatorWidget > .p-Panel > .theia-open-editors-widget {
-          display: none !important;
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Disabled custom sidebars - users interact via the native file tree status dots
-    // this.initializeWikiExplorerWidget();
-    // this.initializeConceptsExplorerWidget();
+    this.initializeFileStatusWidget();
+    this.initializeWikiExplorerWidget();
+    this.initializeConceptsExplorerWidget();
+    this.initializeCaseGraphSidebarWidget();
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
     this.registerLawHoverProvider();
-    
-    // Start polling the backend proxy server's connection health
-    this.startBackendMonitor();
   }
 
   registerToolbarItems(registry: TabBarToolbarRegistry): void {
@@ -205,18 +117,18 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       priority: 0,
     });
     registry.registerItem({
+      id: 'hayagriva-graph-toolbar-item',
+      command: 'hayagriva:openCaseGraph',
+      tooltip: 'Open Visual Case Map',
+      icon: 'fa fa-share-alt',
+      priority: 1,
+    });
+    registry.registerItem({
       id: 'hayagriva-theme-toolbar-item',
       command: 'hayagriva:toggleTheme',
       tooltip: 'Toggle Light/Dark Theme',
       icon: 'fa fa-adjust',
       priority: 2,
-    });
-    registry.registerItem({
-      id: 'hayagriva-settings-toolbar-item',
-      command: 'hayagriva:openSettingsPanel',
-      tooltip: 'Open Case Settings',
-      icon: 'fa fa-cog',
-      priority: 3,
     });
   }
 
@@ -224,25 +136,15 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     const leftWidgets = this.shell.getWidgets('left');
     for (const widget of leftWidgets) {
       const id = widget.id.toLowerCase();
-      // Keep only standard explorer-view-container visible (Wiki and Concepts are disabled)
-      if (id !== 'explorer-view-container') {
+      // Keep only explorer-view-container, wiki, concepts, file-status, and graph explorer visible
+      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer' && id !== 'hayagriva-case-graph-explorer' && id !== 'hayagriva-file-status') {
         widget.close();
       }
     }
-  }
-
-  private getRelativePath(uri: URI): string {
-    const filePath = uri.path.toString();
-    try {
-      const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
-      if (wsRoot) {
-        const rootPath = decodeURIComponent(wsRoot.path.toString());
-        if (filePath.startsWith(rootPath)) {
-          return filePath.substring(rootPath.length).replace(/^[\/\\]/, '');
-        }
-      }
-    } catch (_) {}
-    return filePath;
+    // Ensure file-status widget is always visible (Theia layout restore may not know about it)
+    if (this.fileStatusWidget) {
+      this.shell.revealWidget(this.fileStatusWidget.id);
+    }
   }
 
   // Robust, Noob-Proof Case Folder Resolution relative to the Workspace Root
@@ -290,7 +192,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
   async ingestDocument(filePath: string, caseName: string): Promise<void> {
     try {
-      const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/ingest`, {
+      const res = await fetch('http://127.0.0.1:3210/api/hayagriva/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ case: caseName, file: filePath })
@@ -324,56 +226,61 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   }
 
   async openUploadSplit(): Promise<Widget> {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.accept = '.pdf,.docx,.doc,.xlsx,.xls,.wiki.html';
+    if (this.uploadModalElement) {
+      document.body.removeChild(this.uploadModalElement);
+      this.uploadModalElement = undefined;
+      return new Widget();
+    }
+
+    let initialCase = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
+    }
+
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+    overlay.style.backdropFilter = 'blur(4px)';
+    overlay.style.setProperty('-webkit-backdrop-filter', 'blur(4px)');
+    overlay.style.zIndex = '99999';
+    overlay.style.display = 'flex';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+
+    const modalContent = document.createElement('div');
+    modalContent.style.width = '350px';
+    modalContent.style.height = '480px';
+    modalContent.style.backgroundColor = 'var(--theia-layout-color1, #f3f3f3)';
+    modalContent.style.borderRadius = '8px';
+    modalContent.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+    modalContent.style.overflow = 'hidden';
+    modalContent.style.position = 'relative';
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = sidebarHtml(initialCase);
     
-    input.onchange = async () => {
-      if (!input.files || input.files.length === 0) return;
-      
-      let caseName = 'Case_Alpha';
-      const ws = this.workspaceService.getWorkspaceRootUri(undefined);
-      if (ws) {
-        caseName = new URI(ws.toString()).path.toString();
+    modalContent.appendChild(iframe);
+    overlay.appendChild(modalContent);
+    document.body.appendChild(overlay);
+
+    this.uploadModalElement = overlay;
+
+    // Click outside to close
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay && this.uploadModalElement) {
+        document.body.removeChild(this.uploadModalElement);
+        this.uploadModalElement = undefined;
       }
-      
-      const apiPort = this.getApiPort();
-      this.logger.info(`[HAYAGRIVA] Starting upload of ${input.files.length} file(s) to ${caseName}...`);
+    });
 
-      for (let i = 0; i < input.files.length; i++) {
-        const file = input.files[i];
-        try {
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const res = e.target?.result as string;
-              resolve(res.split(',')[1]);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-
-          const uploadRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/upload`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ case: caseName, filename: file.name, content: base64 })
-          });
-          const uploadData = await uploadRes.json();
-          if (uploadData.success) {
-            this.logger.info(`[HAYAGRIVA] Successfully uploaded ${file.name}`);
-          } else {
-            throw new Error(uploadData.error || 'Upload failed');
-          }
-        } catch (err: any) {
-          this.logger.error(`[HAYAGRIVA] Failed to upload ${file.name}: ${err.message}`);
-        }
-      }
-    };
-
-    document.body.appendChild(input);
-    input.click();
-    document.body.removeChild(input);
     return new Widget();
   }
 
@@ -426,7 +333,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     wikiIframe.style.width = '100%';
     wikiIframe.style.height = '100%';
     wikiIframe.style.border = 'none';
-    wikiIframe.srcdoc = wikiExplorerHtml(initialCase, this.getApiPort());
+    wikiIframe.srcdoc = wikiExplorerHtml(initialCase);
     wikiExplorer.node.appendChild(wikiIframe);
 
     this.wikiWidget = wikiExplorer;
@@ -443,29 +350,17 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
           }
         } else if (event.data.type === 'refresh-wiki-explorer') {
           wikiIframe.contentWindow?.postMessage({ type: 'select-case', caseName: event.data.caseName }, '*');
-          // Also refresh the Concepts panel so newly uploaded docs appear immediately
-          if (this.conceptsWidget) {
-            const conceptsIframe = this.conceptsWidget.node.querySelector('iframe');
-            conceptsIframe?.contentWindow?.postMessage({ type: 'refresh-wiki-explorer', caseName: event.data.caseName }, '*');
-          }
         } else if (event.data.type === 'close-upload-modal') {
           if (this.uploadModalElement) {
             document.body.removeChild(this.uploadModalElement);
             this.uploadModalElement = undefined;
           }
         } else if (event.data.type === 'open-concept-chunk') {
-          const pathParam = event.data.relativePath || event.data.absolutePath || event.data.filePath;
-          if (pathParam && typeof pathParam === 'string' && pathParam.trim() !== '') {
-            const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
-            if (workspaceRoot) {
-              const uri = new URI(workspaceRoot.toString()).resolve(pathParam);
-              // Safety check: do not open directory paths or the workspace root
-              if (uri.toString() !== workspaceRoot.toString()) {
-                await this.editorManager.open(uri);
-              } else {
-                console.warn('[HAYAGRIVA] Aborted opening directory path:', uri.toString());
-              }
-            }
+          const { relativePath } = event.data;
+          const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+          if (workspaceRoot) {
+            const uri = new URI(workspaceRoot.toString()).resolve(relativePath);
+            await this.editorManager.open(uri);
           }
         } else if (event.data.type === 'open-citation') {
           const { filePath, anchor } = event.data;
@@ -475,7 +370,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
             const uri = new URI(workspaceRoot.toString()).resolve(relativePath);
             
             try {
-              const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(uri.path.toString())}`);
+              const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/read-file?path=${encodeURIComponent(uri.path.toString())}`);
               if (!res.ok) throw new Error();
               const fileContent = await res.text();
               const lines = fileContent.split(/\r?\n/);
@@ -540,17 +435,69 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
         }
       }
     });
-
-    this.workspaceService.onWorkspaceLocationChanged((wsStat) => {
-      const ws = wsStat ? wsStat.resource : this.workspaceService.getWorkspaceRootUri(undefined);
-      if (ws) {
-        const caseName = this.getCaseName(ws.path.toString());
-        this.updateSidebarCase(caseName);
-      }
-    });
   }
 
+  initializeCaseGraphSidebarWidget(): void {
+    if (this.caseGraphSidebarWidget) return;
 
+    let initialCase = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
+    }
+
+    const graphExplorer = new Widget();
+    graphExplorer.id = 'hayagriva-case-graph-explorer';
+    graphExplorer.title.label = 'Case Map';
+    graphExplorer.title.caption = 'Visual map of case concepts';
+    graphExplorer.title.iconClass = 'fa fa-share-alt';
+    graphExplorer.title.closable = false;
+
+    const graphIframe = document.createElement('iframe');
+    graphIframe.style.width = '100%';
+    graphIframe.style.height = '100%';
+    graphIframe.style.border = 'none';
+    graphIframe.srcdoc = caseGraphHtml(initialCase);
+    graphExplorer.node.appendChild(graphIframe);
+
+    this.caseGraphSidebarWidget = graphExplorer;
+    this.shell.addWidget(graphExplorer, { area: 'left', rank: 800 });
+  }
+
+  async openCaseGraph(): Promise<Widget> {
+    const id = 'hayagriva-case-graph-main';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+    
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    let initialCase = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Visual Case Map';
+    widget.title.caption = 'Interactive 3D case connection graph';
+    widget.title.iconClass = 'fa fa-share-alt';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = caseGraphHtml(initialCase);
+    widget.node.appendChild(iframe);
+
+    this.graphWidget = widget;
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
 
   initializeConceptsExplorerWidget(): void {
     if (this.conceptsWidget) return;
@@ -580,7 +527,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     conceptsIframe.style.width = '100%';
     conceptsIframe.style.height = '100%';
     conceptsIframe.style.border = 'none';
-    conceptsIframe.srcdoc = conceptsExplorerHtml(initialCase, this.getApiPort());
+    conceptsIframe.srcdoc = conceptsExplorerHtml(initialCase);
     conceptsExplorer.node.appendChild(conceptsIframe);
 
     this.conceptsWidget = conceptsExplorer;
@@ -606,6 +553,82 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
       }
     }
+    if (this.fileStatusWidget) {
+      const iframe = this.fileStatusWidget.node.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
+      }
+    }
+  }
+
+  initializeFileStatusWidget(): void {
+    if (this.fileStatusWidget) return;
+
+    let initialCase = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      initialCase = decodeURIComponent(ws.path.toString()).split('/').filter(Boolean).pop() || 'Case_Alpha';
+    }
+
+    const widget = new Widget();
+    widget.id = 'hayagriva-file-status';
+    widget.title.label = 'Files';
+    widget.title.caption = 'File Ingestion Status';
+    widget.title.iconClass = 'fa fa-list-ul';
+    widget.title.closable = false;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = fileStatusPanelHtml(initialCase);
+    widget.node.appendChild(iframe);
+
+    // Handle messages from the iframe
+    window.addEventListener('message', async (event) => {
+      if (!event.data) return;
+
+      // Open a file in the editor
+      if (event.data.type === 'open-file-status') {
+        const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+        if (!wsRoot) return;
+        const rootPath = decodeURIComponent(wsRoot.path.toString());
+        const filePath = `${rootPath}/${event.data.relative}`;
+        const fileUri = new URI(`file://${filePath}`);
+        try {
+          await this.editorManager.open(fileUri);
+        } catch (_) {}
+      }
+
+      // Trigger ingestion from the panel
+      if (event.data.type === 'hayagriva-ingest') {
+        const caseName = event.data.caseName;
+        const filePath = event.data.filePath;
+        try {
+          await fetch('http://127.0.0.1:3210/api/hayagriva/ingest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case: caseName, filePath })
+          });
+        } catch (_) {}
+      }
+
+      // Build concepts from the panel
+      if (event.data.type === 'build-concepts') {
+        const caseName = event.data.caseName;
+        const basename = event.data.basename;
+        try {
+          await fetch('http://127.0.0.1:3210/api/hayagriva/build-concepts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case: caseName, basename })
+          });
+        } catch (_) {}
+      }
+    });
+
+    this.fileStatusWidget = widget;
+    this.shell.addWidget(widget, { area: 'left', rank: 400 });
   }
 
   async openCitationSideBySide(docName: string, pageNum: number): Promise<void> {
@@ -616,7 +639,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     
     try {
       const treeUri = conceptsUri.resolve('pageindex_tree.json');
-      const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(treeUri.path.toString())}`);
+      const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/read-file?path=${encodeURIComponent(treeUri.path.toString())}`);
       if (!res.ok) throw new Error();
       
       const treeData = await res.json();
@@ -805,7 +828,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       if (cache.has(triggerText)) return cache.get(triggerText)!;
       try {
         const res = await fetch(
-          `${this.getBackendUrl()}/api/laws/query?q=${encodeURIComponent(triggerText)}&n=${this.getHoverLimit()}`
+          `http://127.0.0.1:3210/api/laws/query?q=${encodeURIComponent(triggerText)}&n=5`
         );
         if (!res.ok) return [];
         const json = await res.json();
@@ -957,7 +980,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
               if (rawSlashLower.startsWith('concept')) {
                 const query = rawSlash.substring(7).trim().toLowerCase();
                 try {
-                  const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/concepts?case=${encodeURIComponent(currentCase)}`);
+                  const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/concepts?case=${encodeURIComponent(currentCase)}`);
                   if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
                   const data = await res.json();
                   const list = data.concepts || [];
@@ -982,7 +1005,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
               if (rawSlashLower.startsWith('qa')) {
                 const query = rawSlash.substring(2).trim().toLowerCase();
                 try {
-                  const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/wiki-cards?case=${encodeURIComponent(currentCase)}`);
+                  const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/wiki-cards?case=${encodeURIComponent(currentCase)}`);
                   if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
                   const data = await res.json();
                   const list = data.cards || [];
@@ -1162,9 +1185,9 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
               if (hoverCache.has(matchedCitation)) {
                 results = hoverCache.get(matchedCitation);
               } else {
-                 const res = await fetch(
-                   `${this.getBackendUrl()}/api/laws/query?q=${encodeURIComponent(matchedCitation)}&n=${this.getCitationLimit()}`
-                 );
+                const res = await fetch(
+                  `http://127.0.0.1:3210/api/laws/query?q=${encodeURIComponent(matchedCitation)}&n=1`
+                );
                 if (res.ok) {
                   const json = await res.json();
                   results = json.results || [];
@@ -1327,64 +1350,6 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     }, 50);
   }
 
-  async openWikiHtmlViewer(filePath: string, caseName: string): Promise<Widget> {
-    const id = `hayagriva-wiki-viewer-${encodeURIComponent(filePath)}`;
-    let widget = this.shell.getWidgets('main').find(w => w.id === id);
-    
-    if (widget) {
-      this.shell.activateWidget(widget.id);
-      return widget;
-    }
-
-    widget = new Widget();
-    widget.id = id;
-    const base = getBasename(filePath);
-    widget.title.label = base;
-    widget.title.caption = `Read-only Wiki Viewer for ${base}`;
-    widget.title.iconClass = 'fa fa-book';
-    widget.title.closable = true;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = 'none';
-    iframe.src = `${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(filePath)}`;
-    widget.node.appendChild(iframe);
-
-    this.shell.addWidget(widget, { area: 'main' });
-    this.shell.activateWidget(widget.id);
-    return widget;
-  }
-
-  async openOfficePreview(filePath: string, caseName: string): Promise<Widget> {
-    const id = `hayagriva-office-preview-${encodeURIComponent(filePath)}`;
-    let widget = this.shell.getWidgets('main').find(w => w.id === id);
-    
-    if (widget) {
-      this.shell.activateWidget(widget.id);
-      return widget;
-    }
-
-    widget = new Widget();
-    widget.id = id;
-    const base = getBasename(filePath);
-    widget.title.label = base;
-    widget.title.caption = `Office preview for ${base}`;
-    widget.title.iconClass = 'fa fa-file-text-o';
-    widget.title.closable = true;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = 'none';
-    iframe.src = `${this.getBackendUrl()}/api/hayagriva/office-preview?path=${encodeURIComponent(filePath)}`;
-    widget.node.appendChild(iframe);
-
-    this.shell.addWidget(widget, { area: 'main' });
-    this.shell.activateWidget(widget.id);
-    return widget;
-  }
-
   async openKvEditor(caseName: string): Promise<Widget> {
     const id = 'hayagriva-kv-editor';
     let widget = this.shell.getWidgets('main').find(w => w.id === id);
@@ -1405,7 +1370,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = 'none';
-    iframe.srcdoc = kvEditorHtml(caseName, this.getApiPort());
+    iframe.srcdoc = kvEditorHtml(caseName);
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });
@@ -1433,7 +1398,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = 'none';
-    iframe.srcdoc = formEditorHtml(caseName, formId, this.getApiPort());
+    iframe.srcdoc = formEditorHtml(caseName, formId);
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });
@@ -1461,91 +1426,12 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = 'none';
-    iframe.srcdoc = draftingPanelHtml(caseName, this.getApiPort());
+    iframe.srcdoc = draftingPanelHtml(caseName);
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'right' });
     this.shell.activateWidget(widget.id);
     return widget;
-  }
-
-  async openSettingsPanel(): Promise<Widget> {
-    const id = 'hayagriva-settings-panel';
-    let widget = this.shell.getWidgets('main').find(w => w.id === id);
-    
-    if (widget) {
-      this.shell.activateWidget(widget.id);
-      return widget;
-    }
-
-    let caseName = 'Case_Alpha';
-    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
-    if (ws) {
-      caseName = this.getCaseName(new URI(ws.toString()).path.toString());
-    }
-
-    widget = new Widget();
-    widget.id = id;
-    widget.title.label = 'Hayagriva Settings';
-    widget.title.caption = 'Configure dynamic routing and performance profiles';
-    widget.title.iconClass = 'fa fa-cog';
-    widget.title.closable = true;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = 'none';
-    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/settings/panel?case=${encodeURIComponent(caseName)}`;
-    widget.node.appendChild(iframe);
-
-    this.shell.addWidget(widget, { area: 'main' });
-    this.shell.activateWidget(widget.id);
-    return widget;
-  }
-
-  startBackendMonitor(): void {
-    // Initial check
-    this.checkBackendHealth();
-    
-    // Poll every 10 seconds
-    setInterval(() => {
-      this.checkBackendHealth();
-    }, 10000);
-  }
-
-  async checkBackendHealth(): Promise<void> {
-    try {
-      const apiPort = this.getApiPort();
-      const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/cases`);
-      if (res.ok) {
-        this.isBackendOnline = true;
-        this.showOfflineWarning = true;
-        this.statusBar.setElement('hayagriva-status-item', {
-          text: '$(fa-check) Hayagriva Server: Online',
-          alignment: StatusBarAlignment.RIGHT,
-          tooltip: 'The Hayagriva Node.js backend proxy is running normally.',
-          priority: 100
-        });
-        return;
-      }
-      throw new Error('Non-ok response');
-    } catch (_) {
-      this.isBackendOnline = false;
-      this.statusBar.setElement('hayagriva-status-item', {
-        text: '$(fa-warning) Hayagriva Server: Offline',
-        alignment: StatusBarAlignment.RIGHT,
-        color: '#ff4d4d',
-        tooltip: 'The Hayagriva Node.js backend is offline. Run ./start.command to start it.',
-        priority: 100
-      });
-
-      if (this.showOfflineWarning) {
-        this.showOfflineWarning = false;
-        setTimeout(() => {
-          this.messageService.error('Hayagriva backend server is offline. Please launch it using ./start.command');
-        }, 3000);
-      }
-    }
   }
 
 }

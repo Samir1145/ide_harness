@@ -6,10 +6,20 @@ import { HayagrivaFrontendContribution } from './extension';
 import { HayagrivaCommandContribution } from './commands';
 import { HayagrivaMenuContribution } from './menus';
 import { HayagrivaEditorDecorator } from './highlight-decorator';
+import { HayagrivaTreeDecorator } from './tree-decorator';
+import { NavigatorTreeDecorator } from '@theia/navigator/lib/browser/navigator-decorator-service';
+import { PreferenceContribution } from '@theia/core/lib/common/preferences';
+import { hayagrivaPreferenceSchema } from './extension';
 
 export default new ContainerModule((bind) => {
+  // Bind preference contribution
+  bind(PreferenceContribution).toConstantValue({ schema: hayagrivaPreferenceSchema });
   // Bind Monaco Editor highlight decorator
   bind(HayagrivaEditorDecorator).toSelf().inSingletonScope();
+
+  // Bind File Tree Status color-coding decorator to the native NavigatorTreeDecorator
+  bind(HayagrivaTreeDecorator).toSelf().inSingletonScope();
+  bind(NavigatorTreeDecorator).to(HayagrivaTreeDecorator).inSingletonScope();
 
   // Bind main Event Broker / Contribution entry point
   bind(HayagrivaFrontendContribution).toSelf().inSingletonScope();

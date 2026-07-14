@@ -49,3 +49,20 @@ This document compiles the advanced concepts, architectural designs, and feature
 * **Architecture:**
   * **Binary Hashing:** Compute a SHA-256 hash of every uploaded PDF/Word/Excel file and register it in `index.json`.
   * **Rename Detection:** If the file watcher catches a fast deletion (`unlink`) and addition (`add`) of files with matching hashes, intercept the default behavior. Instead of wiping the index and re-converting the file from scratch, rename the corresponding companion `.md` file on disk and update its index metadata path, preserving the user's manual annotations.
+
+---
+
+## 6. Legal Development Environment (LDE) Core Compiler, Linting & Testing Engine
+* **Goal:** Transition the platform from an advanced text assistant to a verified Legal Development Environment where legal documents are compiled, linted, tested, and bound to structured case databases.
+* **Architecture:**
+  * **6.1 Legal AST Parser & Monaco Linter Diagnostics:**
+    * Parse companion Markdown text files to generate a structured Legal AST mapping Definitions, Cross-References (e.g., `Clause 12.2`), and External Laws (`@@ibc/s14`).
+    * Expose real-time Monaco squiggly warnings (e.g., "Warning: Used term 'effective date' is never defined" or "Warning: Broken reference to Clause 12.2") using diagnostics.
+  * **6.2 Legal Unit Testing Engine (Continuous Integration for Law):**
+    * Develop a lightweight test-runner executing mock scenarios (e.g., `liquidationValue = 100000000`) against legal text logic.
+    * Assert distribution payouts and statutory guidelines (e.g., Section 30(2) compliance) mathematically before final export.
+  * **6.3 Precedent-Override Semantic Resolution Engine:**
+    * Connect static statutory articles with live precedents in the Law Vault (using [vault-loader.js](file:///Users/atulgrover/Desktop/HAYAGRIVA/hayagriva/lib/utils/vault-loader.js)).
+    * Highlight active statutory citations in the editor with quick-action warnings if they have been narrowed, struck down, or overridden by a recent Supreme Court precedent.
+  * **6.4 Bi-Directional ORM (Text-to-Data Bridge):**
+    * Establish immediate synchronization: edits to values/definitions in document text instantly sync with `case_kv_dictionary.json` fields, and variable updates in the case dashboard automatically compile back into the document's markdown text.

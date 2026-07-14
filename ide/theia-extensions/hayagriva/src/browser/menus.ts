@@ -31,6 +31,46 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '1'
     });
 
+    registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:openCompanionSideBySide`,
+      label: 'Open Companion Side-by-Side',
+      order: '2'
+    });
+
+    // Navigator (File Explorer) right click menu submenu
+    const HAYAGRIVA_SUBMENU = ['navigator-context-menu', 'hayagriva_submenu'];
+    registry.registerSubmenu(HAYAGRIVA_SUBMENU, 'Hayagriva');
+
+    registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:convertToMd`,
+      label: '1. Extract Document Text',
+      order: '1'
+    });
+
+    registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:ingestToAi`,
+      label: '2. Index into AI Memory',
+      order: '2'
+    });
+
+    registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:archiveCase`,
+      label: 'Archive Case (One File)',
+      order: '3'
+    });
+
+    registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:restoreCase`,
+      label: 'Restore Case from Vault',
+      order: '4'
+    });
+
+    registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openCaseVault`,
+      label: 'Open Database Viewer',
+      order: '5'
+    });
+
     // Outline panel context menu node actions
     registry.registerMenuAction(['outline.context'], { commandId: `${HAYAGRIVA_NS}:outlineAskRag`, label: 'Ask about this section', order: '1' });
     registry.registerMenuAction(['outline.context'], { commandId: `${HAYAGRIVA_NS}:outlineFindRelated`, label: 'Find related pages', order: '2' });

@@ -9855,9 +9855,16 @@ hasown@^2.0.2, hasown@^2.0.3, hasown@^2.0.4:
   dependencies:
     function-bind "^1.1.2"
 
-"hayagriva-theia-extension@link:hayagriva-extension":
-  version "0.0.0"
-  uid ""
+"hayagriva-theia-extension@link:theia-extensions/hayagriva":
+  version "0.1.0"
+  dependencies:
+    "@theia/core" "1.73.1"
+    "@theia/editor" "1.73.1"
+    "@theia/filesystem" "1.73.1"
+    "@theia/monaco" "1.73.1"
+    "@theia/workspace" "1.73.1"
+    react "^18.3.1"
+    react-dom "18.3.1"
 
 he@1.2.0, he@^1.2.0:
   version "1.2.0"

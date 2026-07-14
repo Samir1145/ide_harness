@@ -1,0 +1,911 @@
+const fs = require('fs');
+const path = require('path');
+const mammoth = require('mammoth');
+const xlsx = require('xlsx');
+const { query, retrieveContexts, buildPrompt } = require('./core/rag');
+const { ingestFile, updateStatus } = require('./daemon/watcher');
+const { pendingPdfQueue, completedPdfSet } = require('./daemon/lazy_pdf_worker');
+const { streamChat } = require('./core/llm-client');
+const { cancelConversion } = require('./core/converter');
+const { resolveTrigger, searchLaws, getVaultVersion, isVaultReady } = require('./utils/vault-loader');
+
+function getDefaultCaseName(docsRoot) {
+    try {
+        const dirs = fs.readdirSync(docsRoot).filter(f => {
+            const p = path.join(docsRoot, f);
+            return fs.statSync(p).isDirectory() && !f.startsWith('.');
+        });
+        if (dirs.length > 0) {
+            return dirs[0];
+        }
+    } catch (_) {}
+    return 'Case_Alpha';
+}
+
+module.exports = {
+    GET: {
+        '/api/hayagriva/cases': (req, res, parsedUrl, docsRoot) => {
+            const dirs = fs.readdirSync(docsRoot).filter(f => {
+                const p = path.join(docsRoot, f);
+                return fs.statSync(p).isDirectory() && !f.startsWith('.');
+            });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ cases: dirs }));
+        },
+
+        '/api/hayagriva/wiki-port': (req, res, parsedUrl, docsRoot) => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ port: null }));
+        },
+
+        '/api/hayagriva/documents': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const caseDir = path.join(docsRoot, caseName);
+            const documents = [];
+
+            // 1. Collect indexed docs from index.json
+            const indexPath = path.join(caseDir, 'concepts', 'index.json');
+            let indexedBasenames = new Set();
+            if (fs.existsSync(indexPath)) {
+                try {
+                    const idx = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+                    for (const doc of (idx.documents || [])) {
+                        documents.push({ ...doc, status: doc.status || 'indexed' });
+                        indexedBasenames.add(doc.title);
+                    }
+                } catch (_) {}
+            }
+
+            // 2. Scan for statuses in concepts/statuses.json
+            const statusesJsonPath = path.join(caseDir, 'concepts', 'statuses.json');
+            let persistentStatuses = {};
+            if (fs.existsSync(statusesJsonPath)) {
+                try {
+                    persistentStatuses = JSON.parse(fs.readFileSync(statusesJsonPath, 'utf8')) || {};
+                } catch (_) {}
+            }
+
+            for (const [relative, statusVal] of Object.entries(persistentStatuses)) {
+                const ext = path.extname(relative);
+                const basename = path.basename(relative, ext);
+                if (indexedBasenames.has(basename)) continue;
+
+                const mdPath = path.join(caseDir, relative.replace(/\.[a-zA-Z0-9]+$/, '.md'));
+                const pdfPath = path.join(caseDir, relative.replace(/\.[a-zA-Z0-9]+$/, '.pdf'));
+                const queueEntry = pendingPdfQueue.find(q => q.filePath === pdfPath);
+                documents.push({
+                    title: basename,
+                    filename: relative,
+                    status: statusVal,
+                    companionPath: mdPath,
+                    totalPages: queueEntry ? queueEntry.totalPages : null,
+                    nextPage: queueEntry ? queueEntry.nextPage : null,
+                    conversionComplete: completedPdfSet.has(pdfPath)
+                });
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ documents }));
+        },
+
+        '/api/hayagriva/office-preview': async (req, res, parsedUrl, docsRoot) => {
+            const filePath = parsedUrl.query.path || '';
+            if (!filePath || !fs.existsSync(filePath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('File not found');
+                return;
+            }
+
+            const ext = path.extname(filePath).toLowerCase();
+            try {
+                if (ext === '.docx' || ext === '.doc') {
+                    const { value } = await mammoth.convertToHtml({ path: filePath });
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    background-color: var(--theia-editor-background, #fff);
+    color: var(--theia-editor-foreground, #333);
+    font-family: var(--theia-editor-font-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 30px;
+    display: flex;
+    justify-content: center;
+  }
+  .document-content {
+    max-width: 800px;
+    width: 100%;
+    background: var(--theia-layout-color1, #fff);
+    border: 1px solid var(--theia-border-color, #e0e0e0);
+    padding: 40px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+  th, td { border: 1px solid var(--theia-border-color, #ccc); padding: 8px; text-align: left; }
+  th { background-color: var(--theia-layout-color2, #f5f5f5); }
+  p { margin-bottom: 12px; }
+  h1, h2, h3, h4 { margin-top: 20px; margin-bottom: 10px; color: var(--theia-brand-color1, #0ea5e9); }
+</style>
+<script>
+  function syncTheme() {
+    if (!window.parent) return;
+    const ps = window.parent.getComputedStyle(window.parent.document.documentElement);
+    const ds = document.documentElement.style;
+    ['--theia-editor-background','--theia-editor-foreground','--theia-editor-font-family',
+     '--theia-layout-color1','--theia-layout-color2','--theia-border-color','--theia-brand-color1'].forEach(v => {
+      const val = ps.getPropertyValue(v); if (val) ds.setProperty(v, val);
+    });
+  }
+  window.onload = () => {
+    syncTheme();
+    if (window.parent && window.parent.document.documentElement) {
+      new MutationObserver(syncTheme).observe(
+        window.parent.document.documentElement,
+        { attributes: true, attributeFilter: ['class', 'style'] }
+      );
+    }
+  };
+</script>
+</head>
+<body>
+  <div class="document-content">
+    ${value}
+  </div>
+</body>
+</html>`);
+                } else if (ext === '.xlsx' || ext === '.xls') {
+                    const workbook = xlsx.readFile(filePath);
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    background-color: var(--theia-editor-background, #fff);
+    color: var(--theia-editor-foreground, #333);
+    font-family: var(--theia-editor-font-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+    font-size: 13px;
+    margin: 0;
+    padding: 20px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
+    margin-bottom: 15px;
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 8px 16px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: none;
+    color: var(--theia-editor-foreground, #555);
+    font-weight: bold;
+    font-size: 12px;
+    white-space: nowrap;
+    outline: none;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover {
+    color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .tab-btn.active {
+    border-color: var(--theia-border-color, #e0e0e0);
+    background-color: var(--theia-layout-color1, #fff);
+    border-radius: 4px 4px 0 0;
+    color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .sheet-container {
+    flex: 1;
+    overflow: auto;
+    background-color: var(--theia-layout-color1, #fff);
+    border: 1px solid var(--theia-border-color, #e0e0e0);
+    border-radius: 4px;
+  }
+  .sheet-content { display: none; padding: 15px; }
+  .sheet-content.active { display: block; }
+  table { border-collapse: collapse; min-width: 100%; }
+  th, td { border: 1px solid var(--theia-border-color, #ccc); padding: 6px 12px; text-align: left; }
+  th { background-color: var(--theia-layout-color2, #f5f5f5); font-weight: bold; }
+</style>
+<script>
+  function showSheet(idx) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+    document.querySelectorAll('.sheet-content').forEach((c, i) => c.classList.toggle('active', i === idx));
+  }
+  function syncTheme() {
+    if (!window.parent) return;
+    const ps = window.parent.getComputedStyle(window.parent.document.documentElement);
+    const ds = document.documentElement.style;
+    ['--theia-editor-background','--theia-editor-foreground','--theia-editor-font-family',
+     '--theia-layout-color1','--theia-layout-color2','--theia-border-color','--theia-brand-color1'].forEach(v => {
+      const val = ps.getPropertyValue(v); if (val) ds.setProperty(v, val);
+    });
+  }
+  window.onload = () => {
+    syncTheme();
+    if (window.parent && window.parent.document.documentElement) {
+      new MutationObserver(syncTheme).observe(
+        window.parent.document.documentElement,
+        { attributes: true, attributeFilter: ['class', 'style'] }
+      );
+    }
+  };
+</script>
+</head>
+<body>
+  <div class="tab-bar">
+    ${workbook.SheetNames.map((name, i) => `<button class="tab-btn ${i === 0 ? 'active' : ''}" onclick="showSheet(${i})">${name}</button>`).join('')}
+  </div>
+  <div class="sheet-container">
+    ${workbook.SheetNames.map((name, i) => {
+      const sheet = workbook.Sheets[name];
+      const html = xlsx.utils.sheet_to_html(sheet);
+      return `<div class="sheet-content ${i === 0 ? 'active' : ''}">${html}</div>`;
+    }).join('')}
+  </div>
+</body>
+</html>`);
+                } else {
+                    res.writeHead(400, { 'Content-Type': 'text/plain' });
+                    res.end('Unsupported file format for preview');
+                }
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end(`Preview generation failed: ${err.message}`);
+            }
+        },
+
+        '/api/hayagriva/ingest-status': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const basename = parsedUrl.query.basename || '';
+            const caseDir = path.join(docsRoot, caseName);
+            const pdfPath = path.join(caseDir, basename + '.pdf');
+            const queueEntry = pendingPdfQueue.find(q => q.filePath === pdfPath);
+            const complete = completedPdfSet.has(pdfPath);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                converting: !!queueEntry,
+                complete,
+                nextPage: queueEntry ? queueEntry.nextPage : null,
+                totalPages: queueEntry ? queueEntry.totalPages : null
+            }));
+        },
+
+        '/api/hayagriva/file-statuses': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const caseDir = path.join(docsRoot, caseName);
+            const statuses = {};
+
+            if (fs.existsSync(caseDir)) {
+                // 1. Read index.json
+                const indexPath = path.join(caseDir, 'concepts', 'index.json');
+                let indexedDocs = [];
+                if (fs.existsSync(indexPath)) {
+                    try {
+                        const idx = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+                        indexedDocs = idx.documents || [];
+                    } catch (_) {}
+                }
+
+                // 2. Read persistent statuses from concepts/statuses.json
+                const statusesJsonPath = path.join(caseDir, 'concepts', 'statuses.json');
+                let persistentStatuses = {};
+                if (fs.existsSync(statusesJsonPath)) {
+                    try {
+                        persistentStatuses = JSON.parse(fs.readFileSync(statusesJsonPath, 'utf8')) || {};
+                    } catch (_) {}
+                }
+
+                // 3. Scan all files in caseDir
+                const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.md', '.txt'];
+                const scan = (dir) => {
+                    const files = fs.readdirSync(dir);
+                    for (const file of files) {
+                        const filePath = path.join(dir, file);
+                        const stat = fs.statSync(filePath);
+                        const ext = path.extname(file).toLowerCase();
+                        if (stat.isDirectory()) {
+                            const lower = file.toLowerCase();
+                            if (!file.startsWith('.') && lower !== 'concepts' && lower !== 'wiki' && lower !== 'conversions' && lower !== 'reviews' && lower !== 'drafts' && lower !== 'exports') {
+                                scan(filePath);
+                            }
+                        } else if (docExts.includes(ext) && !file.endsWith('.wiki.html')) {
+                            const relative = path.relative(caseDir, filePath);
+                            
+                            // Check index.json first
+                            const matched = indexedDocs.find(d => d.filename === relative);
+                            if (matched) {
+                                statuses[relative] = matched.status || 'indexed';
+                            } else if (persistentStatuses[relative]) {
+                                statuses[relative] = persistentStatuses[relative];
+                            } else {
+                                statuses[relative] = 'unprocessed';
+                            }
+                        }
+                    }
+                };
+                try {
+                    scan(caseDir);
+                } catch (_) {}
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ statuses }));
+        },
+
+        '/api/laws/query': async (req, res, parsedUrl, docsRoot) => {
+            const q = (parsedUrl.query.q || '').trim();
+            const topN = Math.min(parseInt(parsedUrl.query.n || '5', 10), 20);
+
+            if (!isVaultReady()) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Vault is not ready or missing VAULT_KEY' }));
+                return;
+            }
+            if (!q) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Missing query parameter: q' }));
+                return;
+            }
+            const results = await resolveTrigger(q, topN);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ query: q, results }));
+        },
+
+        '/api/laws/search': async (req, res, parsedUrl, docsRoot) => {
+            const q = (parsedUrl.query.q || '').trim();
+            const topN = Math.min(parseInt(parsedUrl.query.n || '5', 10), 20);
+
+            if (!isVaultReady()) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Vault is not ready or missing VAULT_KEY' }));
+                return;
+            }
+            const results = (await searchLaws(q, topN)).map(r => ({
+                id: r.id, title: r.title, section: r.section, score: r.score,
+                preview: r.text.slice(0, 300)
+            }));
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ query: q, results }));
+        },
+
+        '/api/laws/version': (req, res, parsedUrl, docsRoot) => {
+            const ver = getVaultVersion();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(ver || { version: null, ready: isVaultReady() }));
+        },
+
+        '/api/hayagriva/wiki-cards': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+            const caseDir = path.join(docsRoot, caseName);
+            const wikiDir = path.join(caseDir, 'wiki');
+            
+            const { parseMarkdownWithFrontmatter } = require('./utils/okf');
+            
+            if (!fs.existsSync(wikiDir)) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ cards: [] }));
+                return;
+            }
+            const files = fs.readdirSync(wikiDir)
+                .filter(f => f.endsWith('.md'))
+                .map(f => {
+                    const content = fs.readFileSync(path.join(wikiDir, f), 'utf8');
+                    const { frontmatter } = parseMarkdownWithFrontmatter(content);
+                    return {
+                        filename: f,
+                        title: frontmatter.title || f.replace('.md', ''),
+                        tags: frontmatter.tags || []
+                    };
+                });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ cards: files }));
+        },
+
+        '/api/hayagriva/concepts': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+            const caseDir = path.join(docsRoot, caseName);
+            const conceptsDir = path.join(caseDir, 'concepts');
+            const list = [];
+            
+            if (fs.existsSync(conceptsDir)) {
+                const folders = fs.readdirSync(conceptsDir).filter(f => {
+                    return fs.statSync(path.join(conceptsDir, f)).isDirectory() && !f.startsWith('.');
+                });
+                for (const doc of folders) {
+                    const docDir = path.join(conceptsDir, doc);
+                    const files = fs.readdirSync(docDir).filter(f => f.endsWith('.md') && f !== 'index.md');
+                    for (const f of files) {
+                        list.push({
+                            title: f.replace('.md', ''),
+                            relativePath: `concepts/${doc}/${f}`
+                        });
+                    }
+                }
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ concepts: list }));
+        },
+
+        '/api/hayagriva/case-graph': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+            const caseDir = path.join(docsRoot, caseName);
+            const conceptsDir = path.join(caseDir, 'concepts');
+            const wikiDir = path.join(caseDir, 'wiki');
+            
+            const nodes = [];
+            const links = [];
+            const titleToNode = new Map();
+            const { parseMarkdownWithFrontmatter } = require('./utils/okf');
+
+            // 1. Process Concepts Directory
+            if (fs.existsSync(conceptsDir)) {
+                const docs = fs.readdirSync(conceptsDir).filter(f => {
+                    return fs.statSync(path.join(conceptsDir, f)).isDirectory() && !f.startsWith('.');
+                });
+                
+                for (const doc of docs) {
+                    const docId = `doc::${doc}`;
+                    nodes.push({ id: docId, name: doc, type: 'document', path: '' });
+                    
+                    const docDir = path.join(conceptsDir, doc);
+                    const files = fs.readdirSync(docDir).filter(f => f.endsWith('.md') && f !== 'index.md');
+                    for (const f of files) {
+                        const filePath = path.join(docDir, f);
+                        const relPath = `concepts/${doc}/${f}`;
+                        const content = fs.readFileSync(filePath, 'utf8');
+                        const { frontmatter } = parseMarkdownWithFrontmatter(content);
+                        const title = frontmatter.title || f.replace('.md', '');
+                        
+                        const nodeId = `concept::${relPath}`;
+                        const conceptNode = {
+                            id: nodeId,
+                            name: title,
+                            type: 'concept',
+                            path: relPath,
+                            links: frontmatter.links || [],
+                            ancestors: frontmatter.ancestors || []
+                        };
+                        nodes.push(conceptNode);
+                        titleToNode.set(title.toLowerCase(), nodeId);
+                        
+                        // Parent-child link
+                        links.push({ source: docId, target: nodeId, type: 'hierarchy' });
+                    }
+                }
+            }
+
+            // 2. Process Wiki Directory
+            if (fs.existsSync(wikiDir)) {
+                const files = fs.readdirSync(wikiDir).filter(f => f.endsWith('.md'));
+                for (const f of files) {
+                    const filePath = path.join(wikiDir, f);
+                    const relPath = `wiki/${f}`;
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    const { frontmatter } = parseMarkdownWithFrontmatter(content);
+                    const title = frontmatter.title || f.replace('.md', '');
+                    
+                    const nodeId = `wiki::${relPath}`;
+                    const wikiNode = {
+                        id: nodeId,
+                        name: title,
+                        type: 'wiki',
+                        path: relPath,
+                        links: frontmatter.links || [],
+                        ancestors: []
+                    };
+                    nodes.push(wikiNode);
+                    titleToNode.set(title.toLowerCase(), nodeId);
+                }
+            }
+
+            // 3. Resolve References/Cross-links
+            for (const node of nodes) {
+                if (node.links && Array.isArray(node.links)) {
+                    for (const linkTitle of node.links) {
+                        const targetId = titleToNode.get(linkTitle.toLowerCase());
+                        if (targetId && targetId !== node.id) {
+                            links.push({ source: node.id, target: targetId, type: 'reference' });
+                        }
+                    }
+                }
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ nodes, links }));
+        },
+
+        '/api/hayagriva/read-file': (req, res, parsedUrl, docsRoot) => {
+            const filePath = parsedUrl.query.path;
+            if (!filePath) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Missing path' }));
+                return;
+            }
+            const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(docsRoot, filePath);
+            if (!fs.existsSync(absolutePath)) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'File not found' }));
+                return;
+            }
+            const content = fs.readFileSync(absolutePath, 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end(content);
+        },
+
+        '/api/forms/kv-dictionary': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const caseDir = path.join(docsRoot, caseName);
+            const dictPath = path.join(caseDir, 'reviews', 'case_kv_dictionary.json');
+            let dictionary = {};
+            if (fs.existsSync(dictPath)) {
+                dictionary = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ dictionary }));
+        },
+
+        '/api/forms/instance': async (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const formId = parsedUrl.query.formId || '';
+            if (!caseName || !formId) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Missing case or formId' }));
+                return;
+            }
+            const caseDir = path.join(docsRoot, caseName);
+            const instancePath = path.join(caseDir, 'reviews', `filled-${formId}.json`);
+            let fields = {};
+            if (fs.existsSync(instancePath)) {
+                fields = JSON.parse(fs.readFileSync(instancePath, 'utf8'));
+            } else {
+                const { populateFormInstance } = require('./pipeline/forms/mapper');
+                fields = await populateFormInstance(caseDir, formId);
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ fields }));
+        },
+
+        '/api/formats/registry': (req, res, parsedUrl, docsRoot) => {
+            const workspaceRoot = path.join(__dirname, '../..');
+            const formatsRoot = path.join(workspaceRoot, 'templates');
+            const list = [];
+            if (fs.existsSync(formatsRoot)) {
+                const folders = fs.readdirSync(formatsRoot).filter(f => {
+                    return fs.statSync(path.join(formatsRoot, f)).isDirectory() && !f.startsWith('.');
+                });
+                for (const f of folders) {
+                    const schemaPath = path.join(formatsRoot, f, 'prompt.txt');
+                    if (fs.existsSync(schemaPath)) {
+                        const name = f.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        list.push({ formatId: f, name });
+                    }
+                }
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ formats: list }));
+        }
+    },
+
+    POST: {
+        '/api/hayagriva/switch-context': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                const data = JSON.parse(body);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, activeBag: data.doc }));
+            });
+        },
+
+        '/api/hayagriva/query': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                const data = JSON.parse(body);
+                const caseName = data.case || 'Case_Alpha';
+                const caseDir = path.join(docsRoot, caseName);
+                const qResult = await query(caseDir, data.query || 'Hello', { model: data.model });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(qResult));
+            });
+        },
+
+        '/api/hayagriva/query-stream': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                const data = JSON.parse(body);
+                const caseName = data.case || 'Case_Alpha';
+                const caseDir = path.join(docsRoot, caseName);
+                const queryText = data.query || 'Hello';
+                const contexts = await retrieveContexts(caseDir, queryText);
+                
+                res.writeHead(200, {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive'
+                });
+
+                if (contexts.length === 0) {
+                    res.write(`data: ${JSON.stringify({ content: 'I could not find matching concepts in the case files.' })}\n\n`);
+                    res.write(`data: ${JSON.stringify({ done: true, sources: [] })}\n\n`);
+                    res.end();
+                    return;
+                }
+
+                const prompt = buildPrompt(queryText, contexts);
+                const messages = [{ role: 'user', content: prompt }];
+                
+                try {
+                    const stream = streamChat(messages, { model: data.model });
+                    for await (const chunk of stream) {
+                        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+                    }
+                    const sources = Array.from(new Set(contexts.map(c => c.docName)));
+                    res.write(`data: ${JSON.stringify({ done: true, sources })}\n\n`);
+                } catch (e) {
+                    res.write(`data: ${JSON.stringify({ content: `\nError calling local LLM: ${e.message}` })}\n\n`);
+                    res.write(`data: ${JSON.stringify({ done: true, sources: [] })}\n\n`);
+                }
+                res.end();
+            });
+        },
+
+        '/api/hayagriva/cancel-ocr': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                const data = JSON.parse(body);
+                const success = cancelConversion(data.file);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success }));
+            });
+        },
+
+        '/api/hayagriva/ingest': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                const data = JSON.parse(body);
+                const file = data.file || data.filePath;
+                if (!file) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Missing file/filePath parameter' }));
+                    return;
+                }
+                const caseName = data.case || 'Case_Alpha';
+                const caseDir = path.join(docsRoot, caseName);
+                
+                const ext = path.extname(file).toLowerCase();
+                const basename = path.basename(file, ext);
+                const relative = path.relative(caseDir, file);
+                const subfolder = path.dirname(relative);
+                const conversionsDir = path.join(caseDir, 'conversions');
+                const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
+                fs.mkdirSync(destDir, { recursive: true });
+                const statusPath = path.join(destDir, `${basename}.status`);
+
+                // Guard: if companion already exists and status is companion_ready, skip re-ingest
+                const existingStatus = fs.existsSync(statusPath) ? fs.readFileSync(statusPath, 'utf8').trim() : null;
+                const companionMdPath = path.join(caseDir, `${basename}.md`);
+                if (existingStatus === 'companion_ready' && fs.existsSync(companionMdPath) && !data.force) {
+                    console.log(`[API Server] Skipping re-ingest of ${basename} — already companion_ready`);
+                    // Make sure statuses.json is also correct
+                    updateStatus(caseDir, relative, 'companion_ready');
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, status: 'companion_ready', skipped: true }));
+                    return;
+                }
+                fs.writeFileSync(statusPath, 'processing', 'utf8');
+
+                // Update concepts/statuses.json
+                updateStatus(caseDir, relative, 'processing');
+
+                // Launch Phase 1 ingestion in the background
+                ingestFile(caseDir, file, { 
+                    conversionOnly: true,
+                    multimodal: !!data.multimodal
+                }).then(result => {
+                    if (result && result.companionPath) {
+                        const targetStatus = result.status || 'companion_ready';
+                        fs.writeFileSync(result.companionPath.replace(/\.md$/, '.status'), targetStatus, 'utf8');
+                        // Update statuses.json so the UI sees the final status
+                        updateStatus(caseDir, relative, targetStatus);
+                        // Also patch index.json if doc is already registered there with stale 'processing' status
+                        // (conversionOnly path in watcher.js skips index.json, leaving stale entries)
+                        try {
+                            const { readIndex, writeIndex, upsertDocument } = require('./core/indexer');
+                            const idx = readIndex(caseDir);
+                            const existing = (idx.documents || []).find(d => d.filename === relative || d.title === basename);
+                            if (existing && existing.status !== targetStatus) {
+                                existing.status = targetStatus;
+                                writeIndex(caseDir, idx);
+                                console.log(`[API Server] Patched index.json status for ${basename} → ${targetStatus}`);
+                            }
+                        } catch (idxErr) {
+                            console.error(`[API Server] Could not patch index.json for ${basename}:`, idxErr.message);
+                        }
+                    }
+                }).catch(err => {
+                    console.error(`[API Server] Background ingestion failed for ${basename}:`, err.message);
+                    try { fs.unlinkSync(statusPath); } catch (_) {}
+                    updateStatus(caseDir, relative, 'failed');
+                });
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, status: 'processing' }));
+            });
+        },
+
+        '/api/hayagriva/build-concepts': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                const data = JSON.parse(body);
+                const caseDir = path.join(docsRoot, data.case);
+                const companionPath = path.join(caseDir, data.basename + '.md');
+                const result = await ingestFile(caseDir, companionPath, { conversionOnly: false });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, sections: result ? result.sections : 0 }));
+            });
+        },
+
+        '/api/forms/kv-dictionary/update': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                const data = JSON.parse(body);
+                const caseDir = path.join(docsRoot, data.case);
+                const reviewsDir = path.join(caseDir, 'reviews');
+                fs.mkdirSync(reviewsDir, { recursive: true });
+                const dictPath = path.join(reviewsDir, 'case_kv_dictionary.json');
+                fs.writeFileSync(dictPath, JSON.stringify(data.dictionary, null, 2), 'utf8');
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true }));
+            });
+        },
+
+        '/api/forms/populate': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                const data = JSON.parse(body);
+                const caseDir = path.join(docsRoot, data.case);
+                const { populateFormInstance } = require('./pipeline/forms/mapper');
+                const fields = await populateFormInstance(caseDir, data.formId);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, fields }));
+            });
+        },
+
+        '/api/forms/instance/save': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                const data = JSON.parse(body);
+                const caseDir = path.join(docsRoot, data.case);
+                const workspaceRoot = path.join(__dirname, '..');
+                const schemaPath = path.join(__dirname, '../..', 'forms', data.formId, 'schema.json');
+                const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+                
+                const flatData = {};
+                for (const k in data.fields) {
+                    flatData[k] = data.fields[k].value;
+                }
+                
+                const { validateFormRules } = require('./pipeline/forms/rules_validator');
+                const failures = validateFormRules(flatData, schema.rules || []);
+                
+                for (const key in data.fields) {
+                    delete data.fields[key].validationError;
+                }
+                for (const fail of failures) {
+                    for (const fieldKey of fail.affectedFields || []) {
+                        if (data.fields[fieldKey]) {
+                            data.fields[fieldKey].validationError = fail.message;
+                        }
+                    }
+                }
+
+                const instancePath = path.join(caseDir, 'reviews', `filled-${data.formId}.json`);
+                fs.writeFileSync(instancePath, JSON.stringify(data.fields, null, 2), 'utf8');
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, fields: data.fields, validationErrors: failures }));
+            });
+        },
+
+        '/api/forms/instance/export': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                const data = JSON.parse(body);
+                const caseDir = path.join(docsRoot, data.case);
+                const instancePath = path.join(caseDir, 'reviews', `filled-${data.formId}.json`);
+                const fields = JSON.parse(fs.readFileSync(instancePath, 'utf8'));
+                
+                const { exportFormInstance } = require('./pipeline/forms/exporter');
+                const result = await exportFormInstance(caseDir, data.formId, fields);
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    filledHtmlPath: result.filledHtmlPath,
+                    filledHtmlName: result.filledHtmlName,
+                    bookmarkletCode: result.bookmarkletCode
+                }));
+            });
+        },
+
+        '/api/formats/draft': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                const data = JSON.parse(body);
+                const caseDir = path.join(docsRoot, data.case);
+                const { draftDocument } = require('./core/drafting');
+                const result = await draftDocument(caseDir, data.formatId);
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    draftPath: result.draftPath,
+                    draftName: result.draftName,
+                    version: result.version,
+                    placeholders: result.placeholders
+                }));
+            });
+        },
+
+        '/api/agents/chat': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                const data = JSON.parse(body);
+                const caseDir = path.join(docsRoot, data.case);
+                const coordinator = require('./agents/agent-coordinator');
+                const responseText = await coordinator.run(caseDir, data.message, data.history || []);
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, response: responseText }));
+            });
+        },
+
+        '/api/hayagriva/upload': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                const data = JSON.parse(body);
+                const caseDir = path.join(docsRoot, data.case || 'Case_Alpha');
+                if (!fs.existsSync(caseDir)) {
+                    fs.mkdirSync(caseDir, { recursive: true });
+                    fs.mkdirSync(path.join(caseDir, 'concepts'), { recursive: true });
+                }
+                const filePath = path.join(caseDir, data.filename);
+                const buffer = Buffer.from(data.content, 'base64');
+                fs.writeFileSync(filePath, buffer);
+                console.log(`[API Server] Uploaded file saved to: ${filePath}`);
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, filePath }));
+            });
+        }
+    }
+};

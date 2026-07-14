@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # Hayagriva Launcher
 
@@ -30,10 +30,16 @@ fi
 set -e
 
 # Dynamically resolve root directory of the command
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 HAYAGRIVA_DIR="$ROOT_DIR/hayagriva"
 THEIA_DIR="$ROOT_DIR/ide/applications/electron"
 LOGFILE="/tmp/hayagriva-launcher.log"
+
+# Clean up any residual processes from previous sessions to prevent port conflicts
+"$ROOT_DIR/stop.command"
+
+# Register trap to clean up on any exit or termination signal
+trap '"$ROOT_DIR/stop.command"; exit' INT TERM HUP EXIT
 
 # Load VAULT_KEY and any other secrets from hayagriva/.env (never committed to git)
 if [ -f "$HAYAGRIVA_DIR/.env" ]; then
@@ -111,5 +117,5 @@ cd "$THEIA_DIR"
 unset ELECTRON_RUN_AS_NODE
 yarn start
 
-# Clean up all background servers when user quits the app
-"$ROOT_DIR/stop.command"
+# Clean up will trigger automatically via the trap registered above
+exit 0

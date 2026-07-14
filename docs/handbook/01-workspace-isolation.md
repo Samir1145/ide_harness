@@ -51,15 +51,33 @@ const caseName = relativePath.split(/[\\/]/)[0]; // Locks case context to first-
 * **`POST /api/hayagriva/switch-context`**: Sets the active case directory payload context for Webviews.
 
 ### Automatic File Explorer Exclusions
-To prevent database directories (`wiki/` and `concepts/`) from cluttering the standard File Explorer tab, the backend automatically sets up exclusions per workspace.
-* **Logic:** When `bootstrapCase(caseDir)` in [cli.js](file:///Users/atulgrover/Desktop/HAYAGRIVA-OKF-PAGED/hayagriva/cli.js) scans a case, it creates or updates `settings.json` inside both `caseDir/.theia/` and `caseDir/.vscode/` dynamically to inject:
+To prevent database directories (`wiki/` and `concepts/`) and system intermediate assets from cluttering the standard File Explorer tab, the backend automatically sets up exclusions and layout configurations per workspace.
+* **Dynamic Exclusions Logic:** In addition to startup scanning, the backend dynamically enforces exclusions inside [routes.js](file:///Users/atulgrover/Desktop/HAYAGRIVA/hayagriva/lib/routes.js) via `ensureCaseSettings(caseDir)` on every key API call (such as fetching file statuses, uploading, or starting conversions). This ensures folders located anywhere (such as Desktop case directories) automatically get configured.
+* **Injected Exclusions & Layout Settings:** It creates or updates `settings.json` inside both `caseDir/.theia/` and `caseDir/.vscode/` dynamically to inject:
   ```json
   "files.exclude": {
     "**/wiki": true,
-    "**/concepts": true
-  }
+    "**/concepts": true,
+    "**/conversions": true,
+    "wiki": true,
+    "concepts": true,
+    "conversions": true,
+    "**/wiki/**": true,
+    "**/concepts/**": true,
+    "**/conversions/**": true,
+    "wiki/": true,
+    "concepts/": true,
+    "conversions/": true,
+    "**/*.md": true,
+    "**/*.status": true,
+    "**/*.footer": true,
+    "**/*.cache": true
+  },
+  "explorer.openEditors.visible": 0
   ```
-  This ensures that system-generated markdown page chunks and Q&A card files are hidden from the file listing, cleanly funneling them to the custom **Concepts** and **Case Wiki** panels.
+  This ensures:
+  1. The **Open Editors** pane is hidden by default to maximize the case tree height.
+  2. All intermediate files (`.md`, `.status`, `.footer`, `.cache`) and internal subdirectories (`conversions/`) are hidden, cleanly routing interactions to the custom **Concepts** panels and right-click actions.
 
 ### Upstream Theia Upgrades — Correct Procedure
 

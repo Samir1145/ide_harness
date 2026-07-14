@@ -39,12 +39,21 @@ async function bootstrapCase(caseDir) {
             }
             settings['files.exclude']['**/wiki'] = true;
             settings['files.exclude']['**/concepts'] = true;
+            settings['files.exclude']['**/conversions'] = true;
             settings['files.exclude']['wiki'] = true;
             settings['files.exclude']['concepts'] = true;
+            settings['files.exclude']['conversions'] = true;
             settings['files.exclude']['**/wiki/**'] = true;
             settings['files.exclude']['**/concepts/**'] = true;
+            settings['files.exclude']['**/conversions/**'] = true;
             settings['files.exclude']['wiki/'] = true;
             settings['files.exclude']['concepts/'] = true;
+            settings['files.exclude']['conversions/'] = true;
+            settings['files.exclude']['**/*.md'] = true;
+            settings['files.exclude']['**/*.status'] = true;
+            settings['files.exclude']['**/*.footer'] = true;
+            settings['files.exclude']['**/*.cache'] = true;
+            settings['explorer.openEditors.visible'] = 0;
             fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
         } catch (e) {
             console.warn(`[hayagriva] failed to write ${dirName}/settings.json for case ${caseDir}:`, e.message);
@@ -66,7 +75,16 @@ async function bootstrapCase(caseDir) {
             const ext = path.extname(file).toLowerCase();
             const isDoc = docExts.includes(ext) || lowerFile.endsWith('.wiki.html');
             if (stat.isDirectory()) {
-                if (!file.startsWith('.') && file !== 'concepts') scan(filePath);
+                const lower = file.toLowerCase();
+                if (!file.startsWith('.') && 
+                    lower !== 'concepts' && 
+                    lower !== 'wiki' && 
+                    lower !== 'conversions' && 
+                    lower !== 'reviews' && 
+                    lower !== 'drafts' && 
+                    lower !== 'exports') {
+                    scan(filePath);
+                }
             } else if (isDoc) {
                 const relative = path.relative(caseDir, filePath);
                 if (ext === '.md' || ext === '.txt' || lowerFile.endsWith('.wiki.html')) {
@@ -79,23 +97,44 @@ async function bootstrapCase(caseDir) {
     }
     scan(caseDir);
 
-    // 1. Process non-markdown files first to generate companions (Phase 1 only)
+    // 1. Scan and register non-markdown files as 'unprocessed' if not already in index
+    let changed = false;
     for (const file of nonMdFiles) {
         const alreadyIndexed = index.documents && index.documents.some(d => d.filename === file.relative);
-        // Also check .status sidecar — if pending_review or indexed, skip re-conversion
-        const ext = path.extname(file.filePath).toLowerCase();
-        const basename = path.basename(file.filePath, ext);
-        const statusPath = path.join(caseDir, `${basename}.status`);
-        const alreadyConverted = fs.existsSync(statusPath);
-        if (!alreadyIndexed && !alreadyConverted) {
-            console.log(`[hayagriva] bootstrapping companion for ${file.relative}`);
-            try {
-                // Phase 1: convert to .md only — no BM25, no index.json writes
-                await ingestFile(caseDir, file.filePath, { conversionOnly: true });
-            } catch (e) {
-                console.error(`[hayagriva] Ingestion failed for ${file.relative}:`, e.message);
+        if (!alreadyIndexed) {
+            const ext = path.extname(file.filePath).toLowerCase();
+            const basename = path.basename(file.filePath, ext);
+            // Check if companion exists (e.g. from previous run)
+            const conversionsDir = path.join(caseDir, 'conversions');
+            const subfolder = path.dirname(file.relative);
+            const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
+            const statusPath = path.join(destDir, `${basename}.status`);
+            let fileStatus = 'unprocessed';
+            if (fs.existsSync(statusPath)) {
+                fileStatus = fs.readFileSync(statusPath, 'utf8').trim();
             }
+            
+            console.log(`[hayagriva] registering file profile: ${file.relative} with status: ${fileStatus}`);
+            const { upsertDocument } = require('./lib/core/indexer');
+            upsertDocument(index, {
+                title: basename,
+                filename: file.relative,
+                conceptsDir: path.join('concepts', basename),
+                type: ext.replace('.', ''),
+                sections: 0,
+                sectionTitles: [],
+                ingestedAt: new Date().toISOString(),
+                sizeBytes: fs.statSync(file.filePath).size,
+                priority: 5,
+                documentDate: null,
+                status: fileStatus
+            });
+            changed = true;
         }
+    }
+    if (changed) {
+        const { writeIndex } = require('./lib/core/indexer');
+        writeIndex(caseDir, index);
     }
 
     // 2. Markdown, text, wiki files: only process if NOT auto-generated companions
@@ -208,11 +247,7 @@ async function main() {
 
     const watcher = createWatcher(caseDir, {
         async onFileChange(filePath) {
-            const ext = path.extname(filePath).toLowerCase();
-            // .md files that have a .status sidecar are auto-generated companions — skip Phase 2
-            const isCompanion = ext === '.md' && fs.existsSync(filePath.replace(/\.md$/, '.status'));
-            console.log(`[hayagriva] ingesting ${path.relative(caseDir, filePath)}${isCompanion ? ' (conversion-only)' : ''}`);
-            await ingestFile(caseDir, filePath, { conversionOnly: isCompanion });
+            handleWatcherFileChange(caseDir, filePath);
         }
     });
 
@@ -220,9 +255,10 @@ async function main() {
     console.log(`[hayagriva] indexed ${index.documents ? index.documents.length : 0} documents`);
 
     const { startApiServer } = require('./lib/api-server');
-    const apiServer = startApiServer(path.dirname(caseDir), 3210);
+    const port = parseInt(process.env.HAYAGRIVA_API_PORT || '3210', 10);
+    const apiServer = startApiServer(path.dirname(caseDir), port);
 
-    // Bootstrap asynchronously in background so API port 3210 binds immediately
+    // Bootstrap asynchronously in background so API port binds immediately
     bootstrapCase(caseDir).catch(err => {
         console.error('[hayagriva] Bootstrap failed:', err.message);
     });
@@ -233,6 +269,37 @@ async function main() {
         apiServer.close();
         process.exit(0);
     });
+}
+
+function handleWatcherFileChange(caseDir, filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.md', '.txt'];
+    if (!docExts.includes(ext) || filePath.endsWith('.wiki.html')) return;
+
+    const relative = path.relative(caseDir, filePath);
+    const basename = path.basename(filePath, ext);
+
+    const index = readIndex(caseDir);
+    const alreadyIndexed = index.documents && index.documents.some(d => d.filename === relative);
+
+    if (ext !== '.md' && ext !== '.txt' && !alreadyIndexed) {
+        console.log(`[hayagriva] Watcher: Registering new unprocessed file ${relative}`);
+        const { upsertDocument, writeIndex } = require('./lib/core/indexer');
+        upsertDocument(index, {
+            title: basename,
+            filename: relative,
+            conceptsDir: path.join('concepts', basename),
+            type: ext.replace('.', ''),
+            sections: 0,
+            sectionTitles: [],
+            ingestedAt: new Date().toISOString(),
+            sizeBytes: fs.statSync(filePath).size,
+            priority: 5,
+            documentDate: null,
+            status: 'unprocessed'
+        });
+        writeIndex(caseDir, index);
+    }
 }
 
 async function runWatchAll(docsRoot) {
@@ -248,7 +315,8 @@ async function runWatchAll(docsRoot) {
     const watchers = new Map();
 
     const { startApiServer } = require('./lib/api-server');
-    const apiServer = startApiServer(docsRoot, 3210);
+    const port = parseInt(process.env.HAYAGRIVA_API_PORT || '3210', 10);
+    const apiServer = startApiServer(docsRoot, port);
 
     // Bootstrap scan for each case asynchronously
     (async () => {
@@ -269,11 +337,7 @@ async function runWatchAll(docsRoot) {
         const caseDir = path.join(docsRoot, caseName);
         const watcher = createWatcher(caseDir, {
             async onFileChange(filePath) {
-                const relative = path.relative(caseDir, filePath);
-                const ext = path.extname(filePath).toLowerCase();
-                const isCompanion = ext === '.md' && fs.existsSync(filePath.replace(/\.md$/, '.status'));
-                console.log(`[hayagriva] ingesting ${caseName}/${relative}${isCompanion ? ' (conversion-only)' : ''}`);
-                await ingestFile(caseDir, filePath, { conversionOnly: isCompanion });
+                handleWatcherFileChange(caseDir, filePath);
             }
         });
         watchers.set(caseName, watcher);

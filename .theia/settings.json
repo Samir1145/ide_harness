@@ -1,6 +1,12 @@
 {
   "files.exclude": {
     "**/wiki": true,
-    "**/concepts": true
-  }
+    "**/concepts": true,
+    "**/conversions": true,
+    "**/*.md": true,
+    "**/*.status": true,
+    "**/*.footer": true,
+    "**/*.cache": true
+  },
+  "explorer.openEditors.visible": 0
 }
