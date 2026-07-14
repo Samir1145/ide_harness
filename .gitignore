@@ -37,3 +37,5 @@ twillm/twillm-wiki/tiddlers/vault-loader/
 # Local binaries
 hayagriva/bin/
 
+# Do not ignore the backend source code directory
+!hayagriva/lib/

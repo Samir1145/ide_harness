@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hayagriva Settings</title>
+  <style>
+    :root {
+      --bg-color: var(--theia-layout-color0, #1e1e1e);
+      --text-color: var(--theia-ui-font-color0, #f3f3f3);
+      --border-color: var(--theia-border-color, #3a3a3a);
+      --accent-color: var(--theia-accent-color0, #3b82f6);
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --input-bg: var(--theia-input-background, #2d2d2d);
+      --input-border: var(--theia-input-border, #444);
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    h2 {
+      margin-top: 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      font-weight: 500;
+      letter-spacing: -0.5px;
+    }
+    .section {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      opacity: 0.85;
+    }
+    select, input[type="text"], input[type="password"] {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-color);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    select:focus, input:focus {
+      border-color: var(--accent-color);
+    }
+    .helper-text {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+    .radio-toggle {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .radio-option {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.01);
+      transition: all 0.2s;
+      font-size: 13px;
+    }
+    .radio-option:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .radio-option.active {
+      border-color: var(--accent-color);
+      background: rgba(59, 130, 246, 0.1);
+      font-weight: 500;
+    }
+    .button-container {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    button {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .password-wrapper {
+      position: relative;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    .password-toggle:hover {
+      opacity: 1;
+    }
+    /* Toast messages */
+    #toast {
+      visibility: hidden;
+      min-width: 250px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 4px;
+      padding: 12px;
+      position: fixed;
+      z-index: 1000;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    #toast.show {
+      visibility: visible;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
+    @keyframes fadein {
+      from { bottom: 0; opacity: 0; }
+      to { bottom: 30px; opacity: 1; }
+    }
+    @keyframes fadeout {
+      from { bottom: 30px; opacity: 1; }
+      to { bottom: 0; opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Hayagriva Case Settings</h2>
+    
+    <form id="settingsForm">
+      <!-- 1. Processing Profile -->
+      <div class="section">
+        <div class="section-title">⚙️ Performance & Ingestion Profile</div>
+        <div class="form-group">
+          <label for="processingProfile">Ingestion Depth Profile</label>
+          <select id="processingProfile">
+            <option value="lite">Lite (Instant, Text-only search, 0% background RAM)</option>
+            <option value="standard">Standard (Fast, Hybrid Keyword + Vector Search)</option>
+            <option value="deep">Deep Audit (Full text, Q&As, Entity Graphs, Summaries)</option>
+          </select>
+          <div class="helper-text">
+            <strong>Lite:</strong> Good for 4GB-8GB RAM. Instantly extract text without background AI queue.<br>
+            <strong>Standard:</strong> Good for 8GB-12GB RAM. Computes local vector mappings.<br>
+            <strong>Deep Audit:</strong> Good for 12GB+ RAM. Runs comprehensive extraction and knowledge graph modeling.
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. LLM Provider Routing -->
+      <div class="section">
+        <div class="section-title">🧠 LLM Processing Router</div>
+        
+        <label>Active Routing Mode</label>
+        <div class="radio-toggle">
+          <div class="radio-option active" id="modeLocal" onclick="setMode('local')">Local Offline Runner</div>
+          <div class="radio-option" id="modeCloud" onclick="setMode('cloud')">Cloud Online API</div>
+        </div>
+
+        <!-- 2A. Local Configuration -->
+        <div id="localConfig">
+          <div class="form-group">
+            <label for="localRunner">Local LLM Runner</label>
+            <select id="localRunner" onchange="updateLocalModelList()">
+              <option value="ollama">Ollama (Default)</option>
+              <option value="vllm">vLLM</option>
+              <option value="custom">Custom OpenAI-compatible API</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="localEndpoint">Runner API Endpoint</label>
+            <input type="text" id="localEndpoint" placeholder="e.g. http://127.0.0.1:11434">
+          </div>
+          <div class="form-group">
+            <label for="localChatModel">Local Chat Model Name</label>
+            <input type="text" id="localChatModel" placeholder="e.g. qwen2.5-coder:1.5b">
+          </div>
+          <div class="form-group">
+            <label for="localEmbedModel">Local Embedding Model Name</label>
+            <input type="text" id="localEmbedModel" placeholder="e.g. nomic-embed-text">
+          </div>
+        </div>
+
+        <!-- 2B. Cloud Configuration -->
+        <div id="cloudConfig" style="display: none;">
+          <div class="form-group">
+            <label for="cloudProvider">Cloud Provider</label>
+            <select id="cloudProvider" onchange="updateCloudModels()">
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cloudApiKey">API Secret Key</label>
+            <div class="password-wrapper">
+              <input type="password" id="cloudApiKey" placeholder="Enter provider API key">
+              <span class="password-toggle" onclick="togglePassword()">👁️</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cloudModel">Cloud Model Name</label>
+            <input type="text" id="cloudModel" placeholder="e.g. gemini-1.5-flash">
+          </div>
+        </div>
+      </div>
+
+      <div class="button-container">
+        <button type="submit">Save Case Configurations</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="toast">Settings saved successfully!</div>
+
+  <script>
+    let activeMode = 'local';
+    const params = new URLSearchParams(window.location.search);
+    const caseName = params.get('case') || 'Case_Alpha';
+
+    function setMode(mode) {
+      activeMode = mode;
+      document.getElementById('modeLocal').classList.toggle('active', mode === 'local');
+      document.getElementById('modeCloud').classList.toggle('active', mode === 'cloud');
+      document.getElementById('localConfig').style.display = mode === 'local' ? 'block' : 'none';
+      document.getElementById('cloudConfig').style.display = mode === 'cloud' ? 'block' : 'none';
+    }
+
+    function togglePassword() {
+      const input = document.getElementById('cloudApiKey');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function updateLocalModelList() {
+      const runner = document.getElementById('localRunner').value;
+      const endpoint = document.getElementById('localEndpoint');
+      if (runner === 'ollama' && !endpoint.value) {
+        endpoint.value = 'http://127.0.0.1:11434';
+      } else if (runner === 'vllm' && !endpoint.value) {
+        endpoint.value = 'http://localhost:8000';
+      }
+    }
+
+    function updateCloudModels() {
+      const provider = document.getElementById('cloudProvider').value;
+      const model = document.getElementById('cloudModel');
+      if (provider === 'gemini') {
+        model.value = 'gemini-1.5-flash';
+      } else if (provider === 'openai') {
+        model.value = 'gpt-4o-mini';
+      } else if (provider === 'anthropic') {
+        model.value = 'claude-3-5-sonnet';
+      } else if (provider === 'openrouter') {
+        model.value = 'google/gemini-2.5-flash';
+      }
+    }
+
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.innerText = message;
+      toast.style.backgroundColor = isError ? '#dc2626' : '#16a34a';
+      toast.className = 'show';
+      setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    }
+
+    // Load initial settings
+    async function loadSettings() {
+      try {
+        const res = await fetch(`/api/hayagriva/settings/get?case=${encodeURIComponent(caseName)}`);
+        if (res.ok) {
+          const config = await res.json();
+          document.getElementById('processingProfile').value = config.processingProfile || 'standard';
+          setMode(config.activeMode || 'local');
+          
+          document.getElementById('localRunner').value = config.localRunner || 'ollama';
+          document.getElementById('localEndpoint').value = config.localEndpoint || 'http://127.0.0.1:11434';
+          document.getElementById('localChatModel').value = config.localChatModel || 'qwen2.5-coder:1.5b';
+          document.getElementById('localEmbedModel').value = config.localEmbedModel || 'nomic-embed-text';
+
+          document.getElementById('cloudProvider').value = config.cloudProvider || 'gemini';
+          document.getElementById('cloudModel').value = config.cloudModel || 'gemini-1.5-flash';
+          if (config.hasCloudKey) {
+            document.getElementById('cloudApiKey').placeholder = '•••••••••••••••• (Saved)';
+          }
+        }
+      } catch (err) {
+        showToast('Failed to load settings', true);
+      }
+    }
+
+    // Save settings
+    document.getElementById('settingsForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const payload = {
+        case: caseName,
+        processingProfile: document.getElementById('processingProfile').value,
+        activeMode: activeMode,
+        localRunner: document.getElementById('localRunner').value,
+        localEndpoint: document.getElementById('localEndpoint').value,
+        localChatModel: document.getElementById('localChatModel').value,
+        localEmbedModel: document.getElementById('localEmbedModel').value,
+        cloudProvider: document.getElementById('cloudProvider').value,
+        cloudModel: document.getElementById('cloudModel').value,
+        cloudApiKey: document.getElementById('cloudApiKey').value // Sends only if typed/modified
+      };
+      
+      try {
+        const res = await fetch('/api/hayagriva/settings/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Settings saved successfully!');
+          // Clear password value but show placeholder
+          if (payload.cloudApiKey) {
+            document.getElementById('cloudApiKey').value = '';
+            document.getElementById('cloudApiKey').placeholder = '•••••••••••••••• (Saved)';
+          }
+        } else {
+          showToast(data.error || 'Failed to save settings', true);
+        }
+      } catch (err) {
+        showToast('Connection error: Failed to save settings', true);
+      }
+    };
+
+    window.onload = loadSettings;
+  </script>
+</body>
+</html>
