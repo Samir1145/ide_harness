@@ -935,6 +935,108 @@ function generateCaseAudit(caseDir) {
             md += `| **${doc.basename}${doc.ext}** | ${companionCol} | ${indexCol} | ${qnaCol} | ${alertsCol} |\n`;
         }
 
+        // ── Case Relationship Graph & Connection Audit ───────────────────────
+        md += `\n## 2. Case Relationship Graph & Connection Audit\n\n`;
+        md += `This section monitors the logical links and hierarchies of the case concepts and wiki pages. Correct relationships ensure that background AI agents can navigate the case context files accurately.\n\n`;
+
+        const conceptsDir = path.join(caseDir, 'concepts');
+        const activeTitles = new Set();
+        const filesToAudit = [];
+        const { parseMarkdownWithFrontmatter } = require('../utils/okf');
+
+        // 1. Scan concepts directory for valid cards
+        if (fs.existsSync(conceptsDir)) {
+            const docs = fs.readdirSync(conceptsDir).filter(f => {
+                return fs.statSync(path.join(conceptsDir, f)).isDirectory() && !f.startsWith('.');
+            });
+            for (const doc of docs) {
+                const docDir = path.join(conceptsDir, doc);
+                const files = fs.readdirSync(docDir).filter(f => f.endsWith('.md') && f !== 'index.md');
+                for (const f of files) {
+                    try {
+                        const filePath = path.join(docDir, f);
+                        const content = fs.readFileSync(filePath, 'utf8');
+                        const { frontmatter } = parseMarkdownWithFrontmatter(content);
+                        const title = frontmatter.title || f.replace('.md', '');
+                        const relPath = `concepts/${doc}/${f}`.replace(/\\/g, '/');
+                        activeTitles.add(title.toLowerCase().trim());
+                        filesToAudit.push({ 
+                            type: 'concept',
+                            file: f, 
+                            title, 
+                            relPath, 
+                            links: frontmatter.links || [],
+                            ancestors: frontmatter.ancestors || []
+                        });
+                    } catch (_) {}
+                }
+            }
+        }
+
+        // 2. Scan wiki directory for wiki cards
+        const wikiDir = path.join(caseDir, 'wiki');
+        if (fs.existsSync(wikiDir)) {
+            const files = fs.readdirSync(wikiDir).filter(f => f.endsWith('.md'));
+            for (const f of files) {
+                try {
+                    const filePath = path.join(wikiDir, f);
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    const { frontmatter } = parseMarkdownWithFrontmatter(content);
+                    const title = frontmatter.title || f.replace('.md', '');
+                    const relPath = `wiki/${f}`.replace(/\\/g, '/');
+                    activeTitles.add(title.toLowerCase().trim());
+                    filesToAudit.push({ 
+                        type: 'wiki',
+                        file: f, 
+                        title, 
+                        relPath, 
+                        links: frontmatter.links || [],
+                        ancestors: []
+                    });
+                } catch (_) {}
+            }
+        }
+
+        // 3. Render connections and audit warnings
+        if (filesToAudit.length === 0) {
+            md += `*No concepts or wiki cards have been compiled yet.*\n`;
+        } else {
+            md += `| Node Name | Category | Parents / Ancestors | Dynamic Outgoing Links | Audit Status |\n`;
+            md += `| :--- | :--- | :--- | :--- | :--- |\n`;
+
+            for (const item of filesToAudit) {
+                const ancestorsText = item.ancestors.length > 0 ? item.ancestors.join(' → ') : '*None*';
+                
+                let linksText = '*None*';
+                let statusText = '✓ Clean';
+
+                if (item.links.length > 0) {
+                    const resolvedLinks = [];
+                    const brokenLinks = [];
+                    for (const linkTitle of item.links) {
+                        const cleanLink = linkTitle.toLowerCase().trim();
+                        if (activeTitles.has(cleanLink)) {
+                            resolvedLinks.push(linkTitle);
+                        } else {
+                            brokenLinks.push(linkTitle);
+                        }
+                    }
+
+                    const parts = [];
+                    if (resolvedLinks.length > 0) {
+                        parts.push(resolvedLinks.join(', '));
+                    }
+                    if (brokenLinks.length > 0) {
+                        parts.push(`**Missing:** ~${brokenLinks.join(', ')}~`);
+                        statusText = `⚠️ Broken Reference to "${brokenLinks.join(', ')}"`;
+                    }
+                    linksText = parts.join(' | ');
+                }
+
+                md += `| [**${item.title}**](${encodeURI(item.relPath)}) | \`${item.type}\` | ${ancestorsText} | ${linksText} | ${statusText} |\n`;
+            }
+        }
+
         md += `\n---\n*Last updated: ${new Date().toLocaleString()}*\n`;
 
         fs.writeFileSync(path.join(caseDir, 'CASE_AUDIT.md'), md, 'utf8');

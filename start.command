@@ -97,6 +97,7 @@ if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1 ; then
 else
     log "Starting Hayagriva proxy..."
     cd "$HAYAGRIVA_DIR"
+    node scripts/download-onnx.js
     nohup node cli.js --watch-all >> "$LOGFILE" 2>&1 &
     HAYAGRIVA_PID=$!
     log "Hayagriva proxy started (PID: $HAYAGRIVA_PID)"

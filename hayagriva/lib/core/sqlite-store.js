@@ -23,6 +23,7 @@ function getDb(caseDir) {
     // Enable WAL mode for high performance concurrency
     try {
         db.exec('PRAGMA journal_mode = WAL;');
+        db.exec('PRAGMA busy_timeout = 5000;');
     } catch (_) {}
     
     // Setup tables
