@@ -60,6 +60,11 @@ Word document conversion operates as a high-fidelity hybrid pipeline:
 * **Primary (Pandoc):** Auto-detects the CPU architecture (ARM64 vs x64) and runs a local precompiled `pandoc` static binary (version 3.6, downloaded on-demand in `start.command`). It converts files using GitHub Flavored Markdown (`-t gfm`) to preserve tabular matrices, headers, footnotes, and lists with exact structural integrity.
 * **Failsafe Fallback (Mammoth):** If Pandoc fails to execute (e.g., due to permissions or architecture restrictions), the parser throws a warning and falls back to `mammoth` to complete the conversion.
 
+#### Hybrid Ingestion Markdown Cleaner (Post-Processor)
+Once converted by Pandoc or Mammoth, the raw Markdown content is automatically parsed by a **Hybrid Post-Processor** before writing the companion `.md` file to the case workspace:
+1. **Primary Pass (AI LLM Layout Cleaner):** Prompts the local/cloud LLM to unwrap hard paragraph breaks, resolve Pandoc escapes (such as `1\.` $\rightarrow$ `1.`), and promote bold legal section lines (e.g. `**A. Introduction**`) to markdown headings (`## A. Introduction`) **without altering a single legal word**.
+2. **Fallback Pass (Deterministic Javascript Regex Cleaner):** If the LLM is offline, fails, or is bypassed (when in the `lite` processing profile), a local JavaScript engine performs regex search-and-replace rules to unwrap paragraphs, strip escapes, and promote headings instantly.
+
 ### Excel/XLSX Conversion Pipeline
 Excel spreadsheets are processed locally by the SheetJS `xlsx` library, parsing cell sheets row-by-row into Markdown tables chunked in blocks of 100 lines.
 

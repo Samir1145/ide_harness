@@ -8,10 +8,14 @@ This chapter covers how the system tokenizes document terms, indexes them in a l
 
 To protect system memory and CPU, raw case documents are treated like uncompiled code. They progress through a manual, color-coded state machine:
 
-### File Explorer Statuses (Raw Files: PDF, DOCX, XLSX)
-* **`unprocessed` (Color: Red):** Discovered or uploaded files start in **Red** in the File Explorer.
-* **`processing` (Color: Orange):** Right-clicking the file and selecting **"⚡ Generate Companion File"** initiates conversion in the background, turning the filename **Orange**.
-* **`companion_ready` (Color: Green):** Once the companion Markdown is compiled and written to disk, the filename in the explorer turns **Green**.
+### File Explorer Status Indicators (Three Pipeline Dots)
+Files inside the Case Files explorer display three color-coded progress dots before their filename representing the ingestion stages:
+1.  **Dot 1 (Companion MD Extraction):** Turns **Blue** during conversion, **Red** if conversion fails, and **Green** once the editable companion Markdown file is compiled and ready on disk.
+2.  **Dot 2 (RAG Vector Indexing):** Turns **Blue** while chunking and indexing, **Red** if indexing fails, and **Green** once the text chunks are successfully indexed in the local BM25 and SQLite Vector DB.
+3.  **Dot 3 (AI Enrichment & Facts):** Turns **Blue** while the background AI compiles page summaries and hypothetical questions, **Red** if background processing fails/timeouts, and **Green** once fully enriched.
+
+#### Resiliency & Retries
+If the final background AI task fails (Dot 3 turns Red), the status is mapped as **`Green / Green / Red`**. Because the first dot remains Green (indicating the Markdown companion file is successfully extracted and saved on disk), the right-click context menu action **"2. Index into AI Memory"** remains **Enabled** so you can click it to retry the pipeline at any time (e.g., after loading local LLM models or switching API settings).
 
 ### Concepts Panel Statuses (Companion Markdown Files)
 * **`companion_ready` (Color: Red Card):** Newly generated companions display as Red-bordered pending cards in the Concepts sidebar, warning the user it has not been compiled into OKF concepts yet.
@@ -63,6 +67,15 @@ One `bm25_index.json` per case workspace under `concepts/`:
 | 4 | **OpenAI** | `OPENAI_API_KEY` in environment |
 
 Vision OCR requests (PDF pages with images) always route to OpenRouter → `google/gemini-2.5-flash` with a 120-second timeout.
+
+#### Node-Native ONNX Vector Embeddings
+To keep the indexing pipeline fast, lightweight, and offline-resilient, the local embedding generation is **completely decoupled** from the Ollama server process:
+* **The Engine:** When in `local` mode, `llm-client.js` loads `@xenova/transformers` (running the **`Xenova/all-MiniLM-L6-v2`** model) natively in-process using ONNX Runtime.
+* **Benefits:**
+  * **Memory efficiency:** Uses only **~50MB of RAM** (instead of Ollama loading/keeping a 300MB model).
+  * **Zero latency:** Avoids Ollama cold-start loading times (which took 15-20 seconds on first query and caused timeouts).
+  * **Strict Offline:** Does not make any external HTTP requests to index or search document vectors.
+* **Auto-Fallback:** If cloud embedding models (Gemini/OpenAI) fail due to network disconnection, the system automatically falls back to this local ONNX pipeline.
 
 ### SSE Streaming Pipeline
 
