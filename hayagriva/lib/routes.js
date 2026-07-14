@@ -1137,44 +1137,45 @@ module.exports = {
                 // Phase 1: Set status to ingesting
                 updateStatus(caseDir, relative, 'ingesting');
 
-                const companionPath = isWikiHtml ? file : file.replace(/\.[a-zA-Z0-9]+$/, '.md');
-
-                ingestFile(caseDir, companionPath, { 
+                const companionPath = isWikiHtml ? file : file.replace(/\.[a-zA-Z0-9]+$/, '.md');                 ingestFile(caseDir, companionPath, { 
                     conversionOnly: false,
                     disableDoc2Query: true 
                 }).then(result => {
                     if (result) {
-                        console.log(`[API Server] Ingested context for: ${basename}. Auto-starting AI enrichment...`);
+                        console.log(`[API Server] Ingested context for: ${basename}.`);
                         updateStatus(caseDir, relative, 'indexed');
 
-                        const pageIndexTreePath = path.join(caseDir, 'concepts', subfolder, basename, 'pageindex_tree.json');
-                        if (fs.existsSync(pageIndexTreePath)) {
-                            let treeData;
-                            try {
-                                treeData = JSON.parse(fs.readFileSync(pageIndexTreePath, 'utf8'));
-                                const sections = [];
-                                function collectSections(node) {
-                                    if (node.metadata && node.metadata.type === 'section') {
-                                        sections.push(node);
+                        if (data.enrich !== false) {
+                            console.log(`[API Server] Auto-starting AI enrichment for ${basename}...`);
+                            const pageIndexTreePath = path.join(caseDir, 'concepts', subfolder, basename, 'pageindex_tree.json');
+                            if (fs.existsSync(pageIndexTreePath)) {
+                                let treeData;
+                                try {
+                                    treeData = JSON.parse(fs.readFileSync(pageIndexTreePath, 'utf8'));
+                                    const sections = [];
+                                    function collectSections(node) {
+                                        if (node.metadata && node.metadata.type === 'section') {
+                                            sections.push(node);
+                                        }
+                                        if (node.children) {
+                                            node.children.forEach(collectSections);
+                                        }
                                     }
-                                    if (node.children) {
-                                        node.children.forEach(collectSections);
+                                    if (treeData.tree) {
+                                        collectSections(treeData.tree);
                                     }
-                                }
-                                if (treeData.tree) {
-                                    collectSections(treeData.tree);
-                                }
 
-                                // Phase 2: Set status to enriching & run AI pipeline
-                                updateStatus(caseDir, relative, 'enriching');
-                                queueForLazyProcessing(caseDir, basename, sections, relative);
-                            } catch (e) {
-                                console.error(`[API Server] AI Enrichment auto-trigger failed for ${basename}:`, e.message);
+                                    // Phase 2: Set status to enriching & run AI pipeline
+                                    updateStatus(caseDir, relative, 'enriching');
+                                    queueForLazyProcessing(caseDir, basename, sections, relative);
+                                } catch (e) {
+                                    console.error(`[API Server] AI Enrichment auto-trigger failed for ${basename}:`, e.message);
+                                    updateStatus(caseDir, relative, 'failed_enrich');
+                                }
+                            } else {
+                                console.error(`[API Server] pageindex_tree.json not found for auto enrichment: ${pageIndexTreePath}`);
                                 updateStatus(caseDir, relative, 'failed_enrich');
                             }
-                        } else {
-                            console.error(`[API Server] pageindex_tree.json not found for auto enrichment: ${pageIndexTreePath}`);
-                            updateStatus(caseDir, relative, 'failed_enrich');
                         }
                     } else {
                         updateStatus(caseDir, relative, 'failed_ingest');
@@ -1188,6 +1189,60 @@ module.exports = {
                 res.end(JSON.stringify({ success: true, status: 'ingesting' }));
             });
         },
+
+        '/api/hayagriva/enrich-ai': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                const data = JSON.parse(body);
+                const file = data.file || data.filePath;
+                if (!file) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Missing file parameter' }));
+                    return;
+                }
+                const caseName = data.case || 'Case_Alpha';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const relative = path.relative(caseDir, file);
+                const isWikiHtml = file.endsWith('.wiki.html');
+                const ext = isWikiHtml ? '.wiki.html' : path.extname(file).toLowerCase();
+                const basename = isWikiHtml ? path.basename(file, '.wiki.html') : path.basename(file, ext);
+                const subfolder = path.dirname(relative);
+
+                const pageIndexTreePath = path.join(caseDir, 'concepts', subfolder, basename, 'pageindex_tree.json');
+                if (fs.existsSync(pageIndexTreePath)) {
+                    let treeData;
+                    try {
+                        treeData = JSON.parse(fs.readFileSync(pageIndexTreePath, 'utf8'));
+                        const sections = [];
+                        function collectSections(node) {
+                            if (node.metadata && node.metadata.type === 'section') {
+                                sections.push(node);
+                            }
+                            if (node.children) {
+                                node.children.forEach(collectSections);
+                            }
+                        }
+                        if (treeData.tree) {
+                            collectSections(treeData.tree);
+                        }
+
+                        updateStatus(caseDir, relative, 'enriching');
+                        queueForLazyProcessing(caseDir, basename, sections, relative);
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, status: 'enriching' }));
+                    } catch (e) {
+                        console.error(`[API Server] AI Enrichment trigger failed for ${basename}:`, e.message);
+                        updateStatus(caseDir, relative, 'failed_enrich');
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: e.message }));
+                    }
+                } else {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'pageindex_tree.json not found. Run vector generation first.' }));
+                }
+            });
+        },},
 
         '/api/hayagriva/mark-reviewed': (req, res, parsedUrl, docsRoot) => {
             let body = '';

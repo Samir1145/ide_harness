@@ -421,7 +421,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:convertToMd`, label: '1. Extract Document Text' },
+      { id: `${HAYAGRIVA_NS}:convertToMd`, label: '1. Convert to Markdown' },
       {
         execute: async (uri?: any) => {
           const resourceUri = this.resolveUri(uri);
@@ -464,7 +464,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:ingestToAi`, label: '2. Index into AI Memory' },
+      { id: `${HAYAGRIVA_NS}:ingestToAi`, label: '2. Generate Search Vectors' },
       {
         execute: async (uri?: any) => {
           const resourceUri = this.resolveUri(uri);
@@ -492,7 +492,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/ingest-to-ai`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ case: caseName, file: filePath })
+              body: JSON.stringify({ case: caseName, file: filePath, enrich: false })
             });
             const result = await res.json();
             if (result.success) {
@@ -511,6 +511,46 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const rel = this.getRelativePath(resolved);
           const status = this.treeDecorator.statusCache[rel];
           return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:enrichToAi`, label: '3. Run AI Enrichment' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected for Enrichment');
+            return;
+          }
+          const filePath = resourceUri.path.toString();
+          const caseName = this.getCasePath();
+
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/enrich-ai`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: filePath })
+            });
+            const result = await res.json();
+            if (result.success) {
+              this.logger.info(`[HAYAGRIVA] Enrichment queued for ${getBasename(filePath)}`);
+              await this.treeDecorator.refreshStatuses();
+            } else {
+              alert(result.error || 'Enrichment failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Enrichment failed: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const rel = this.getRelativePath(resolved);
+          const status = this.treeDecorator.statusCache[rel];
+          return !!status && (status.dot2 === 'indexed');
         }
       }
     );

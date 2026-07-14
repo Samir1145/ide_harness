@@ -247,9 +247,9 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
       const dot2Color = colorMap[dot2] || '#6b7280';
       const dot3Color = colorMap[dot3] || '#6b7280';
 
-      const tooltip1 = dot1 === 'companion_ready' || dot1 === 'reviewed' ? '● Companion MD: Ready' : (dot1 === 'blue' ? '● Companion MD: Extracting...' : (dot1 === 'red' ? '● Companion MD: Failed' : '● Companion MD: Right-click › Extract Document Text'));
-      const tooltip2 = dot2 === 'outline_approved' || dot2 === 'indexed' ? '● RAG Q&A Agent: Ready' : (dot2 === 'blue' ? '● RAG Q&A Agent: Indexing...' : (dot2 === 'red' ? '● RAG Q&A Agent: Failed' : '● RAG Q&A Agent: Right-click › Index into AI Memory'));
-      const tooltip3 = dot3 === 'green' || dot3 === 'enriched' ? '● Full Context for Agents: Ready' : (dot3 === 'blue' ? '● Full Context for Agents: Enriching...' : (dot3 === 'red' ? '● Full Context for Agents: Failed' : '● Full Context for Agents: Right-click › Index into AI Memory'));
+      const tooltip1 = dot1 === 'companion_ready' || dot1 === 'reviewed' ? '● Companion MD: Ready' : (dot1 === 'blue' ? '● Companion MD: Extracting...' : (dot1 === 'red' ? '● Companion MD: Failed' : '● Companion MD: Right-click › 1. Convert to Markdown'));
+      const tooltip2 = dot2 === 'outline_approved' || dot2 === 'indexed' ? '● RAG Q&A Agent: Ready' : (dot2 === 'blue' ? '● RAG Q&A Agent: Indexing...' : (dot2 === 'red' ? '● RAG Q&A Agent: Failed' : '● RAG Q&A Agent: Right-click › 2. Generate Search Vectors'));
+      const tooltip3 = dot3 === 'green' || dot3 === 'enriched' ? '● Full Context for Agents: Ready' : (dot3 === 'blue' ? '● Full Context for Agents: Enriching...' : (dot3 === 'red' ? '● Full Context for Agents: Failed' : '● Full Context for Agents: Right-click › 3. Run AI Enrichment'));
 
       let errorSuffix = '';
       if (statusObj.error) {

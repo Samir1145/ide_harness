@@ -61,26 +61,32 @@ export class HayagrivaMenuContribution implements MenuContribution {
 
     registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
       commandId: `${HAYAGRIVA_NS}:convertToMd`,
-      label: '1. Extract Document Text',
+      label: '1. Convert to Markdown',
       order: '1'
     });
 
     registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
       commandId: `${HAYAGRIVA_NS}:ingestToAi`,
-      label: '2. Index into AI Memory',
+      label: '2. Generate Search Vectors',
       order: '2'
+    });
+
+    registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:enrichToAi`,
+      label: '3. Run AI Enrichment',
+      order: '3'
     });
 
     registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
       commandId: `${HAYAGRIVA_NS}:archiveCase`,
       label: 'Archive Case (One File)',
-      order: '3'
+      order: '4'
     });
 
     registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
       commandId: `${HAYAGRIVA_NS}:restoreCase`,
       label: 'Restore Case from Vault',
-      order: '4'
+      order: '5'
     });
 
     registry.registerMenuAction(HAYAGRIVA_SUBMENU, {
