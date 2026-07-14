@@ -332,6 +332,15 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     input.onchange = async () => {
       if (!input.files || input.files.length === 0) return;
       
+      // Batch upload confirmation check to prevent accidental folder/mass uploads
+      if (input.files.length > 5) {
+        const confirmed = confirm(`⚠️ Warning: You are about to upload and process a batch of ${input.files.length} files.\n\nAre you sure you want to proceed?`);
+        if (!confirmed) {
+          this.logger.info(`[HAYAGRIVA] Batch upload of ${input.files.length} files cancelled by user.`);
+          return;
+        }
+      }
+      
       let caseName = 'Case_Alpha';
       const ws = this.workspaceService.getWorkspaceRootUri(undefined);
       if (ws) {
