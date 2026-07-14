@@ -72,3 +72,52 @@ This chapter outlines the modular design of the HAYAGRIVA platform. The system i
   - `agent-coordinator.js` (LLM intent classification router)
   - `advisor-agent/`, `forms-agent/`, `document-agent/` (Agent prompts & personas)
   - Theia AI `ChatAgentService` (Native delegation loop host)
+
+---
+
+## The Three Pillars of User Interaction (The Legal IDE Model)
+
+From a user and workflow perspective, HAYAGRIVA is built around three interactive pillars that act as a **Self-Contained Legal IDE**:
+
+```mermaid
+graph TD
+    %% Ingestion Pillar
+    subgraph Ingestion_Pillar [1. Grounded Case Memory Ingestion]
+        RawFiles[PDFs, DOCX, Wikis] -->|Ingestion & Split| MarkdownCompanions[Markdown Companions]
+        MarkdownCompanions -->|ONNX Vectors & SQLite| SemanticIndex[FTS & Semantic Search Index]
+    end
+
+    %% Monaco Pillar
+    subgraph Monaco_Pillar [2. Monaco Editing Workspace]
+        Editor[Monaco Text Editor]
+        Editor -->|Right-Click / Slash Actions| SearchBridge[Unified Lookup & Insert]
+        SemanticIndex -->|Real-Time Context| SearchBridge
+    end
+
+    %% Agent Pillar
+    subgraph Agent_Pillar [3. Specialized Legal Agents]
+        AgentSuite[Advisor Agent / Forms Agent]
+        AgentSuite -->|1. Scan Drafts & Templates| Editor
+        AgentSuite -->|2. Query Context & Precedents| SemanticIndex
+        AgentSuite -->|3. Compile & Report| CaseAudit[CASE_AUDIT.md & Forms]
+    end
+
+    %% User Interaction
+    Lawyer((Lawyer)) -->|Write & Right-Click| Editor
+    Lawyer -->|Audit Prompts| AgentSuite
+```
+
+### 1. Grounded Case Memory (Ingestion)
+*   **Purpose:** The fact-verification engine of the case.
+*   **Mechanism:** Raw files are ingested and tokenized locally into markdown, SQLite databases, and semantic ONNX vectors.
+*   **Failsafe:** This serves as the system's "source of truth," grounding all subsequent drafting in raw evidence to prevent AI hallucination.
+
+### 2. Monaco Workspace (Drafting & Editing)
+*   **Purpose:** The central workbench for the lawyer.
+*   **Mechanism:** Standard autocomplete actions, templates, and contextual lookup tools (Statutes, Judgments, and Case Concepts) are integrated directly into Monaco via right-click triggers and slash commands.
+*   **Failsafe:** Lawyers stay inside a single unified text editor, referencing laws and precedent summaries inline.
+
+### 3. Specialized Legal Agents (Curation & Auditing)
+*   **Purpose:** Specialized automated associates checking quality and compliance.
+*   **Mechanism:** The subagents run in-context to audit draft quality, detect unresolved placeholders, verify timeline gaps, and output compliance audits (like `CASE_AUDIT.md`) and pre-filled corporate filings.
+
