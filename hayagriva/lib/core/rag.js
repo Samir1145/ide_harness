@@ -5,6 +5,20 @@ const { parseMarkdownWithFrontmatter } = require('../utils/okf');
 const bm25 = require('./bm25');
 const { streamChat, getChatResponse } = require('./llm-client');
 
+function cosineSimilarity(vecA, vecB) {
+    if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < vecA.length; i++) {
+        dotProduct += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+    }
+    if (normA === 0 || normB === 0) return 0;
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
 const GLOSSARY_MAP = {
     're': 'Regulated Entity',
     'res': 'Regulated Entities',
@@ -162,7 +176,7 @@ Hypothetical Answer:`;
     }
 
     const { getDb } = require('./sqlite-store');
-    let rows = [];
+    let ftsRows = [];
     try {
         const db = getDb(caseDir);
         const ftsQuery = db.prepare(`
@@ -172,24 +186,145 @@ Hypothetical Answer:`;
             ORDER BY ftsScore ASC
             LIMIT 12
         `);
-        rows = ftsQuery.all(searchTerms);
+        ftsRows = ftsQuery.all(searchTerms);
     } catch (err) {
         console.warn('[SQLite Search] FTS search query failed, using empty results:', err.message);
     }
 
-    const hits = rows.map(r => {
+    // Convert FTS rows to standard hits
+    const ftsHits = ftsRows.map(r => {
         const isWiki = r.filename.startsWith('wiki/');
         const ext = path.extname(r.filename).toLowerCase();
         const docName = isWiki ? 'Wiki' : path.basename(r.filename, ext);
         const docId = isWiki ? `wiki::${r.section_title}` : `${docName}::${r.section_title}::${r.chunk_index}`;
         return {
             docId,
-            score: -r.ftsScore, // Convert negative SQLite BM25 rank to positive score for boosting
+            score: -r.ftsScore,
             filename: r.filename,
             section_title: r.section_title,
             page_number: r.page_number,
             content: r.content
         };
+    });
+
+    // ── Vector Search ────────────────────────────────────────────────
+    const { getEmbedding } = require('./llm-client');
+    let queryVector = null;
+    try {
+        queryVector = await getEmbedding(queryText, caseDir);
+    } catch (e) {
+        console.warn('[RAG] Failed to generate query embedding:', e.message);
+    }
+
+    let vectorHits = [];
+    if (queryVector && queryVector.length > 0) {
+        try {
+            const db = getDb(caseDir);
+            if (db.vssEnabled) {
+                // Query using native sqlite-vss!
+                try {
+                    const vssQuery = db.prepare(`
+                        SELECT rowid, distance FROM vss_document_vectors
+                        WHERE vss_search(vector_blob, ?)
+                        ORDER BY distance ASC
+                        LIMIT 12
+                    `);
+                    const queryBuffer = Buffer.from(new Float32Array(queryVector).buffer);
+                    const vssRows = vssQuery.all(queryBuffer);
+                    
+                    const resolveQuery = db.prepare(`
+                        SELECT filename, section_title, page_number, chunk_index, content
+                        FROM document_vectors WHERE id = ?
+                    `);
+                    for (const row of vssRows) {
+                        const docRow = resolveQuery.get(row.rowid);
+                        if (docRow) {
+                            const isWiki = docRow.filename.startsWith('wiki/');
+                            const ext = path.extname(docRow.filename).toLowerCase();
+                            const docName = isWiki ? 'Wiki' : path.basename(docRow.filename, ext);
+                            const docId = isWiki ? `wiki::${docRow.section_title}` : `${docName}::${docRow.section_title}::${docRow.chunk_index}`;
+                            vectorHits.push({
+                                docId,
+                                score: 1 / (1 + row.distance),
+                                filename: docRow.filename,
+                                section_title: docRow.section_title,
+                                page_number: docRow.page_number,
+                                content: docRow.content
+                            });
+                        }
+                    }
+                    console.log(`[RAG] Native sqlite-vss search retrieved ${vectorHits.length} context matches.`);
+                } catch (vssErr) {
+                    console.warn('[RAG] Native sqlite-vss search failed, falling back:', vssErr.message);
+                }
+            }
+            
+            // Fallback: JS-based in-memory cosine similarity
+            if (vectorHits.length === 0) {
+                const allVectors = db.prepare('SELECT id, filename, section_title, page_number, chunk_index, content, vector_blob FROM document_vectors').all();
+                const scored = [];
+                for (const row of allVectors) {
+                    if (row.vector_blob) {
+                        const floatArray = new Float32Array(row.vector_blob.buffer, row.vector_blob.byteOffset, row.vector_blob.byteLength / 4);
+                        const sim = cosineSimilarity(queryVector, Array.from(floatArray));
+                        const isWiki = row.filename.startsWith('wiki/');
+                        const ext = path.extname(row.filename).toLowerCase();
+                        const docName = isWiki ? 'Wiki' : path.basename(row.filename, ext);
+                        const docId = isWiki ? `wiki::${row.section_title}` : `${docName}::${row.section_title}::${row.chunk_index}`;
+                        scored.push({
+                            docId,
+                            score: sim,
+                            filename: row.filename,
+                            section_title: row.section_title,
+                            page_number: row.page_number,
+                            content: row.content
+                        });
+                    }
+                }
+                scored.sort((a, b) => b.score - a.score);
+                vectorHits = scored.slice(0, 12);
+                console.log(`[RAG] JS fallback vector similarity retrieved ${vectorHits.length} context matches.`);
+            }
+        } catch (vectorErr) {
+            console.warn('[RAG] Vector semantic search failed completely:', vectorErr.message);
+        }
+    }
+
+    // ── Reciprocal Rank Fusion (RRF) ──────────────────────────────────
+    const mergedMap = new Map();
+    
+    // Add FTS ranks
+    ftsHits.forEach((hit, idx) => {
+        const key = hit.docId;
+        mergedMap.set(key, {
+            hit,
+            ftsRank: idx + 1,
+            vectorRank: 100 // default worst rank if not present
+        });
+    });
+
+    // Add Vector ranks
+    vectorHits.forEach((hit, idx) => {
+        const key = hit.docId;
+        const existing = mergedMap.get(key);
+        if (existing) {
+            existing.vectorRank = idx + 1;
+        } else {
+            mergedMap.set(key, {
+                hit,
+                ftsRank: 100,
+                vectorRank: idx + 1
+            });
+        }
+    });
+
+    // Compute RRF scores (constant = 60)
+    const hits = Array.from(mergedMap.values()).map(item => {
+        const hit = item.hit;
+        const scoreFts = 1 / (item.ftsRank + 60);
+        const scoreVec = 1 / (item.vectorRank + 60);
+        hit.score = scoreFts + scoreVec; // fused score
+        return hit;
     });
 
     // Apply score boosting based on case wiki overrides and document priority settings

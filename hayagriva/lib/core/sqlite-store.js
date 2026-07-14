@@ -26,6 +26,19 @@ function getDb(caseDir) {
         db.exec('PRAGMA busy_timeout = 5000;');
     } catch (_) {}
     
+    // Load sqlite-vss extension dynamically if available
+    let vssLoaded = false;
+    try {
+        if (typeof db.loadExtension === 'function') {
+            db.loadExtension('vss0');
+            vssLoaded = true;
+            console.log('[SQLite Store] Native sqlite-vss extension successfully loaded.');
+        }
+    } catch (e) {
+        console.warn(`[SQLite Store] sqlite-vss native extension could not be loaded: ${e.message}. Using in-memory fallback.`);
+    }
+    db.vssEnabled = vssLoaded;
+    
     // Setup tables
     db.exec(`
         CREATE TABLE IF NOT EXISTS documents (
@@ -117,6 +130,20 @@ function getDb(caseDir) {
         `);
     } catch (e) {
         console.error('[SQLite Store] Failed to create FTS5 virtual table:', e.message);
+    }
+
+    // Setup sqlite-vss virtual table if enabled
+    if (db.vssEnabled) {
+        try {
+            db.exec(`
+                CREATE VIRTUAL TABLE IF NOT EXISTS vss_document_vectors USING vss0(
+                    vector_blob(384)
+                );
+            `);
+            console.log('[SQLite Store] vss_document_vectors virtual table initialized.');
+        } catch (e) {
+            console.error('[SQLite Store] Failed to create vss_document_vectors virtual table:', e.message);
+        }
     }
 
     connections.set(caseDir, db);

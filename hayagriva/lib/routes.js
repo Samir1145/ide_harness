@@ -1242,7 +1242,7 @@ module.exports = {
                     res.end(JSON.stringify({ error: 'pageindex_tree.json not found. Run vector generation first.' }));
                 }
             });
-        },},
+        },
 
         '/api/hayagriva/mark-reviewed': (req, res, parsedUrl, docsRoot) => {
             let body = '';

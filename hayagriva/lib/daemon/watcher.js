@@ -1116,6 +1116,11 @@ async function indexVectorsToSqlite(caseDir, result, profile) {
         const relative = findOriginalFilePath(caseDir, result.relative);
         
         // Clear old vectors
+        if (db.vssEnabled) {
+            try {
+                db.prepare('DELETE FROM vss_document_vectors WHERE rowid IN (SELECT id FROM document_vectors WHERE filename = ?)').run(relative);
+            } catch (_) {}
+        }
         const deleteVectors = db.prepare('DELETE FROM document_vectors WHERE filename = ?');
         deleteVectors.run(relative);
 
@@ -1158,7 +1163,14 @@ async function indexVectorsToSqlite(caseDir, result, profile) {
             if (vec && vec.length > 0) {
                 const floatArray = new Float32Array(vec);
                 const buffer = Buffer.from(floatArray.buffer);
-                insertVector.run(relative, item.sectionTitle, item.pageNum, item.chunkIndex, item.content, buffer);
+                const res = insertVector.run(relative, item.sectionTitle, item.pageNum, item.chunkIndex, item.content, buffer);
+                if (db.vssEnabled && res && res.lastInsertRowid) {
+                    try {
+                        db.prepare('INSERT INTO vss_document_vectors (rowid, vector_blob) VALUES (?, ?)').run(res.lastInsertRowid, buffer);
+                    } catch (e) {
+                        console.error('[Vector Index] Failed to insert into vss_document_vectors:', e.message);
+                    }
+                }
             }
         }
         console.log(`[Vector Index] Successfully stored vector mappings for "${relative}" in case_vault.db`);
