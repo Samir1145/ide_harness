@@ -559,6 +559,94 @@ module.exports = {
             res.end(JSON.stringify({ cards: files }));
         },
 
+        '/api/hayagriva/case-graph': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+            const caseDir = path.join(docsRoot, caseName);
+            const conceptsDir = path.join(caseDir, 'concepts');
+            const wikiDir = path.join(caseDir, 'wiki');
+            
+            const nodes = [];
+            const links = [];
+            const titleToNode = new Map();
+            const { parseMarkdownWithFrontmatter } = require('./utils/okf');
+
+            // 1. Process Concepts Directory
+            if (fs.existsSync(conceptsDir)) {
+                const docs = fs.readdirSync(conceptsDir).filter(f => {
+                    return fs.statSync(path.join(conceptsDir, f)).isDirectory() && !f.startsWith('.');
+                });
+                
+                for (const doc of docs) {
+                    const docId = `doc::${doc}`;
+                    nodes.push({ id: docId, name: doc, type: 'document', path: '' });
+                    
+                    const docDir = path.join(conceptsDir, doc);
+                    const files = fs.readdirSync(docDir).filter(f => f.endsWith('.md') && f !== 'index.md');
+                    for (const f of files) {
+                        const filePath = path.join(docDir, f);
+                        const relPath = `concepts/${doc}/${f}`;
+                        const content = fs.readFileSync(filePath, 'utf8');
+                        const { frontmatter } = parseMarkdownWithFrontmatter(content);
+                        const title = frontmatter.title || f.replace('.md', '');
+                        
+                        const nodeId = `concept::${relPath}`;
+                        const conceptNode = {
+                            id: nodeId,
+                            name: title,
+                            type: 'concept',
+                            path: relPath,
+                            links: frontmatter.links || [],
+                            ancestors: frontmatter.ancestors || []
+                        };
+                        nodes.push(conceptNode);
+                        titleToNode.set(title.toLowerCase(), nodeId);
+                        
+                        // Parent-child link
+                        links.push({ source: docId, target: nodeId, type: 'hierarchy' });
+                    }
+                }
+            }
+
+            // 2. Process Wiki Directory
+            if (fs.existsSync(wikiDir)) {
+                const files = fs.readdirSync(wikiDir).filter(f => f.endsWith('.md'));
+                for (const f of files) {
+                    const filePath = path.join(wikiDir, f);
+                    const relPath = `wiki/${f}`;
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    const { frontmatter } = parseMarkdownWithFrontmatter(content);
+                    const title = frontmatter.title || f.replace('.md', '');
+                    
+                    const nodeId = `wiki::${relPath}`;
+                    const wikiNode = {
+                        id: nodeId,
+                        name: title,
+                        type: 'wiki',
+                        path: relPath,
+                        links: frontmatter.links || [],
+                        ancestors: []
+                    };
+                    nodes.push(wikiNode);
+                    titleToNode.set(title.toLowerCase(), nodeId);
+                }
+            }
+
+            // 3. Resolve References/Cross-links
+            for (const node of nodes) {
+                if (node.links && Array.isArray(node.links)) {
+                    for (const linkTitle of node.links) {
+                        const targetId = titleToNode.get(linkTitle.toLowerCase());
+                        if (targetId && targetId !== node.id) {
+                            links.push({ source: node.id, target: targetId, type: 'reference' });
+                        }
+                    }
+                }
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ nodes, links }));
+        },
+
         '/api/hayagriva/concepts': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
             const caseDir = path.join(docsRoot, caseName);

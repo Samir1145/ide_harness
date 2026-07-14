@@ -370,28 +370,28 @@ function loadLlmConfig(opts) {
     return config;
 }
 
+let _localPipeline = null;
+
+async function getLocalEmbedding(text) {
+    if (!_localPipeline) {
+        console.log('[LLM Client] Initializing local ONNX transformers embedding pipeline...');
+        const { pipeline, env } = await import('@xenova/transformers');
+        env.allowLocalModels = true;
+        _localPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    }
+    const output = await _localPipeline(text, { pooling: 'mean', normalize: true });
+    return Array.from(output.data);
+}
+
 async function getEmbedding(text, caseDir) {
     const config = loadLlmConfig({ caseDir });
     
     if (config.activeMode === 'local') {
         try {
-            const url = `${config.localEndpoint.replace(/\/$/, '')}/api/embeddings`;
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: config.localEmbedModel,
-                    prompt: text
-                })
-            });
-            if (res.ok) {
-                const json = await res.json();
-                if (json.embedding) return json.embedding;
-            }
-            throw new Error(`Ollama returned status ${res.status}`);
+            return await getLocalEmbedding(text);
         } catch (err) {
-            console.error(`[LLM Client] Ollama local embedding failed: ${err.message}`);
-            return new Array(768).fill(0);
+            console.error(`[LLM Client] Local ONNX embedding failed: ${err.message}`);
+            return new Array(384).fill(0);
         }
     } else {
         if (config.cloudProvider === 'gemini') {
@@ -410,8 +410,12 @@ async function getEmbedding(text, caseDir) {
                 }
                 throw new Error(`Gemini API returned status ${res.status}`);
             } catch (err) {
-                console.error(`[LLM Client] Gemini cloud embedding failed: ${err.message}`);
-                return new Array(768).fill(0);
+                console.error(`[LLM Client] Gemini cloud embedding failed: ${err.message}. Falling back to local ONNX.`);
+                try {
+                    return await getLocalEmbedding(text);
+                } catch (_) {
+                    return new Array(384).fill(0);
+                }
             }
         } else if (config.cloudProvider === 'openai') {
             try {
@@ -433,12 +437,20 @@ async function getEmbedding(text, caseDir) {
                 }
                 throw new Error(`OpenAI API returned status ${res.status}`);
             } catch (err) {
-                console.error(`[LLM Client] OpenAI cloud embedding failed: ${err.message}`);
-                return new Array(768).fill(0);
+                console.error(`[LLM Client] OpenAI cloud embedding failed: ${err.message}. Falling back to local ONNX.`);
+                try {
+                    return await getLocalEmbedding(text);
+                } catch (_) {
+                    return new Array(384).fill(0);
+                }
             }
         }
     }
-    return new Array(768).fill(0);
+    try {
+        return await getLocalEmbedding(text);
+    } catch (_) {
+        return new Array(384).fill(0);
+    }
 }
 
 async function* streamChat(messages, opts = {}) {

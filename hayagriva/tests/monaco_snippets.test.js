@@ -5,8 +5,8 @@ const fs = require('fs');
 const path = require('path');
 
 function getSnippetFunction() {
-    // Go up two directories from tests/ to reach workspace root, then into hayagriva-extension
-    const extPath = path.join(__dirname, '../../hayagriva-extension/src/browser/extension.ts');
+    // Go up two directories from tests/ to reach workspace root, then into the ide folder
+    const extPath = path.join(__dirname, '../../ide/theia-extensions/hayagriva/src/browser/extension.ts');
     const content = fs.readFileSync(extPath, 'utf8');
     
     // Extract the function body dynamically using regex

@@ -41,7 +41,7 @@ DOCUMENT TEXT:
 ${textChunk}`;
 
     try {
-        const response = await getChatResponse([{ role: 'user', content: prompt }], { timeout: 60000 });
+        const response = await getChatResponse([{ role: 'user', content: prompt }], { timeout: 120000 });
         let cleanResponse = (response || '').trim();
         
         // Strip markdown JSON block ticks if present

@@ -697,14 +697,14 @@ async function startLazyWorker() {
  
 Text:
 ${targetNode.content}`;
-            const summaryText = await getChatResponse([{ role: 'user', content: summaryPrompt }], { timeout: 35000 });
+            const summaryText = await getChatResponse([{ role: 'user', content: summaryPrompt }], { timeout: 90000 });
 
             // 2. Generate Doc2Query Questions
             const qPrompt = `You are a document indexing assistant. Read the document text below and generate 4 diverse hypothetical questions that this text answers. Format them as a list of bullet points starting with "- ". Do not write any introduction, metadata, or extra explanation.
  
 Text:
 ${targetNode.content}`;
-            const questionsText = await getChatResponse([{ role: 'user', content: qPrompt }], { timeout: 35000 });
+            const questionsText = await getChatResponse([{ role: 'user', content: qPrompt }], { timeout: 90000 });
 
             // 3. Update the Tree JSON node
             targetNode.summary = summaryText.trim();
@@ -1074,5 +1074,7 @@ module.exports = {
     updateStatus,
     queueForLazyProcessing,
     ensureAuditDocs,
-    generateCaseAudit
+    generateCaseAudit,
+    indexToSqlite,
+    indexVectorsToSqlite
 };

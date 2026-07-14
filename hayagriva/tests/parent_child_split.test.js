@@ -4,6 +4,7 @@ const fs = require('fs');
 const bm25 = require('../lib/core/bm25');
 const { ingestText } = require('../lib/pipeline/common/text_ingest');
 const { retrieveContexts } = require('../lib/core/rag');
+const { indexToSqlite, updateStatus } = require('../lib/daemon/watcher');
 
 async function run() {
     console.log('[Parent-Child Split Unit Tests]');
@@ -33,6 +34,10 @@ async function run() {
     try {
         console.log('  -> Ingesting long document to trigger parent-child split...');
         const result = await ingestText(tempDir, filePath, indexObj, bm25IndexFile);
+        
+        // Also populate mock SQLite database since RAG retrieveContexts queries SQLite fts_chunks
+        updateStatus(tempDir, 'long_document.md', 'indexed');
+        indexToSqlite(tempDir, result);
         
         // Assertions:
         // 1. Check index contains split sub-chunks
