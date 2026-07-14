@@ -37,6 +37,24 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '2'
     });
 
+    registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:lookupCitation`,
+      label: 'Lookup Statute in Law Vault',
+      order: '3'
+    });
+
+    registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:lookupJudgment`,
+      label: 'Lookup Judgment in Precedents',
+      order: '4'
+    });
+
+    registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:lookupConcept`,
+      label: 'Lookup Case Concept Card',
+      order: '5'
+    });
+
     // Navigator (File Explorer) right click menu submenu
     const HAYAGRIVA_SUBMENU = ['navigator-context-menu', 'hayagriva_submenu'];
     registry.registerSubmenu(HAYAGRIVA_SUBMENU, 'Hayagriva');

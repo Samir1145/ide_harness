@@ -584,6 +584,157 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error(`[HAYAGRIVA] Failed to open Database Viewer: ${e.message}`);
             alert(`Failed to open Database Viewer: ${e.message}`);
           }
+          }
+        }
+      }
+    );
+
+    // ── Monaco Context Lookup: Statutes ──────────────────────────────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:lookupCitation`, label: 'Lookup Statute in Law Vault' },
+      {
+        execute: async () => {
+          const activeEditor = this.editorManager.activeEditor;
+          if (!activeEditor) return;
+          const selectedText = activeEditor.editor.getSelectedText().trim();
+          if (!selectedText) {
+            alert('Please highlight a section or statute keyword to lookup (e.g. "Section 135").');
+            return;
+          }
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/laws/query?q=${encodeURIComponent(selectedText)}`);
+            if (!res.ok) {
+              alert('Law Vault query failed');
+              return;
+            }
+            const json = await res.json();
+            const results = json.results || [];
+            if (results.length === 0) {
+              alert(`No matching section found for "${selectedText}" in the Law Vault.`);
+              return;
+            }
+            const match = results[0];
+            const cleanText = (match.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+            const preview = `Title: ${match.title || `Section ${match.section}`}\n\n${cleanText}`;
+            alert(`--- [Statute Vault Match] ---\n${preview.substring(0, 1000)}${preview.length > 1000 ? '...' : ''}`);
+            
+            const doInsert = confirm('Do you want to insert this statute text at your cursor?');
+            if (doInsert) {
+              await activeEditor.editor.replaceSelection(`\n\n> **${match.title || `Section ${match.section}`}**\n> ${cleanText.replace(/\n/g, '\n> ')}\n\n`);
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Law lookup failed: ${e.message}`);
+          }
+        }
+      }
+    );
+
+    // ── Monaco Context Lookup: Judgments ─────────────────────────────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:lookupJudgment`, label: 'Lookup Judgment in Precedents' },
+      {
+        execute: async () => {
+          const activeEditor = this.editorManager.activeEditor;
+          if (!activeEditor) return;
+          const selectedText = activeEditor.editor.getSelectedText().trim();
+          if (!selectedText) {
+            alert('Please highlight a case law name or citation first (e.g. "Kesavananda").');
+            return;
+          }
+          try {
+            const caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/wiki-cards?case=${encodeURIComponent(caseName)}`);
+            if (!res.ok) {
+              alert('Judgments query failed');
+              return;
+            }
+            const json = await res.json();
+            const list = json.cards || [];
+            
+            // Search matching card by title/tags/filename
+            const match = list.find((c: any) => 
+              c.title.toLowerCase().includes(selectedText.toLowerCase()) || 
+              c.filename.toLowerCase().includes(selectedText.toLowerCase())
+            );
+            
+            if (!match) {
+              alert(`No matching precedent card found for "${selectedText}" in the case Wiki.`);
+              return;
+            }
+
+            const readRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/read-file?path=${encodeURIComponent(`wiki/${match.filename}`)}`);
+            if (!readRes.ok) {
+              alert('Failed to read judgment content');
+              return;
+            }
+            const content = await readRes.text();
+            alert(`--- [Precedent Match: ${match.title}] ---\n\n${content.substring(0, 1000)}${content.length > 1000 ? '...' : ''}`);
+            
+            const doInsert = confirm('Do you want to insert this judgment summary at your cursor?');
+            if (doInsert) {
+              await activeEditor.editor.replaceSelection(`\n\n${content}\n\n`);
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Judgment lookup failed: ${e.message}`);
+          }
+        }
+      }
+    );
+
+    // ── Monaco Context Lookup: Case Concepts ──────────────────────────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:lookupConcept`, label: 'Lookup Case Concept Card' },
+      {
+        execute: async () => {
+          const activeEditor = this.editorManager.activeEditor;
+          if (!activeEditor) return;
+          const selectedText = activeEditor.editor.getSelectedText().trim();
+          if (!selectedText) {
+            alert('Please highlight a concept name (e.g. "Payment Terms").');
+            return;
+          }
+          try {
+            const caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/concepts?case=${encodeURIComponent(caseName)}`);
+            if (!res.ok) {
+              alert('Concepts query failed');
+              return;
+            }
+            const json = await res.json();
+            const list = json.concepts || [];
+            
+            const match = list.find((c: any) => c.title.toLowerCase().trim() === selectedText.toLowerCase());
+            if (!match) {
+              const partials = list.filter((c: any) => c.title.toLowerCase().includes(selectedText.toLowerCase()));
+              if (partials.length > 0) {
+                const options = partials.map((c: any) => c.title).join(', ');
+                alert(`No exact match. Did you mean: ${options}?`);
+              } else {
+                alert(`No concept card found for "${selectedText}" in this case.`);
+              }
+              return;
+            }
+
+            const readRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/read-file?path=${encodeURIComponent(match.relativePath)}`);
+            if (!readRes.ok) {
+              alert('Failed to read concept content');
+              return;
+            }
+            const content = await readRes.text();
+            alert(`--- [Case Concept: ${match.title}] ---\n\n${content.substring(0, 1000)}${content.length > 1000 ? '...' : ''}`);
+            
+            const insertType = prompt('Type "link" to insert reference link, or "text" to insert full content:');
+            if (insertType && insertType.toLowerCase().trim() === 'link') {
+              await activeEditor.editor.replaceSelection(`[${selectedText}](${match.relativePath})`);
+            } else if (insertType && insertType.toLowerCase().trim() === 'text') {
+              await activeEditor.editor.replaceSelection(`\n\n${content}\n\n`);
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Concept lookup failed: ${e.message}`);
+          }
         }
       }
     );

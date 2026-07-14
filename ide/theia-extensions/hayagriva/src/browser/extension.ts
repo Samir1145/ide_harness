@@ -840,7 +840,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
       for (const lang of LANGS) {
         monaco.languages.registerCompletionItemProvider(lang, {
-          triggerCharacters: ['@', '/'],
+          triggerCharacters: ['/'],
           provideCompletionItems: async (model: any, position: any, _context: any, token: any) => {
             const lineText: string = model.getLineContent(position.lineNumber);
             const textUpToCursor = lineText.substring(0, position.column - 1);
@@ -1035,95 +1035,12 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
               }
             }
 
-            // ── @@ Inline Citations ─────────────────────────────────────────
-            const triggerMatch = textUpToCursor.match(/@@?([\w\s./,-]*)$/);
-            if (!triggerMatch) return { suggestions: [] };
-
-            const matchIdx = textUpToCursor.search(/@@?([\w\s./,-]*)$/);
-            const rawTrigger = triggerMatch[1].trim();
-
-            const replaceRange = new monaco.Range(
-                position.lineNumber,
-                matchIdx + 1,
-                position.lineNumber,
-                position.column
-            );
-
-            let suggestions: any[] = [];
-            const rawTriggerLower = rawTrigger.toLowerCase();
-            const isGlobalSearch = !rawTrigger.includes('/') && rawTrigger.length > 3 && !LAW_DOMAINS.some(d => d.code === rawTriggerLower);
-
-            // Level 1: Just typed @@, or typing the short code before the first slash
-            if (!rawTrigger.includes('/')) {
-                suggestions = LAW_DOMAINS.map(domain => ({
-                    label: `@@${domain.code.toUpperCase()} - ${domain.label}`,
-                    filterText: `@@${domain.code.toLowerCase()}`,
-                    kind: monaco.languages.CompletionItemKind.Folder,
-                    insertText: `@@${domain.code}/`,
-                    range: replaceRange,
-                    detail: 'Law Corpus',
-                }));
-                // If they are just typing a domain name, return early to save network calls
-                if (!isGlobalSearch) return { suggestions };
-            }
-
-            const parts = rawTrigger.split('/');
-
-            // Level 2: Detect @@ibc/ and no further characters yet
-            if (parts.length === 2 && parts[0] === 'ibc' && parts[1] === '') {
-                const ibcSuggestions = IBC_SUBDOMAINS.map(sub => ({
-                    label: `@@ibc/${sub.code.toLowerCase()} - ${sub.label}`,
-                    filterText: `@@ibc/${sub.code.toLowerCase()}`,
-                    kind: monaco.languages.CompletionItemKind.Folder,
-                    insertText: `@@ibc/${sub.code}/`,
-                    range: replaceRange,
-                    detail: 'Sub-Process',
-                }));
-                return { suggestions: ibcSuggestions };
-            }
-
-            // Level 2: Detect @@mca/ and no further characters yet
-            if (parts.length === 2 && parts[0] === 'mca' && parts[1] === '') {
-                const mcaSuggestions = MCA_SUBDOMAINS.map(sub => ({
-                    label: `@@mca/${sub.code.toLowerCase()} - ${sub.label}`,
-                    filterText: `@@mca/${sub.code.toLowerCase()}`,
-                    kind: monaco.languages.CompletionItemKind.Folder,
-                    insertText: `@@mca/${sub.code}/`,
-                    range: replaceRange,
-                    detail: 'Chapter/Rule',
-                }));
-                return { suggestions: mcaSuggestions };
-            }
-
-            // Level 3 & Global Search: Fetch from backend
-            if (rawTrigger.length < 3) return { suggestions };
-
-            const results = await fetchCompletions(rawTrigger);
-            if (!results.length || token.isCancellationRequested) return { suggestions };
-
-            const backendSuggestions = results.map((r: any) => {
-                const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
-                const { snippet, hasSnippets } = convertToSnippet(cleanText);
-                return {
-                    label: `@@${rawTrigger} → ${r.title || `Section ${r.section}`}`,
-                    filterText: `@@${rawTrigger}`,
-                    kind: monaco.languages.CompletionItemKind.Snippet,
-                    insertText: snippet,
-                    insertTextRules: hasSnippets
-                        ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-                        : undefined,
-                    range: replaceRange,
-                    detail: r.id,
-                    documentation: cleanText.substring(0, 200) + '...'
-                };
-            });
-
-            return { suggestions: [...suggestions, ...backendSuggestions] };
+            return { suggestions: [] };
           }
         });
       }
 
-      this.logger.info('[HAYAGRIVA] Law completion Dropdown (@@) registered for markdown and plaintext.');
+      this.logger.info('[HAYAGRIVA] Command Dropdown (/) registered for markdown and plaintext.');
     };
 
     checkMonaco();
