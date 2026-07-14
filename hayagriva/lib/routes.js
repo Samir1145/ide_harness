@@ -433,7 +433,7 @@ module.exports = {
                                 if (isWikiHtml) {
                                     dot1 = 'reviewed';
                                 } else {
-                                    if (['companion_ready', 'reviewed', 'ingesting', 'indexed', 'enriching', 'enriched'].includes(docStatus)) {
+                                    if (['companion_ready', 'reviewed', 'ingesting', 'indexed', 'failed_ingest', 'enriching', 'enriched', 'failed_enrich'].includes(docStatus)) {
                                         dot1 = 'companion_ready';
                                     } else if (docStatus === 'converting' || docStatus === 'processing') {
                                         dot1 = 'blue';
@@ -444,7 +444,7 @@ module.exports = {
 
                                 // Dot 2 (Index)
                                 let dot2 = 'grey';
-                                if (['indexed', 'enriching', 'enriched'].includes(docStatus)) {
+                                if (['indexed', 'enriching', 'enriched', 'failed_enrich'].includes(docStatus)) {
                                     dot2 = 'indexed';
                                 } else if (docStatus === 'ingesting') {
                                     dot2 = 'blue';
