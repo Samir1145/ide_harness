@@ -259,3 +259,26 @@ On Phase 2 Concept compilation in [text_ingest.js](file:///Users/atulgrover/Desk
 ```
 
 Response: `{ "ok": true, "sections": 41 }`
+
+---
+
+## 4. Troubleshooting & Ingestion Failsafes ("Likely to Break" Points)
+
+Understanding where each step of the split pipeline is likely to fail is critical for maintaining robust legal ingestion services:
+
+### Step 1: Convert to Markdown (Dot 1)
+*   **Scanned/Flat PDFs (OCR Failure):** If a PDF consists of image scans with no selectable text, the layout engine falls back to vision-based OCR. This requires an active `OPENROUTER_API_KEY` (Gemini Flash) and network connection. Without them, page conversion outputs blank pages or times out.
+*   **Gatekeeper Executable Block (macOS):** Custom compiled helper binaries (like `bin/pandoc-arm64` and `lib/pipeline/pdf/pdf2png`) may be blocked from executing by macOS Gatekeeper security policies. Run `chmod +x` or verify the code signing of these binaries.
+*   **Legacy Formats:** Standard loaders strictly parse modern `.docx` and `.xlsx` files. Uploading legacy binary formats (like pre-2007 Word `.doc` or Excel `.xls` files) will fail unless an external LibreOffice (`soffice`) converter is running.
+
+### Step 2: Generate Search Vectors (Dot 2)
+*   **Offline First-Run (ONNX Cache):** The `all-MiniLM-L6-v2` transformer model runs inside your Node.js process using ONNX runtime. If it hasn't been cached locally (`~/.cache/huggingface/hub/`), it will attempt a network download. Running Step 2 offline before model pre-download will cause a crash.
+*   **Memory Exhaustion (Out-of-Memory / OOM):** When processing massive documents (500+ pages), the file is split into thousands of chunks. Running local vector calculations on thousands of chunks sequentially can freeze the Node.js event loop or exhaust heap memory.
+*   **SQLite Concurrency Locks:** If batch operations are active simultaneously, SQLite can lock. Although protected by a `busy_timeout` queue, high-volume concurrent processes can eventually fail with `SQLITE_BUSY: database is locked`.
+
+### Step 3: Run AI Enrichment (Dot 3)
+*   **Ollama / Local LLM Outages:** If using a local LLM (e.g. `qwen2.5-coder:1.5b`), the Ollama daemon must be actively running (`ollama serve`) and the model pre-pulled. Otherwise, connections fail instantly with connection refused.
+*   **Slow Local GPU/CPU (Timeouts):** Generating legal facts on consumer-grade laptops can be extremely slow. If a single chunk extraction exceeds **120 seconds**, the pipeline worker times out and marks the status as `failed_enrich`.
+*   **Malformed LLM JSON Payload:** If the LLM generates conversational preambles, includes syntax errors (trailing commas, unclosed brackets), or truncates due to token limits, the server's `JSON.parse` wrapper fails.
+*   **Cloud API Key Restrictions:** If configured to run in cloud mode, missing or invalid `GEMINI_API_KEY` or `OPENAI_API_KEY` credentials in `.env` will instantly halt the enrichment process.
+
