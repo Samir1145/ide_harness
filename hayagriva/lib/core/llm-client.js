@@ -367,6 +367,29 @@ function loadLlmConfig(opts) {
         else if (config.cloudProvider === 'openrouter') config.apiKey = process.env.OPENROUTER_API_KEY;
     }
 
+    // Auto-detect available cloud API keys in environment to switch from slow local to fast cloud mode
+    if (config.activeMode === 'local') {
+        const hasSettingsFile = opts && opts.caseDir && fs.existsSync(path.join(opts.caseDir, 'hayagriva_settings.json'));
+        if (!hasSettingsFile) {
+            if (process.env.GEMINI_API_KEY) {
+                config.activeMode = 'cloud';
+                config.cloudProvider = 'gemini';
+                config.apiKey = process.env.GEMINI_API_KEY;
+                console.log('[LLM Client] Auto-detected GEMINI_API_KEY. Upgrading to Cloud mode...');
+            } else if (process.env.OPENROUTER_API_KEY) {
+                config.activeMode = 'cloud';
+                config.cloudProvider = 'openrouter';
+                config.apiKey = process.env.OPENROUTER_API_KEY;
+                console.log('[LLM Client] Auto-detected OPENROUTER_API_KEY. Upgrading to Cloud mode...');
+            } else if (process.env.OPENAI_API_KEY) {
+                config.activeMode = 'cloud';
+                config.cloudProvider = 'openai';
+                config.apiKey = process.env.OPENAI_API_KEY;
+                console.log('[LLM Client] Auto-detected OPENAI_API_KEY. Upgrading to Cloud mode...');
+            }
+        }
+    }
+
     return config;
 }
 
