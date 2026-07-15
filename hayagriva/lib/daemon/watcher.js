@@ -24,7 +24,20 @@ function findOriginalFilePath(caseDir, mdRelativePath) {
     return mdRelativePath;
 }
 
-function updateStatus(caseDir, relativePath, status) {
+function getSafeFilename(title) {
+    let safe = title.replace(/[^a-zA-Z0-9\s-_]/g, '').trim().replace(/\s+/g, '_') || 'untitled';
+    if (safe.length > 60) {
+        let hash = 0;
+        for (let i = 0; i < title.length; i++) {
+            hash = (hash << 5) - hash + title.charCodeAt(i);
+            hash |= 0;
+        }
+        safe = safe.substring(0, 60) + '_' + Math.abs(hash);
+    }
+    return safe;
+}
+
+function updateStatus(caseDir, relativePath, status, errorMsg = '') {
     try {
         let statusKey = relativePath;
         if (relativePath.endsWith('.md')) {
@@ -41,7 +54,7 @@ function updateStatus(caseDir, relativePath, status) {
             }
         } catch (_) {}
 
-        const isExtracted = ['companion_ready', 'reviewed', 'ingesting', 'indexed', 'enriching', 'enriched'].includes(status);
+        const isExtracted = ['companion_ready', 'reviewed', 'ingesting', 'indexed', 'failed_ingest', 'enriching', 'enriched', 'failed_enrich'].includes(status);
         const isIndexed = ['indexed', 'enriching', 'enriched'].includes(status);
         const extracted_at = isExtracted ? new Date().toISOString() : null;
         const indexed_at = isIndexed ? new Date().toISOString() : null;
@@ -70,6 +83,18 @@ function updateStatus(caseDir, relativePath, status) {
         fs.mkdirSync(destDir, { recursive: true });
         const sidecarPath = path.join(destDir, `${path.basename(base)}.status`);
         fs.writeFileSync(sidecarPath, status, 'utf8');
+
+        // Sync with conversions/*.error sidecar file
+        const errorPath = path.join(destDir, `${path.basename(base)}.error`);
+        if (errorMsg) {
+            fs.writeFileSync(errorPath, errorMsg, 'utf8');
+        } else {
+            if (fs.existsSync(errorPath)) {
+                try {
+                    fs.unlinkSync(errorPath);
+                } catch (_) {}
+            }
+        }
 
         // Automatically regenerate case audit md index
         generateCaseAudit(caseDir);
@@ -691,6 +716,24 @@ async function startLazyWorker() {
         console.log(`[Lazy Worker] Processing node "${targetNode.title}" for document "${basename}"`);
         processedBatchCount++;
 
+        const os = require('os');
+        const { loadLlmConfig } = require('../core/llm-client');
+        const config = loadLlmConfig({ caseDir });
+        const totalMemoryGB = os.totalmem() / (1024 * 1024 * 1024);
+
+        if (config.activeMode === 'local' && totalMemoryGB < 24) {
+            const errorMsg = `Local AI enrichment blocked: System has only ${totalMemoryGB.toFixed(1)}GB RAM (32GB required for offline models). Connect to internet and add an API key in Settings, or use Lite profile.`;
+            console.error(`[Lazy Worker] ${errorMsg}`);
+            
+            if (item.relative) {
+                updateStatus(caseDir, item.relative, 'failed_enrich', errorMsg);
+            } else {
+                updateStatus(caseDir, `${basename}.md`, 'failed_enrich', errorMsg);
+            }
+            lazyQueue.shift();
+            continue;
+        }
+
         try {
             // 1. Generate LLM Summary
             const summaryPrompt = `You are a legal document indexing assistant. Summarise the following text in exactly one concise sentence (maximum 40 words). Do not write any intro or explanation.
@@ -1158,6 +1201,7 @@ async function indexVectorsToSqlite(caseDir, result, profile) {
         console.log(`[Vector Index] Starting embedding generation for ${chunksToEmbed.length} chunks of "${relative}"...`);
         const { getEmbedding } = require('../core/llm-client');
         
+        let count = 0;
         for (const item of chunksToEmbed) {
             const vec = await getEmbedding(item.content, caseDir);
             if (vec && vec.length > 0) {
@@ -1171,6 +1215,10 @@ async function indexVectorsToSqlite(caseDir, result, profile) {
                         console.error('[Vector Index] Failed to insert into vss_document_vectors:', e.message);
                     }
                 }
+            }
+            count++;
+            if (count % 30 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 30));
             }
         }
         console.log(`[Vector Index] Successfully stored vector mappings for "${relative}" in case_vault.db`);
