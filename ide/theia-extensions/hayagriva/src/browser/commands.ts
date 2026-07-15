@@ -481,6 +481,14 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const filePath = resourceUri.path.toString();
           const caseName = this.getCasePath();
 
+          const rel = this.getRelativePath(resourceUri);
+          const status = this.treeDecorator.statusCache[rel];
+          const isCompanionReady = !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+          if (!isCompanionReady) {
+            alert('Cannot Generate Search Vectors yet.\n\nPlease run "1. Convert to Markdown" first to generate the companion file.');
+            return;
+          }
+
           // Auto-save the companion .md file if open and dirty before indexing
           const companionPath = filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
           const companionUri = resourceUri.withPath(companionPath);
@@ -514,9 +522,8 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return false;
-          const rel = this.getRelativePath(resolved);
-          const status = this.treeDecorator.statusCache[rel];
-          return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
         },
         isVisible: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
@@ -539,6 +546,14 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const filePath = resourceUri.path.toString();
           const caseName = this.getCasePath();
 
+          const rel = this.getRelativePath(resourceUri);
+          const status = this.treeDecorator.statusCache[rel];
+          const isIndexed = !!status && status.dot2 === 'indexed';
+          if (!isIndexed) {
+            alert('Cannot Run AI Enrichment yet.\n\nPlease run "2. Generate Search Vectors" first to index the document.');
+            return;
+          }
+
           try {
             const apiPort = this.contribution.getApiPort();
             const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/enrich-ai`, {
@@ -560,9 +575,8 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return false;
-          const rel = this.getRelativePath(resolved);
-          const status = this.treeDecorator.statusCache[rel];
-          return !!status && (status.dot2 === 'indexed');
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
         },
         isVisible: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
