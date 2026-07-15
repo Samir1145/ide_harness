@@ -508,7 +508,14 @@ async function* streamChat(messages, opts = {}) {
         return;
     } else {
         if (config.cloudProvider === 'openrouter' && config.apiKey) {
-            const model = opts.model || config.cloudModel || 'google/gemini-2.5-flash';
+            let model = opts.model || config.cloudModel || 'google/gemini-2.5-flash';
+            if (model === 'gemini-1.5-flash') {
+                model = 'google/gemini-1.5-flash';
+            } else if (model === 'gpt-4o-mini') {
+                model = 'openai/gpt-4o-mini';
+            } else if (model === 'claude-3-5-sonnet') {
+                model = 'anthropic/claude-3-5-sonnet';
+            }
             console.log(`[LLM Client] Routing query to OpenRouter (${model})`);
             try {
                 yield* streamOpenRouter(messages, config.apiKey, model);
