@@ -459,6 +459,12 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const matches = lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
           console.log('[HAYAGRIVA-CMD] convertToMd isEnabled for', lower, '->', matches);
           return matches;
+        },
+        isVisible: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
         }
       }
     );
@@ -511,6 +517,12 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const rel = this.getRelativePath(resolved);
           const status = this.treeDecorator.statusCache[rel];
           return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+        },
+        isVisible: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
         }
       }
     );
@@ -551,6 +563,12 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const rel = this.getRelativePath(resolved);
           const status = this.treeDecorator.statusCache[rel];
           return !!status && (status.dot2 === 'indexed');
+        },
+        isVisible: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
         }
       }
     );
