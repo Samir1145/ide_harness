@@ -481,14 +481,6 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const filePath = resourceUri.path.toString();
           const caseName = this.getCasePath();
 
-          const rel = this.getRelativePath(resourceUri);
-          const status = this.treeDecorator.statusCache[rel];
-          const isCompanionReady = !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
-          if (!isCompanionReady) {
-            alert('Cannot Generate Search Vectors yet.\n\nPlease run "1. Convert to Markdown" first to generate the companion file.');
-            return;
-          }
-
           // Auto-save the companion .md file if open and dirty before indexing
           const companionPath = filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
           const companionUri = resourceUri.withPath(companionPath);
@@ -522,8 +514,9 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return false;
-          const lower = resolved.path.toString().toLowerCase();
-          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
+          const rel = this.getRelativePath(resolved);
+          const status = this.treeDecorator.statusCache[rel];
+          return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
         },
         isVisible: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
@@ -546,14 +539,6 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const filePath = resourceUri.path.toString();
           const caseName = this.getCasePath();
 
-          const rel = this.getRelativePath(resourceUri);
-          const status = this.treeDecorator.statusCache[rel];
-          const isIndexed = !!status && status.dot2 === 'indexed';
-          if (!isIndexed) {
-            alert('Cannot Run AI Enrichment yet.\n\nPlease run "2. Generate Search Vectors" first to index the document.');
-            return;
-          }
-
           try {
             const apiPort = this.contribution.getApiPort();
             const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/enrich-ai`, {
@@ -575,6 +560,81 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return false;
+          const rel = this.getRelativePath(resolved);
+          const status = this.treeDecorator.statusCache[rel];
+          return !!status && (status.dot2 === 'indexed');
+        },
+        isVisible: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
+        }
+      }
+    );
+
+    // ── Pipeline Audit ────────────────────────────────────────────────────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:showPipelineAudit`, label: 'Show Pipeline Audit' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            alert('Please right-click a document file to view its pipeline audit.');
+            return;
+          }
+          const caseName = this.getCasePath();
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/file-statuses?case=${encodeURIComponent(caseName)}`);
+            const data = await res.json();
+            const rel = this.getRelativePath(resourceUri);
+            const entry = (data.statuses || {})[rel];
+            if (!entry) {
+              alert(`No pipeline status found for:\n${rel}\n\nThe file may not be a recognised document type.`);
+              return;
+            }
+            const f = entry.files || {};
+            const dot = (d: string) => d === 'companion_ready' || d === 'reviewed' || d === 'indexed' || d === 'green' ? '✅' : d === 'blue' ? '⏳' : d === 'red' ? '❌' : '⚪';
+            const exists = (v: boolean) => v ? '✓ exists' : '✗ missing';
+
+            const lines: string[] = [
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+              `📋  PIPELINE AUDIT`,
+              `📁  ${rel}`,
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+              ``,
+              `${dot(entry.dot1)}  Step 1 — Convert to Markdown`,
+              `   📄  ${f.companion?.path || '—'}`,
+              `        ${exists(f.companion?.exists)}`,
+              ``,
+              `${dot(entry.dot2)}  Step 2 — Generate Search Vectors`,
+              `   🗂  ${f.pageindexTree?.path || '—'}`,
+              `        ${exists(f.pageindexTree?.exists)}`,
+              `   🗂  ${f.bm25Index?.path || '—'}`,
+              `        ${exists(f.bm25Index?.exists)}`,
+              `   📂  ${f.conceptsDir?.path || '—'}`,
+              `        ${exists(f.conceptsDir?.exists)}`,
+              `        ${f.sectionCards?.total ?? 0} section cards generated`,
+              ``,
+              `${dot(entry.dot3)}  Step 3 — AI Enrichment`,
+              `   🤖  ${f.sectionCards?.enriched ?? 0} / ${f.sectionCards?.total ?? 0} sections enriched`,
+            ];
+
+            if (entry.error) {
+              lines.push(``);
+              lines.push(`⚠️  Error: ${entry.error}`);
+            }
+
+            lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            alert(lines.join('\n'));
+          } catch (e: any) {
+            alert(`Failed to fetch pipeline audit:\n${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
           const lower = resolved.path.toString().toLowerCase();
           return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
         },
@@ -588,7 +648,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:archiveCase`, label: 'Archive Case (One File)' },
+      { id: `${HAYAGRIVA_NS}:archiveCase`, label: 'Archive to Vault' },
       {
         execute: async () => {
           const caseName = this.getCasePath();
@@ -614,7 +674,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:restoreCase`, label: 'Restore Case from Vault' },
+      { id: `${HAYAGRIVA_NS}:restoreCase`, label: 'Restore from Vault' },
       {
         execute: async () => {
           const caseName = this.getCasePath();
@@ -640,7 +700,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:openCaseVault`, label: 'Open Database Viewer' },
+      { id: `${HAYAGRIVA_NS}:openCaseVault`, label: '4. Open Database Viewer' },
       {
         execute: async () => {
           try {
@@ -655,7 +715,6 @@ export class HayagrivaCommandContribution implements CommandContribution {
           } catch (e: any) {
             this.logger.error(`[HAYAGRIVA] Failed to open Database Viewer: ${e.message}`);
             alert(`Failed to open Database Viewer: ${e.message}`);
-          }
           }
         }
       }
