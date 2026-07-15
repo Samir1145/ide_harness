@@ -427,16 +427,65 @@ module.exports = {
                             if (docExts.includes(ext)) {
                                 const relative = path.relative(caseDir, filePath);
                                 let docStatus = dbStatusesMap[relative] || 'unprocessed';
-                                
-                                // Self-healing: recover status to 'enriched' if pageindex_tree.json is complete on disk
-                                if (docStatus === 'failed_enrich' || docStatus === 'unprocessed' || docStatus === 'indexed') {
+                                const cleanBase = ext === '.wiki.html' ? path.basename(file, '.wiki.html') : path.basename(file, ext);
+                                const subfolder = path.dirname(relative);
+
+                                // ── Computed disk paths ────────────────────────────────────────────
+                                const companionPath = isWikiHtml ? filePath : filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
+                                const conceptsDir = subfolder === '.' ?
+                                    path.join(caseDir, 'concepts', cleanBase) :
+                                    path.join(caseDir, 'concepts', subfolder, cleanBase);
+                                const treePath = path.join(conceptsDir, 'pageindex_tree.json');
+                                const bm25IndexPath = path.join(caseDir, 'concepts', 'bm25_index.json');
+
+                                const companionExists = !isWikiHtml && fs.existsSync(companionPath);
+                                const treeExists = fs.existsSync(treePath);
+                                const bm25Exists = fs.existsSync(bm25IndexPath);
+
+                                // Count section cards in conceptsDir
+                                let sectionCardCount = 0;
+                                let enrichedCardCount = 0;
+                                if (treeExists) {
                                     try {
-                                        const cleanBase = ext === '.wiki.html' ? path.basename(file, '.wiki.html') : path.basename(file, ext);
-                                        const subfolder = path.dirname(relative);
-                                        const treePath = subfolder === '.' ? 
-                                            path.join(caseDir, 'concepts', cleanBase, 'pageindex_tree.json') :
-                                            path.join(caseDir, 'concepts', subfolder, cleanBase, 'pageindex_tree.json');
-                                        if (fs.existsSync(treePath)) {
+                                        const mdFiles = fs.readdirSync(conceptsDir).filter(f => f.endsWith('.md'));
+                                        sectionCardCount = mdFiles.length;
+                                    } catch (_) {}
+                                }
+
+                                // ── Self-healing: Dot 1 — companion .md exists on disk ─────────────
+                                if (docStatus === 'unprocessed' && companionExists) {
+                                    docStatus = 'companion_ready';
+                                    try {
+                                        const { getDb } = require('./core/sqlite-store');
+                                        const db = getDb(caseDir);
+                                        const existing = db.prepare('SELECT status FROM documents WHERE filename = ?').get(relative);
+                                        if (!existing) {
+                                            db.prepare('INSERT INTO documents (filename, status) VALUES (?, ?)').run(relative, 'companion_ready');
+                                        } else {
+                                            db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('companion_ready', relative);
+                                        }
+                                    } catch (_) {}
+                                }
+
+                                // ── Self-healing: Dot 2 — pageindex_tree.json exists on disk ──────
+                                if ((docStatus === 'unprocessed' || docStatus === 'companion_ready' || docStatus === 'failed_ingest') && treeExists) {
+                                    docStatus = 'indexed';
+                                    try {
+                                        const { getDb } = require('./core/sqlite-store');
+                                        const db = getDb(caseDir);
+                                        const existing = db.prepare('SELECT status FROM documents WHERE filename = ?').get(relative);
+                                        if (!existing) {
+                                            db.prepare('INSERT INTO documents (filename, status) VALUES (?, ?)').run(relative, 'indexed');
+                                        } else {
+                                            db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('indexed', relative);
+                                        }
+                                    } catch (_) {}
+                                }
+
+                                // ── Self-healing: Dot 3 — pageindex_tree fully enriched (all llmSummary:true) ──
+                                if (docStatus === 'failed_enrich' || docStatus === 'indexed') {
+                                    try {
+                                        if (treeExists) {
                                             const treeData = JSON.parse(fs.readFileSync(treePath, 'utf8'));
                                             let hasUnenriched = false;
                                             function checkNode(node) {
@@ -453,17 +502,29 @@ module.exports = {
                                                 checkNode(treeData.tree);
                                                 if (!hasUnenriched) {
                                                     docStatus = 'enriched';
-                                                    // Auto-update SQLite to stay in sync
-                                                    const { getDb } = require('./core/sqlite-store');
-                                                    const db = getDb(caseDir);
-                                                    db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('enriched', relative);
+                                                    try {
+                                                        const { getDb } = require('./core/sqlite-store');
+                                                        const db = getDb(caseDir);
+                                                        db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('enriched', relative);
+                                                    } catch (_) {}
+                                                } else {
+                                                    // Count enriched section cards
+                                                    try {
+                                                        const mdFiles = fs.readdirSync(conceptsDir).filter(f => f.endsWith('.md'));
+                                                        let enriched = 0;
+                                                        for (const mdf of mdFiles) {
+                                                            const content = fs.readFileSync(path.join(conceptsDir, mdf), 'utf8');
+                                                            if (content.includes('llmSummary: true') || content.includes('### Hypothetical Questions')) enriched++;
+                                                        }
+                                                        enrichedCardCount = enriched;
+                                                    } catch (_) {}
                                                 }
                                             }
                                         }
                                     } catch (_) {}
                                 }
 
-                                // Resolve dot colors based on docStatus
+                                // ── Resolve dot colors ─────────────────────────────────────────────
                                 // Dot 1 (Companion)
                                 let dot1 = 'grey';
                                 if (isWikiHtml) {
@@ -498,21 +559,44 @@ module.exports = {
                                     dot3 = 'red';
                                 }
 
-                                 let errorMsg = '';
-                                 if (docStatus.startsWith('failed_')) {
-                                     try {
-                                         const base = isWikiHtml ? path.basename(file, '.wiki.html') : path.basename(file, ext);
-                                         const subfolder = path.dirname(relative);
-                                         const errorPath = subfolder === '.' ? 
-                                             path.join(caseDir, 'conversions', `${base}.error`) : 
-                                             path.join(caseDir, 'conversions', subfolder, `${base}.error`);
-                                         if (fs.existsSync(errorPath)) {
-                                             errorMsg = fs.readFileSync(errorPath, 'utf8').trim();
-                                         }
-                                     } catch (_) {}
-                                 }
+                                // ── Error message ──────────────────────────────────────────────────
+                                let errorMsg = '';
+                                if (docStatus.startsWith('failed_')) {
+                                    try {
+                                        const errorPath = subfolder === '.' ?
+                                            path.join(caseDir, 'conversions', `${cleanBase}.error`) :
+                                            path.join(caseDir, 'conversions', subfolder, `${cleanBase}.error`);
+                                        if (fs.existsSync(errorPath)) {
+                                            errorMsg = fs.readFileSync(errorPath, 'utf8').trim();
+                                        }
+                                    } catch (_) {}
+                                }
 
-                                 statuses[relative] = { dot1, dot2, dot3, error: errorMsg };
+                                // ── Files audit sub-object ─────────────────────────────────────────
+                                const filesAudit = {
+                                    companion: {
+                                        path: isWikiHtml ? relative : relative.replace(/\.[a-zA-Z0-9]+$/, '.md'),
+                                        exists: isWikiHtml ? true : companionExists
+                                    },
+                                    conceptsDir: {
+                                        path: subfolder === '.' ? `concepts/${cleanBase}/` : `concepts/${subfolder}/${cleanBase}/`,
+                                        exists: fs.existsSync(conceptsDir)
+                                    },
+                                    pageindexTree: {
+                                        path: subfolder === '.' ? `concepts/${cleanBase}/pageindex_tree.json` : `concepts/${subfolder}/${cleanBase}/pageindex_tree.json`,
+                                        exists: treeExists
+                                    },
+                                    bm25Index: {
+                                        path: 'concepts/bm25_index.json',
+                                        exists: bm25Exists
+                                    },
+                                    sectionCards: {
+                                        total: sectionCardCount,
+                                        enriched: enrichedCardCount
+                                    }
+                                };
+
+                                statuses[relative] = { dot1, dot2, dot3, error: errorMsg, files: filesAudit };
                             }
                         }
                     }
@@ -1527,7 +1611,7 @@ module.exports = {
                 const data = JSON.parse(body);
                 const caseDir = path.join(docsRoot, data.case);
                 const coordinator = require('./agents/agent-coordinator');
-                const responseText = await coordinator.run(caseDir, data.message, data.history || []);
+                const responseText = await coordinator.run(caseDir, data.message, data.history || [], data.agent);
                 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, response: responseText }));

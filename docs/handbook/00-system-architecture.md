@@ -75,6 +75,24 @@ This chapter outlines the modular design of the HAYAGRIVA platform. The system i
 
 ---
 
+## The 3+3 Distinction: Workflow Steps vs. Utility Engines
+
+To understand the architecture, we distinguish between **Workflow Steps** (what the user interacts with) and **Utility Engines** (the invisible background libraries that power those steps):
+
+### A. The 3 Workflow Steps (Direct User Interactions)
+These represent the concrete steps of the legal professional's document lifecycle:
+1. **Ingestion (IMS):** The *Input Phase* where raw text is parsed and converted.
+2. **Monaco Editor (VMS):** The *Verification Phase* where inline diagnostics and completions are presented in Monaco.
+3. **Agents (AMS):** The *Output Phase* where chat agents are invoked to write drafts or checklist audits.
+
+### B. The 3 Utility Engines (Background Core Services)
+These do not have independent user interfaces or make autonomous decisions; they act as the system's underlying OS, database, and compiler:
+1. **Workspace System (WMS):** The *Operating System* that sandboxes case files and handles local server endpoints.
+2. **Context System (CMS):** The *Memory* that performs keyword indexing and semantic RAG lookups.
+3. **Drafting System (DMS):** The *Compiler* that runs mail-merge templating and version incrementing.
+
+---
+
 ## The Three Pillars of User Interaction (The Legal IDE Model)
 
 From a user and workflow perspective, HAYAGRIVA is built around three interactive pillars that act as a **Self-Contained Legal IDE**:

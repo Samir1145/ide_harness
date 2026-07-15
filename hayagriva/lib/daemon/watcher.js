@@ -48,10 +48,13 @@ function updateStatus(caseDir, relativePath, status, errorMsg = '') {
         const db = getDb(caseDir);
         
         let size_bytes = 0;
+        let hashValue = '';
         try {
             const fullPath = path.join(caseDir, statusKey);
             if (fs.existsSync(fullPath)) {
                 size_bytes = fs.statSync(fullPath).size;
+                const { calculateFileHashSync } = require('../utils/hashing');
+                hashValue = calculateFileHashSync(fullPath);
             }
         } catch (_) {}
 
@@ -61,20 +64,21 @@ function updateStatus(caseDir, relativePath, status, errorMsg = '') {
         const indexed_at = isIndexed ? new Date().toISOString() : null;
 
         const upsertDoc = db.prepare(`
-            INSERT INTO documents (filename, title, status, size_bytes, extracted_at, indexed_at)
-            VALUES (?, ?, ?, ?, COALESCE(?, (SELECT extracted_at FROM documents WHERE filename = ?)), COALESCE(?, (SELECT indexed_at FROM documents WHERE filename = ?)))
+            INSERT INTO documents (filename, title, status, size_bytes, extracted_at, indexed_at, hash)
+            VALUES (?, ?, ?, ?, COALESCE(?, (SELECT extracted_at FROM documents WHERE filename = ?)), COALESCE(?, (SELECT indexed_at FROM documents WHERE filename = ?)), ?)
             ON CONFLICT(filename) DO UPDATE SET
                 status = excluded.status,
                 size_bytes = excluded.size_bytes,
                 extracted_at = COALESCE(excluded.extracted_at, documents.extracted_at),
-                indexed_at = COALESCE(excluded.indexed_at, documents.indexed_at)
+                indexed_at = COALESCE(excluded.indexed_at, documents.indexed_at),
+                hash = COALESCE(excluded.hash, documents.hash)
         `);
         
         const ext = path.extname(statusKey).toLowerCase();
         const basename = path.basename(statusKey, ext);
 
-        upsertDoc.run(statusKey, basename, status, size_bytes, extracted_at, statusKey, indexed_at, statusKey);
-        console.log(`[Status SQLite] Updated status of "${statusKey}" to "${status}"`);
+        upsertDoc.run(statusKey, basename, status, size_bytes, extracted_at, statusKey, indexed_at, statusKey, hashValue);
+        console.log(`[Status SQLite] Updated status of "${statusKey}" to "${status}" (hash: ${hashValue})`);
 
         // Sync with conversions/*.status sidecar file
         const base = statusKey.replace(/\.[a-zA-Z0-9]+$/, '');
@@ -195,6 +199,171 @@ function indexToSqlite(caseDir, result) {
     }
 }
 
+function runSelfHealingCleanup(caseDir, filePath, relative, ext) {
+    console.log(`[Watcher Cleanup] Executing self-healing for deleted file: ${filePath}`);
+    const isWikiHtml = filePath.toLowerCase().endsWith('.wiki.html');
+    const basename = isWikiHtml ? path.basename(filePath, '.wiki.html') : path.basename(filePath, ext);
+    
+    // 1. Wipe concepts directory
+    const conceptsDir = path.join(caseDir, 'concepts', basename);
+    if (fs.existsSync(conceptsDir)) {
+        try {
+            fs.rmSync(conceptsDir, { recursive: true, force: true });
+            console.log(`[Watcher] Cleaned up concept folder: ${conceptsDir}`);
+        } catch (e) {
+            console.error('[Watcher] Failed to delete concepts folder:', e.message);
+        }
+    }
+
+    // 2. Remove from BM25 index
+    try {
+        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+        const bm25Index = bm25.loadIndex(bm25IndexFile);
+        let changed = false;
+        for (const id in bm25Index.docLengths) {
+            if (id.startsWith(`${basename}::`) || id === `wiki::${basename}`) {
+                bm25.removeDocument(bm25Index, id);
+                changed = true;
+            }
+        }
+        if (changed) {
+            bm25.saveIndex(bm25Index, bm25IndexFile);
+            console.log(`[Watcher] Cleaned up BM25 index postings for: ${basename}`);
+        }
+    } catch (e) {
+        console.error('[Watcher] Failed to clean up BM25 postings:', e.message);
+    }
+
+    // 3. Remove from index.json
+    try {
+        const index = readIndex(caseDir);
+        const idx = index.documents.findIndex(d => d.filename === relative);
+        if (idx >= 0) {
+            index.documents.splice(idx, 1);
+            writeIndex(caseDir, index);
+            console.log(`[Watcher] Removed document metadata from index.json: ${relative}`);
+        }
+    } catch (e) {
+        console.error('[Watcher] Failed to update index.json metadata:', e.message);
+    }
+
+    // 4. Remove from SQLite Database
+    try {
+        const db = getDb(caseDir);
+        
+        const deleteSections = db.prepare('DELETE FROM document_sections WHERE filename = ?');
+        deleteSections.run(relative);
+
+        const deleteFts = db.prepare('DELETE FROM fts_chunks WHERE filename = ?');
+        deleteFts.run(relative);
+
+        const deleteDoc = db.prepare('DELETE FROM documents WHERE filename = ?');
+        deleteDoc.run(relative);
+
+        console.log(`[SQLite Watcher] Cleaned up database entries for deleted file: ${relative}`);
+    } catch (e) {
+        console.error('[SQLite Watcher] Failed to remove deleted document from DB:', e.message);
+    }
+}
+
+function renameDocumentInDb(caseDir, oldRelative, newRelative) {
+    console.log(`[Watcher Rename] Renaming document from "${oldRelative}" to "${newRelative}"`);
+    const oldExt = path.extname(oldRelative).toLowerCase();
+    const newExt = path.extname(newRelative).toLowerCase();
+    const oldBasename = path.basename(oldRelative, oldExt);
+    const newBasename = path.basename(newRelative, newExt);
+
+    // 1. Update SQLite database path references
+    try {
+        const db = getDb(caseDir);
+        db.prepare('UPDATE documents SET filename = ?, title = ? WHERE filename = ?').run(newRelative, newBasename, oldRelative);
+        db.prepare('UPDATE document_sections SET filename = ? WHERE filename = ?').run(newRelative, oldRelative);
+        db.prepare('UPDATE document_vectors SET filename = ? WHERE filename = ?').run(newRelative, oldRelative);
+        db.prepare('UPDATE fts_chunks SET filename = ? WHERE filename = ?').run(newRelative, oldRelative);
+        db.prepare('UPDATE case_facts SET filename = ? WHERE filename = ?').run(newRelative, oldRelative);
+        db.prepare('UPDATE qna_cards SET filename = ? WHERE filename = ?').run(newRelative, oldRelative);
+        db.prepare('UPDATE compliance_alerts SET filename = ? WHERE filename = ?').run(newRelative, oldRelative);
+        console.log(`[SQLite Watcher] Path references updated in SQLite.`);
+    } catch (e) {
+        console.error('[SQLite Watcher] Failed to rename paths in database:', e.message);
+    }
+
+    // 2. Rename concepts directory on disk if it exists
+    const oldConceptsDir = path.join(caseDir, 'concepts', oldBasename);
+    const newConceptsDir = path.join(caseDir, 'concepts', newBasename);
+    if (fs.existsSync(oldConceptsDir)) {
+        try {
+            fs.renameSync(oldConceptsDir, newConceptsDir);
+            console.log(`[Watcher] Renamed concepts directory from "${oldConceptsDir}" to "${newConceptsDir}"`);
+        } catch (e) {
+            console.error('[Watcher] Failed to rename concepts folder:', e.message);
+        }
+    }
+
+    // 3. Rename keys in BM25 index JSON
+    try {
+        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+        if (fs.existsSync(bm25IndexFile)) {
+            const bm25Index = bm25.loadIndex(bm25IndexFile);
+            let changed = false;
+            
+            // Re-key document postings
+            for (const word in bm25Index.index) {
+                const postings = bm25Index.index[word];
+                for (const id in postings) {
+                    if (id.startsWith(`${oldBasename}::`)) {
+                        const newId = id.replace(`${oldBasename}::`, `${newBasename}::`);
+                        postings[newId] = postings[id];
+                        delete postings[id];
+                        changed = true;
+                    } else if (id === `wiki::${oldBasename}`) {
+                        const newId = `wiki::${newBasename}`;
+                        postings[newId] = postings[id];
+                        delete postings[id];
+                        changed = true;
+                    }
+                }
+            }
+
+            // Re-key doc lengths
+            for (const id in bm25Index.docLengths) {
+                if (id.startsWith(`${oldBasename}::`)) {
+                    const newId = id.replace(`${oldBasename}::`, `${newBasename}::`);
+                    bm25Index.docLengths[newId] = bm25Index.docLengths[id];
+                    delete bm25Index.docLengths[id];
+                    changed = true;
+                } else if (id === `wiki::${oldBasename}`) {
+                    const newId = `wiki::${newBasename}`;
+                    bm25Index.docLengths[newId] = bm25Index.docLengths[id];
+                    delete bm25Index.docLengths[id];
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                bm25.saveIndex(bm25Index, bm25IndexFile);
+                console.log(`[Watcher] Updated BM25 index keys for rename.`);
+            }
+        }
+    } catch (e) {
+        console.error('[Watcher] Failed to rename BM25 keys:', e.message);
+    }
+
+    // 4. Update index.json
+    try {
+        const index = readIndex(caseDir);
+        const doc = index.documents.find(d => d.filename === oldRelative);
+        if (doc) {
+            doc.filename = newRelative;
+            doc.title = newBasename;
+            writeIndex(caseDir, index);
+            console.log(`[Watcher] Renamed document metadata in index.json.`);
+        }
+    } catch (e) {
+        console.error('[Watcher] Failed to update index.json for rename:', e.message);
+    }
+}
+
 function createWatcher(caseDir, onChange) {
     const ignore = (p) => {
         const base = path.basename(p);
@@ -214,6 +383,8 @@ function createWatcher(caseDir, onChange) {
 
     startPdfIngestionDaemon();
 
+    const pendingDeletions = new Map();
+
     const watcher = chokidar.watch(caseDir, {
         ignored: ignore,
         persistent: true,
@@ -221,83 +392,53 @@ function createWatcher(caseDir, onChange) {
         depth: 10
     });
 
-    watcher.on('all', (event, filePath) => {
+    watcher.on('all', async (event, filePath) => {
         const ext = path.extname(filePath).toLowerCase();
         if (!DOC_EXTENSIONS.includes(ext) && !filePath.toLowerCase().endsWith('.wiki.html')) return;
+        const relative = path.relative(caseDir, filePath);
         
         if (event === 'add' || event === 'change') {
-            if (typeof onChange === 'function') {
-                onChange(filePath);
-            } else if (onChange && typeof onChange.onFileChange === 'function') {
-                onChange.onFileChange(filePath);
-            }
-        } else if (event === 'unlink') {
-            console.log(`[Watcher] File deleted: ${filePath}. Running self-healing cleanup...`);
-            const relative = path.relative(caseDir, filePath);
-            const isWikiHtml = filePath.toLowerCase().endsWith('.wiki.html');
-            const basename = isWikiHtml ? path.basename(filePath, '.wiki.html') : path.basename(filePath, ext);
-            
-            // 1. Wipe concepts directory
-            const conceptsDir = path.join(caseDir, 'concepts', basename);
-            if (fs.existsSync(conceptsDir)) {
-                try {
-                    fs.rmSync(conceptsDir, { recursive: true, force: true });
-                    console.log(`[Watcher] Cleaned up concept folder: ${conceptsDir}`);
-                } catch (e) {
-                    console.error('[Watcher] Failed to delete concepts folder:', e.message);
-                }
-            }
-
-            // 2. Remove from BM25 index
+            // Check if this is a rename (an add matching a pending deletion hash)
+            let isRename = false;
             try {
-                const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
-                const bm25Index = bm25.loadIndex(bm25IndexFile);
-                let changed = false;
-                for (const id in bm25Index.docLengths) {
-                    if (id.startsWith(`${basename}::`) || id === `wiki::${basename}`) {
-                        bm25.removeDocument(bm25Index, id);
-                        changed = true;
+                if (event === 'add') {
+                    const { calculateFileHash } = require('../utils/hashing');
+                    const addedHash = await calculateFileHash(filePath);
+                    if (addedHash) {
+                        const db = getDb(caseDir);
+                        for (const [delRel, delTimeout] of pendingDeletions.entries()) {
+                            const delDoc = db.prepare('SELECT hash FROM documents WHERE filename = ?').get(delRel);
+                            if (delDoc && delDoc.hash === addedHash) {
+                                // Rename matched!
+                                clearTimeout(delTimeout);
+                                pendingDeletions.delete(delRel);
+                                renameDocumentInDb(caseDir, delRel, relative);
+                                isRename = true;
+                                break;
+                            }
+                        }
                     }
                 }
-                if (changed) {
-                    bm25.saveIndex(bm25Index, bm25IndexFile);
-                    console.log(`[Watcher] Cleaned up BM25 index postings for: ${basename}`);
+            } catch (err) {
+                console.error('[Watcher Rename Check] Failed:', err.message);
+            }
+
+            if (!isRename) {
+                if (typeof onChange === 'function') {
+                    onChange(filePath);
+                } else if (onChange && typeof onChange.onFileChange === 'function') {
+                    onChange.onFileChange(filePath);
                 }
-            } catch (e) {
-                console.error('[Watcher] Failed to clean up BM25 postings:', e.message);
             }
+        } else if (event === 'unlink') {
+            console.log(`[Watcher] File deletion detected for: ${relative}. Debouncing 200ms...`);
+            
+            const timeout = setTimeout(() => {
+                pendingDeletions.delete(relative);
+                runSelfHealingCleanup(caseDir, filePath, relative, ext);
+            }, 200);
 
-            // 3. Remove from index.json
-            try {
-                const index = readIndex(caseDir);
-                const idx = index.documents.findIndex(d => d.filename === relative);
-                if (idx >= 0) {
-                    index.documents.splice(idx, 1);
-                    writeIndex(caseDir, index);
-                    console.log(`[Watcher] Removed document metadata from index.json: ${relative}`);
-                }
-            } catch (e) {
-                console.error('[Watcher] Failed to update index.json metadata:', e.message);
-            }
-
-            // 4. Remove from SQLite Database
-            try {
-                const db = getDb(caseDir);
-                
-                // Clear sections & chunks (even though documents delete has ON DELETE CASCADE, let's clean them explicitly)
-                const deleteSections = db.prepare('DELETE FROM document_sections WHERE filename = ?');
-                deleteSections.run(relative);
-
-                const deleteFts = db.prepare('DELETE FROM fts_chunks WHERE filename = ?');
-                deleteFts.run(relative);
-
-                const deleteDoc = db.prepare('DELETE FROM documents WHERE filename = ?');
-                deleteDoc.run(relative);
-
-                console.log(`[SQLite Watcher] Cleaned up database entries for deleted file: ${relative}`);
-            } catch (e) {
-                console.error('[SQLite Watcher] Failed to remove deleted document from DB:', e.message);
-            }
+            pendingDeletions.set(relative, timeout);
         }
     });
 

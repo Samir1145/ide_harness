@@ -184,9 +184,9 @@
             <option value="deep">Deep Audit (Full text, Q&As, Entity Graphs, Summaries)</option>
           </select>
           <div class="helper-text">
-            <strong>Lite:</strong> Good for 4GB-8GB RAM. Instantly extract text without background AI queue.<br>
-            <strong>Standard:</strong> Good for 8GB-12GB RAM. Computes local vector mappings.<br>
-            <strong>Deep Audit:</strong> Good for 12GB+ RAM. Runs comprehensive extraction and knowledge graph modeling.
+            <strong>Lite:</strong> Recommended for 8GB-16GB RAM machines running entirely locally. Instantly extracts text without heavy background AI queues.<br>
+            <strong>Standard:</strong> Suitable for 16GB+ RAM (or with Cloud Router enabled). Computes local vector mappings.<br>
+            <strong>Deep Audit:</strong> Recommended only for high-end systems (16GB+ RAM with Cloud API key or GPU). Runs comprehensive extraction and knowledge graph modeling.
           </div>
         </div>
       </div>
@@ -247,6 +247,23 @@
             <label for="cloudModel">Cloud Model Name</label>
             <input type="text" id="cloudModel" placeholder="e.g. gemini-1.5-flash">
           </div>
+        </div>
+      </div>
+
+      <!-- 3. Legacy File Ingest / LibreOffice Configuration -->
+      <div class="section">
+        <div class="section-title">📄 Legacy Document Converter (LibreOffice)</div>
+        <div id="libreOfficeStatusBanner" style="padding: 10px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; font-weight: 500;">
+          Checking LibreOffice status...
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="remindLibreOffice" style="width: auto; margin: 0; cursor: pointer;">
+          <label for="remindLibreOffice" style="margin: 0; font-size: 13px; cursor: pointer; user-select: none;">Enable Legacy Formats Ingestion Warning Alert</label>
+        </div>
+        <div id="libreOfficeInstructions" style="display: none; font-size: 11px; opacity: 0.85; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 10px;">
+          <strong>How to install LibreOffice on your machine:</strong><br>
+          • <strong>macOS:</strong> Open your terminal and run <code>brew install --cask libreoffice</code> or download it from <a href="https://www.libreoffice.org/download/" target="_blank" style="color: var(--accent-color); text-decoration: none;">libreoffice.org</a>.<br>
+          • <strong>Windows:</strong> Download the installer from the official website and run the setup. Once installed, restart HAYAGRIVA.
         </div>
       </div>
 
@@ -327,6 +344,25 @@
           if (config.hasCloudKey) {
             document.getElementById('cloudApiKey').placeholder = '•••••••••••••••• (Saved)';
           }
+
+          document.getElementById('remindLibreOffice').checked = config.remindLibreOffice !== false;
+          
+          // Render LibreOffice status dynamically
+          const banner = document.getElementById('libreOfficeStatusBanner');
+          const instructions = document.getElementById('libreOfficeInstructions');
+          if (config.libreOfficeDetected) {
+            banner.innerText = '✓ Headless LibreOffice Converter: Active & Detected';
+            banner.style.backgroundColor = 'rgba(22, 163, 74, 0.15)';
+            banner.style.border = '1px solid #16a34a';
+            banner.style.color = '#4ade80';
+            instructions.style.display = 'none';
+          } else {
+            banner.innerText = '⚠️ Headless LibreOffice Converter: Missing / Not Detected';
+            banner.style.backgroundColor = 'rgba(220, 38, 38, 0.15)';
+            banner.style.border = '1px solid #dc2626';
+            banner.style.color = '#f87171';
+            instructions.style.display = 'block';
+          }
         }
       } catch (err) {
         showToast('Failed to load settings', true);
@@ -346,7 +382,8 @@
         localEmbedModel: document.getElementById('localEmbedModel').value,
         cloudProvider: document.getElementById('cloudProvider').value,
         cloudModel: document.getElementById('cloudModel').value,
-        cloudApiKey: document.getElementById('cloudApiKey').value // Sends only if typed/modified
+        cloudApiKey: document.getElementById('cloudApiKey').value,
+        remindLibreOffice: document.getElementById('remindLibreOffice').checked
       };
       
       try {

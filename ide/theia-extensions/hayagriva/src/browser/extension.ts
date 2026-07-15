@@ -191,6 +191,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
     this.registerLawHoverProvider();
+    this.registerDiagnosticsLinter();
     
     // Start polling the backend proxy server's connection health
     this.startBackendMonitor();
@@ -708,105 +709,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   // ─── Law Completion (@@-triggered dropdown) ──────────────────────────────
 
   registerLawCompletion(): void {
-    const LAW_DOMAINS = [
-      { code: 'arb', label: 'ARB - Arbitration Act' },
-      { code: 'cca', label: 'CCA - Commercial Courts Act' },
-      { code: 'dpdp', label: 'DPDP - Digital Data Protection Act' },
-      { code: 'esi', label: 'ESI - Employee State Insurance Act' },
-      { code: 'iarb', label: 'IARB - International Arbitration Act' },
-      { code: 'ibc', label: 'IBC - Insolvency & Bankruptcy Code' },
-      { code: 'ica', label: 'ICA - Indian Contract Act' },
-      { code: 'lima', label: 'LIMA - Limitation Act' },
-      { code: 'llp', label: 'LLP - Limited Liability Partnership Act' },
-      { code: 'mca', label: 'MCA - Companies Act' },
-      { code: 'meda', label: 'MEDA - Mediation Act' },
-      { code: 'msme', label: 'MSME - MSME Enterprises Act' },
-      { code: 'nia', label: 'NIA - Negotiable Instruments Act' },
-      { code: 'pa', label: 'PA - Partnership Act' },
-      { code: 'pfa', label: 'PFA - Provident Funds Act' },
-      { code: 'pmla', label: 'PMLA - Prevention of Money Laundering Act' },
-      { code: 'rdba', label: 'RDBA - Debt Recovery Act' },
-      { code: 'rera', label: 'RERA - Real Estate Regulation Act' },
-      { code: 'sarfaesi', label: 'SARFAESI - Sarfaesi Act' },
-      { code: 'sebi', label: 'SEBI - Securities Exchange Act' },
-      { code: 'soga', label: 'SOGA - Sale of Goods Act' },
-      { code: 'tpa', label: 'TPA - Transfer of Property Act' }
-    ];
 
-    const IBC_SUBDOMAINS = [
-      { code: 'ciftp', label: 'CIFTP - Corporate Fast Track Process' },
-      { code: 'cilp', label: 'CILP - Corporate Liquidation Process' },
-      { code: 'cippp', label: 'CIPPP - Corporate Prepack Process' },
-      { code: 'cirp', label: 'CIRP - Corporate Resolution Process' },
-      { code: 'civlp', label: 'CIVLP - Corporate Voluntary Liquidation Process' },
-      { code: 'ibbi', label: 'IBBI - IBBI Processes' },
-      { code: 'iema', label: 'IEMA - Individual Estate Management' },
-      { code: 'ifsp', label: 'IFSP - Individual Fresh Start Process' },
-      { code: 'iibp', label: 'IIBP - Individual Bankruptcy Process' },
-      { code: 'iirp', label: 'IIRP - Individual Resolution Process' },
-      { code: 'insp', label: 'INSP - IBBI Inspection Process' },
-      { code: 'misc', label: 'MISC - Miscellaneous' },
-      { code: 'nclt', label: 'NCLT - NCLT Processes' },
-      { code: 'penal', label: 'PENAL - Penal Provisions' },
-      { code: 'pgbp', label: 'PGBP - Personal Guarantor Bankruptcy Process' },
-      { code: 'pgrp', label: 'PGRP - Personal Guarantor Resolution Process' },
-      { code: 'prelim', label: 'PRELIM - Preliminary Definitions' }
-    ];
-
-    const MCA_SUBDOMAINS = [
-      { code: 'cc_aaa', label: 'Companies (Audit and Auditors) Rules' },
-      { code: 'cc_acc', label: 'Companies (Accounts) Rules' },
-      { code: 'cc_acisfi', label: 'Companies (Arrests in Connection with Investigation by Serious Fraud Investigation Office) Rules' },
-      { code: 'cc_actstd', label: 'The Companies - Accounting Standards' },
-      { code: 'cc_aod', label: 'Companies (Acceptance of Deposits) Rules' },
-      { code: 'cc_aop', label: 'Companies (Adjudication of Penalties) Rules' },
-      { code: 'cc_aqd', label: 'Companies (Appointment and Qualification of Directors) Rules' },
-      { code: 'cc_armp', label: 'Companies (Appointment and Remuneration of Managerial Personnel) Rules' },
-      { code: 'cc_atr', label: 'Companies (Authorised to Register) Rules' },
-      { code: 'cc_caa', label: 'Companies (Compromises, Arrangements and Amalgamations) Rules' },
-      { code: 'cc_cmdid', label: 'The Companies - Creation and Maintenance of databank of Independent Directors' },
-      { code: 'cc_cra', label: 'Companies (Cost Records and Audit) Rules' },
-      { code: 'cc_csrp', label: 'Companies (Corporate Social Responsibility Policy) Rules' },
-      { code: 'cc_dpd', label: 'Companies (Declaration and Payment of Dividend) Rules' },
-      { code: 'cc_fdf', label: 'Companies (Filing of Documents and Forms in Extensible Business Reporting Language) Rules' },
-      { code: 'cc_ias', label: 'Companies (Indian Accounting Standards) Rules' },
-      { code: 'cc_igdr', label: 'Companies (Issue of Global Depository Receipts) Rules' },
-      { code: 'cc_iii', label: 'Companies (Inspection, Investigation and Inquiry) Rules' },
-      { code: 'cc_incorp', label: 'Companies (Incorporation) Rules' },
-      { code: 'cc_lespj', label: 'Companies (Listing of equity shares in permissible jurisdictions) Rules' },
-      { code: 'cc_maa', label: 'Companies (Management and Administration) Rules' },
-      { code: 'cc_mac', label: 'Companies (Mediation and Conciliation) Rules' },
-      { code: 'cc_mbp', label: 'Companies (Meetings of Board and its Powers) Rules' },
-      { code: 'cc_misc', label: 'Companies (Miscellaneous) Rules' },
-      { code: 'cc_pas', label: 'Companies (Prospectus and Allotment of Securities) Rules' },
-      { code: 'cc_rfc', label: 'Companies (Registration of Foreign Companies) Rules' },
-      { code: 'cc_rncrc', label: 'Companies (Removal of Names of Companies from the Register of Companies) Rules' },
-      { code: 'cc_rnol', label: 'Companies (Restriction on Number of Layers) Rules' },
-      { code: 'cc_roc', label: 'The Companies - Registration of Charges' },
-      { code: 'cc_roff', label: 'The Companies - Registration Offices and Fees' },
-      { code: 'cc_rvv', label: 'The Companies - Registered Valuers and Valuation' },
-      { code: 'cc_sbo', label: 'Companies (Significant Beneficial Owners) Rules' },
-      { code: 'cc_scd', label: 'Companies (Share Capital and Debentures) Rules' },
-      { code: 'cc_sodd', label: 'Companies (Specification of Definitions Details) Rules' },
-      { code: 'cc_tpp', label: 'Companies (Transfer of Pending Proceedings) Rules' },
-      { code: 'cc_wup', label: 'Companies (Winding Up) Rules' },
-      { code: 'sec', label: 'Companies Act Sections (1 to 470)' },
-      { code: 'iepfa_aatr', label: 'The Investor Education and Protection Fund Authority - Accounting Audit Transfer and Refund' },
-      { code: 'iepfa_acm', label: 'IEPFA (Appointment of Chairperson and Members) Rules' },
-      { code: 'nclat_rst', label: 'NCLAT (Procedure for Reduction of Share Capital) Rules' },
-      { code: 'nclat_rules', label: 'National Company Appellate Law Tribunal - Rules' },
-      { code: 'nclat_sat', label: 'NCLAT (Salary, Allowances and other Terms) Rules' },
-      { code: 'nclt_prsc', label: 'NCLT (Procedure for Reduction of Share Capital) Rules' },
-      { code: 'nclt_rst', label: 'NCLT (Salary, Allowances and other Terms) Rules' },
-      { code: 'nclt_rules', label: 'National Company Law Tribunal - Rules' },
-      { code: 'nclt_sat', label: 'NCLT (Salary, Allowances and other Terms) Rules' },
-      { code: 'nfra_aptm', label: 'NFRA (Appointment of Part Time Members) Rules' },
-      { code: 'nfra_moa', label: 'The National Financial Reporting Authority - Manner of Appointment and other Terms and Conditions of Service of Chairperson and Members' },
-      { code: 'nfra_mtb', label: 'NFRA (Meeting for Transaction of Business) Rules' },
-      { code: 'nfra_rules', label: 'National Financial Reporting Authority Rules' },
-      { code: 'nidhi_rules', label: 'Nidhi Rules' },
-      { code: 'prod_co', label: 'Producer Companies Rules' }
-    ];
 
     const cache = new Map<string, any[]>();
 
@@ -1054,71 +957,58 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       }
 
       const LANGS = ['markdown', 'plaintext'];
-      const hoverCache = new Map<string, any>();
 
       for (const lang of LANGS) {
         monaco.languages.registerHoverProvider(lang, {
           provideHover: async (model: any, position: any, token: any) => {
-            const lineText: string = model.getLineContent(position.lineNumber);
-            
-            // Regex to find all @@citations in the line text
-            const rx = /@@([\w/.-]+)/g;
-            let match;
-            let matchedCitation = '';
-            let startCol = 0;
-            let endCol = 0;
-
-            while ((match = rx.exec(lineText)) !== null) {
-              const start = match.index + 1; // 1-indexed column index
-              const end = start + match[0].length;
-              if (position.column >= start && position.column <= end) {
-                matchedCitation = match[1];
-                startCol = start;
-                endCol = end;
-                break;
-              }
-            }
-
-            if (!matchedCitation || token.isCancellationRequested) {
-              return null;
+            const docUri = model.uri.toString();
+            const content = model.getValue();
+            let currentCase = 'Case_Alpha';
+            const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+            if (ws) {
+              currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
             }
 
             try {
-              let results: any[] = [];
-              if (hoverCache.has(matchedCitation)) {
-                results = hoverCache.get(matchedCitation);
-              } else {
-                 const res = await fetch(
-                   `${this.getBackendUrl()}/api/laws/query?q=${encodeURIComponent(matchedCitation)}&n=${this.getCitationLimit()}`
-                 );
-                if (res.ok) {
-                  const json = await res.json();
-                  results = json.results || [];
-                  hoverCache.set(matchedCitation, results);
-                  if (hoverCache.size > 200) {
-                    const firstKey = hoverCache.keys().next().value;
-                    if (firstKey !== undefined) hoverCache.delete(firstKey);
+              const res = await fetch(`${this.getBackendUrl()}/api/lsp/hover`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  case: currentCase,
+                  docUri,
+                  docContent: content,
+                  position: {
+                    line: position.lineNumber - 1,
+                    character: position.column - 1
                   }
+                })
+              });
+              if (token.isCancellationRequested || !res.ok) return null;
+              const data = await res.json();
+              if (data.hover && data.hover.contents) {
+                const value = typeof data.hover.contents === 'string'
+                  ? data.hover.contents
+                  : (data.hover.contents.value || '');
+                  
+                if (!value.trim()) return null;
+
+                let range = undefined;
+                if (data.hover.range) {
+                  range = new monaco.Range(
+                    data.hover.range.start.line + 1,
+                    data.hover.range.start.character + 1,
+                    data.hover.range.end.line + 1,
+                    data.hover.range.end.character + 1
+                  );
                 }
+
+                return {
+                  range,
+                  contents: [{ value }]
+                };
               }
-
-              if (!results.length || token.isCancellationRequested) {
-                return null;
-              }
-
-              const bestMatch = results[0];
-              const cleanText = (bestMatch.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
-
-              return {
-                range: new monaco.Range(position.lineNumber, startCol, position.lineNumber, endCol),
-                contents: [
-                  { value: `**Law Reference:** \`${bestMatch.title || bestMatch.id}\`` },
-                  { value: cleanText.substring(0, 1500) + (cleanText.length > 1500 ? '...' : '') }
-                ]
-              };
-            } catch (e) {
-              return null;
-            }
+            } catch (_) {}
+            return null;
           }
         });
       }
@@ -1130,6 +1020,104 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
   private wordIllusionActive = false;
   private wordIllusionStyleElement: HTMLStyleElement | undefined;
+
+  registerDiagnosticsLinter(): void {
+    const updateDiagnostics = async (model: any) => {
+      const docUri = model.uri.toString();
+      if (!docUri.endsWith('.md')) return;
+
+      const content = model.getValue();
+      let currentCase = 'Case_Alpha';
+      const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+      if (ws) {
+        currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
+      }
+
+      try {
+        const res = await fetch(`${this.getBackendUrl()}/api/lsp/diagnostics`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            case: currentCase,
+            docUri,
+            docContent: content
+          })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const diagnostics = data.diagnostics || [];
+
+        const markers = diagnostics.map((d: any) => ({
+          severity: d.severity === 1 ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+          message: d.message,
+          startLineNumber: d.range.start.line + 1,
+          startColumn: d.range.start.character + 1,
+          endLineNumber: d.range.end.line + 1,
+          endColumn: d.range.end.character + 1
+        }));
+
+        // Fetch ingestion status to add inline warnings
+        try {
+          const docRes = await fetch(`${this.getBackendUrl()}/api/hayagriva/documents?case=${currentCase}`);
+          if (docRes.ok) {
+            const docData = await docRes.json();
+            const localFsPath = new URI(docUri).path.toString();
+            const fileName = getBasename(localFsPath);
+            const targetBasename = fileName.replace(/\.[a-zA-Z0-9]+$/, '');
+            
+            const matchingDoc = (docData.documents || []).find((d: any) => {
+              return d.title === targetBasename || d.filename === fileName;
+            });
+            
+            if (matchingDoc) {
+              const status = matchingDoc.status;
+              if (status === 'processing' || status === 'generating_companion') {
+                markers.unshift({
+                  severity: monaco.MarkerSeverity.Info,
+                  message: '⏳ Document is still processing ingestion. Section lookup and autocompletes may be incomplete.',
+                  startLineNumber: 1,
+                  startColumn: 1,
+                  endLineNumber: 1,
+                  endColumn: 100
+                });
+              } else if (status === 'failed_convert' || status === 'failed_enrich' || status === 'failed') {
+                markers.unshift({
+                  severity: monaco.MarkerSeverity.Warning,
+                  message: `❌ Ingestion failed: ${status}. Right-click the file in explorer to retry ingestion.`,
+                  startLineNumber: 1,
+                  startColumn: 1,
+                  endLineNumber: 1,
+                  endColumn: 100
+                });
+              }
+            }
+          }
+        } catch (_) {}
+
+        monaco.editor.setModelMarkers(model, 'hayagriva-lsp', markers);
+      } catch (e) {
+        this.logger.error('[LSP Frontend] Failed to fetch diagnostics: ' + e);
+      }
+    };
+
+    let debounceTimer: any = null;
+
+    this.editorManager.onCurrentEditorChanged(editor => {
+      if (editor) {
+        const control = (editor as any).getControl ? (editor as any).getControl() : null;
+        if (control && typeof control.getModel === 'function') {
+          const model = control.getModel();
+          if (model) {
+            updateDiagnostics(model);
+            model.onDidChangeContent(() => {
+              clearTimeout(debounceTimer);
+              debounceTimer = setTimeout(() => updateDiagnostics(model), 1000);
+            });
+          }
+        }
+      }
+    });
+  }
 
   toggleWordIllusion(): void {
     this.wordIllusionActive = !this.wordIllusionActive;

@@ -33,7 +33,9 @@ export class HayagrivaCommandContribution implements CommandContribution {
       const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (wsRoot) {
         const rootPath = decodeURIComponent(wsRoot.path.toString());
-        if (filePath.startsWith(rootPath)) {
+        const fileLower = filePath.toLowerCase();
+        const rootLower = rootPath.toLowerCase();
+        if (fileLower.startsWith(rootLower)) {
           return filePath.substring(rootPath.length).replace(/^[\/\\]/, '');
         }
       }
@@ -460,12 +462,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
           console.log('[HAYAGRIVA-CMD] convertToMd isEnabled for', lower, '->', matches);
           return matches;
         },
-        isVisible: (uri?: URI) => {
-          const resolved = this.resolveUri(uri);
-          if (!resolved) return false;
-          const lower = resolved.path.toString().toLowerCase();
-          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
-        }
+        isVisible: () => true
       }
     );
 
@@ -518,12 +515,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const status = this.treeDecorator.statusCache[rel];
           return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
         },
-        isVisible: (uri?: URI) => {
-          const resolved = this.resolveUri(uri);
-          if (!resolved) return false;
-          const lower = resolved.path.toString().toLowerCase();
-          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
-        }
+        isVisible: () => true
       }
     );
 
@@ -564,12 +556,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const status = this.treeDecorator.statusCache[rel];
           return !!status && (status.dot2 === 'indexed');
         },
-        isVisible: (uri?: URI) => {
-          const resolved = this.resolveUri(uri);
-          if (!resolved) return false;
-          const lower = resolved.path.toString().toLowerCase();
-          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
-        }
+        isVisible: () => true
       }
     );
 
@@ -638,12 +625,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const lower = resolved.path.toString().toLowerCase();
           return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
         },
-        isVisible: (uri?: URI) => {
-          const resolved = this.resolveUri(uri);
-          if (!resolved) return false;
-          const lower = resolved.path.toString().toLowerCase();
-          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
-        }
+        isVisible: () => true
       }
     );
 
@@ -669,7 +651,14 @@ export class HayagrivaCommandContribution implements CommandContribution {
           } catch (e: any) {
             this.logger.error(`[HAYAGRIVA] Archiving failed: ${e.message}`);
           }
-        }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
+        },
+        isVisible: () => true
       }
     );
 
@@ -695,7 +684,14 @@ export class HayagrivaCommandContribution implements CommandContribution {
           } catch (e: any) {
             this.logger.error(`[HAYAGRIVA] Restoration failed: ${e.message}`);
           }
-        }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
+        },
+        isVisible: () => true
       }
     );
 
@@ -716,7 +712,14 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error(`[HAYAGRIVA] Failed to open Database Viewer: ${e.message}`);
             alert(`Failed to open Database Viewer: ${e.message}`);
           }
-        }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
+        },
+        isVisible: () => true
       }
     );
 
@@ -727,7 +730,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
         execute: async () => {
           const activeEditor = this.editorManager.activeEditor;
           if (!activeEditor) return;
-          const selectedText = activeEditor.editor.getSelectedText().trim();
+          const selectedText = activeEditor.editor.document.getText(activeEditor.editor.selection).trim();
           if (!selectedText) {
             alert('Please highlight a section or statute keyword to lookup (e.g. "Section 135").');
             return;
@@ -752,7 +755,10 @@ export class HayagrivaCommandContribution implements CommandContribution {
             
             const doInsert = confirm('Do you want to insert this statute text at your cursor?');
             if (doInsert) {
-              await activeEditor.editor.replaceSelection(`\n\n> **${match.title || `Section ${match.section}`}**\n> ${cleanText.replace(/\n/g, '\n> ')}\n\n`);
+              activeEditor.editor.executeEdits([{
+                range: activeEditor.editor.selection,
+                newText: `\n\n> **${match.title || `Section ${match.section}`}**\n> ${cleanText.replace(/\n/g, '\n> ')}\n\n`
+              }]);
             }
           } catch (e: any) {
             this.logger.error(`[HAYAGRIVA] Law lookup failed: ${e.message}`);
@@ -768,7 +774,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
         execute: async () => {
           const activeEditor = this.editorManager.activeEditor;
           if (!activeEditor) return;
-          const selectedText = activeEditor.editor.getSelectedText().trim();
+          const selectedText = activeEditor.editor.document.getText(activeEditor.editor.selection).trim();
           if (!selectedText) {
             alert('Please highlight a case law name or citation first (e.g. "Kesavananda").');
             return;
@@ -805,7 +811,10 @@ export class HayagrivaCommandContribution implements CommandContribution {
             
             const doInsert = confirm('Do you want to insert this judgment summary at your cursor?');
             if (doInsert) {
-              await activeEditor.editor.replaceSelection(`\n\n${content}\n\n`);
+              activeEditor.editor.executeEdits([{
+                range: activeEditor.editor.selection,
+                newText: `\n\n${content}\n\n`
+              }]);
             }
           } catch (e: any) {
             this.logger.error(`[HAYAGRIVA] Judgment lookup failed: ${e.message}`);
@@ -821,7 +830,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
         execute: async () => {
           const activeEditor = this.editorManager.activeEditor;
           if (!activeEditor) return;
-          const selectedText = activeEditor.editor.getSelectedText().trim();
+          const selectedText = activeEditor.editor.document.getText(activeEditor.editor.selection).trim();
           if (!selectedText) {
             alert('Please highlight a concept name (e.g. "Payment Terms").');
             return;
@@ -859,9 +868,15 @@ export class HayagrivaCommandContribution implements CommandContribution {
             
             const insertType = prompt('Type "link" to insert reference link, or "text" to insert full content:');
             if (insertType && insertType.toLowerCase().trim() === 'link') {
-              await activeEditor.editor.replaceSelection(`[${selectedText}](${match.relativePath})`);
+              activeEditor.editor.executeEdits([{
+                range: activeEditor.editor.selection,
+                newText: `[${selectedText}](${match.relativePath})`
+              }]);
             } else if (insertType && insertType.toLowerCase().trim() === 'text') {
-              await activeEditor.editor.replaceSelection(`\n\n${content}\n\n`);
+              activeEditor.editor.executeEdits([{
+                range: activeEditor.editor.selection,
+                newText: `\n\n${content}\n\n`
+              }]);
             }
           } catch (e: any) {
             this.logger.error(`[HAYAGRIVA] Concept lookup failed: ${e.message}`);

@@ -48,7 +48,8 @@ function getDb(caseDir) {
             size_bytes INTEGER,
             priority INTEGER DEFAULT 5,
             extracted_at TEXT,
-            indexed_at TEXT
+            indexed_at TEXT,
+            hash TEXT
         );
 
         CREATE TABLE IF NOT EXISTS document_sections (
@@ -115,7 +116,44 @@ function getDb(caseDir) {
             vector_blob BLOB,
             FOREIGN KEY(filename) REFERENCES documents(filename) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS claims (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            creditor TEXT,
+            claimed_amount REAL,
+            admitted_amount REAL,
+            admitted_interest REAL,
+            rejected_amount REAL,
+            rejection_reason TEXT,
+            claim_date TEXT,
+            status TEXT,
+            last_updated TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS avoidance_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            transaction_date TEXT,
+            amount REAL,
+            debited_account TEXT,
+            credited_party TEXT,
+            related_party_status TEXT,
+            applicable_section TEXT,
+            forensic_notes TEXT,
+            last_updated TEXT
+        );
     `);
+
+    // Self-healing migration: Add 'hash' column to documents if it does not exist
+    try {
+        const columns = db.prepare('PRAGMA table_info(documents)').all();
+        const hasHash = columns.some(col => col.name === 'hash');
+        if (!hasHash) {
+            db.exec('ALTER TABLE documents ADD COLUMN hash TEXT;');
+            console.log('[SQLite Store] Altered table documents to add hash column.');
+        }
+    } catch (e) {
+        console.error('[SQLite Store] Failed to check/alter documents table:', e.message);
+    }
 
     // Setup FTS5 virtual table
     try {

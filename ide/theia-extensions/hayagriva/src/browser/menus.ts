@@ -1,6 +1,7 @@
 import { injectable } from '@theia/core/shared/inversify';
 import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
 import { CommonMenus } from '@theia/core/lib/browser/common-frontend-contribution';
+import { NavigatorContextMenu } from '@theia/navigator/lib/browser/navigator-contribution';
 
 const HAYAGRIVA_NS = 'hayagriva';
 const WIKI_MENU = [...CommonMenus.VIEW, 'wiki'];
@@ -56,11 +57,11 @@ export class HayagrivaMenuContribution implements MenuContribution {
     });
 
     // Navigator (File Explorer) right click sibling submenus
-    const PIPELINE_SUBMENU = ['navigator-context-menu', 'hayagriva_pipeline_submenu'];
-    registry.registerSubmenu(PIPELINE_SUBMENU, 'Hayagriva (Pipeline)');
+    const PIPELINE_SUBMENU = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_pipeline_submenu'];
+    registry.registerSubmenu(PIPELINE_SUBMENU, 'Hayagriva (Pipeline)', { sortString: 'a_hayagriva_1' });
 
-    const ARCHIVE_SUBMENU = ['navigator-context-menu', 'hayagriva_archive_submenu'];
-    registry.registerSubmenu(ARCHIVE_SUBMENU, 'Hayagriva (Archive)');
+    const ARCHIVE_SUBMENU = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_archive_submenu'];
+    registry.registerSubmenu(ARCHIVE_SUBMENU, 'Hayagriva (Archive)', { sortString: 'a_hayagriva_2' });
 
     // Pipeline Submenu actions
     registry.registerMenuAction(PIPELINE_SUBMENU, {

@@ -108,10 +108,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
             const currentVal = this.statusCache[key];
             const nextVal = nextCache[key];
             if (!currentVal || !nextVal ||
-                currentVal.dot1 !== nextVal.dot1 ||
-                currentVal.dot2 !== nextVal.dot2 ||
-                currentVal.dot3 !== nextVal.dot3 ||
-                currentVal.error !== nextVal.error) {
+                JSON.stringify(currentVal) !== JSON.stringify(nextVal)) {
               hasChanges = true;
               break;
             }
@@ -220,7 +217,9 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
         const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
         if (wsRoot) {
           const rootPath = decodeURIComponent(wsRoot.path.toString());
-          if (filePath.startsWith(rootPath)) {
+          const fileLower = filePath.toLowerCase();
+          const rootLower = rootPath.toLowerCase();
+          if (fileLower.startsWith(rootLower)) {
             relative = filePath.substring(rootPath.length).replace(/^[\/\\]/, '');
           }
         }
@@ -230,30 +229,68 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
       if (!statusObj || typeof statusObj !== 'object') continue;
 
       const { dot1, dot2, dot3 } = statusObj;
+      const files: any = statusObj.files || {};
 
       const colorMap: { [key: string]: string } = {
         grey: '#6b7280',
         amber: '#f59e0b',
         green: '#10b981',
-        companion_ready: '#10b981', // Green immediately since review is combined
-        reviewed: '#10b981',        // Green
-        indexed: '#10b981',         // Green immediately since outline approved is combined
-        outline_approved: '#10b981', // Green
+        companion_ready: '#10b981',
+        reviewed: '#10b981',
+        indexed: '#10b981',
+        outline_approved: '#10b981',
         blue: '#3b82f6',
         red: '#ef4444'
       };
-
       const dot1Color = colorMap[dot1] || '#6b7280';
       const dot2Color = colorMap[dot2] || '#6b7280';
       const dot3Color = colorMap[dot3] || '#6b7280';
 
-      const tooltip1 = dot1 === 'companion_ready' || dot1 === 'reviewed' ? '● Companion MD: Ready' : (dot1 === 'blue' ? '● Companion MD: Extracting...' : (dot1 === 'red' ? '● Companion MD: Failed' : '● Companion MD: Right-click › 1. Convert to Markdown'));
-      const tooltip2 = dot2 === 'outline_approved' || dot2 === 'indexed' ? '● RAG Q&A Agent: Ready' : (dot2 === 'blue' ? '● RAG Q&A Agent: Indexing...' : (dot2 === 'red' ? '● RAG Q&A Agent: Failed' : '● RAG Q&A Agent: Right-click › 2. Generate Search Vectors'));
-      const tooltip3 = dot3 === 'green' || dot3 === 'enriched' ? '● Full Context for Agents: Ready' : (dot3 === 'blue' ? '● Full Context for Agents: Enriching...' : (dot3 === 'red' ? '● Full Context for Agents: Failed' : '● Full Context for Agents: Right-click › 3. Run AI Enrichment'));
+      // ── Dot 1 tooltip — Companion .md ─────────────────────────────────────
+      const companionPath = files.companion?.path || '—';
+      const companionExists = files.companion?.exists === true;
+      let tooltip1: string;
+      if (dot1 === 'companion_ready' || dot1 === 'reviewed') {
+        tooltip1 = `● Step 1 ✓  Companion Markdown ready\n   📄 ${companionPath}`;
+      } else if (dot1 === 'blue') {
+        tooltip1 = `● Step 1 ⏳  Converting to Markdown…\n   📄 ${companionPath} (writing…)`;
+      } else if (dot1 === 'red') {
+        tooltip1 = `● Step 1 ✗  Conversion failed\n   📄 ${companionPath}`;
+      } else {
+        tooltip1 = `● Step 1 ○  Not started — right-click › 1. Convert to Markdown\n   📄 ${companionPath} ${companionExists ? '(file found — restart to heal)' : '(file missing)'}`;
+      }
+
+      // ── Dot 2 tooltip — Search Vectors / pageindex_tree ───────────────────
+      const treePath = files.pageindexTree?.path || '—';
+      const treeExists = files.pageindexTree?.exists === true;
+      const totalCards = files.sectionCards?.total ?? 0;
+      let tooltip2: string;
+      if (dot2 === 'indexed') {
+        tooltip2 = `● Step 2 ✓  Search vectors built (${totalCards} sections)\n   🗂 ${treePath}`;
+      } else if (dot2 === 'blue') {
+        tooltip2 = `● Step 2 ⏳  Building search vectors…\n   🗂 ${treePath} (writing…)`;
+      } else if (dot2 === 'red') {
+        tooltip2 = `● Step 2 ✗  Indexing failed\n   🗂 ${treePath}`;
+      } else {
+        tooltip2 = `● Step 2 ○  Not started — right-click › 2. Generate Search Vectors\n   🗂 ${treePath} ${treeExists ? '(file found — restart to heal)' : '(file missing)'}`;
+      }
+
+      // ── Dot 3 tooltip — AI Enrichment ─────────────────────────────────────
+      const enrichedCards = files.sectionCards?.enriched ?? 0;
+      let tooltip3: string;
+      if (dot3 === 'green') {
+        tooltip3 = `● Step 3 ✓  AI Enrichment complete (${totalCards}/${totalCards} sections enriched)`;
+      } else if (dot3 === 'blue') {
+        tooltip3 = `● Step 3 ⏳  AI Enrichment running… (${enrichedCards}/${totalCards} sections done)`;
+      } else if (dot3 === 'red') {
+        tooltip3 = `● Step 3 ✗  AI Enrichment failed`;
+      } else {
+        tooltip3 = `● Step 3 ○  Not started — right-click › 3. Run AI Enrichment`;
+      }
 
       let errorSuffix = '';
       if (statusObj.error) {
-        errorSuffix = `\n[Error]: ${statusObj.error}`;
+        errorSuffix = `\n⚠ Error: ${statusObj.error}`;
       }
 
       result.set(node.id, {
@@ -262,7 +299,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
           { data: '●', fontData: { color: dot2Color } },
           { data: '● ', fontData: { color: dot3Color } }
         ],
-        tooltip: `${tooltip1} | ${tooltip2} | ${tooltip3}${errorSuffix}`
+        tooltip: `${tooltip1}\n${tooltip2}\n${tooltip3}${errorSuffix}`
       });
     }
 

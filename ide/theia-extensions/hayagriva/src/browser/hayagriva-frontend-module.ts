@@ -10,6 +10,18 @@ import { HayagrivaTreeDecorator } from './tree-decorator';
 import { NavigatorTreeDecorator } from '@theia/navigator/lib/browser/navigator-decorator-service';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
 import { hayagrivaPreferenceSchema } from './extension';
+import { ChatAgent } from '@theia/ai-chat/lib/common/chat-agents';
+import {
+  AdvisorChatAgent,
+  FormsChatAgent,
+  DocumentChatAgent,
+  ClaimsVerificationChatAgent,
+  ImCompilerChatAgent,
+  ResolutionPlanEvaluatorChatAgent,
+  AvoidanceScannerChatAgent,
+  NcltDrafterChatAgent,
+  LitigationTrackerChatAgent
+} from './chat-agents';
 
 export default new ContainerModule((bind) => {
   // Bind preference contribution
@@ -34,4 +46,15 @@ export default new ContainerModule((bind) => {
   // Bind separate menus registry
   bind(HayagrivaMenuContribution).toSelf().inSingletonScope();
   bind(MenuContribution).toService(HayagrivaMenuContribution);
+
+  // Bind custom Chat Agents
+  bind(ChatAgent).to(AdvisorChatAgent).inSingletonScope();
+  bind(ChatAgent).to(FormsChatAgent).inSingletonScope();
+  bind(ChatAgent).to(DocumentChatAgent).inSingletonScope();
+  bind(ChatAgent).to(ClaimsVerificationChatAgent).inSingletonScope();
+  bind(ChatAgent).to(ImCompilerChatAgent).inSingletonScope();
+  bind(ChatAgent).to(ResolutionPlanEvaluatorChatAgent).inSingletonScope();
+  bind(ChatAgent).to(AvoidanceScannerChatAgent).inSingletonScope();
+  bind(ChatAgent).to(NcltDrafterChatAgent).inSingletonScope();
+  bind(ChatAgent).to(LitigationTrackerChatAgent).inSingletonScope();
 });

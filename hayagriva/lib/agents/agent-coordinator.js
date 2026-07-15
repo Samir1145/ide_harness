@@ -2,12 +2,24 @@ const { getChatResponse } = require('../core/llm-client');
 const AdvisorAgent = require('./advisor-agent/agent');
 const FormsAgent = require('./forms-agent/agent');
 const DocumentAgent = require('./document-agent/agent');
+const ClaimsVerificationAgent = require('./claims-verification-agent/agent');
+const ImCompilerAgent = require('./im-compiler-agent/agent');
+const ResolutionPlanEvaluatorAgent = require('./resolution-plan-evaluator-agent/agent');
+const AvoidanceScannerAgent = require('./avoidance-scanner-agent/agent');
+const NcltDrafterAgent = require('./nclt-drafter-agent/agent');
+const LitigationTrackerAgent = require('./litigation-tracker-agent/agent');
 
 class AgentCoordinator {
     constructor() {
         this.advisor = new AdvisorAgent();
         this.forms = new FormsAgent();
         this.document = new DocumentAgent();
+        this.claims = new ClaimsVerificationAgent();
+        this.im = new ImCompilerAgent();
+        this.plan = new ResolutionPlanEvaluatorAgent();
+        this.avoidance = new AvoidanceScannerAgent();
+        this.nclt = new NcltDrafterAgent();
+        this.litigation = new LitigationTrackerAgent();
     }
 
     async classifyIntent(message) {
@@ -36,16 +48,27 @@ Prompt: "${message}"`;
         return 'advisor'; // Fallback
     }
 
-    async run(caseDir, userMessage, history = []) {
-        const intent = await this.classifyIntent(userMessage);
+    async run(caseDir, userMessage, history = [], targetAgentName = '') {
+        const agentMap = {
+            'advisor': this.advisor,
+            'forms': this.forms,
+            'document': this.document,
+            'claims': this.claims,
+            'im': this.im,
+            'plan': this.plan,
+            'avoidance': this.avoidance,
+            'nclt': this.nclt,
+            'litigation': this.litigation
+        };
 
-        if (intent === 'forms') {
-            return await this.forms.run(caseDir, userMessage, history);
-        } else if (intent === 'document') {
-            return await this.document.run(caseDir, userMessage, history);
-        } else {
-            return await this.advisor.run(caseDir, userMessage, history);
+        const target = (targetAgentName || '').trim().toLowerCase();
+        if (target && agentMap[target]) {
+            console.log(`[Agent Coordinator] Direct routing to agent: "${target}"`);
+            return await agentMap[target].run(caseDir, userMessage, history);
         }
+
+        const intent = await this.classifyIntent(userMessage);
+        return await agentMap[intent].run(caseDir, userMessage, history);
     }
 }
 

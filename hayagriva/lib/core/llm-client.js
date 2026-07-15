@@ -510,7 +510,7 @@ async function* streamChat(messages, opts = {}) {
         if (config.cloudProvider === 'openrouter' && config.apiKey) {
             let model = opts.model || config.cloudModel || 'google/gemini-2.5-flash';
             if (model === 'gemini-1.5-flash') {
-                model = 'google/gemini-flash-1.5';
+                model = 'google/gemini-2.5-flash';
             } else if (model === 'gpt-4o-mini') {
                 model = 'openai/gpt-4o-mini';
             } else if (model === 'claude-3-5-sonnet') {

@@ -259,11 +259,39 @@ Hypothetical Answer:`;
                 }
             }
             
-            // Fallback: JS-based in-memory cosine similarity
+            // Fallback: JS-based hybrid keyword-filtering + cosine similarity
             if (vectorHits.length === 0) {
-                const allVectors = db.prepare('SELECT id, filename, section_title, page_number, chunk_index, content, vector_blob FROM document_vectors').all();
+                let candidateIds = [];
+                try {
+                    // Extract alphanumeric keyword search tokens from queryText
+                    const words = queryText.replace(/[^a-zA-Z0-9\s]/g, '').trim().split(/\s+/).filter(Boolean);
+                    if (words.length > 0) {
+                        const matchExpr = words.map(w => `${w}*`).join(' OR ');
+                        const ftsQuery = db.prepare('SELECT rowid FROM fts_chunks WHERE content MATCH ? LIMIT 100');
+                        const ftsRows = ftsQuery.all(matchExpr);
+                        candidateIds = ftsRows.map(r => r.rowid);
+                        console.log(`[RAG] FTS5 pre-filter selected ${candidateIds.length} similarity candidates.`);
+                    }
+                } catch (ftsErr) {
+                    console.warn('[RAG] FTS5 pre-filtering failed:', ftsErr.message);
+                }
+
+                let candidateVectors = [];
+                if (candidateIds.length > 0) {
+                    // Fetch only matching candidate rows
+                    const placeholders = candidateIds.map(() => '?').join(',');
+                    const candidateQuery = db.prepare(`
+                        SELECT id, filename, section_title, page_number, chunk_index, content, vector_blob 
+                        FROM document_vectors WHERE id IN (${placeholders})
+                    `);
+                    candidateVectors = candidateQuery.all(...candidateIds);
+                } else {
+                    // Extreme fallback: if FTS pre-filter is empty, scan first 150 chunks to prevent thread lock
+                    candidateVectors = db.prepare('SELECT id, filename, section_title, page_number, chunk_index, content, vector_blob FROM document_vectors LIMIT 150').all();
+                }
+
                 const scored = [];
-                for (const row of allVectors) {
+                for (const row of candidateVectors) {
                     if (row.vector_blob) {
                         const floatArray = new Float32Array(row.vector_blob.buffer, row.vector_blob.byteOffset, row.vector_blob.byteLength / 4);
                         const sim = cosineSimilarity(queryVector, Array.from(floatArray));
@@ -283,7 +311,7 @@ Hypothetical Answer:`;
                 }
                 scored.sort((a, b) => b.score - a.score);
                 vectorHits = scored.slice(0, 12);
-                console.log(`[RAG] JS fallback vector similarity retrieved ${vectorHits.length} context matches.`);
+                console.log(`[RAG] Hybrid JS search completed. Evaluated similarity on ${candidateVectors.length} candidates, returning top ${vectorHits.length}.`);
             }
         } catch (vectorErr) {
             console.warn('[RAG] Vector semantic search failed completely:', vectorErr.message);
