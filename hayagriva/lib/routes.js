@@ -31,7 +31,8 @@ const DEFAULT_SETTINGS = {
     localChatModel: 'qwen2.5-coder:1.5b',
     localEmbedModel: 'nomic-embed-text',
     cloudProvider: 'gemini',
-    cloudModel: 'gemini-1.5-flash'
+    cloudModel: 'gemini-1.5-flash',
+    remindLibreOffice: true
 };
 
 function ensureCaseSettings(caseDir) {
@@ -425,7 +426,42 @@ module.exports = {
                             const ext = isWikiHtml ? '.wiki.html' : path.extname(file).toLowerCase();
                             if (docExts.includes(ext)) {
                                 const relative = path.relative(caseDir, filePath);
-                                const docStatus = dbStatusesMap[relative] || 'unprocessed';
+                                let docStatus = dbStatusesMap[relative] || 'unprocessed';
+                                
+                                // Self-healing: recover status to 'enriched' if pageindex_tree.json is complete on disk
+                                if (docStatus === 'failed_enrich' || docStatus === 'unprocessed' || docStatus === 'indexed') {
+                                    try {
+                                        const cleanBase = ext === '.wiki.html' ? path.basename(file, '.wiki.html') : path.basename(file, ext);
+                                        const subfolder = path.dirname(relative);
+                                        const treePath = subfolder === '.' ? 
+                                            path.join(caseDir, 'concepts', cleanBase, 'pageindex_tree.json') :
+                                            path.join(caseDir, 'concepts', subfolder, cleanBase, 'pageindex_tree.json');
+                                        if (fs.existsSync(treePath)) {
+                                            const treeData = JSON.parse(fs.readFileSync(treePath, 'utf8'));
+                                            let hasUnenriched = false;
+                                            function checkNode(node) {
+                                                if (node.metadata && node.metadata.type === 'section' && node.content && (!node.metadata.llmSummary)) {
+                                                    hasUnenriched = true;
+                                                }
+                                                if (node.children) {
+                                                    for (const child of node.children) {
+                                                        checkNode(child);
+                                                    }
+                                                }
+                                            }
+                                            if (treeData && treeData.tree) {
+                                                checkNode(treeData.tree);
+                                                if (!hasUnenriched) {
+                                                    docStatus = 'enriched';
+                                                    // Auto-update SQLite to stay in sync
+                                                    const { getDb } = require('./core/sqlite-store');
+                                                    const db = getDb(caseDir);
+                                                    db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('enriched', relative);
+                                                }
+                                            }
+                                        }
+                                    } catch (_) {}
+                                }
 
                                 // Resolve dot colors based on docStatus
                                 // Dot 1 (Companion)
@@ -865,8 +901,29 @@ module.exports = {
                 console.error("Error reading secure key:", err);
             }
 
+            let libreOfficeDetected = false;
+            try {
+                const { execSync } = require('child_process');
+                const paths = [
+                    '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+                    'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+                    'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe'
+                ];
+                for (const p of paths) {
+                    if (fs.existsSync(p)) {
+                        libreOfficeDetected = true;
+                        break;
+                    }
+                }
+                if (!libreOfficeDetected) {
+                    const cmd = process.platform === 'win32' ? 'where' : 'which';
+                    execSync(`${cmd} soffice`, { stdio: 'ignore' });
+                    libreOfficeDetected = true;
+                }
+            } catch (_) {}
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ...config, hasCloudKey }));
+            res.end(JSON.stringify({ ...config, hasCloudKey, libreOfficeDetected }));
         },
 
         '/api/hayagriva/settings/save': (req, res, parsedUrl, docsRoot) => {
@@ -895,7 +952,8 @@ module.exports = {
                         localChatModel: data.localChatModel || 'qwen2.5-coder:1.5b',
                         localEmbedModel: data.localEmbedModel || 'nomic-embed-text',
                         cloudProvider: data.cloudProvider || 'gemini',
-                        cloudModel: data.cloudModel || 'gemini-1.5-flash'
+                        cloudModel: data.cloudModel || 'gemini-1.5-flash',
+                        remindLibreOffice: data.remindLibreOffice !== false
                     };
 
                     fs.writeFileSync(settingsPath, JSON.stringify(savedConfig, null, 2), 'utf8');
@@ -1473,6 +1531,60 @@ module.exports = {
                 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, response: responseText }));
+            });
+        },
+
+        '/api/lsp/completions': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const caseDir = path.join(docsRoot, data.case || 'Case_Alpha');
+                    const { getCompletions } = require('./core/lsp-service');
+                    const result = await getCompletions(caseDir, data.docUri, data.docContent, data.position);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, items: result }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+        },
+
+        '/api/lsp/hover': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const caseDir = path.join(docsRoot, data.case || 'Case_Alpha');
+                    const { getHover } = require('./core/lsp-service');
+                    const result = await getHover(caseDir, data.docUri, data.docContent, data.position);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, hover: result }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+        },
+
+        '/api/lsp/diagnostics': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const caseDir = path.join(docsRoot, data.case || 'Case_Alpha');
+                    const { getDiagnostics } = require('./core/lsp-service');
+                    const result = await getDiagnostics(caseDir, data.docUri, data.docContent);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, diagnostics: result }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
             });
         },
 
