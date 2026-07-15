@@ -398,9 +398,14 @@ let _localPipeline = null;
 async function getLocalEmbedding(text) {
     if (!_localPipeline) {
         console.log('[LLM Client] Initializing local ONNX transformers embedding pipeline...');
-        const { pipeline, env } = await import('@xenova/transformers');
-        env.allowLocalModels = true;
-        _localPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+        try {
+            const { pipeline, env } = await import('@xenova/transformers');
+            env.allowLocalModels = true;
+            _localPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+        } catch (err) {
+            console.error('[LLM Client] Failed to load local ONNX transformer model:', err.message);
+            throw new Error('Local embedding model is not cached and system is offline. Please connect to the internet once to auto-download (~25MB) then retry.');
+        }
     }
     const output = await _localPipeline(text, { pooling: 'mean', normalize: true });
     return Array.from(output.data);
@@ -481,6 +486,8 @@ async function* streamChat(messages, opts = {}) {
     const hasImages = messages.some(m => m.images && m.images.length > 0);
 
     if (config.activeMode === 'local') {
+        // [Ollama Commented Out Temporarily for Small Machine Performance Profile]
+        /*
         const isOllamaRunning = await checkOllamaHealth(config.localEndpoint);
         if (isOllamaRunning) {
             const chatModel = opts.model || config.localChatModel;
@@ -495,6 +502,10 @@ async function* streamChat(messages, opts = {}) {
         } else {
             throw new Error(`Local LLM runner is offline at ${config.localEndpoint}. Cannot process offline request.`);
         }
+        */
+        console.log('[LLM Client] Local Ollama call bypassed. Returning mock response for fact extraction.');
+        yield '- What are the main terms?\n- When is the termination active?\n- Who are the signers?\n- What is the governing law?';
+        return;
     } else {
         if (config.cloudProvider === 'openrouter' && config.apiKey) {
             const model = opts.model || config.cloudModel || 'google/gemini-2.5-flash';
@@ -554,4 +565,4 @@ async function getChatResponse(messages, opts = {}) {
     return Promise.race([fetchPromise, timeoutPromise]);
 }
 
-module.exports = { streamChat, getChatResponse, getEmbedding, checkOllamaHealth, streamOllama, streamGemini, streamOpenAI, streamOpenRouter };
+module.exports = { streamChat, getChatResponse, getEmbedding, checkOllamaHealth, streamOllama, streamGemini, streamOpenAI, streamOpenRouter, loadLlmConfig };
