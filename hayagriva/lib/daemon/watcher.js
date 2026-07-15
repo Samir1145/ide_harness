@@ -11,6 +11,7 @@ const { extractFileKV } = require('../pipeline/common/extract');
 const DOC_EXTENSIONS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.md', '.txt'];
 const { pendingPdfQueue, completedPdfSet, queuePdfTask, startPdfIngestionDaemon } = require('./lazy_pdf_worker');
 const { getDb } = require('../core/sqlite-store');
+const { parseMarkdownWithFrontmatter, formatMarkdownWithFrontmatter } = require('../utils/okf');
 
 function findOriginalFilePath(caseDir, mdRelativePath) {
     const base = mdRelativePath.replace(/\.md$/, '');
@@ -735,31 +736,38 @@ async function startLazyWorker() {
         }
 
         try {
+            console.log(`[Lazy Worker] [Step 1] Starting LLM Summary for node "${targetNode.title}"...`);
             // 1. Generate LLM Summary
             const summaryPrompt = `You are a legal document indexing assistant. Summarise the following text in exactly one concise sentence (maximum 40 words). Do not write any intro or explanation.
  
 Text:
 ${targetNode.content}`;
             const summaryText = await getChatResponse([{ role: 'user', content: summaryPrompt }], { timeout: 240000 });
+            console.log(`[Lazy Worker] [Step 1] Summary complete: "${summaryText.trim().substring(0, 60)}..."`);
 
+            console.log(`[Lazy Worker] [Step 2] Starting Doc2Query questions generation...`);
             // 2. Generate Doc2Query Questions
             const qPrompt = `You are a document indexing assistant. Read the document text below and generate 4 diverse hypothetical questions that this text answers. Format them as a list of bullet points starting with "- ". Do not write any introduction, metadata, or extra explanation.
  
 Text:
 ${targetNode.content}`;
             const questionsText = await getChatResponse([{ role: 'user', content: qPrompt }], { timeout: 240000 });
+            console.log(`[Lazy Worker] [Step 2] Questions generated.`);
 
             // 3. Update the Tree JSON node
+            console.log(`[Lazy Worker] [Step 3] Updating pageindex_tree.json summariesGenerated counter...`);
             targetNode.summary = summaryText.trim();
             targetNode.metadata.llmSummary = true;
             treeData.summariesGenerated++;
             fs.writeFileSync(treePath, JSON.stringify(treeData, null, 4), 'utf8');
 
             // 4. Update the Markdown card
+            console.log(`[Lazy Worker] [Step 4] Reading and updating companion markdown card...`);
             const safeTitle = getSafeFilename(targetNode.title);
             const mdPath = path.join(conceptsDir, `${safeTitle}.md`);
             if (fs.existsSync(mdPath)) {
                 let cardContent = fs.readFileSync(mdPath, 'utf8');
+                console.log(`[Lazy Worker] [Step 4] Card file exists at ${mdPath}. Parsing frontmatter...`);
                 const parsed = parseMarkdownWithFrontmatter(cardContent);
                 
                 // Update frontmatter summary
@@ -783,8 +791,10 @@ ${targetNode.content}`;
                     sourceDocument: parsed.frontmatter.sourceDocument || null
                 });
                 fs.writeFileSync(mdPath, updatedMd, 'utf8');
+                console.log(`[Lazy Worker] [Step 4] Companion markdown card updated.`);
 
                 // 5. Update BM25 Search Index
+                console.log(`[Lazy Worker] [Step 5] Adding to BM25 search index...`);
                 const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
                 if (fs.existsSync(bm25IndexFile)) {
                     const bm25Index = bm25.loadIndex(bm25IndexFile);
@@ -794,15 +804,20 @@ ${targetNode.content}`;
                      });
                     bm25.saveIndex(bm25Index, bm25IndexFile);
                 }
+                console.log(`[Lazy Worker] [Step 5] BM25 search index updated.`);
+            } else {
+                console.warn(`[Lazy Worker] [Step 4 Warning] Companion markdown card NOT found at ${mdPath}`);
             }
 
             // 6. Write Q&A Wiki Cards
+            console.log(`[Lazy Worker] [Step 6] Writing Q&A wiki cards...`);
             const qnaDir = path.join(caseDir, 'wiki', 'qna');
             if (!fs.existsSync(qnaDir)) {
                 fs.mkdirSync(qnaDir, { recursive: true });
             }
 
             const questions = questionsText.split('\n').map(q => q.replace(/^-\s*/, '').trim()).filter(Boolean);
+            console.log(`[Lazy Worker] [Step 6] Found ${questions.length} questions to write...`);
             for (const q of questions) {
                 const safeQTitle = getSafeFilename(q);
                 const qPath = path.join(qnaDir, `${safeQTitle}.md`);
@@ -825,38 +840,31 @@ ${targetNode.content}`;
 
                 fs.writeFileSync(qPath, qnaContent, 'utf8');
             }
+            console.log(`[Lazy Worker] [Step 6] Q&A cards written successfully.`);
 
             console.log(`[Lazy Worker] Node "${targetNode.title}" processed successfully.`);
 
         } catch (err) {
             console.error(`[Lazy Worker] Failed to process node "${targetNode.title}":`, err.message);
+            console.error(`[Lazy Worker Error Stack]:`, err.stack);
             try {
                 const relative = item.relative;
-                const ext = path.extname(relative);
-                const isWikiHtml = relative.endsWith('.wiki.html');
-                const basename = isWikiHtml ? path.basename(relative, '.wiki.html') : path.basename(relative, ext);
-                const subfolder = path.dirname(relative);
-                const conversionsDir = path.join(caseDir, 'conversions');
-                const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
-                fs.mkdirSync(destDir, { recursive: true });
-                const errorPath = path.join(destDir, `${basename}.error`);
-                fs.writeFileSync(errorPath, `[Enrichment Error]: ${err.message}`, 'utf8');
-                updateStatus(caseDir, relative, 'failed_enrich');
+                updateStatus(caseDir, relative, 'failed_enrich', err.message);
             } catch (e) {
-                console.error('[Lazy Worker] Failed to write sidecar error file:', e.message);
+                console.error('[Lazy Worker] Failed to update status in catch block:', e.message);
             }
             lazyQueue.shift();
             continue;
         }
 
-        // Auto-Sleep Batching logic: process 5 nodes in sequence, then pause for 6 minutes 
-        // to let the local Ollama service auto-unload models and release system RAM.
-        if (processedBatchCount >= 5) {
+        // Auto-Sleep Batching logic: only apply 6-minute Ollama RAM cooldown in local mode!
+        if (processedBatchCount >= 5 && config.activeMode === 'local') {
             console.log(`[Lazy Worker] Batch limit (5 cards) reached. Pausing for 6 minutes (360s) to allow Ollama models to auto-unload from memory and free up RAM.`);
             processedBatchCount = 0;
             await new Promise(resolve => setTimeout(resolve, 360000));
         } else {
-            await new Promise(resolve => setTimeout(resolve, 15000)); // Base sleep of 15s to keep CPU low
+            const delay = config.activeMode === 'local' ? 15000 : 2000;
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
 
