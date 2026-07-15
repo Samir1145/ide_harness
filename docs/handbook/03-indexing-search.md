@@ -140,7 +140,28 @@ The visual layout network explorer maps connections between case documents, conc
 
 
 ### Hybrid Semantic Search
-Autocomplete queries execute hybrid search:
-* **BM25 Keyword Matching (40% Weight):** Stemmed tokens are matched against the local postings database.
-* **Semantic Vector Similarity (60% Weight):** Generates query vectors locally on CPU via `@xenova/transformers` running the `Xenova/all-MiniLM-L6-v2` model.
+Autocomplete and RAG queries execute hybrid search:
+* **BM25 Keyword Matching:** Stemmed tokens are matched against the local postings database to compute a lexical text score.
+* **Semantic Vector Similarity:** Generates query vectors locally on the CPU via `@xenova/transformers` running the `Xenova/all-MiniLM-L6-v2` model.
+* **SQLite-VSS Native Vector Search:** The database dynamically attempts to load the native SQLite `vss0` extension to run vector searches (`vss_search` / `vector_blob(384)`) inside SQLite.
+* **In-Memory JS Fallback:** If native extension loading is disabled by Node.js environment security restrictions, the system automatically falls back to an in-memory JS cosine similarity search using the stored vectors in SQLite without crashing.
+* **Reciprocal Rank Fusion (RRF):** Fuses the results from both BM25 lexical ranking and Vector semantic ranking. RRF ensures robust blending of exact terms and conceptual matches, applying concept priority boosts and wiki-card multipliers.
 * **Privacy Assurance:** All processing runs strictly local. No law queries are sent to cloud APIs.
+
+---
+
+## 4. Legal Language Server Protocol (LSP) Service
+
+Completeness, completions, and real-time hover lookups are powered by a custom legal LSP service:
+
+### Backend Language Service (`lsp-service.js`)
+* Built on top of Microsoft's `vscode-markdown-languageservice`.
+* Implements a custom `IWorkspace` directory scanning system that maps workspace file operations and parses document tokens using an inline `CustomParser` wrapping `markdown-it`.
+* Exposes three lightweight endpoints:
+  - `POST /api/lsp/completions`: Resolves relative workspace markdown link paths and auto-completes node headings.
+  - `POST /api/lsp/hover`: Aggregates both standard markdown reference hovers and custom `@@` statutory overlays (fetching the law descriptions dynamically from the Encrypted Law Vault).
+  - `POST /api/lsp/diagnostics`: Computes document link integrity checks, broken relative paths, and includes a custom legal linter that flags invalid statutory references.
+
+### Monaco Integration
+* **Unified Hover Provider:** Hooks into Monaco's `registerHoverProvider` to render standard Markdown and custom statutory previews in rich popup cards.
+* **Real-time Diagnostics Linter:** Listens to editor changes (debounced by 1s) and uses `monaco.editor.setModelMarkers` to highlight broken links or invalid law citations directly in the editor as the user types.

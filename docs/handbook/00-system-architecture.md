@@ -115,6 +115,7 @@ graph TD
 ### 2. Monaco Workspace (Drafting & Editing)
 *   **Purpose:** The central workbench for the lawyer.
 *   **Mechanism:** Standard autocomplete actions, templates, and contextual lookup tools (Statutes, Judgments, and Case Concepts) are integrated directly into Monaco via right-click triggers and slash commands.
+*   **LSP Integration:** Powered by a custom Node.js background LSP service using `vscode-markdown-languageservice` to perform real-time path completions, rich hover previews, and interactive linter diagnostics.
 *   **Failsafe:** Lawyers stay inside a single unified text editor, referencing laws and precedent summaries inline.
 
 ### 3. Specialized Legal Agents (Curation & Auditing)
