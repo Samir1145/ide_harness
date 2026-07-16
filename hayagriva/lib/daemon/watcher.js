@@ -448,7 +448,7 @@ function createWatcher(caseDir, onChange) {
 
 
 
-async function ingestFile(caseDir, filePath, opts = {}) {
+async function _ingestFileInternal(caseDir, filePath, opts = {}) {
     // opts.conversionOnly — Phase 1: PDF→.md only, zero index/BM25 writes
     // opts.disableDoc2Query — skip wiki Q&A card generation in Phase 2
     const conversionOnly = opts === true ? false : (opts.conversionOnly === true); // back-compat: bool arg
@@ -578,18 +578,21 @@ async function ingestFile(caseDir, filePath, opts = {}) {
             // Index sections and search chunks in SQLite database
             indexToSqlite(caseDir, result);
 
-            // Asynchronously run dynamic vector indexing
-            indexVectorsToSqlite(caseDir, result, profile).catch(err => {
+            // Run dynamic vector indexing and K-V extraction sequentially
+            try {
+                await indexVectorsToSqlite(caseDir, result, profile);
+            } catch (err) {
                 console.error(`[Watcher] Vector indexing failed:`, err.message);
-            });
+            }
 
             // Update statuses.json index
             updateStatus(caseDir, relative, 'indexed');
 
-            // Trigger schema-less fact extraction asynchronously in the background
-            extractFileKV(caseDir, filePath, result.markdown).catch(e => {
+            try {
+                await extractFileKV(caseDir, filePath, result.markdown);
+            } catch (e) {
                 console.error(`[extract-file error] Failed for ${path.basename(filePath)}:`, e.message);
-            });
+            }
 
             return {
                 sections: result.sections.length,
@@ -670,7 +673,7 @@ async function ingestFile(caseDir, filePath, opts = {}) {
             fs.mkdirSync(destDir, { recursive: true });
             const errorPath = path.join(destDir, `${basename}.error`);
             fs.writeFileSync(errorPath, err.message, 'utf8');
-            updateStatus(caseDir, relative, 'failed_convert');
+            updateStatus(caseDir, relative, 'failed_convert', err.message);
         } catch (e) {
             console.error('[Watcher] Failed to write sidecar error file:', e.message);
         }
@@ -1376,9 +1379,79 @@ async function indexVectorsToSqlite(caseDir, result, profile) {
     }
 }
 
+// =========================================================================
+// SEQUENTIAL INGESTION & REGISTRATION QUEUE (PLAN 1)
+// =========================================================================
+
+const ingestionQueue = [];
+let isProcessingQueue = false;
+
+async function processNextQueueItem() {
+    if (isProcessingQueue || ingestionQueue.length === 0) return;
+    isProcessingQueue = true;
+    
+    const task = ingestionQueue[0];
+    try {
+        const result = await task.fn();
+        task.resolve(result);
+    } catch (err) {
+        task.reject(err);
+    } finally {
+        ingestionQueue.shift();
+        isProcessingQueue = false;
+        processNextQueueItem();
+    }
+}
+
+function enqueueTask(fn) {
+    return new Promise((resolve, reject) => {
+        ingestionQueue.push({ fn, resolve, reject });
+        processNextQueueItem();
+    });
+}
+
+// Queue-wrapped ingestFile
+async function ingestFile(caseDir, filePath, opts = {}) {
+    return enqueueTask(() => _ingestFileInternal(caseDir, filePath, opts));
+}
+
+// Queue-wrapped registerUnprocessedFile
+async function registerUnprocessedFile(caseDir, filePath) {
+    return enqueueTask(async () => {
+        const ext = path.extname(filePath).toLowerCase();
+        const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.md', '.txt'];
+        if (!docExts.includes(ext) || filePath.endsWith('.wiki.html')) return;
+
+        const relative = path.relative(caseDir, filePath);
+        const basename = path.basename(filePath, ext);
+
+        const index = readIndex(caseDir);
+        const alreadyIndexed = index.documents && index.documents.some(d => d.filename === relative);
+
+        if (ext !== '.md' && ext !== '.txt' && !alreadyIndexed) {
+            console.log(`[Watcher Queue] Registering new unprocessed file ${relative}`);
+            upsertDocument(index, {
+                title: basename,
+                filename: relative,
+                conceptsDir: path.join('concepts', basename),
+                type: ext.replace('.', ''),
+                sections: 0,
+                sectionTitles: [],
+                ingestedAt: new Date().toISOString(),
+                sizeBytes: fs.statSync(filePath).size,
+                priority: 5,
+                documentDate: null,
+                status: 'unprocessed'
+            });
+            writeIndex(caseDir, index);
+        }
+    });
+}
+
 module.exports = { 
     createWatcher, 
     ingestFile, 
+    registerUnprocessedFile,
     startLazyWorker, 
     buildPageIndexTree, 
     generateFallbackSummary,

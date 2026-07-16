@@ -46,6 +46,8 @@ import {
   draftingPanelHtml
 } from './templates';
 
+const HAYAGRIVA_NS = 'hayagriva';
+
 function getBasename(p: string): string {
   const parts = p.split(/[\\/]/);
   return parts[parts.length - 1];
@@ -832,6 +834,18 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                     insertText: 'clause ',
                     range: replaceRange,
                     detail: 'Interactive Templates',
+                  },
+                  {
+                    label: '/export-sc - Export to Supreme Court DOCX',
+                    filterText: '/export-sc',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: '',
+                    range: replaceRange,
+                    detail: 'Supreme Court Formatted Exporter',
+                    command: {
+                      id: `${HAYAGRIVA_NS}:exportScDocx`,
+                      arguments: [model.uri]
+                    }
                   }
                 ].filter(s => s.filterText.startsWith('/' + rawSlashLower));
                 
@@ -1291,7 +1305,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = 'none';
-    iframe.src = `${this.getBackendUrl()}/api/hayagriva/office-preview?path=${encodeURIComponent(filePath)}`;
+    iframe.src = `${this.getBackendUrl()}/api/hayagriva/office-preview?path=${encodeURIComponent(filePath)}#view=FitH`;
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });
@@ -1418,8 +1432,10 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   }
 
   startBackendMonitor(): void {
-    // Initial check
-    this.checkBackendHealth();
+    // Initial check with 3-second grace period
+    setTimeout(() => {
+      this.checkBackendHealth();
+    }, 3000);
     
     // Poll every 10 seconds
     setInterval(() => {

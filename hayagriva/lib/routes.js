@@ -6,7 +6,6 @@ const { query, retrieveContexts, buildPrompt } = require('./core/rag');
 const { ingestFile, updateStatus, queueForLazyProcessing, startLazyWorker, ensureAuditDocs } = require('./daemon/watcher');
 const { pendingPdfQueue, completedPdfSet } = require('./daemon/lazy_pdf_worker');
 const { streamChat } = require('./core/llm-client');
-const { cancelConversion } = require('./core/converter');
 const { resolveTrigger, searchLaws, getVaultVersion, isVaultReady } = require('./utils/vault-loader');
 
 function resolveCaseDir(docsRoot, caseParam) {
@@ -67,7 +66,6 @@ function ensureCaseSettings(caseDir) {
                 'wiki/': true,
                 'concepts/': true,
                 'conversions/': true,
-                '**/*.md': true,
                 '**/*.status': true,
                 '**/*.footer': true,
                 '**/*.cache': true
@@ -77,6 +75,10 @@ function ensureCaseSettings(caseDir) {
                     settings['files.exclude'][key] = val;
                     changed = true;
                 }
+            }
+            if (settings['files.exclude']['**/*.md'] !== undefined) {
+                delete settings['files.exclude']['**/*.md'];
+                changed = true;
             }
             if (settings['explorer.openEditors.visible'] !== 0) {
                 settings['explorer.openEditors.visible'] = 0;
@@ -396,7 +398,7 @@ module.exports = {
                     console.warn('[API Server] Failed to query file statuses from SQLite:', e.message);
                 }
 
-                const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.wiki.html'];
+                const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.wiki.html', '.md'];
                 const scan = (dir) => {
                     const files = fs.readdirSync(dir);
                     for (const file of files) {
@@ -425,13 +427,23 @@ module.exports = {
                             const isWikiHtml = file.endsWith('.wiki.html');
                             const ext = isWikiHtml ? '.wiki.html' : path.extname(file).toLowerCase();
                             if (docExts.includes(ext)) {
+                                if (ext === '.md') {
+                                    const hasParent = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'].some(parentExt => {
+                                        const parentFile = filePath.replace(/\.md$/, parentExt);
+                                        return fs.existsSync(parentFile);
+                                    });
+                                    if (hasParent) {
+                                        continue;
+                                    }
+                                }
+
                                 const relative = path.relative(caseDir, filePath);
                                 let docStatus = dbStatusesMap[relative] || 'unprocessed';
                                 const cleanBase = ext === '.wiki.html' ? path.basename(file, '.wiki.html') : path.basename(file, ext);
                                 const subfolder = path.dirname(relative);
 
                                 // ── Computed disk paths ────────────────────────────────────────────
-                                const companionPath = isWikiHtml ? filePath : filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
+                                const companionPath = isWikiHtml ? filePath : (ext === '.md' ? filePath : filePath.replace(/\.[a-zA-Z0-9]+$/, '.md'));
                                 const conceptsDir = subfolder === '.' ?
                                     path.join(caseDir, 'concepts', cleanBase) :
                                     path.join(caseDir, 'concepts', subfolder, cleanBase);
@@ -453,19 +465,31 @@ module.exports = {
                                 }
 
                                 // ── Self-healing: Dot 1 — companion .md exists on disk ─────────────
-                                if (docStatus === 'unprocessed' && companionExists) {
-                                    docStatus = 'companion_ready';
-                                    try {
-                                        const { getDb } = require('./core/sqlite-store');
-                                        const db = getDb(caseDir);
-                                        const existing = db.prepare('SELECT status FROM documents WHERE filename = ?').get(relative);
-                                        if (!existing) {
-                                            db.prepare('INSERT INTO documents (filename, status) VALUES (?, ?)').run(relative, 'companion_ready');
-                                        } else {
-                                            db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('companion_ready', relative);
-                                        }
-                                    } catch (_) {}
-                                }
+                                 if (ext === '.md' && (docStatus === 'unprocessed' || docStatus === 'companion_ready')) {
+                                     docStatus = 'reviewed';
+                                     try {
+                                         const { getDb } = require('./core/sqlite-store');
+                                         const db = getDb(caseDir);
+                                         const existing = db.prepare('SELECT status FROM documents WHERE filename = ?').get(relative);
+                                         if (!existing) {
+                                             db.prepare('INSERT INTO documents (filename, status) VALUES (?, ?)').run(relative, 'reviewed');
+                                         } else {
+                                             db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('reviewed', relative);
+                                         }
+                                     } catch (_) {}
+                                 } else if (docStatus === 'unprocessed' && companionExists) {
+                                     docStatus = 'companion_ready';
+                                     try {
+                                         const { getDb } = require('./core/sqlite-store');
+                                         const db = getDb(caseDir);
+                                         const existing = db.prepare('SELECT status FROM documents WHERE filename = ?').get(relative);
+                                         if (!existing) {
+                                             db.prepare('INSERT INTO documents (filename, status) VALUES (?, ?)').run(relative, 'companion_ready');
+                                         } else {
+                                             db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('companion_ready', relative);
+                                         }
+                                     } catch (_) {}
+                                 }
 
                                 // ── Self-healing: Dot 2 — pageindex_tree.json exists on disk ──────
                                 if ((docStatus === 'unprocessed' || docStatus === 'companion_ready' || docStatus === 'failed_ingest') && treeExists) {
@@ -1123,17 +1147,6 @@ module.exports = {
             });
         },
 
-        '/api/hayagriva/cancel-ocr': (req, res, parsedUrl, docsRoot) => {
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', () => {
-                const data = JSON.parse(body);
-                const success = cancelConversion(data.file);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success }));
-            });
-        },
-
         '/api/hayagriva/convert-to-md': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
@@ -1206,7 +1219,7 @@ module.exports = {
                     }
                 }).catch(err => {
                     console.error(`[API Server] Conversion failed for ${basename}:`, err.message);
-                    updateStatus(caseDir, relative, 'failed_convert');
+                    updateStatus(caseDir, relative, 'failed_convert', err.message);
                 });
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1253,6 +1266,96 @@ module.exports = {
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, status: 'ingesting' }));
+            });
+        },
+        '/api/hayagriva/enhance-markdown': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body);
+                    const file = data.file || data.filePath;
+                    if (!file) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Missing file parameter' }));
+                        return;
+                    }
+                    const caseName = data.case || 'Case_Alpha';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    
+                    const isWikiHtml = file.endsWith('.wiki.html');
+                    const companionPath = isWikiHtml ? file : file.replace(/\.[a-zA-Z0-9]+$/, '.md');
+                    
+                    if (!fs.existsSync(companionPath)) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Companion markdown file not found. Please convert the file to Markdown first.' }));
+                        return;
+                    }
+
+                    const originalContent = fs.readFileSync(companionPath, 'utf8');
+                    
+                    // Apply heuristic structuring
+                    const lines = originalContent.split(/\r?\n/);
+                    let inCodeBlock = false;
+                    const enhancedLines = lines.map(line => {
+                        let trimmed = line.trim();
+                        if (trimmed.startsWith('```')) {
+                            inCodeBlock = !inCodeBlock;
+                            return line;
+                        }
+                        if (inCodeBlock) return line;
+
+                        if (!trimmed) return line;
+
+                        // Standardize existing headings: e.g. "##Heading##" -> "## Heading"
+                        if (trimmed.startsWith('#')) {
+                            let clean = trimmed.replace(/#+$/, '').trim();
+                            const hashMatch = clean.match(/^(#+)(.*)$/);
+                            if (hashMatch) {
+                                const hashes = hashMatch[1];
+                                const text = hashMatch[2].trim();
+                                return `${hashes} ${text}`;
+                            }
+                        }
+
+                        if (trimmed.startsWith('-') || (trimmed.startsWith('*') && !trimmed.startsWith('**')) || trimmed.startsWith('+')) return line;
+                        if (trimmed.startsWith('>') || trimmed.startsWith('|')) return line;
+
+                        // Heuristic 1: Bold wrapped line (e.g. "**Definitions**" or "**3(a) Reply...**")
+                        const boldMatch = trimmed.match(/^\*\*(.*?)\*\*$/);
+                        if (boldMatch) {
+                            const cleanText = boldMatch[1].trim();
+                            if (cleanText && cleanText.length < 80) {
+                                return `### ${cleanText}`;
+                            }
+                        }
+
+                        // Heuristic 2: Short capitalized line (e.g. "SECTION 1: APPOINTMENT")
+                        const isAllCaps = trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
+                        if (isAllCaps && trimmed.length > 3 && trimmed.length < 60) {
+                            return `## ${trimmed}`;
+                        }
+
+                        // Heuristic 3: Numbered section prefix
+                        const sectionPattern = /^(?:section\s+\d+|article\s+[ivxldcm]+|\b[ivxldcm]+\.|\d+\.\d*(?:\.\d*)*)\s+([A-Z].*)$/i;
+                        if (sectionPattern.test(trimmed) && trimmed.length < 80) {
+                            return `## ${trimmed}`;
+                        }
+
+                        return line;
+                    });
+
+                    const enhancedContent = enhancedLines.join('\n');
+                    fs.writeFileSync(companionPath, enhancedContent, 'utf8');
+                    console.log(`[API Server] Enhanced companion markdown structure: ${path.basename(companionPath)}`);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true }));
+                } catch (e) {
+                    console.error('[API Server] Enhance Markdown failed:', e);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
             });
         },
 
@@ -1497,6 +1600,42 @@ module.exports = {
             });
         },
 
+        '/api/hayagriva/export-sc-docx': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const file = data.file || data.filePath;
+                    if (!file) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Missing file parameter' }));
+                        return;
+                    }
+                    const caseName = data.case || 'Case_Alpha';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const absoluteFile = path.resolve(caseDir, file);
+                    
+                    if (!fs.existsSync(absoluteFile)) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: `File not found: ${file}` }));
+                        return;
+                    }
+                    
+                    const docxPath = absoluteFile.replace(/\.md$/i, '_sc.docx');
+                    const { exportMarkdownToDocxFile } = require('./core/docx-exporter');
+                    await exportMarkdownToDocxFile(absoluteFile, docxPath);
+                    
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, docxPath: path.relative(caseDir, docxPath) }));
+                } catch (e) {
+                    console.error('[API Server] Export to SC Docx failed:', e.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+        },
+
         '/api/forms/kv-dictionary/update': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
@@ -1608,13 +1747,19 @@ module.exports = {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
-                const data = JSON.parse(body);
-                const caseDir = path.join(docsRoot, data.case);
-                const coordinator = require('./agents/agent-coordinator');
-                const responseText = await coordinator.run(caseDir, data.message, data.history || [], data.agent);
-                
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: true, response: responseText }));
+                try {
+                    const data = JSON.parse(body);
+                    const caseDir = path.join(docsRoot, data.case);
+                    const coordinator = require('./agents/agent-coordinator');
+                    const responseText = await coordinator.run(caseDir, data.message, data.history || [], data.agent);
+                    
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, response: responseText }));
+                } catch (err) {
+                    console.error('[API Server] Agent chat handler failed:', err.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
             });
         },
 

@@ -432,6 +432,30 @@ async function getDiagnostics(caseDir, docUri, docContent) {
             }
         }
     }
+    // Custom check for structural headings in companion Markdown files
+    const docFsPath = URI.parse(docUri).fsPath;
+    const docName = path.basename(docFsPath);
+    const isCompanion = docFsPath.endsWith('.md') &&
+                        !docFsPath.includes('/wiki/') &&
+                        !docFsPath.includes('/conversions/') &&
+                        docName !== 'CASE_AUDIT.md' &&
+                        docName !== 'case_facts.md' &&
+                        docName !== 'claims_registry.md' &&
+                        docName !== 'avoidance_ledger.md';
+    if (isCompanion) {
+        const hasHeadings = /^#[#\s]/m.test(docContent);
+        if (!hasHeadings) {
+            const firstLineLength = (docContent.split('\n')[0] || '').length;
+            customDiagnostics.push({
+                range: {
+                    start: { line: 0, character: 0 },
+                    end: { line: 0, character: firstLineLength }
+                },
+                severity: 2, // Warning
+                message: `Companion markdown lacks structural headings (# or ##). Please manually add structure or right-click the source file and select "2. Enhance Markdown".`
+            });
+        }
+    }
 
     return [...lspDiagnostics, ...customDiagnostics];
 }

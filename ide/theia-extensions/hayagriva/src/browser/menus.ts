@@ -56,6 +56,12 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '5'
     });
 
+    registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:exportScDocx`,
+      label: 'Export to SC DOCX',
+      order: '6'
+    });
+
     // Navigator (File Explorer) right click sibling submenus
     const PIPELINE_SUBMENU = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_pipeline_submenu'];
     registry.registerSubmenu(PIPELINE_SUBMENU, 'Hayagriva (Pipeline)', { sortString: 'a_hayagriva_1' });
@@ -71,21 +77,33 @@ export class HayagrivaMenuContribution implements MenuContribution {
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:ingestToAi`,
-      label: '2. Generate Search Vectors',
+      commandId: `${HAYAGRIVA_NS}:enhanceMarkdown`,
+      label: '2. Enhance Markdown',
       order: '2'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:enrichToAi`,
-      label: '3. Run AI Enrichment',
+      commandId: `${HAYAGRIVA_NS}:ingestToAi`,
+      label: '3. Generate Search Vectors',
       order: '3'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:openCaseVault`,
-      label: '4. Open Database Viewer',
+      commandId: `${HAYAGRIVA_NS}:enrichToAi`,
+      label: '4. Run AI Enrichment',
       order: '4'
+    });
+
+    registry.registerMenuAction(PIPELINE_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openCaseVault`,
+      label: '5. Open Database Viewer',
+      order: '5'
+    });
+
+    registry.registerMenuAction(PIPELINE_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:exportScDocx`,
+      label: '6. Export to SC DOCX',
+      order: '6'
     });
 
     // Archive Submenu actions

@@ -2,7 +2,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { createWatcher, ingestFile } = require('./lib/daemon/watcher');
+const { createWatcher, ingestFile, registerUnprocessedFile } = require('./lib/daemon/watcher');
 const { readIndex } = require('./lib/core/indexer');
 const { query } = require('./lib/core/rag');
 const { loadVault } = require('./lib/utils/vault-loader');
@@ -247,7 +247,9 @@ async function main() {
 
     const watcher = createWatcher(caseDir, {
         async onFileChange(filePath) {
-            handleWatcherFileChange(caseDir, filePath);
+            registerUnprocessedFile(caseDir, filePath).catch(err => {
+                console.error('[Watcher Queue] Failed to register unprocessed file:', err.message);
+            });
         }
     });
 
@@ -271,36 +273,6 @@ async function main() {
     });
 }
 
-function handleWatcherFileChange(caseDir, filePath) {
-    const ext = path.extname(filePath).toLowerCase();
-    const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.md', '.txt'];
-    if (!docExts.includes(ext) || filePath.endsWith('.wiki.html')) return;
-
-    const relative = path.relative(caseDir, filePath);
-    const basename = path.basename(filePath, ext);
-
-    const index = readIndex(caseDir);
-    const alreadyIndexed = index.documents && index.documents.some(d => d.filename === relative);
-
-    if (ext !== '.md' && ext !== '.txt' && !alreadyIndexed) {
-        console.log(`[hayagriva] Watcher: Registering new unprocessed file ${relative}`);
-        const { upsertDocument, writeIndex } = require('./lib/core/indexer');
-        upsertDocument(index, {
-            title: basename,
-            filename: relative,
-            conceptsDir: path.join('concepts', basename),
-            type: ext.replace('.', ''),
-            sections: 0,
-            sectionTitles: [],
-            ingestedAt: new Date().toISOString(),
-            sizeBytes: fs.statSync(filePath).size,
-            priority: 5,
-            documentDate: null,
-            status: 'unprocessed'
-        });
-        writeIndex(caseDir, index);
-    }
-}
 
 async function runWatchAll(docsRoot) {
     console.log(`[hayagriva] watch-all mode: ${docsRoot}`);
@@ -337,7 +309,9 @@ async function runWatchAll(docsRoot) {
         const caseDir = path.join(docsRoot, caseName);
         const watcher = createWatcher(caseDir, {
             async onFileChange(filePath) {
-                handleWatcherFileChange(caseDir, filePath);
+                registerUnprocessedFile(caseDir, filePath).catch(err => {
+                    console.error('[Watcher Queue] Failed to register unprocessed file:', err.message);
+                });
             }
         });
         watchers.set(caseName, watcher);

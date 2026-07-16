@@ -1,6 +1,6 @@
 import { inject, injectable } from '@theia/core/shared/inversify';
 import { ChatAgent, ChatAgentLocation } from '@theia/ai-chat/lib/common/chat-agents';
-import { MutableChatRequestModel } from '@theia/ai-chat/lib/common/chat-model';
+import { MutableChatRequestModel, ErrorChatResponseContentImpl, MarkdownChatResponseContentImpl } from '@theia/ai-chat/lib/common/chat-model';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { PreferenceService } from '@theia/core/lib/common';
 import URI from '@theia/core/lib/common/uri';
@@ -60,21 +60,22 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
       });
 
       if (!res.ok) {
-        throw new Error(`Backend returned status code ${res.status}`);
+        let errMsg = `Backend returned status code ${res.status}`;
+        try {
+          const errData = await res.json();
+          if (errData && errData.error) {
+            errMsg = errData.error;
+          }
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
       const data = await res.json();
       const responseText = data.response || 'No response returned from agent.';
       
-      request.response.response.addContent({
-        kind: 'text',
-        content: responseText
-      } as any);
+      request.response.response.addContent(new MarkdownChatResponseContentImpl(responseText));
     } catch (err: any) {
-      request.response.response.addContent({
-        kind: 'text',
-        content: `❌ Error communicating with ${this.name}: ${err.message}`
-      } as any);
+      request.response.response.addContent(new ErrorChatResponseContentImpl(err));
     } finally {
       request.response.updateProgressMessage({ id: progress.id, content: 'Done.' });
       request.response.complete();

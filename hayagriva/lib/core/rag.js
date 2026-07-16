@@ -130,13 +130,13 @@ function getSafeFilename(title) {
     }
     return safe;
 }
-
 function buildPrompt(query, contexts) {
-    const contextText = contexts.map(c => {
-        return `--- [Source: ${c.docName} | Section/Page: ${c.title}] ---\nTags: ${c.tags.join(', ')}\n\n${c.content}`;
+    const contextText = contexts.map((c, idx) => {
+        return `--- [Source: [source:${idx}] | Name: ${c.docName} | Section: ${c.title}] ---\nTags: ${c.tags.join(', ')}\n\n${c.content}`;
     }).join('\n\n');
 
     return `You are a research/legal assistant. Answer the user's question using ONLY the provided case concepts and sources below.
+You must cite your sources using the exact placeholder [source:N] (e.g. [source:0], [source:1]) when referencing information from that source block. Place these inline (e.g., "...as declared in the resolution plan [source:0].").
 If you cannot find the answer, explain what parts of the document sources you checked.
 If the sources contain conflicting information, explicitly note the conflict and cite both sources with their dates.
 
@@ -186,7 +186,14 @@ Hypothetical Answer:`;
             ORDER BY ftsScore ASC
             LIMIT 12
         `);
-        ftsRows = ftsQuery.all(searchTerms);
+        const sanitizedSearch = searchTerms
+            .replace(/[^a-zA-Z0-9\s]/g, ' ')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(w => `${w}*`)
+            .join(' ');
+        ftsRows = ftsQuery.all(sanitizedSearch || '');
     } catch (err) {
         console.warn('[SQLite Search] FTS search query failed, using empty results:', err.message);
     }
@@ -261,30 +268,34 @@ Hypothetical Answer:`;
             
             // Fallback: JS-based hybrid keyword-filtering + cosine similarity
             if (vectorHits.length === 0) {
-                let candidateIds = [];
+                let candidateKeys = [];
                 try {
                     // Extract alphanumeric keyword search tokens from queryText
                     const words = queryText.replace(/[^a-zA-Z0-9\s]/g, '').trim().split(/\s+/).filter(Boolean);
                     if (words.length > 0) {
                         const matchExpr = words.map(w => `${w}*`).join(' OR ');
-                        const ftsQuery = db.prepare('SELECT rowid FROM fts_chunks WHERE content MATCH ? LIMIT 100');
+                        const ftsQuery = db.prepare('SELECT filename, section_title, chunk_index FROM fts_chunks WHERE content MATCH ? LIMIT 100');
                         const ftsRows = ftsQuery.all(matchExpr);
-                        candidateIds = ftsRows.map(r => r.rowid);
-                        console.log(`[RAG] FTS5 pre-filter selected ${candidateIds.length} similarity candidates.`);
+                        candidateKeys = ftsRows;
+                        console.log(`[RAG] FTS5 pre-filter selected ${candidateKeys.length} similarity candidates.`);
                     }
                 } catch (ftsErr) {
                     console.warn('[RAG] FTS5 pre-filtering failed:', ftsErr.message);
                 }
 
                 let candidateVectors = [];
-                if (candidateIds.length > 0) {
-                    // Fetch only matching candidate rows
-                    const placeholders = candidateIds.map(() => '?').join(',');
+                if (candidateKeys.length > 0) {
+                    // Fetch only matching candidate rows using composite natural key matching
+                    const placeholders = candidateKeys.map(() => '(filename = ? AND section_title = ? AND chunk_index = ?)').join(' OR ');
+                    const params = [];
+                    candidateKeys.forEach(k => {
+                        params.push(k.filename, k.section_title, k.chunk_index);
+                    });
                     const candidateQuery = db.prepare(`
                         SELECT id, filename, section_title, page_number, chunk_index, content, vector_blob 
-                        FROM document_vectors WHERE id IN (${placeholders})
+                        FROM document_vectors WHERE ${placeholders}
                     `);
-                    candidateVectors = candidateQuery.all(...candidateIds);
+                    candidateVectors = candidateQuery.all(...params);
                 } else {
                     // Extreme fallback: if FTS pre-filter is empty, scan first 150 chunks to prevent thread lock
                     candidateVectors = db.prepare('SELECT id, filename, section_title, page_number, chunk_index, content, vector_blob FROM document_vectors LIMIT 150').all();
@@ -449,10 +460,39 @@ Indices list (e.g. 2,0,4,1,3):`;
     return topCandidates.map(c => ({
         title: c.title,
         docName: c.docName,
+        page_number: c.hit ? c.hit.page_number : 1,
         content: expandContextUsingTree(caseDir, c.docName, c.title, c.body),
         tags: c.tags,
         links: c.links
     }));
+}
+
+function replaceCitations(text, contexts) {
+    if (!text || !contexts || contexts.length === 0) return text;
+    
+    // Replaces [source:N] with custom hayagriva-citation links
+    let replaced = text.replace(/\[source:(\d+)\]/g, (match, idxStr) => {
+        const idx = parseInt(idxStr, 10);
+        if (idx >= 0 && idx < contexts.length) {
+            const ctx = contexts[idx];
+            const page = ctx.page_number || 1;
+            return `[${idx + 1}](hayagriva-citation://${encodeURIComponent(ctx.docName)}?page=${page})`;
+        }
+        return match;
+    });
+
+    // Replaces [Reference N] with custom hayagriva-citation links as LLM fallback
+    replaced = replaced.replace(/\[Reference\s*(\d+)\]/gi, (match, idxStr) => {
+        const idx = parseInt(idxStr, 10) - 1;
+        if (idx >= 0 && idx < contexts.length) {
+            const ctx = contexts[idx];
+            const page = ctx.page_number || 1;
+            return `[${idx + 1}](hayagriva-citation://${encodeURIComponent(ctx.docName)}?page=${page})`;
+        }
+        return match;
+    });
+
+    return replaced;
 }
 
 async function query(caseDir, queryText, opts = {}) {
@@ -471,11 +511,11 @@ async function query(caseDir, queryText, opts = {}) {
             answer += chunk;
         }
         const sources = Array.from(new Set(contexts.map(c => c.docName)));
-        return { answer, sources };
+        return { answer: replaceCitations(answer, contexts), sources };
     } catch (e) {
         console.error('[RAG Agent Error]', e.message);
         return { answer: `Error calling LLM: ${e.message}`, sources: [] };
     }
 }
 
-module.exports = { query, buildPrompt, retrieveContexts, getSafeFilename };
+module.exports = { query, buildPrompt, retrieveContexts, getSafeFilename, replaceCitations };

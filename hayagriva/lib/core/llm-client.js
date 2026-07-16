@@ -371,16 +371,16 @@ function loadLlmConfig(opts) {
     if (config.activeMode === 'local') {
         const hasSettingsFile = opts && opts.caseDir && fs.existsSync(path.join(opts.caseDir, 'hayagriva_settings.json'));
         if (!hasSettingsFile) {
-            if (process.env.GEMINI_API_KEY) {
-                config.activeMode = 'cloud';
-                config.cloudProvider = 'gemini';
-                config.apiKey = process.env.GEMINI_API_KEY;
-                console.log('[LLM Client] Auto-detected GEMINI_API_KEY. Upgrading to Cloud mode...');
-            } else if (process.env.OPENROUTER_API_KEY) {
+            if (process.env.OPENROUTER_API_KEY) {
                 config.activeMode = 'cloud';
                 config.cloudProvider = 'openrouter';
                 config.apiKey = process.env.OPENROUTER_API_KEY;
                 console.log('[LLM Client] Auto-detected OPENROUTER_API_KEY. Upgrading to Cloud mode...');
+            } else if (process.env.GEMINI_API_KEY) {
+                config.activeMode = 'cloud';
+                config.cloudProvider = 'gemini';
+                config.apiKey = process.env.GEMINI_API_KEY;
+                console.log('[LLM Client] Auto-detected GEMINI_API_KEY. Upgrading to Cloud mode...');
             } else if (process.env.OPENAI_API_KEY) {
                 config.activeMode = 'cloud';
                 config.cloudProvider = 'openai';
@@ -555,7 +555,7 @@ async function* streamChat(messages, opts = {}) {
 }
 
 async function getChatResponse(messages, opts = {}) {
-    const timeoutMs = opts.timeout || 10000;
+    const timeoutMs = opts.timeout || 30000;
     
     const fetchPromise = (async () => {
         let fullText = '';

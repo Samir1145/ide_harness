@@ -29,14 +29,14 @@ TWILLM-OKF-PAGED/
 │       ├── watcher.js              # File watcher, ingestFile(), PDF background daemon
 │       ├── api-server.js           # HTTP API (port 3210)
 │       ├── llm-client.js           # LLM routing: OpenRouter / Ollama / Gemini / OpenAI
-│       ├── converter.js            # PDF→MD orchestrator (pdfexcavator + Vision OCR)
+│       ├── converter.js            # PDF→MD orchestrator (pdfexcavator)
 │       ├── rag.js                  # BM25 retrieval + prompt builder
 │       ├── bm25.js                 # Inverted index: load/save/query
 │       ├── indexer.js              # index.json read/write/upsert
 │       ├── okf.js                  # Markdown/frontmatter parser
 │       ├── vault-loader.js         # Encrypted law vault (AES-256-GCM)
 │       ├── upload-file/            # Phase 1: format converters
-│       │   ├── pdf_upload.js       # PDF text extraction + Vision OCR
+│       │   ├── pdf_upload.js       # PDF text extraction
 │       │   ├── docx_upload.js      # Mammoth Word converter
 │       │   ├── xls_upload.js       # Excel→Markdown grid tables
 │       │   ├── wiki_upload.js      # TiddlyWiki HTML scraper
@@ -71,7 +71,7 @@ PDF → ingestPdf() → companion .md created on disk
 ```
 
 The daemon (`_runDaemonLoop` in `watcher.js`) is a **serial async loop** using `setTimeout` recursion — never `setInterval`. This ensures:
-- Only one 3-page block is ever in-flight at a time (no concurrent OCR)
+- Only one 3-page block is ever in-flight at a time
 - One daemon per process lifetime (guarded by `isPdfDaemonRunning` set eagerly at call site)
 - Re-queue prevention via `completedPdfSet` (Set of absolute PDF paths)
 
@@ -98,18 +98,7 @@ POST /api/hayagriva/build-concepts { case, basename }
 
 ---
 
-## Vision OCR
 
-When a PDF page has fewer than 400 chars of extractable text:
-
-1. **`pdf2png`** (Cocoa binary, `upload-file/pdf2png`) renders the page to PNG via macOS `PDFKit`.
-2. Base64 PNG is sent to **OpenRouter → `google/gemini-2.5-flash`** with 120s timeout.
-3. Gemini returns clean Markdown with reconstructed table grids.
-4. Result is injected into the companion `.md` block.
-
-Requires `OPENROUTER_API_KEY` in `hayagriva/.env`.
-
----
 
 ## API Reference
 
@@ -123,7 +112,6 @@ Requires `OPENROUTER_API_KEY` in `hayagriva/.env`.
 | `POST` | `/api/hayagriva/build-concepts` | 2 | BM25 + concepts + wiki pipeline |
 | `GET` | `/api/hayagriva/wiki-cards?case=X` | 2 | List wiki Q&A cards |
 | `POST` | `/api/hayagriva/query-stream` | — | SSE RAG chat stream |
-| `POST` | `/api/hayagriva/cancel-ocr` | 1 | Halt background OCR |
 
 ---
 
@@ -131,7 +119,6 @@ Requires `OPENROUTER_API_KEY` in `hayagriva/.env`.
 
 ```bash
 # hayagriva/.env
-OPENROUTER_API_KEY=sk-or-v1-...   # Required for Vision OCR (Gemini 2.5 Flash)
 GEMINI_API_KEY=...                 # Optional Gemini fallback for RAG
 OPENAI_API_KEY=...                 # Optional OpenAI fallback
 VAULT_KEY=...                      # AES-256-GCM key for encrypted law vault
@@ -149,7 +136,7 @@ pkill -f "node cli.js"
 cd hayagriva && source .env && node cli.js --watch-all >> /tmp/hayagriva-launcher.log 2>&1 &
 
 # Monitor logs
-tail -f /tmp/hayagriva-launcher.log | grep "Lazy PDF\|Vision OCR\|Phase"
+tail -f /tmp/hayagriva-launcher.log | grep "Lazy PDF\|Phase"
 
 # Test endpoints
 curl http://127.0.0.1:3210/api/hayagriva/cases

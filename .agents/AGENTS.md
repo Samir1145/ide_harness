@@ -22,8 +22,12 @@ These guidelines document key architectural decisions and term alignments to kee
 
 ## 3. Future Roadmap Specifications
 Refer to the following plans saved in the workspace:
-* **Plan 1 (Rename Sync & Hash Tracking):** Debounces `unlink` for 200ms and checks newly added file hashes to auto-rename directories instead of re-converting from scratch.
-* **Plan 2 (LibreOffice PDF OCR Fallback):** Auto-detects `soffice`, converts complex sheets to headless PDFs, renders pages, and transcribes visual cell layouts using Gemini Pro vision prompting.
+* **Plan 1 (Asynchronous Ingestion Queue):** Enqueues ingestion jobs in a task queue to prevent database write lock collisions during concurrent document parsing. (Roadmap #30)
+* **Plan 2 (Rename Sync & Hash Tracking):** Debounces `unlink` for 200ms and checks newly added file hashes to auto-rename directories instead of re-converting from scratch. (Roadmap #4)
+* **Plan 3 (Clickable Citation Preview):** Maps raw LLM references (e.g. `[source:id]`) to interactive numbered links that trigger popup drawers displaying preview segments. (Roadmap #29)
+* **Plan 4 (Active-Context Control Matrix):** Provides a UI checklist mapping documents to active selection states (Exclude/Insights/Full) with dynamic token count calculation. (Roadmap #28)
+* **Plan 5 (Map-Reduce Multi-Query RAG):** Generates parallelized sub-queries to query SQLite FTS5/vector indices concurrently and synthesizes a single unified response. (Roadmap #27)
+* **Plan 6 (LibreOffice PDF OCR Fallback):** Auto-detects `soffice`, converts complex sheets to headless PDFs, renders pages, and transcribes visual cell layouts using Gemini Pro vision prompting. (Roadmap #3)
 
 ---
 
@@ -53,9 +57,16 @@ Refer to the following plans saved in the workspace:
 ---
 
 ## 6. Recent Session Learnings & Implementations
-* **Frictionless Ingestion (Plan 1):** Watcher debounces deletions by 200ms and matches with incoming files using `calculateFileHashSync`. Re-links matching files in index.json and SQLite to bypass OCR.
+* **Asynchronous Ingestion Queue (Plan 1):** Serializes all concurrent `ingestFile` and `registerUnprocessedFile` tasks in an in-memory queue, awaiting vector indexing (`indexVectorsToSqlite`) and K-V extraction (`extractFileKV`) to completely prevent SQLite busy locks (`SQLITE_BUSY`) and index race conditions.
+* **Local-First Ingestion & OCR Cleanup:** Replaced the external Vision OCR and visual Gemini parser with a strict local ingestion parser. Rejects fully scanned PDFs (average text density < 30 characters/page) at upload, and injects standard `[!WARNING]` table placeholders on hybrid pages with inline scanned tables/images.
+* **Frictionless Ingestion (Plan 2):** Watcher debounces deletions by 200ms and matches with incoming files using `calculateFileHashSync`. Re-links matching files in index.json and SQLite to bypass OCR.
 * **Bi-directional Monaco-SQLite Sync:** The Monaco LSP parser intercepts saves to `claims_registry.md`, `avoidance_ledger.md`, and `case_facts.md` inside `getDiagnostics` and synchronizes markdown tables/key-value lists directly to database records and `case_kv_dictionary.json` (marking manually edited values with `verified_by_user = 1`).
 * **Hybrid Search (CMS RAG):** Eliminated native binary `sqlite-vss` C++ extension dependencies. RAG retrieval queries FTS5 index first (`fts_chunks MATCH`) to select candidate chunks, and then reranks them by computing cosine similarities in JS on vector float blobs. This maintains high speed (<1ms) and 100% cross-platform database portability.
+  * **Drift Mitigation**: To prevent index/ID drift failures, always match candidate chunks from the FTS5 table to the `document_vectors` table using their composite natural keys (`filename`, `section_title`, and `chunk_index`) instead of raw SQLite `rowid`s.
+* **Standalone Markdown Promotion**: Scan and allow standalone `.md` files (which do not have a parent binary document like a PDF) as primary documents in the file-statuses pipeline, pre-setting their first status dot to green (`reviewed`). Automatically exclude companion `.md` files from primary lists to prevent double-listing in the Explorer tree.
+* **Dynamic PDF Horizontal Width Fit**: Configure native PDF viewing widgets inside the application shell by appending `#view=FitH` to the iframe preview URL. This ensures pages automatically zoom and scale to fit the panel horizontally as it resizes.
+* **Grace-Period Health Checks**: Prevent false-positive "Backend Server Offline" warnings on Electron startup by introducing a 3-second grace-period delay to the initial client-side monitor check, allowing the background Node daemon time to initialize.
+* **Supreme Court Layout Compiler**: Expose a deterministic Markdown-to-DOCX compiler conforming to Supreme Court rules (A4, Times New Roman, 14pt body, 1.5 line spacing, 4cm left/right margins, 2cm top/bottom margins) via the explorer right-click context menu, the editor context menu, and the `/export-sc` Notion-style slash command.
 
 
 

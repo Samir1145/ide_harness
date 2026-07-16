@@ -467,7 +467,48 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:ingestToAi`, label: '2. Generate Search Vectors' },
+      { id: `${HAYAGRIVA_NS}:enhanceMarkdown`, label: '2. Enhance Markdown' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected for enhancement');
+            return;
+          }
+          const filePath = resourceUri.path.toString();
+          const caseName = this.getCasePath();
+
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/enhance-markdown`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: filePath })
+            });
+            const result = await res.json();
+            if (result.success) {
+              this.logger.info(`[HAYAGRIVA] Markdown enhanced for ${getBasename(filePath)}`);
+              await this.treeDecorator.refreshStatuses();
+            } else {
+              alert(result.error || 'Enhancement failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Markdown enhancement failed: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const rel = this.getRelativePath(resolved);
+          const status = this.treeDecorator.statusCache[rel];
+          return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+        },
+        isVisible: () => true
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:ingestToAi`, label: '3. Generate Search Vectors' },
       {
         execute: async (uri?: any) => {
           const resourceUri = this.resolveUri(uri);
@@ -520,7 +561,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:enrichToAi`, label: '3. Run AI Enrichment' },
+      { id: `${HAYAGRIVA_NS}:enrichToAi`, label: '4. Run AI Enrichment' },
       {
         execute: async (uri?: any) => {
           const resourceUri = this.resolveUri(uri);
@@ -595,7 +636,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
               `   📄  ${f.companion?.path || '—'}`,
               `        ${exists(f.companion?.exists)}`,
               ``,
-              `${dot(entry.dot2)}  Step 2 — Generate Search Vectors`,
+              `${dot(entry.dot2)}  Step 3 — Generate Search Vectors`,
               `   🗂  ${f.pageindexTree?.path || '—'}`,
               `        ${exists(f.pageindexTree?.exists)}`,
               `   🗂  ${f.bm25Index?.path || '—'}`,
@@ -604,7 +645,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
               `        ${exists(f.conceptsDir?.exists)}`,
               `        ${f.sectionCards?.total ?? 0} section cards generated`,
               ``,
-              `${dot(entry.dot3)}  Step 3 — AI Enrichment`,
+              `${dot(entry.dot3)}  Step 4 — AI Enrichment`,
               `   🤖  ${f.sectionCards?.enriched ?? 0} / ${f.sectionCards?.total ?? 0} sections enriched`,
             ];
 
@@ -696,7 +737,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:openCaseVault`, label: '4. Open Database Viewer' },
+      { id: `${HAYAGRIVA_NS}:openCaseVault`, label: '5. Open Database Viewer' },
       {
         execute: async () => {
           try {
@@ -882,6 +923,46 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error(`[HAYAGRIVA] Concept lookup failed: ${e.message}`);
           }
         }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:exportScDocx`, label: 'Export to SC DOCX' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected for export');
+            return;
+          }
+          const filePath = resourceUri.path.toString();
+          const caseName = this.getCasePath();
+
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/export-sc-docx`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: filePath })
+            });
+            const result = await res.json();
+            if (result.success) {
+              this.logger.info(`[HAYAGRIVA] Successfully exported to SC DOCX: ${result.docxPath}`);
+              alert(`Successfully generated Supreme Court formatted document:\n${result.docxPath}`);
+              await this.treeDecorator.refreshStatuses();
+            } else {
+              alert(result.error || 'Export failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] SC DOCX export failed: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          return resolved.path.toString().toLowerCase().endsWith('.md');
+        },
+        isVisible: () => true
       }
     );
   }

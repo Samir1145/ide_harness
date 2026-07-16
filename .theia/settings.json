@@ -3,7 +3,7 @@
     "**/wiki": true,
     "**/concepts": true,
     "**/conversions": true,
-    "**/*.md": true,
+    "**/*.md": false,
     "**/*.status": true,
     "**/*.footer": true,
     "**/*.cache": true

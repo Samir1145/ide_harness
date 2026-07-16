@@ -209,7 +209,6 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
       const idxDot = filePath.lastIndexOf('.');
       if (idxDot === -1) continue;
       const ext = filePath.substring(idxDot).toLowerCase();
-      if (!docExts.includes(ext)) continue;
 
       // Resolve relative path key — must match what file-statuses API returns
       let relative = filePath;
@@ -224,6 +223,8 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
           }
         }
       } catch (_) {}
+
+      if (!docExts.includes(ext) && !(ext === '.md' && !!this.statusCache[relative])) continue;
 
       const statusObj: any = this.statusCache[relative];
       if (!statusObj || typeof statusObj !== 'object') continue;
@@ -266,26 +267,26 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
       const totalCards = files.sectionCards?.total ?? 0;
       let tooltip2: string;
       if (dot2 === 'indexed') {
-        tooltip2 = `● Step 2 ✓  Search vectors built (${totalCards} sections)\n   🗂 ${treePath}`;
+        tooltip2 = `● Step 3 ✓  Search vectors built (${totalCards} sections)\n   🗂 ${treePath}`;
       } else if (dot2 === 'blue') {
-        tooltip2 = `● Step 2 ⏳  Building search vectors…\n   🗂 ${treePath} (writing…)`;
+        tooltip2 = `● Step 3 ⏳  Building search vectors…\n   🗂 ${treePath} (writing…)`;
       } else if (dot2 === 'red') {
-        tooltip2 = `● Step 2 ✗  Indexing failed\n   🗂 ${treePath}`;
+        tooltip2 = `● Step 3 ✗  Indexing failed\n   🗂 ${treePath}`;
       } else {
-        tooltip2 = `● Step 2 ○  Not started — right-click › 2. Generate Search Vectors\n   🗂 ${treePath} ${treeExists ? '(file found — restart to heal)' : '(file missing)'}`;
+        tooltip2 = `● Step 3 ○  Not started — right-click › 3. Generate Search Vectors\n   🗂 ${treePath} ${treeExists ? '(file found — restart to heal)' : '(file missing)'}`;
       }
 
       // ── Dot 3 tooltip — AI Enrichment ─────────────────────────────────────
       const enrichedCards = files.sectionCards?.enriched ?? 0;
       let tooltip3: string;
       if (dot3 === 'green') {
-        tooltip3 = `● Step 3 ✓  AI Enrichment complete (${totalCards}/${totalCards} sections enriched)`;
+        tooltip3 = `● Step 4 ✓  AI Enrichment complete (${totalCards}/${totalCards} sections enriched)`;
       } else if (dot3 === 'blue') {
-        tooltip3 = `● Step 3 ⏳  AI Enrichment running… (${enrichedCards}/${totalCards} sections done)`;
+        tooltip3 = `● Step 4 ⏳  AI Enrichment running… (${enrichedCards}/${totalCards} sections done)`;
       } else if (dot3 === 'red') {
-        tooltip3 = `● Step 3 ✗  AI Enrichment failed`;
+        tooltip3 = `● Step 4 ✗  AI Enrichment failed`;
       } else {
-        tooltip3 = `● Step 3 ○  Not started — right-click › 3. Run AI Enrichment`;
+        tooltip3 = `● Step 4 ○  Not started — right-click › 4. Run AI Enrichment`;
       }
 
       let errorSuffix = '';

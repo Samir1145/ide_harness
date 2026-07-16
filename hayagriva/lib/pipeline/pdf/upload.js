@@ -234,83 +234,19 @@ function stripFooterLines(text, footerLines) {
 
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
-const { execSync } = require('child_process');
-const { getChatResponse } = require('../../core/llm-client');
 
 /**
- * Invokes the Cocoa PDFKit compiled Swift tool to render a single PDF page into PNG.
- */
-function renderPageToPng(pdfPath, pageNo, outputPath) {
-    const binPath = path.join(__dirname, 'pdf2png');
-    try {
-        fs.chmodSync(binPath, '755');
-    } catch(e) {}
-    
-    console.log(`[PDF Ingestion] Rendering PDF page ${pageNo} to ${outputPath} using native Cocoa tool...`);
-    const cmd = `"${binPath}" "${pdfPath}" ${pageNo} "${outputPath}"`;
-    execSync(cmd);
-}
-
-/**
- * Invokes vision OCR via OpenRouter (Gemini 2.5 Flash) to extract text and tables from a page screenshot.
- * Falls back gracefully if the key is missing or the render fails.
- */
-async function ocrPageWithVision(pdfPath, pageNo) {
-    const tmpPng = path.join(os.tmpdir(), `page_${pageNo}_${Date.now()}.png`);
-    try {
-        renderPageToPng(pdfPath, pageNo, tmpPng);
-        if (!fs.existsSync(tmpPng)) {
-            throw new Error(`Failed to render PNG image for page ${pageNo}`);
-        }
-        
-        const base64Img = fs.readFileSync(tmpPng, { encoding: 'base64' });
-        
-        console.log(`[PDF Ingestion] Invoking vision OCR via OpenRouter (google/gemini-2.5-flash) for Page ${pageNo}...`);
-        const messages = [
-            {
-                role: 'system',
-                content: 'You are a precise document OCR assistant. Extract all text faithfully and reconstruct any tables or forms as clean Markdown tables with proper | column | separators |. Output only Markdown content — no preamble, no explanation.'
-            },
-            {
-                role: 'user',
-                content: 'Extract all text and tables from this PDF page image. Return clean Markdown.',
-                images: [base64Img]
-            }
-        ];
-        
-        const response = await getChatResponse(messages, {
-            model: 'google/gemini-2.5-flash',  // Routed to OpenRouter automatically
-            timeout: 120000 // 120s timeout for complex vision OCR tasks (tables, dense pages)
-        });
-        
-        console.log(`[PDF Ingestion] Vision OCR successfully processed Page ${pageNo}.`);
-        return response.trim();
-    } catch (err) {
-        console.error(`[PDF Ingestion] Vision OCR failed for Page ${pageNo}:`, err.message);
-        return null;
-    } finally {
-        try {
-            if (fs.existsSync(tmpPng)) {
-                fs.unlinkSync(tmpPng);
-            }
-        } catch (e) {}
-    }
-}
-
-/**
- * Processes a single PDF page, extracting text/tables or executing OCR fallback if scanned/blank.
+ * Processes a single PDF page, extracting text/tables or executing placeholder warning fallback if scanned.
  * footerLines: optional array of normalized footer strings to strip (detected from earlier pages).
  */
 async function getProcessedPageContent(filePath, page, pageNo, footerLines = []) {
     const pageTextRaw = await page.extractTextRaw();
 
     // Strip repeating footer lines from RAW text BEFORE joinParagraphs merges them
-    // (footer lines are separate lines in raw pdfexcavator output; merged after reconstruction)
     const rawStripped = stripFooterLines(pageTextRaw || '', footerLines);
     let pageText = reconstructLayout(rawStripped);
 
-    // Legacy: Denoise repeating running headers from NCLT orders (I.A. (PLAN) with dots format)
+    // Legacy: Denoise repeating running headers from NCLT orders
     const cleanHeaderRegex = /\s*I\.A\.\s*\(PLAN\)\s*[\s\S]*?Page\s*\d+\s*of\s*\d+(\s*ORDER\s+PER:\s*BENCH)?/gi;
     pageText = pageText.replace(cleanHeaderRegex, '').trim();
 
@@ -332,40 +268,42 @@ async function getProcessedPageContent(filePath, page, pageNo, footerLines = [])
         }
     }
     
-    // Check if the page is scanned/image-heavy or if text extraction looks thin
-    // Vision OCR is triggered when:
-    //   a) Page has very little extractable text (scanned/image page), OR
-    //   b) Page has some text but tables parsed empty and total content is thin (layout table)
-    const openrouterKey = process.env.OPENROUTER_API_KEY;
-    let needsVisionOcr = false;
+    // Check for inline images/scanned components
+    let hasImages = false;
     try {
         const pageImages = await page.images;
-        const hasImages = pageImages && pageImages.length > 0;
-        const thinText = pageText.trim().length < 400;
-        const noTables = !tablesMd;
-        // Trigger if: scanned page OR (has images AND thin text with no parsed tables)
-        needsVisionOcr = openrouterKey && (
-            pageText.trim().length < 50 ||
-            (hasImages && thinText && noTables)
-        );
+        hasImages = pageImages && pageImages.length > 0;
     } catch (e) {
-        needsVisionOcr = openrouterKey && pageText.trim().length < 50;
+        hasImages = false;
     }
 
-    let ocrText = null;
-    if (needsVisionOcr) {
-        ocrText = await ocrPageWithVision(filePath, pageNo);
-    }
-    
     let content = `## Page ${pageNo}\n\n`;
-    if (ocrText) {
-        content += ocrText + '\n';
+    const textLen = pageText.trim().length;
+
+    if (textLen < 30) {
+        // Scanned page/empty page
+        content += `> [!WARNING]\n`;
+        content += `> ### 🔍 SCANNED PAGE DETECTED (PAGE ${pageNo})\n`;
+        content += `> **Location:** Page ${pageNo}\n`;
+        content += `> **System Note:** This page has no native text layer. Local OCR processing was skipped to maintain offline privacy.\n`;
+        content += `> **Action Required:** Convert this page externally and paste the text/content below.\n\n`;
     } else {
-        if (pageText && pageText.trim()) {
-            content += pageText.trim() + '\n';
-        }
+        content += pageText.trim() + '\n\n';
         if (tablesMd) {
             content += tablesMd + '\n';
+        } else if (hasImages) {
+            // Hybrid page: has native text but also scanned images/tables which parsed as empty tables
+            content += `> [!WARNING]\n`;
+            content += `> ### 🔍 SCANNED TABLE DETECTED (PAGE ${pageNo})\n`;
+            content += `> **Location:** Page ${pageNo}\n`;
+            content += `> **System Note:** Scanned table or image components were detected on this page and skipped to maintain offline privacy.\n`;
+            content += `> **Action Required:** Convert this table segment externally and paste the Markdown table/content below.\n`;
+            content += `> \n`;
+            content += `> \`\`\`markdown\n`;
+            content += `> | [Col 1] | [Col 2] |\n`;
+            content += `> |---------|---------|\n`;
+            content += `> | Paste   | Here    |\n`;
+            content += `> \`\`\`\n\n`;
         }
     }
     
@@ -378,9 +316,8 @@ async function getProcessedPageContent(filePath, page, pageNo, footerLines = [])
  * for use by the background daemon (convertPdfBlock).
  */
 async function convertPdf(filePath, options = {}) {
-    const limit = options.multimodal ? null : (options.limit || null);
-    const apiKey = process.env.GEMINI_API_KEY;
-    console.log(`[PDF Importer] Converting PDF file: ${filePath} (limit: ${limit}, multimodal: ${!!options.multimodal})`);
+    const limit = options.limit || null;
+    console.log(`[PDF Importer] Converting PDF file: ${filePath} (limit: ${limit})`);
     
     const pdf = await pdfexcavator.open(filePath);
     try {
@@ -392,30 +329,17 @@ async function convertPdf(filePath, options = {}) {
             rawPageTexts.push(raw || '');  // raw, unjoined — keeps footer as separate lines
         }
         
-        // Automatic vision fallback check
+        // Ingestion check for scanned PDFs
         const totalRawLen = rawPageTexts.reduce((acc, t) => acc + t.length, 0);
-        let useMultimodal = !!options.multimodal;
-        if (totalRawLen < 50 && apiKey) {
-            console.log(`[PDF Importer] Scanned/empty PDF detected (length: ${totalRawLen}). Triggering multimodal fallback...`);
-            useMultimodal = true;
-        }
-
-        if (useMultimodal && apiKey) {
-            try {
-                // Close local pdf handle first
-                await pdf.close();
-                const { convertPdfVisually } = require('../../utils/multimodal_parser');
-                const visualMarkdown = await convertPdfVisually(filePath, apiKey);
-                const resultStr = new String(visualMarkdown);
-                resultStr.pages = [{ page_no: 1, content: visualMarkdown }];
-                resultStr.isPartial = false;
-                resultStr.totalPages = 1;
-                return resultStr;
-            } catch (e) {
-                console.error('[PDF Importer] Multimodal fallback failed:', e.message);
-                // Re-open if we closed it
-                throw e; // Bubble up or fall back to standard OCR
-            }
+        const averageCharsPerPage = count > 0 ? (totalRawLen / count) : 0;
+        if (averageCharsPerPage < 30) {
+            await pdf.close();
+            const err = new Error(
+                "Fully scanned PDF detected. HAYAGRIVA Desktop operates 100% offline to protect case privacy and does not run local OCR. " +
+                "Please convert this document to Markdown externally (e.g. using the HAYAGRIVA web/mobile app or local scanner software) and load the .md file directly."
+            );
+            err.code = 'SCANNED_PDF_REJECTED';
+            throw err;
         }
 
         const footerLines = detectRepeatingLines(rawPageTexts);
