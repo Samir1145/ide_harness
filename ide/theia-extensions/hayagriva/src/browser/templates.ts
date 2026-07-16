@@ -517,6 +517,21 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
     background: var(--theia-layout-color1, #f3f3f3);
     color: var(--theia-ui-font-color1, #333333);
   }
+  .global-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 6px;
+    background: var(--theia-layout-color2, #e8e8e8);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    font-weight: bold;
+    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
+  }
+  .global-controls input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+  }
   .doc-header {
     font-weight: bold;
     padding: 8px 4px 6px 4px;
@@ -526,7 +541,28 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
     color: var(--theia-brand-color1, #0ea5e9);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+  }
+  .doc-header input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+  }
+  .status-dots-group {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    margin-right: 4px;
+  }
+  .status-dot-indicator {
+    font-size: 14px;
+    line-height: 1;
+    cursor: default;
+  }
+  .section-count-badge {
+    cursor: help;
+    opacity: 0.65;
+    margin-left: 5px;
+    font-weight: normal;
   }
   .pages-container {
     padding-left: 14px;
@@ -752,12 +788,24 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
           }
         }
 
-        const res = await fetch('http://127.0.0.1:${apiPort}/api/hayagriva/documents?case=' + currentCase);
-        if (!res.ok) {
+        const [docsRes, statusesRes, activeRes] = await Promise.all([
+          fetch('http://127.0.0.1:${apiPort}/api/hayagriva/documents?case=' + currentCase),
+          fetch('http://127.0.0.1:${apiPort}/api/hayagriva/file-statuses?case=' + currentCase),
+          fetch('http://127.0.0.1:${apiPort}/api/hayagriva/active-rag-docs?case=' + currentCase)
+        ]);
+
+        if (!docsRes.ok) {
           document.getElementById('concepts-container').innerHTML = '<div class="empty">No documents found. Upload a file to start.</div>';
           return;
         }
-        const { documents } = await res.json();
+
+        const { documents } = await docsRes.json();
+        const statusesData = statusesRes.ok ? await statusesRes.json() : {};
+        const activeData = activeRes.ok ? await activeRes.json() : {};
+        
+        const fileStatuses = statusesData.statuses || {};
+        const activeFiles = activeData.activeFiles;
+
         const container = document.getElementById('concepts-container');
         container.innerHTML = '';
 
@@ -766,17 +814,120 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
           return;
         }
 
-        for (const doc of documents) {
-          if (doc.status === 'companion_ready' || doc.status === 'processing' || doc.status === 'unprocessed' || doc.status === 'failed') {
-            renderPendingCard(container, doc);
-            continue;
+        const colorMap = {
+          grey: '#6b7280',
+          amber: '#f59e0b',
+          green: '#10b981',
+          companion_ready: '#10b981',
+          reviewed: '#10b981',
+          indexed: '#10b981',
+          outline_approved: '#10b981',
+          blue: '#3b82f6',
+          red: '#ef4444'
+        };
+
+        const indexedDocs = documents.filter(d => d.status !== 'companion_ready' && d.status !== 'processing' && d.status !== 'unprocessed' && d.status !== 'failed');
+        const pendingDocs = documents.filter(d => !indexedDocs.includes(d));
+
+        async function saveActiveDocs(list) {
+          await fetch('http://127.0.0.1:${apiPort}/api/hayagriva/active-rag-docs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case: currentCase, activeFiles: list })
+          });
+        }
+
+        if (indexedDocs.length > 0) {
+          const globalControls = document.createElement('div');
+          globalControls.className = 'global-controls';
+          
+          const isAllChecked = !activeFiles || indexedDocs.every(d => activeFiles.includes(d.filename));
+          const isNoneChecked = activeFiles && activeFiles.length === 0;
+
+          const masterCheckbox = document.createElement('input');
+          masterCheckbox.type = 'checkbox';
+          masterCheckbox.id = 'toggle-all-rag';
+          masterCheckbox.checked = isAllChecked;
+          if (!isAllChecked && !isNoneChecked) {
+            masterCheckbox.indeterminate = true;
           }
 
-          // ── Indexed document ──
-          const docHeader = document.createElement('div');
-          docHeader.className = 'doc-header';
-          docHeader.innerHTML = \`📁 <strong>\${doc.title}</strong> (\${doc.sections} sections)\`;
-          container.appendChild(docHeader);
+          masterCheckbox.onchange = async () => {
+            const checked = masterCheckbox.checked;
+            const docCheckboxes = container.querySelectorAll('.rag-doc-checkbox');
+            const newList = [];
+            docCheckboxes.forEach(cb => {
+              cb.checked = checked;
+              if (checked) newList.push(cb.dataset.filename);
+            });
+            await saveActiveDocs(newList);
+          };
+
+          const masterLabel = document.createElement('label');
+          masterLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer; width:100%;';
+          masterLabel.appendChild(masterCheckbox);
+          masterLabel.appendChild(document.createTextNode('Include All in AI Search'));
+          
+          globalControls.appendChild(masterLabel);
+          container.appendChild(globalControls);
+        }
+
+        for (const doc of pendingDocs) {
+          renderPendingCard(container, doc);
+        }
+
+        for (const doc of indexedDocs) {
+          const docRow = document.createElement('div');
+          docRow.className = 'doc-header';
+
+          const docCheckbox = document.createElement('input');
+          docCheckbox.type = 'checkbox';
+          docCheckbox.className = 'rag-doc-checkbox';
+          docCheckbox.dataset.filename = doc.filename;
+          docCheckbox.checked = !activeFiles || activeFiles.includes(doc.filename);
+
+          docCheckbox.onchange = async () => {
+            const docCheckboxes = container.querySelectorAll('.rag-doc-checkbox');
+            const newList = [];
+            docCheckboxes.forEach(cb => {
+              if (cb.checked) newList.push(cb.dataset.filename);
+            });
+            
+            const masterCheckbox = document.getElementById('toggle-all-rag');
+            if (masterCheckbox) {
+              const allChecked = newList.length === indexedDocs.length;
+              const noneChecked = newList.length === 0;
+              masterCheckbox.checked = allChecked;
+              masterCheckbox.indeterminate = !allChecked && !noneChecked;
+            }
+            
+            await saveActiveDocs(newList);
+          };
+
+          const docStatus = fileStatuses[doc.filename] || {};
+          const d1 = colorMap[docStatus.dot1] || '#6b7280';
+          const d2 = colorMap[docStatus.dot2] || '#6b7280';
+          const d3 = colorMap[docStatus.dot3] || '#6b7280';
+
+          const dotsGroup = document.createElement('span');
+          dotsGroup.className = 'status-dots-group';
+          dotsGroup.innerHTML = `
+            <span class="status-dot-indicator" style="color: ${d1};">●</span>
+            <span class="status-dot-indicator" style="color: ${d2};">●</span>
+            <span class="status-dot-indicator" style="color: ${d3};">●</span>
+          `;
+
+          const filenameText = document.createTextNode(doc.title);
+          const sectionBadge = document.createElement('span');
+          sectionBadge.className = 'section-count-badge';
+          sectionBadge.textContent = ` (${doc.sections})`;
+
+          docRow.appendChild(docCheckbox);
+          docRow.appendChild(dotsGroup);
+          docRow.appendChild(filenameText);
+          docRow.appendChild(sectionBadge);
+
+          container.appendChild(docRow);
 
           const docPagesContainer = document.createElement('div');
           docPagesContainer.className = 'pages-container';
@@ -785,7 +936,7 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
             doc.shadowDocuments.forEach(shadow => {
               const pageItem = document.createElement('div');
               pageItem.className = 'page-item';
-              pageItem.innerHTML = \`💡 \${shadow.title}\`;
+              pageItem.innerHTML = `💡 ${shadow.title}`;
               pageItem.title = 'Double-click to open page chunk';
               pageItem.ondblclick = () => {
                 window.parent.postMessage({ type: 'open-concept-chunk', absolutePath: shadow.path }, '*');
@@ -801,7 +952,6 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
 
           container.appendChild(docPagesContainer);
 
-          // Rebuild Concepts button (always available for indexed docs)
           const rebuildRow = document.createElement('div');
           rebuildRow.style.cssText = 'padding: 0 0 10px 14px;';
           const rebuildBtn = document.createElement('button');
@@ -813,11 +963,12 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
           container.appendChild(rebuildRow);
         }
       } catch (e) {
+        console.error(e);
         document.getElementById('concepts-container').innerHTML = '<div style="opacity: 0.6; text-align: center; padding-top: 20px;">Connecting to concepts server...</div>';
       }
     }
     loadConcepts();
-    setInterval(loadConcepts, 30000); // Refresh every 30s to pick up background changes
+    setInterval(loadConcepts, 30000);
   </script>
 </body>
 </html>`;

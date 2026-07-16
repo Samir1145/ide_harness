@@ -173,6 +173,48 @@ module.exports = {
             res.end(JSON.stringify({ documents }));
         },
 
+        '/api/hayagriva/active-rag-docs': (req, res, parsedUrl, docsRoot) => {
+            if (req.method === 'GET') {
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const activeDocsPath = path.join(caseDir, 'concepts', 'active_rag_docs.json');
+                
+                let activeFiles = null;
+                if (fs.existsSync(activeDocsPath)) {
+                    try {
+                        const data = JSON.parse(fs.readFileSync(activeDocsPath, 'utf8'));
+                        if (data && Array.isArray(data.activeFiles)) {
+                            activeFiles = data.activeFiles;
+                        }
+                    } catch (_) {}
+                }
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, activeFiles }));
+            } else if (req.method === 'POST') {
+                let body = '';
+                req.on('data', chunk => body += chunk);
+                req.on('end', () => {
+                    try {
+                        const data = JSON.parse(body);
+                        const caseName = data.case || '';
+                        const caseDir = resolveCaseDir(docsRoot, caseName);
+                        const conceptsDir = path.join(caseDir, 'concepts');
+                        fs.mkdirSync(conceptsDir, { recursive: true });
+                        const activeDocsPath = path.join(conceptsDir, 'active_rag_docs.json');
+                        
+                        fs.writeFileSync(activeDocsPath, JSON.stringify({ activeFiles: data.activeFiles }, null, 2), 'utf8');
+                        
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true }));
+                    } catch (err) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: err.message }));
+                    }
+                });
+            }
+        },
+
         '/api/hayagriva/office-preview': async (req, res, parsedUrl, docsRoot) => {
             const filePath = parsedUrl.query.path || '';
             if (!filePath || !fs.existsSync(filePath)) {

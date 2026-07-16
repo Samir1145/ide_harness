@@ -39,7 +39,7 @@ These items establish baseline reliability, thread-safety, user context configur
 
 ---
 
-### 28. Granular Active-Context Control Matrix
+### [Implemented] 28. Granular Active-Context Control Matrix
 * **Goal:** Give lawyers full manual control over the exact statutory overlays, case facts, and notes included in the active LLM context.
 * **Architecture:**
   * **UI Control Panel:** A checklist mapping documents (PDFs, wiki pages, notes) to three selection states: "Exclude", "Insights Only" (only parsed bullet points from the concepts index are loaded), and "Full Content".

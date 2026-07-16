@@ -149,6 +149,17 @@ Answer:`;
 }
 
 async function retrieveContexts(caseDir, queryText) {
+    let activeFiles = null;
+    const activeDocsPath = path.join(caseDir, 'concepts', 'active_rag_docs.json');
+    if (fs.existsSync(activeDocsPath)) {
+        try {
+            const data = JSON.parse(fs.readFileSync(activeDocsPath, 'utf8'));
+            if (data && Array.isArray(data.activeFiles)) {
+                activeFiles = new Set(data.activeFiles);
+            }
+        } catch (_) {}
+    }
+
     const cleanQuery = preprocessQuery(queryText);
     let searchTerms = cleanQuery;
     
@@ -199,7 +210,7 @@ Hypothetical Answer:`;
     }
 
     // Convert FTS rows to standard hits
-    const ftsHits = ftsRows.map(r => {
+    let ftsHits = ftsRows.map(r => {
         const isWiki = r.filename.startsWith('wiki/');
         const ext = path.extname(r.filename).toLowerCase();
         const docName = isWiki ? 'Wiki' : path.basename(r.filename, ext);
@@ -213,6 +224,10 @@ Hypothetical Answer:`;
             content: r.content
         };
     });
+
+    if (activeFiles) {
+        ftsHits = ftsHits.filter(hit => activeFiles.has(hit.filename));
+    }
 
     // ── Vector Search ────────────────────────────────────────────────
     const { getEmbedding } = require('./llm-client');
@@ -327,6 +342,10 @@ Hypothetical Answer:`;
         } catch (vectorErr) {
             console.warn('[RAG] Vector semantic search failed completely:', vectorErr.message);
         }
+    }
+
+    if (activeFiles) {
+        vectorHits = vectorHits.filter(hit => activeFiles.has(hit.filename));
     }
 
     // ── Reciprocal Rank Fusion (RRF) ──────────────────────────────────
