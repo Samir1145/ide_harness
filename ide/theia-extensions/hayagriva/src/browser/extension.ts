@@ -187,7 +187,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
     // Disabled custom sidebars - users interact via the native file tree status dots
     // this.initializeWikiExplorerWidget();
-    // this.initializeConceptsExplorerWidget();
+    this.initializeConceptsExplorerWidget();
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
     this.registerLawHoverProvider();
