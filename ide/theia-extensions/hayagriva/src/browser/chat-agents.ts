@@ -32,13 +32,11 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
   }
 
   protected getCaseName(): string {
-    let caseName = '';
     const ws = this.workspaceService.getWorkspaceRootUri(undefined);
     if (ws) {
-      const parts = new URI(ws.toString()).path.toString().split(/[\\/]/);
-      caseName = parts[parts.length - 1];
+      return decodeURIComponent(new URI(ws.toString()).path.toString());
     }
-    return caseName;
+    return '';
   }
 
   async invoke(request: MutableChatRequestModel): Promise<void> {

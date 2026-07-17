@@ -265,42 +265,13 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     try {
       const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (workspaceRoot) {
-        const rootPath = workspaceRoot.path.toString();
-        if (filePath.startsWith(rootPath)) {
-          const relative = filePath.substring(rootPath.length).replace(/^[\\/]/, '');
-          const parts = relative.split(/[\\/]/).filter(Boolean);
-          if (parts.length > 0) {
-            // Check if the first segment is a file (e.g. contains dot)
-            if (parts[0].includes('.')) {
-              return getBasename(rootPath);
-            }
-            return parts[0];
-          }
-          return getBasename(rootPath);
-        }
+        return decodeURIComponent(new URI(workspaceRoot.toString()).path.toString());
       }
     } catch (e: any) {
-      this.logger.error(`[HAYAGRIVA] Error resolving workspace root relative path: ${e.message}`);
+      this.logger.error(`[HAYAGRIVA] Error resolving workspace root: ${e.message}`);
     }
 
-    const idx = filePath.indexOf('/Documents/');
-    if (idx !== -1) {
-      const sub = filePath.substring(idx + '/Documents/'.length);
-      const parts = sub.split(/[\\/]/).filter(Boolean);
-      if (parts.length > 0) {
-        return parts[0];
-      }
-    }
-
-    // Default fallback to workspace folder name if workspace root is available
-    try {
-      const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
-      if (workspaceRoot) {
-        return getBasename(workspaceRoot.path.toString());
-      }
-    } catch (e) {}
-
-    return '';
+    return this.getActiveCaseName();
   }
 
   getActiveCaseName(): string {
