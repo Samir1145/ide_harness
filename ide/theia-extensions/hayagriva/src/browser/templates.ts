@@ -911,16 +911,16 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
 
           const dotsGroup = document.createElement('span');
           dotsGroup.className = 'status-dots-group';
-          dotsGroup.innerHTML = `
-            <span class="status-dot-indicator" style="color: ${d1};">●</span>
-            <span class="status-dot-indicator" style="color: ${d2};">●</span>
-            <span class="status-dot-indicator" style="color: ${d3};">●</span>
-          `;
+          dotsGroup.innerHTML = \`
+            <span class="status-dot-indicator" style="color: \${d1};">●</span>
+            <span class="status-dot-indicator" style="color: \${d2};">●</span>
+            <span class="status-dot-indicator" style="color: \${d3};">●</span>
+          \`;
 
           const filenameText = document.createTextNode(doc.title);
           const sectionBadge = document.createElement('span');
           sectionBadge.className = 'section-count-badge';
-          sectionBadge.textContent = ` (${doc.sections})`;
+          sectionBadge.textContent = \` (\${doc.sections})\`;
 
           docRow.appendChild(docCheckbox);
           docRow.appendChild(dotsGroup);
@@ -936,7 +936,7 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
             doc.shadowDocuments.forEach(shadow => {
               const pageItem = document.createElement('div');
               pageItem.className = 'page-item';
-              pageItem.innerHTML = `💡 ${shadow.title}`;
+              pageItem.innerHTML = \`💡 \${shadow.title}\`;
               pageItem.title = 'Double-click to open page chunk';
               pageItem.ondblclick = () => {
                 window.parent.postMessage({ type: 'open-concept-chunk', absolutePath: shadow.path }, '*');

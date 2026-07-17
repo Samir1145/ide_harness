@@ -136,6 +136,9 @@ if [ ! -f "$CHECKSUM_FILE" ] || [ "$(cat "$CHECKSUM_FILE")" != "$CURRENT_HASH" ]
     yarn install --frozen-lockfile || yarn install
     
     # Sync frontend dependencies and rebuild bundle
+    cd "$ROOT_DIR/ide/theia-extensions/hayagriva"
+    yarn build
+    
     cd "$THEIA_DIR"
     yarn install --frozen-lockfile || yarn install
     yarn build
