@@ -575,6 +575,9 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
             });
             writeIndex(caseDir, index);
 
+            // Update status to indexed in DB first to satisfy foreign keys
+            updateStatus(caseDir, relative, 'indexed');
+
             // Index sections and search chunks in SQLite database
             indexToSqlite(caseDir, result);
 
@@ -584,9 +587,6 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
             } catch (err) {
                 console.error(`[Watcher] Vector indexing failed:`, err.message);
             }
-
-            // Update statuses.json index
-            updateStatus(caseDir, relative, 'indexed');
 
             if (profile !== 'lite') {
                 try {

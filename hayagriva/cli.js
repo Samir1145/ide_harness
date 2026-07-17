@@ -87,6 +87,19 @@ async function bootstrapCase(caseDir) {
                 }
             } else if (isDoc) {
                 const relative = path.relative(caseDir, filePath);
+                const baseLower = file.toLowerCase();
+                if (baseLower === 'case_audit.md' || baseLower === 'index.md') {
+                    continue;
+                }
+                if (ext === '.md') {
+                    const hasParent = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'].some(parentExt => {
+                        const parentFile = filePath.replace(/\.md$/, parentExt);
+                        return fs.existsSync(parentFile);
+                    });
+                    if (hasParent) {
+                        continue;
+                    }
+                }
                 if (ext === '.md' || ext === '.txt' || lowerFile.endsWith('.wiki.html')) {
                     mdFiles.push({ filePath, relative });
                 } else {
