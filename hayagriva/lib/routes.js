@@ -718,7 +718,6 @@ module.exports = {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(ver || { version: null, ready: isVaultReady() }));
         },
-
         '/api/hayagriva/wiki-cards': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
             const caseDir = resolveCaseDir(docsRoot, caseName);
@@ -731,21 +730,60 @@ module.exports = {
                 res.end(JSON.stringify({ cards: [] }));
                 return;
             }
-            const files = fs.readdirSync(wikiDir)
-                .filter(f => f.endsWith('.md'))
-                .map(f => {
-                    const content = fs.readFileSync(path.join(wikiDir, f), 'utf8');
-                    const { frontmatter } = parseMarkdownWithFrontmatter(content);
-                    return {
-                        filename: f,
-                        title: frontmatter.title || f.replace('.md', ''),
-                        tags: frontmatter.tags || []
-                    };
-                });
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ cards: files }));
-        },
 
+            const allFiles = [];
+            
+            // Read root wiki folder
+            fs.readdirSync(wikiDir).forEach(f => {
+                if (f.endsWith('.md')) {
+                    allFiles.push({ filename: f, fullPath: path.join(wikiDir, f) });
+                }
+            });
+            
+            // Read subfolder wiki/qna
+            const qnaDir = path.join(wikiDir, 'qna');
+            if (fs.existsSync(qnaDir)) {
+                fs.readdirSync(qnaDir).forEach(f => {
+                    if (f.endsWith('.md')) {
+                        allFiles.push({ filename: 'qna/' + f, fullPath: path.join(qnaDir, f) });
+                    }
+                });
+            }
+
+            const cards = allFiles.map(item => {
+                try {
+                    const content = fs.readFileSync(item.fullPath, 'utf8');
+                    const { frontmatter, body } = parseMarkdownWithFrontmatter(content);
+                    
+                    let answer = '';
+                    const answerHeaderIndex = body.indexOf('### Answer');
+                    if (answerHeaderIndex !== -1) {
+                        const sub = body.substring(answerHeaderIndex);
+                        const lines = sub.split('\n');
+                        answer = lines.slice(1).join('\n').trim();
+                    } else {
+                        answer = body.trim();
+                    }
+
+                    // Format human-readable title
+                    const displayTitle = frontmatter.title || path.basename(item.filename, '.md').replace(/_/g, ' ');
+
+                    return {
+                        filename: item.filename,
+                        title: displayTitle,
+                        tags: frontmatter.tags || [],
+                        sourceDocument: frontmatter.sourceDocument || 'General Wiki',
+                        answer: answer
+                    };
+                } catch (e) {
+                    console.error('[API Server] Failed to parse wiki card file:', item.filename, e.message);
+                    return null;
+                }
+            }).filter(Boolean);
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ cards }));
+        },
         '/api/hayagriva/case-graph': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
             const caseDir = resolveCaseDir(docsRoot, caseName);

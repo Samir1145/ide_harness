@@ -379,40 +379,105 @@ export function wikiExplorerHtml(caseName: string, apiPort: number = 3210): stri
     font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
     font-size: var(--theia-ui-font-size1, 13px);
     margin: 0;
-    padding: 15px;
+    padding: 12px;
     background: var(--theia-layout-color1, #f3f3f3);
     color: var(--theia-ui-font-color1, #333333);
   }
-  h3 {
-    margin-top: 0;
+  .doc-group {
     margin-bottom: 12px;
-    font-size: 13px;
-    font-weight: bold;
-    text-transform: uppercase;
-    color: var(--theia-brand-color1, #0ea5e9);
-    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
-    padding-bottom: 6px;
   }
-  .card-item {
-    padding: 8px 10px;
+  .doc-summary {
+    font-weight: bold;
+    cursor: pointer;
+    padding: 6px 10px;
+    background: var(--theia-layout-color2, #e0e0e0);
+    border-radius: 4px;
     margin-bottom: 6px;
-    background: var(--theia-layout-color3, #ffffff);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    border: 1px solid var(--theia-border-color, #ccc);
+  }
+  .doc-summary::-webkit-details-marker {
+    display: none;
+  }
+  .doc-summary::before {
+    content: "📁";
+  }
+  .doc-group[open] > .doc-summary::before {
+    content: "📂";
+  }
+  .doc-content {
+    padding-left: 10px;
+    margin-bottom: 8px;
+    border-left: 1px dashed var(--theia-border-color, #ccc);
+    margin-left: 14px;
+  }
+  .qna-item {
+    margin-bottom: 6px;
     border: 1px solid var(--theia-border-color, #ccc);
     border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
+    background: var(--theia-layout-color3, #ffffff);
+    overflow: hidden;
   }
-  .card-item:hover {
-    border-color: var(--theia-brand-color1, #0ea5e9);
-    background: rgba(14, 165, 233, 0.02);
-  }
-  .card-title {
+  .qna-summary {
+    padding: 6px 8px;
     font-weight: bold;
-    margin-bottom: 4px;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    transition: background 0.2s;
   }
-  .card-tags {
-    font-size: 10px;
+  .qna-summary::-webkit-details-marker {
+    display: none;
+  }
+  .qna-summary::before {
+    content: "▶";
+    font-size: 8px;
+    display: inline-block;
+    transition: transform 0.2s;
     opacity: 0.7;
+  }
+  .qna-item[open] > .qna-summary::before {
+    transform: rotate(90deg);
+  }
+  .qna-summary:hover {
+    background: rgba(14, 165, 233, 0.05);
+  }
+  .qna-body {
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.4;
+    border-top: 1px solid var(--theia-border-color, #ccc);
+    background: var(--theia-layout-color1, #f9f9f9);
+    color: var(--theia-ui-font-color1, #333333);
+  }
+  .qna-answer {
+    white-space: pre-wrap;
+    margin-bottom: 8px;
+    opacity: 0.9;
+  }
+  .qna-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .action-btn {
+    padding: 3px 6px;
+    font-size: 10px;
+    cursor: pointer;
+    background: var(--theia-brand-color1, #0ea5e9);
+    color: #ffffff;
+    border: none;
+    border-radius: 3px;
+    transition: opacity 0.2s;
+  }
+  .action-btn:hover {
+    opacity: 0.8;
   }
   .empty {
     opacity: 0.5;
@@ -422,7 +487,7 @@ export function wikiExplorerHtml(caseName: string, apiPort: number = 3210): stri
 </style>
 </head>
 <body>
-  <div id="cards-container">Loading wiki cards...</div>
+  <div id="cards-container">Loading Q&A cards...</div>
 
   <script>
     let currentCase = '${caseName}';
@@ -475,22 +540,70 @@ export function wikiExplorerHtml(caseName: string, apiPort: number = 3210): stri
           container.innerHTML = '<div class="empty">No wiki cards saved yet.</div>';
           return;
         }
-        
+
+        // Group cards by sourceDocument
+        const groups = {};
         data.cards.forEach(card => {
-          const div = document.createElement('div');
-          div.className = 'card-item';
-          div.innerHTML = \`
-            <div class="card-title">📖 \${card.title}</div>
-            <div class="card-tags">Tags: \${card.tags.join(', ')}</div>
-          \`;
-          div.ondblclick = () => {
-            window.parent.postMessage({
-              type: 'open-wiki-card',
-              caseName: currentCase,
-              filename: card.filename
-            }, '*');
-          };
-          container.appendChild(div);
+          const doc = card.sourceDocument || 'General Wiki';
+          if (!groups[doc]) groups[doc] = [];
+          groups[doc].push(card);
+        });
+
+        Object.keys(groups).forEach(docName => {
+          const docGroup = document.createElement('details');
+          docGroup.className = 'doc-group';
+          docGroup.open = true;
+
+          const docSummary = document.createElement('summary');
+          docSummary.className = 'doc-summary';
+          docSummary.innerText = docName;
+
+          const docContent = document.createElement('div');
+          docContent.className = 'doc-content';
+
+          groups[docName].forEach(card => {
+            const qnaItem = document.createElement('details');
+            qnaItem.className = 'qna-item';
+
+            const qnaSummary = document.createElement('summary');
+            qnaSummary.className = 'qna-summary';
+            qnaSummary.innerText = '❓ ' + card.title;
+
+            const qnaBody = document.createElement('div');
+            qnaBody.className = 'qna-body';
+            
+            const textParagraph = document.createElement('div');
+            textParagraph.className = 'qna-answer';
+            textParagraph.innerText = card.answer || 'No answer generated.';
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'qna-actions';
+            
+            const openBtn = document.createElement('button');
+            openBtn.className = 'action-btn';
+            openBtn.innerText = '📄 Open Q&A File';
+            openBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.parent.postMessage({
+                type: 'open-wiki-card',
+                caseName: currentCase,
+                filename: card.filename
+              }, '*');
+            };
+
+            actionsDiv.appendChild(openBtn);
+            qnaBody.appendChild(textParagraph);
+            qnaBody.appendChild(actionsDiv);
+
+            qnaItem.appendChild(qnaSummary);
+            qnaItem.appendChild(qnaBody);
+            docContent.appendChild(qnaItem);
+          });
+
+          docGroup.appendChild(docSummary);
+          docGroup.appendChild(docContent);
+          container.appendChild(docGroup);
         });
       } catch (e) {
         document.getElementById('cards-container').innerHTML = '<div style="opacity: 0.6; text-align: center; padding-top: 20px;">Connecting to Case Wiki server...</div>';
