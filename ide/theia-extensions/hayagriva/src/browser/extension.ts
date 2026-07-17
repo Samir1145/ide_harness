@@ -186,7 +186,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     document.head.appendChild(style);
 
     // Disabled custom sidebars - users interact via the native file tree status dots
-    // this.initializeWikiExplorerWidget();
+    this.initializeWikiExplorerWidget();
     this.initializeConceptsExplorerWidget();
     this.registerMonacoLinkProvider();
     this.registerLawCompletion();
