@@ -239,8 +239,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     const leftWidgets = this.shell.getWidgets('left');
     for (const widget of leftWidgets) {
       const id = widget.id.toLowerCase();
-      // Keep only standard explorer-view-container visible (Wiki and Concepts are disabled)
-      if (id !== 'explorer-view-container') {
+      // Keep only standard explorer-view-container, wiki-explorer, and concepts-explorer visible
+      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer') {
         widget.close();
       }
     }
