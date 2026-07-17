@@ -68,6 +68,6 @@ Refer to the following plans saved in the workspace:
 * **Dynamic PDF Horizontal Width Fit**: Configure native PDF viewing widgets inside the application shell by appending `#view=FitH` to the iframe preview URL. This ensures pages automatically zoom and scale to fit the panel horizontally as it resizes.
 * **Grace-Period Health Checks**: Prevent false-positive "Backend Server Offline" warnings on Electron startup by introducing a 3-second grace-period delay to the initial client-side monitor check, allowing the background Node daemon time to initialize.
 * **Supreme Court Layout Compiler**: Expose a deterministic Markdown-to-DOCX compiler conforming to Supreme Court rules (A4, Times New Roman, 14pt body, 1.5 line spacing, 4cm left/right margins, 2cm top/bottom margins) via the explorer right-click context menu, the editor context menu, and the `/export-sc` Notion-style slash command.
-
-
-
+* **Sidebar Layout Restorations (Wiki & Concepts)**: Uncommenting widget initializers in `onStart()` requires updating the layout filter inside `onDidInitializeLayout(app)` to explicitly exclude `'hayagriva-wiki-explorer'` and `'hayagriva-concepts-explorer'` from the auto-close list.
+* **Grouped Q&A Accordion Panel**: Re-engineered the Case Wiki & Q&A sidebar to scan both the root `wiki/` directory and the `wiki/qna/` subdirectory for Q&A markdown files. It now parses the answer text on the backend and groups questions as folders (`📁`) and collapsible accordions (`❓`) in the HTML5 templates list.
+* **Concepts Sidebar Card Refactoring**: Redesigned the Concepts panel with container cards (`.doc-card`), glowing status indicators (`.status-dot-indicator` using custom box-shadow background spans), and pure CSS checkbox overrides. In template rendering loops, ensure parent cards are appended to the root container (`container.appendChild(docCard)`) and all nested templates are properly backslash-escaped.
