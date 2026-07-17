@@ -626,68 +626,128 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
     font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
     font-size: var(--theia-ui-font-size1, 13px);
     margin: 0;
-    padding: 15px;
+    padding: 12px;
     background: var(--theia-layout-color1, #f3f3f3);
     color: var(--theia-ui-font-color1, #333333);
   }
+  
+  /* Modern custom styling for native checkboxes */
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--theia-layout-color3, #ffffff);
+    margin: 0;
+    font: inherit;
+    color: var(--theia-brand-color1, #0ea5e9);
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--theia-border-color, #ccc);
+    border-radius: 3px;
+    display: inline-grid;
+    place-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+  }
+  input[type="checkbox"]::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    box-shadow: inset 1em 1em var(--theia-brand-color1, #0ea5e9);
+    background-color: currentColor;
+    transform-origin: center;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  }
+  input[type="checkbox"]:checked::before {
+    transform: scale(1);
+  }
+  input[type="checkbox"]:checked {
+    border-color: var(--theia-brand-color1, #0ea5e9);
+    background-color: rgba(14, 165, 233, 0.05);
+  }
+  input[type="checkbox"]:indeterminate::before {
+    content: "";
+    width: 8px;
+    height: 2px;
+    background-color: var(--theia-brand-color1, #0ea5e9);
+    transform: scale(1);
+    clip-path: none;
+    box-shadow: none;
+  }
+
   .global-controls {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 6px;
+    padding: 8px 10px;
     background: var(--theia-layout-color2, #e8e8e8);
-    border-radius: 4px;
+    border-radius: 6px;
     margin-bottom: 12px;
     font-weight: bold;
-    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
+    border: 1px solid var(--theia-border-color, #e0e0e0);
   }
-  .global-controls input[type="checkbox"] {
-    margin: 0;
-    cursor: pointer;
+
+  .doc-card {
+    background: var(--theia-layout-color3, #ffffff);
+    border: 1px solid var(--theia-border-color, #e0e0e0);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
+  .doc-card:hover {
+    border-color: var(--theia-brand-color1, #0ea5e9);
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.08);
+  }
+
   .doc-header {
     font-weight: bold;
-    padding: 8px 4px 6px 4px;
-    margin-top: 12px;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
     cursor: default;
     border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
     color: var(--theia-brand-color1, #0ea5e9);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
-  .doc-header input[type="checkbox"] {
-    margin: 0;
-    cursor: pointer;
-  }
+
   .status-dots-group {
     display: inline-flex;
-    gap: 3px;
+    gap: 4px;
     align-items: center;
-    margin-right: 4px;
   }
   .status-dot-indicator {
-    font-size: 14px;
-    line-height: 1;
-    cursor: default;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    background-color: currentColor;
+    box-shadow: 0 0 3px currentColor;
   }
+
   .section-count-badge {
     cursor: help;
     opacity: 0.65;
-    margin-left: 5px;
+    margin-left: auto;
     font-weight: normal;
+    font-size: 11px;
   }
+
   .pages-container {
-    padding-left: 14px;
+    padding-left: 8px;
     margin-top: 4px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     border-left: 1px dashed var(--theia-border-color, #ccc);
   }
+
   .page-item {
-    padding: 5px 8px;
-    margin: 3px 0;
+    padding: 4px 6px;
+    margin: 2px 0;
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 4px;
     transition: all 0.15s;
     white-space: nowrap;
     overflow: hidden;
@@ -695,18 +755,21 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
     display: flex;
     align-items: center;
     gap: 6px;
+    font-size: 11px;
+    color: var(--theia-ui-font-color1, #333333);
   }
   .page-item:hover {
-    background: var(--theia-layout-color3, #ffffff);
+    background: var(--theia-layout-color2, #e8e8e8);
     color: var(--theia-brand-color1, #0ea5e9);
   }
+
   .pending-card {
     margin-top: 10px;
-    padding: 10px;
+    padding: 12px;
     background: var(--theia-layout-color3, #fff);
     border: 1px solid var(--theia-border-color, #ccc);
-    border-left: 3px solid #f59e0b;
-    border-radius: 4px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
   .pending-title {
     font-weight: bold;
@@ -719,32 +782,70 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
   .pending-status {
     font-size: 11px;
     opacity: 0.7;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
+
   .action-row {
     display: flex;
     gap: 6px;
-    margin-top: 6px;
   }
+
   .btn-sm {
-    flex: 1;
-    padding: 4px 6px;
+    padding: 5px 8px;
     font-size: 11px;
     font-weight: bold;
     border: none;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.2s ease-in-out;
   }
   .btn-sm:disabled {
     opacity: 0.45;
     cursor: not-allowed;
   }
-  .btn-open { background: var(--theia-layout-color2, #e8e8e8); color: var(--theia-ui-font-color1,#333); }
-  .btn-build { background: var(--theia-brand-color1, #0ea5e9); color: #fff; }
-  .btn-rebuild { background: transparent; color: var(--theia-brand-color1,#0ea5e9); border: 1px solid var(--theia-brand-color1,#0ea5e9); }
-  .progress-bar-wrap { height: 3px; background: var(--theia-border-color,#e0e0e0); border-radius: 2px; margin: 4px 0 6px; }
-  .progress-bar { height: 3px; background: #f59e0b; border-radius: 2px; transition: width 0.4s; }
+
+  .btn-open {
+    background: var(--theia-layout-color2, #e8e8e8);
+    color: var(--theia-ui-font-color1,#333);
+    border: 1px solid var(--theia-border-color, #ccc);
+  }
+  .btn-open:hover:not(:disabled) {
+    background: var(--theia-layout-color1, #f3f3f3);
+  }
+
+  .btn-build {
+    background: var(--theia-brand-color1, #0ea5e9);
+    color: #fff;
+  }
+  .btn-build:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .btn-rebuild {
+    width: 100%;
+    background: rgba(14, 165, 233, 0.06);
+    color: var(--theia-brand-color1, #0ea5e9);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+  }
+  .btn-rebuild:hover:not(:disabled) {
+    background: var(--theia-brand-color1, #0ea5e9);
+    color: #fff;
+    border-color: var(--theia-brand-color1, #0ea5e9);
+  }
+
+  .progress-bar-wrap {
+    height: 3px;
+    background: var(--theia-border-color,#e0e0e0);
+    border-radius: 2px;
+    margin: 4px 0 6px;
+  }
+  .progress-bar {
+    height: 3px;
+    background: #f59e0b;
+    border-radius: 2px;
+    transition: width 0.4s;
+  }
+
   .empty {
     opacity: 0.5;
     text-align: center;
@@ -990,6 +1091,9 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
         }
 
         for (const doc of indexedDocs) {
+          const docCard = document.createElement('div');
+          docCard.className = 'doc-card';
+
           const docRow = document.createElement('div');
           docRow.className = 'doc-header';
 
@@ -1025,9 +1129,9 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
           const dotsGroup = document.createElement('span');
           dotsGroup.className = 'status-dots-group';
           dotsGroup.innerHTML = \`
-            <span class="status-dot-indicator" style="color: \${d1};">●</span>
-            <span class="status-dot-indicator" style="color: \${d2};">●</span>
-            <span class="status-dot-indicator" style="color: \${d3};">●</span>
+            <span class="status-dot-indicator" style="color: \${d1}; background-color: \${d1}; box-shadow: 0 0 4px \${d1};"></span>
+            <span class="status-dot-indicator" style="color: \${d2}; background-color: \${d2}; box-shadow: 0 0 4px \${d2};"></span>
+            <span class="status-dot-indicator" style="color: \${d3}; background-color: \${d3}; box-shadow: 0 0 4px \${d3};"></span>
           \`;
 
           const filenameText = document.createTextNode(doc.title);
@@ -1040,7 +1144,7 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
           docRow.appendChild(filenameText);
           docRow.appendChild(sectionBadge);
 
-          container.appendChild(docRow);
+          docCard.appendChild(docRow);
 
           const docPagesContainer = document.createElement('div');
           docPagesContainer.className = 'pages-container';
@@ -1063,13 +1167,12 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
             docPagesContainer.appendChild(emptyItem);
           }
 
-          container.appendChild(docPagesContainer);
+          docCard.appendChild(docPagesContainer);
 
           const rebuildRow = document.createElement('div');
-          rebuildRow.style.cssText = 'padding: 0 0 10px 14px;';
+          rebuildRow.className = 'rebuild-row';
           const rebuildBtn = document.createElement('button');
           rebuildBtn.className = 'btn-sm btn-rebuild';
-          rebuildBtn.style.width = '100%';
           rebuildBtn.textContent = '🔄 Rebuild Concepts';
           rebuildBtn.onclick = () => triggerBuild(rebuildBtn, currentCase, doc.title);
           rebuildRow.appendChild(rebuildBtn);
