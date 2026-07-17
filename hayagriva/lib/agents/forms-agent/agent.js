@@ -74,7 +74,7 @@ class FormsAgent {
         }
         messages.push({ role: 'user', content: promptContent });
 
-        return await getChatResponse(messages);
+        return await getChatResponse(messages, { caseDir });
     }
 }
 

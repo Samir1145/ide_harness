@@ -90,7 +90,7 @@ class AdvisorAgent {
         messages.push({ role: 'user', content });
 
         // 4. Call LLM
-        const answer = await getChatResponse(messages);
+        const answer = await getChatResponse(messages, { caseDir });
         return replaceCitations(answer, contexts);
     }
 }

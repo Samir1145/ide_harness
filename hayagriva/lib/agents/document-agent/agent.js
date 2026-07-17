@@ -54,7 +54,7 @@ class DocumentAgent {
         messages.push({ role: 'user', content: promptContent });
 
         // Call the LLM to write a high-level summary and guide the user on the draft layout and placeholders
-        return await getChatResponse(messages);
+        return await getChatResponse(messages, { caseDir });
     }
 }
 

@@ -22,7 +22,7 @@ class AgentCoordinator {
         this.litigation = new LitigationTrackerAgent();
     }
 
-    async classifyIntent(message) {
+    async classifyIntent(caseDir, message) {
         const prompt = `You are a query classifier for HAYAGRIVA. Categorize the user prompt into exactly one of three categories:
 1. "advisor" — for law questions, insolvency codes, regulations, or board rules search.
 2. "forms" — for reviewing MCA compliance fields, auditing math equations, or checking dates.
@@ -36,7 +36,7 @@ Prompt: "${message}"`;
             const response = await getChatResponse([
                 { role: 'system', content: 'You are a precise classifier. Return only advisor, forms, or document.' },
                 { role: 'user', content: prompt }
-            ]);
+            ], { caseDir });
             const cleaned = (response || '').trim().toLowerCase();
             console.log(`[Agent Coordinator] Classified query intent as: "${cleaned}"`);
             if (['advisor', 'forms', 'document'].includes(cleaned)) {
@@ -67,7 +67,7 @@ Prompt: "${message}"`;
             return await agentMap[target].run(caseDir, userMessage, history);
         }
 
-        const intent = await this.classifyIntent(userMessage);
+        const intent = await this.classifyIntent(caseDir, userMessage);
         return await agentMap[intent].run(caseDir, userMessage, history);
     }
 }

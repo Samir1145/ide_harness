@@ -53,7 +53,7 @@ class NcltDrafterAgent {
         }
         messages.push({ role: 'user', content });
 
-        return await getChatResponse(messages);
+        return await getChatResponse(messages, { caseDir });
     }
 }
 
