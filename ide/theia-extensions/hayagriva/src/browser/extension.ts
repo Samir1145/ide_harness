@@ -1668,7 +1668,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
           }
         } catch (_) {}
 
-        if (activeMode === 'standard') {
+        if (activeMode === 'cloud' || activeMode === 'local' || activeMode === 'standard') {
           const providerLabel = cloudProvider ? ` (${cloudProvider})` : '';
           this.statusBar.setElement('hayagriva-mode-item', {
             text: `$(fa-brain) Standard Mode${providerLabel}`,
