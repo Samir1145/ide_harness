@@ -1176,7 +1176,8 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
           rebuildBtn.textContent = '🔄 Rebuild Concepts';
           rebuildBtn.onclick = () => triggerBuild(rebuildBtn, currentCase, doc.title);
           rebuildRow.appendChild(rebuildBtn);
-          container.appendChild(rebuildRow);
+          docCard.appendChild(rebuildRow);
+          container.appendChild(docCard);
         }
       } catch (e) {
         console.error(e);
