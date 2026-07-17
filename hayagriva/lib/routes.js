@@ -23,8 +23,8 @@ function resolveCaseDir(docsRoot, caseParam) {
 }
 
 const DEFAULT_SETTINGS = {
-    processingProfile: 'standard',
-    activeMode: 'local',
+    processingProfile: 'lite',
+    activeMode: 'lite',
     localRunner: 'ollama',
     localEndpoint: 'http://127.0.0.1:11434',
     localChatModel: 'qwen2.5-coder:1.5b',
@@ -929,6 +929,129 @@ module.exports = {
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ formats: list }));
+        },
+
+        '/api/hayagriva/settings/panel': (req, res, parsedUrl, docsRoot) => {
+            const htmlPath = path.join(__dirname, 'assets', 'settings-dashboard.html');
+            if (!fs.existsSync(htmlPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Settings Panel view file not found');
+                return;
+            }
+            const content = fs.readFileSync(htmlPath, 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(content);
+        },
+
+        '/api/hayagriva/chronology-panel': (req, res, parsedUrl, docsRoot) => {
+            const htmlPath = path.join(__dirname, 'assets', 'chronology-panel.html');
+            if (!fs.existsSync(htmlPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Chronology Panel view file not found');
+                return;
+            }
+            const content = fs.readFileSync(htmlPath, 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(content);
+        },
+
+        '/api/hayagriva/chronology': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            const { extractChronology } = require('./utils/chronology');
+            const events = extractChronology(caseDir);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, events }));
+        },
+
+        '/api/hayagriva/topic-overlap-panel': (req, res, parsedUrl, docsRoot) => {
+            const htmlPath = path.join(__dirname, 'assets', 'topic-overlap-panel.html');
+            if (!fs.existsSync(htmlPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Topic Overlap Panel view file not found');
+                return;
+            }
+            const content = fs.readFileSync(htmlPath, 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(content);
+        },
+
+        '/api/hayagriva/topic-overlap': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            const { buildTopicOverlap } = require('./utils/topic-overlap');
+            const topics = buildTopicOverlap(caseDir);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, topics }));
+        },
+
+        '/api/hayagriva/settings/get': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            const settingsPath = path.join(caseDir, 'hayagriva_settings.json');
+            
+            let config = { ...DEFAULT_SETTINGS };
+            if (fs.existsSync(settingsPath)) {
+                try {
+                    const saved = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+                    config = { ...config, ...saved };
+                } catch (_) {}
+            }
+
+            // Check if API key exists in SQLite secure_secrets table
+            let hasCloudKey = false;
+            try {
+                const { getDb } = require('./core/sqlite-store');
+                const db = getDb(caseDir);
+                const secretKey = `${config.cloudProvider}_api_key`;
+                const row = db.prepare("SELECT secret_value FROM secure_secrets WHERE secret_key = ?").get(secretKey);
+                if (row && row.secret_value) {
+                    hasCloudKey = true;
+                }
+            } catch (err) {
+                console.error("Error reading secure key:", err);
+            }
+
+            let libreOfficeDetected = false;
+            try {
+                const { execSync } = require('child_process');
+                const paths = [
+                    '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+                    'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+                    'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe'
+                ];
+                for (const p of paths) {
+                    if (fs.existsSync(p)) {
+                        libreOfficeDetected = true;
+                        break;
+                    }
+                }
+                if (!libreOfficeDetected) {
+                    const cmd = process.platform === 'win32' ? 'where' : 'which';
+                    execSync(`${cmd} soffice`, { stdio: 'ignore' });
+                    libreOfficeDetected = true;
+                }
+            } catch (_) {}
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ...config, hasCloudKey, libreOfficeDetected }));
+        },
+
+        '/api/hayagriva/llm/model-info': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            const { loadLlmConfig } = require('./core/llm-client');
+            const { parseModelSize } = require('./utils/model-info');
+            const config = loadLlmConfig({ caseDir });
+            const modelInfo = config.activeMode === 'local'
+                ? parseModelSize(config.localChatModel)
+                : { sizeB: null, tier: config.activeMode === 'lite' ? 'none' : 'cloud' };
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                activeMode: config.activeMode,
+                modelName: config.activeMode === 'local' ? config.localChatModel : config.cloudModel,
+                ...modelInfo
+            }));
         }
     },
 
@@ -1012,69 +1135,6 @@ module.exports = {
                 }
             });
         },
-        '/api/hayagriva/settings/panel': (req, res, parsedUrl, docsRoot) => {
-            const htmlPath = path.join(__dirname, 'assets', 'settings-dashboard.html');
-            if (!fs.existsSync(htmlPath)) {
-                res.writeHead(404, { 'Content-Type': 'text/plain' });
-                res.end('Settings Panel view file not found');
-                return;
-            }
-            const content = fs.readFileSync(htmlPath, 'utf8');
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end(content);
-        },
-
-        '/api/hayagriva/settings/get': (req, res, parsedUrl, docsRoot) => {
-            const caseName = parsedUrl.query.case || '';
-            const caseDir = resolveCaseDir(docsRoot, caseName);
-            const settingsPath = path.join(caseDir, 'hayagriva_settings.json');
-            
-            let config = { ...DEFAULT_SETTINGS };
-            if (fs.existsSync(settingsPath)) {
-                try {
-                    const saved = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-                    config = { ...config, ...saved };
-                } catch (_) {}
-            }
-
-            // Check if API key exists in SQLite secure_secrets table
-            let hasCloudKey = false;
-            try {
-                const { getDb } = require('./core/sqlite-store');
-                const db = getDb(caseDir);
-                const secretKey = `${config.cloudProvider}_api_key`;
-                const row = db.prepare("SELECT secret_value FROM secure_secrets WHERE secret_key = ?").get(secretKey);
-                if (row && row.secret_value) {
-                    hasCloudKey = true;
-                }
-            } catch (err) {
-                console.error("Error reading secure key:", err);
-            }
-
-            let libreOfficeDetected = false;
-            try {
-                const { execSync } = require('child_process');
-                const paths = [
-                    '/Applications/LibreOffice.app/Contents/MacOS/soffice',
-                    'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-                    'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe'
-                ];
-                for (const p of paths) {
-                    if (fs.existsSync(p)) {
-                        libreOfficeDetected = true;
-                        break;
-                    }
-                }
-                if (!libreOfficeDetected) {
-                    const cmd = process.platform === 'win32' ? 'where' : 'which';
-                    execSync(`${cmd} soffice`, { stdio: 'ignore' });
-                    libreOfficeDetected = true;
-                }
-            } catch (_) {}
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ...config, hasCloudKey, libreOfficeDetected }));
-        },
 
         '/api/hayagriva/settings/save': (req, res, parsedUrl, docsRoot) => {
             let body = '';
@@ -1094,9 +1154,10 @@ module.exports = {
                     const settingsPath = path.join(caseDir, 'hayagriva_settings.json');
                     
                     // Filter and save standard settings
+                    const activeMode = data.activeMode || 'lite';
                     const savedConfig = {
-                        processingProfile: data.processingProfile || 'standard',
-                        activeMode: data.activeMode || 'local',
+                        processingProfile: activeMode === 'lite' ? 'lite' : 'standard',
+                        activeMode: activeMode,
                         localRunner: data.localRunner || 'ollama',
                         localEndpoint: data.localEndpoint || 'http://127.0.0.1:11434',
                         localChatModel: data.localChatModel || 'qwen2.5-coder:1.5b',
@@ -1250,9 +1311,13 @@ module.exports = {
 
                 updateStatus(caseDir, relative, 'converting');
 
+                const { loadLlmConfig } = require('./core/llm-client');
+                const config = loadLlmConfig({ caseDir });
+                const allowMultimodal = config.activeMode !== 'lite' && !!data.multimodal;
+
                 ingestFile(caseDir, file, { 
                     conversionOnly: true,
-                    multimodal: !!data.multimodal
+                    multimodal: allowMultimodal
                 }).then(result => {
                     if (result && result.companionPath) {
                         updateStatus(caseDir, relative, 'companion_ready');
@@ -1792,6 +1857,19 @@ module.exports = {
                 try {
                     const data = JSON.parse(body);
                     const caseDir = path.join(docsRoot, data.case);
+                    
+                    // ── LITE MODE GATE ──────────────────────────────────────────
+                    const { loadLlmConfig } = require('./core/llm-client');
+                    const config = loadLlmConfig({ caseDir });
+                    if (config.activeMode === 'lite') {
+                        const { query } = require('./core/rag');
+                        const result = await query(caseDir, data.message, { caseDir });
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, response: result.answer, liteMode: true, sources: result.sources }));
+                        return;
+                    }
+                    // ───────────────────────────────────────────────────────────
+
                     const coordinator = require('./agents/agent-coordinator');
                     const responseText = await coordinator.run(caseDir, data.message, data.history || [], data.agent);
                     

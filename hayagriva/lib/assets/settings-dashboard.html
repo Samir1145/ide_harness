@@ -9,9 +9,15 @@
       --text-color: var(--theia-ui-font-color0, #f3f3f3);
       --border-color: var(--theia-border-color, #3a3a3a);
       --accent-color: var(--theia-accent-color0, #3b82f6);
-      --card-bg: rgba(255, 255, 255, 0.03);
+      --accent-hover: #2563eb;
+      --card-bg: rgba(255, 255, 255, 0.02);
+      --card-bg-active: rgba(59, 130, 246, 0.05);
       --input-bg: var(--theia-input-background, #2d2d2d);
       --input-border: var(--theia-input-border, #444);
+      --text-muted: #888;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
     }
     body {
       background-color: var(--bg-color);
@@ -31,6 +37,17 @@
       padding-bottom: 12px;
       font-weight: 500;
       letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .version-badge {
+      font-size: 11px;
+      background: var(--border-color);
+      color: var(--text-muted);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: normal;
     }
     .section {
       background: var(--card-bg);
@@ -38,16 +55,106 @@
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 20px;
+      transition: all 0.2s ease-in-out;
+    }
+    .section:hover {
+      border-color: #444;
     }
     .section-title {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
       margin-top: 0;
       margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
       display: flex;
       align-items: center;
       gap: 8px;
     }
+    
+    /* Two Tile Mode Selector */
+    .mode-tiles {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .mode-tile {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mode-tile:hover {
+      border-color: #555;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .mode-tile.active {
+      border-color: var(--accent-color);
+      background: var(--card-bg-active);
+      box-shadow: 0 0 0 1px var(--accent-color);
+    }
+    .mode-tile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .mode-tile-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .radio-indicator {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      display: inline-block;
+      position: relative;
+    }
+    .mode-tile.active .radio-indicator {
+      border-color: var(--accent-color);
+    }
+    .mode-tile.active .radio-indicator::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Feature List Inside Panels */
+    .feature-comparison {
+      font-size: 12px;
+      margin-top: 10px;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .feature-item.yes { color: var(--success-color); }
+    .feature-item.no { color: var(--danger-color); opacity: 0.6; }
+
+    /* Form Styles */
     .form-group {
       margin-bottom: 16px;
     }
@@ -78,30 +185,33 @@
       opacity: 0.6;
       margin-top: 4px;
     }
-    .radio-toggle {
+    
+    /* Sub-Router Toggle for Standard Mode */
+    .sub-router-toggle {
       display: flex;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
-    .radio-option {
+    .sub-router-option {
       flex: 1;
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      padding: 12px;
+      padding: 10px;
       text-align: center;
       cursor: pointer;
       background: rgba(255, 255, 255, 0.01);
       transition: all 0.2s;
       font-size: 13px;
-    }
-    .radio-option:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .radio-option.active {
-      border-color: var(--accent-color);
-      background: rgba(59, 130, 246, 0.1);
       font-weight: 500;
     }
+    .sub-router-option:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .sub-router-option.active {
+      border-color: var(--accent-color);
+      background: rgba(59, 130, 246, 0.08);
+    }
+
     .button-container {
       display: flex;
       justify-content: flex-end;
@@ -133,11 +243,12 @@
       cursor: pointer;
       font-size: 12px;
       opacity: 0.7;
+      user-select: none;
     }
     .password-toggle:hover {
       opacity: 1;
     }
-    /* Toast messages */
+    
     #toast {
       visibility: hidden;
       min-width: 250px;
@@ -170,38 +281,75 @@
 </head>
 <body>
   <div class="container">
-    <h2>Hayagriva Case Settings</h2>
+    <h2>
+      <span>Hayagriva Case Settings</span>
+      <span class="version-badge" id="vaultVer">Loading Vault...</span>
+    </h2>
     
     <form id="settingsForm">
-      <!-- 1. Processing Profile -->
-      <div class="section">
-        <div class="section-title">⚙️ Performance & Ingestion Profile</div>
-        <div class="form-group">
-          <label for="processingProfile">Ingestion Depth Profile</label>
-          <select id="processingProfile">
-            <option value="lite">Lite (Instant, Text-only search, 0% background RAM)</option>
-            <option value="standard">Standard (Fast, Hybrid Keyword + Vector Search)</option>
-            <option value="deep">Deep Audit (Full text, Q&As, Entity Graphs, Summaries)</option>
-          </select>
-          <div class="helper-text">
-            <strong>Lite:</strong> Recommended for 8GB-16GB RAM machines running entirely locally. Instantly extracts text without heavy background AI queues.<br>
-            <strong>Standard:</strong> Suitable for 16GB+ RAM (or with Cloud Router enabled). Computes local vector mappings.<br>
-            <strong>Deep Audit:</strong> Recommended only for high-end systems (16GB+ RAM with Cloud API key or GPU). Runs comprehensive extraction and knowledge graph modeling.
+      <!-- Stage 1 Redesign: Mode Selection Tiles -->
+      <div class="section-title">🤖 AI Processing Mode</div>
+      <div class="mode-tiles">
+        <!-- Lite Mode Tile -->
+        <div class="mode-tile" id="tileLite" onclick="selectMode('lite')">
+          <div class="mode-tile-header">
+            <span>⚡ Lite Mode</span>
+            <span class="radio-indicator"></span>
+          </div>
+          <div class="mode-tile-desc">
+            For 8GB-16GB RAM machines. Fast local text search, zero background AI queues, zero LLM dependencies.
+          </div>
+          <div class="feature-comparison">
+            <div class="feature-item yes">✓ Local Semantic Passage Search</div>
+            <div class="feature-item yes">✓ Date & Chronology timeline extraction</div>
+            <div class="feature-item yes">✓ Dynamic Topic Overlap mapping</div>
+            <div class="feature-item yes">✓ Monaco editor, LSP, & legal vault lookups</div>
+            <div class="feature-item no">✗ AI chat assistant & legal drafting</div>
+            <div class="feature-item no">✗ Auto-extraction of KV compliance dictionary</div>
+          </div>
+        </div>
+
+        <!-- Standard Mode Tile -->
+        <div class="mode-tile" id="tileStandard" onclick="selectMode('standard')">
+          <div class="mode-tile-header">
+            <span>🧠 Standard Mode</span>
+            <span class="radio-indicator"></span>
+          </div>
+          <div class="mode-tile-desc">
+            For 16GB-32GB+ RAM or API key users. Unlocks the complete suite of AI-assisted drafting, audits, and analysis.
+          </div>
+          <div class="feature-comparison">
+            <div class="feature-item yes">✓ Full AI Chat & Drafting Agents</div>
+            <div class="feature-item yes">✓ Automated schema-less Fact extraction</div>
+            <div class="feature-item yes">✓ Section layout profiling & summaries</div>
+            <div class="feature-item yes">✓ Background Doc2Query question indexing</div>
+            <div class="feature-item yes">✓ Avoidance and Claims Verification Audits</div>
           </div>
         </div>
       </div>
 
-      <!-- 2. LLM Provider Routing -->
-      <div class="section">
-        <div class="section-title">🧠 LLM Processing Router</div>
+      <!-- Info panel about Lite Mode -->
+      <div class="section" id="liteInfoPanel" style="display: none;">
+        <div class="section-title" style="color: var(--accent-color);">ℹ️ Lite Mode Active</div>
+        <p style="margin: 0 0 10px 0; font-size: 13px; opacity: 0.85;">
+          HAYAGRIVA is running in <strong>Lite Mode</strong>. Standard features are disabled to keep your processor cool and prevent memory/OOM errors. Text ingestion and offline semantic index search will continue to work perfectly.
+        </p>
+        <p style="margin: 0; font-size: 12px; color: var(--text-muted);">
+          💡 <strong>Want to unlock AI?</strong> Switch to Standard Mode above and select "Cloud Online API" to run fast cloud LLM models without requiring a high-end machine.
+        </p>
+      </div>
+
+      <!-- Settings panel for Standard Mode (Local vs Cloud Router) -->
+      <div class="section" id="standardConfigPanel" style="display: none;">
+        <div class="section-title">🧠 Standard Router Configuration</div>
         
-        <label>Active Routing Mode</label>
-        <div class="radio-toggle">
-          <div class="radio-option active" id="modeLocal" onclick="setMode('local')">Local Offline Runner</div>
-          <div class="radio-option" id="modeCloud" onclick="setMode('cloud')">Cloud Online API</div>
+        <label>Standard Routing Mode</label>
+        <div class="sub-router-toggle">
+          <div class="sub-router-option" id="subModeLocal" onclick="setSubMode('local')">🖥 Local Offline (Ollama)</div>
+          <div class="sub-router-option" id="subModeCloud" onclick="setSubMode('cloud')">☁️ Cloud Online API Key</div>
         </div>
 
-        <!-- 2A. Local Configuration -->
+        <!-- Local Configuration -->
         <div id="localConfig">
           <div class="form-group">
             <label for="localRunner">Local LLM Runner</label>
@@ -225,7 +373,7 @@
           </div>
         </div>
 
-        <!-- 2B. Cloud Configuration -->
+        <!-- Cloud Configuration -->
         <div id="cloudConfig" style="display: none;">
           <div class="form-group">
             <label for="cloudProvider">Cloud Provider</label>
@@ -250,7 +398,7 @@
         </div>
       </div>
 
-      <!-- 3. Legacy File Ingest / LibreOffice Configuration -->
+      <!-- Converter Configuration -->
       <div class="section">
         <div class="section-title">📄 Legacy Document Converter (LibreOffice)</div>
         <div id="libreOfficeStatusBanner" style="padding: 10px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; font-weight: 500;">
@@ -276,16 +424,35 @@
   <div id="toast">Settings saved successfully!</div>
 
   <script>
-    let activeMode = 'local';
+    let activeMode = 'lite'; // 'lite', 'local', or 'cloud'
     const params = new URLSearchParams(window.location.search);
     const caseName = params.get('case') || 'Case_Alpha';
 
-    function setMode(mode) {
-      activeMode = mode;
-      document.getElementById('modeLocal').classList.toggle('active', mode === 'local');
-      document.getElementById('modeCloud').classList.toggle('active', mode === 'cloud');
-      document.getElementById('localConfig').style.display = mode === 'local' ? 'block' : 'none';
-      document.getElementById('cloudConfig').style.display = mode === 'cloud' ? 'block' : 'none';
+    function selectMode(mainMode) {
+      if (mainMode === 'lite') {
+        activeMode = 'lite';
+        document.getElementById('tileLite').classList.add('active');
+        document.getElementById('tileStandard').classList.remove('active');
+        document.getElementById('liteInfoPanel').style.display = 'block';
+        document.getElementById('standardConfigPanel').style.display = 'none';
+      } else {
+        // Find whichever sub-mode was active
+        const isCloudActive = document.getElementById('subModeCloud').classList.contains('active');
+        activeMode = isCloudActive ? 'cloud' : 'local';
+        document.getElementById('tileLite').classList.remove('active');
+        document.getElementById('tileStandard').classList.add('active');
+        document.getElementById('liteInfoPanel').style.display = 'none';
+        document.getElementById('standardConfigPanel').style.display = 'block';
+        setSubMode(activeMode);
+      }
+    }
+
+    function setSubMode(subMode) {
+      activeMode = subMode;
+      document.getElementById('subModeLocal').classList.toggle('active', subMode === 'local');
+      document.getElementById('subModeCloud').classList.toggle('active', subMode === 'cloud');
+      document.getElementById('localConfig').style.display = subMode === 'local' ? 'block' : 'none';
+      document.getElementById('cloudConfig').style.display = subMode === 'cloud' ? 'block' : 'none';
     }
 
     function togglePassword() {
@@ -296,9 +463,9 @@
     function updateLocalModelList() {
       const runner = document.getElementById('localRunner').value;
       const endpoint = document.getElementById('localEndpoint');
-      if (runner === 'ollama' && !endpoint.value) {
+      if (runner === 'ollama' && (!endpoint.value || endpoint.value.includes('localhost:8000'))) {
         endpoint.value = 'http://127.0.0.1:11434';
-      } else if (runner === 'vllm' && !endpoint.value) {
+      } else if (runner === 'vllm' && (!endpoint.value || endpoint.value.includes('11434'))) {
         endpoint.value = 'http://localhost:8000';
       }
     }
@@ -331,8 +498,30 @@
         const res = await fetch(`/api/hayagriva/settings/get?case=${encodeURIComponent(caseName)}`);
         if (res.ok) {
           const config = await res.json();
-          document.getElementById('processingProfile').value = config.processingProfile || 'standard';
-          setMode(config.activeMode || 'local');
+          
+          // Set layout version/vault status
+          const vaultBadge = document.getElementById('vaultVer');
+          if (config.hasCloudKey || config.activeMode !== 'lite') {
+            vaultBadge.innerText = 'Vault Active';
+            vaultBadge.style.color = '#4ade80';
+          } else {
+            vaultBadge.innerText = 'Vault Offline';
+          }
+
+          // Router mode selection
+          const modeVal = config.activeMode || 'lite';
+          if (modeVal === 'lite') {
+            selectMode('lite');
+          } else {
+            if (modeVal === 'cloud') {
+              document.getElementById('subModeLocal').classList.remove('active');
+              document.getElementById('subModeCloud').classList.add('active');
+            } else {
+              document.getElementById('subModeLocal').classList.add('active');
+              document.getElementById('subModeCloud').classList.remove('active');
+            }
+            selectMode('standard');
+          }
           
           document.getElementById('localRunner').value = config.localRunner || 'ollama';
           document.getElementById('localEndpoint').value = config.localEndpoint || 'http://127.0.0.1:11434';
@@ -372,10 +561,10 @@
     // Save settings
     document.getElementById('settingsForm').onsubmit = async (e) => {
       e.preventDefault();
+      
       const payload = {
         case: caseName,
-        processingProfile: document.getElementById('processingProfile').value,
-        activeMode: activeMode,
+        activeMode: activeMode, // 'lite', 'local', or 'cloud'
         localRunner: document.getElementById('localRunner').value,
         localEndpoint: document.getElementById('localEndpoint').value,
         localChatModel: document.getElementById('localChatModel').value,
@@ -400,6 +589,8 @@
             document.getElementById('cloudApiKey').value = '';
             document.getElementById('cloudApiKey').placeholder = '•••••••••••••••• (Saved)';
           }
+          // Reload settings to refresh status displays
+          loadSettings();
         } else {
           showToast(data.error || 'Failed to save settings', true);
         }

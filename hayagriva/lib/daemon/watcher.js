@@ -588,10 +588,12 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
             // Update statuses.json index
             updateStatus(caseDir, relative, 'indexed');
 
-            try {
-                await extractFileKV(caseDir, filePath, result.markdown);
-            } catch (e) {
-                console.error(`[extract-file error] Failed for ${path.basename(filePath)}:`, e.message);
+            if (profile !== 'lite') {
+                try {
+                    await extractFileKV(caseDir, filePath, result.markdown);
+                } catch (e) {
+                    console.error(`[extract-file error] Failed for ${path.basename(filePath)}:`, e.message);
+                }
             }
 
             return {
@@ -864,6 +866,17 @@ async function startLazyWorker() {
         const os = require('os');
         const { loadLlmConfig } = require('../core/llm-client');
         const config = loadLlmConfig({ caseDir });
+
+        if (config.activeMode === 'lite') {
+            console.log(`[Lazy Worker] Lite Mode — skipping enrichment for "${targetNode.title}"`);
+            if (item.relative) {
+                updateStatus(caseDir, item.relative, 'enriched');
+            } else {
+                updateStatus(caseDir, `${basename}.md`, 'enriched');
+            }
+            lazyQueue.shift();
+            continue;
+        }
         const totalMemoryGB = os.totalmem() / (1024 * 1024 * 1024);
 
         if (config.activeMode === 'local' && totalMemoryGB < 24) {
@@ -1301,11 +1314,10 @@ function loadCaseSettings(caseDir) {
             return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
         } catch (_) {}
     }
-    return { processingProfile: 'standard' };
+    return { activeMode: 'lite', processingProfile: 'lite' };
 }
 
 async function indexVectorsToSqlite(caseDir, result, profile) {
-    if (profile === 'lite') return;
     try {
         const db = getDb(caseDir);
         const relative = findOriginalFilePath(caseDir, result.relative);

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HAYAGRIVA Brochure</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@600;700;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── A4 PRINT DESIGN SYSTEM ── */
+    :root {
+      --bg-void: hsl(220, 25%, 7%);
+      --bg-surface: hsl(220, 20%, 12%);
+      --color-cyan: hsl(195, 95%, 45%);
+      --color-cyan-bg: rgba(0, 212, 255, 0.05);
+      --text-main: hsl(210, 20%, 95%);
+      --text-muted: hsl(210, 15%, 70%);
+      --text-dim: hsl(210, 10%, 50%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-main);
+      background-color: var(--bg-void);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 25mm 20mm;
+      position: relative;
+      page-break-after: always;
+      break-after: page;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-void);
+      background-image: 
+        linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* Page Footer Numbers */
+    .page-footer {
+      position: absolute;
+      bottom: 15mm;
+      left: 20mm;
+      right: 20mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(0, 212, 255, 0.1);
+      padding-top: 5mm;
+      font-size: 0.75rem;
+      font-family: 'Roboto Mono', monospace;
+      color: var(--text-dim);
+    }
+
+    .page-footer .nav-brand {
+      color: var(--color-cyan);
+      font-weight: 700;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    /* ── PAGE 1: COVER ── */
+    .cover-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .monogram-container {
+      width: 140px;
+      height: 140px;
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, transparent 100%);
+      border: 2px solid var(--color-cyan);
+      border-radius: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 3.5rem;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.15);
+    }
+
+    .monogram-inner {
+      font-size: 4rem;
+      font-weight: 800;
+      color: var(--color-cyan);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .cover-title {
+      font-size: 4.5rem;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .cover-subtitle {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.95rem;
+      letter-spacing: 0.3em;
+      color: var(--color-cyan);
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+    }
+
+    .cover-desc {
+      max-width: 500px;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* ── PAGE 2: VISION & PIPELINE ── */
+    .section-header {
+      font-size: 2.2rem;
+      color: var(--text-main);
+      margin-bottom: 2rem;
+      border-left: 4px solid var(--color-cyan);
+      padding-left: 0.75rem;
+    }
+
+    .grid-two-col {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 2.5rem;
+      flex: 1;
+    }
+
+    .vision-text {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--text-muted);
+    }
+
+    .vision-text p {
+      margin-bottom: 1.5rem;
+    }
+
+    .pipeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .pipeline-step {
+      background: var(--bg-surface);
+      border: 1px solid rgba(0, 212, 255, 0.1);
+      padding: 1.25rem;
+      border-radius: 8px;
+    }
+
+    .pipeline-step-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .pipeline-number {
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--color-cyan);
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.85rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    .pipeline-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .pipeline-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── PAGE 3: SPECIALIZED AGENTS ── */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .agent-card {
+      background: var(--bg-surface);
+      border: 1px solid rgba(0, 212, 255, 0.1);
+      border-left: 3px solid var(--color-cyan);
+      border-radius: 6px;
+      padding: 1.25rem;
+    }
+
+    .agent-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+
+    .agent-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── PAGE 4: SPECS & GETTING STARTED ── */
+    .specs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .specs-table th {
+      text-align: left;
+      background: rgba(0, 212, 255, 0.05);
+      color: var(--color-cyan);
+      padding: 0.75rem 1rem;
+      font-family: 'Outfit', sans-serif;
+      border-bottom: 2px solid var(--color-cyan);
+    }
+
+    .specs-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .specs-table tr:hover td {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .code-snippet {
+      background: hsl(220, 20%, 9%);
+      border: 1px solid rgba(0, 212, 255, 0.1);
+      padding: 1.25rem;
+      border-radius: 6px;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+    }
+
+    .code-snippet span {
+      color: var(--color-cyan);
+    }
+
+    .contact-footer {
+      margin-top: auto;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: COVER -->
+  <div class="page">
+    <div class="cover-content">
+      <div class="monogram-container">
+        <div class="monogram-inner">H</div>
+      </div>
+      <h1 class="cover-title">HAYAGRIVA</h1>
+      <div class="cover-subtitle">Legal Compiler & IDE</div>
+      <p class="cover-desc">
+        A local-first, privacy-guaranteed case analysis environment. 
+        Compile case files, synchronize facts to local databases, and run specialized legal audit agents.
+      </p>
+    </div>
+    <div class="page-footer">
+      <span class="nav-brand">HAYAGRIVA</span>
+      <span>PAGE 01 / COVER</span>
+    </div>
+  </div>
+
+  <!-- PAGE 2: VISION & PIPELINE -->
+  <div class="page">
+    <h2 class="section-header">Vision & Architecture</h2>
+    <div class="grid-two-col">
+      <div class="vision-text">
+        <p>
+          Legal workspaces are fundamentally fragmented. Lawyers must manually scroll through thousands of PDF pages, verify financial values across disparate spreadsheets, check statutory limitations, and draft structured briefs in isolated text editors.
+        </p>
+        <p>
+          <strong>HAYAGRIVA introduces the Legal Compiler.</strong> By treating case facts as unified variables and statutory records as index parameters, we allow teams to ingest documents, curate indices in a Monaco code environment, and compile final drafts deterministically.
+        </p>
+        <p>
+          Every parsed fact is stored inside local SQLite indices. Our core design guarantees that manual document updates sync automatically, allowing legal teams to focus on case strategy rather than database management.
+        </p>
+      </div>
+
+      <div class="pipeline-container">
+        <div class="pipeline-step">
+          <div class="pipeline-step-header">
+            <span class="pipeline-number">STEP 1</span>
+            <span class="pipeline-title">Ingest & Convert</span>
+          </div>
+          <p class="pipeline-desc">Raw files (PDFs, DOCX, XLSX) are converted locally to companion Markdown, while scanned data is automatically checked for density validation.</p>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="pipeline-step-header">
+            <span class="pipeline-number">STEP 2</span>
+            <span class="pipeline-title">Verify & Enrich</span>
+          </div>
+          <p class="pipeline-desc">Verify facts in the Monaco editor. Updates are saved instantly to SQLite. Search encrypted local legal vaults with auto-completes.</p>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="pipeline-step-header">
+            <span class="pipeline-number">STEP 3</span>
+            <span class="pipeline-title">Action & Audit</span>
+          </div>
+          <p class="pipeline-desc">Deploy pre-installed legal agents to scan transactions, audit claims, score competing plans, and compile draft skeletons.</p>
+        </div>
+      </div>
+    </div>
+    <div class="page-footer">
+      <span class="nav-brand">HAYAGRIVA</span>
+      <span>PAGE 02 / VISION</span>
+    </div>
+  </div>
+
+  <!-- PAGE 3: SPECIALIZED AGENTS -->
+  <div class="page">
+    <h2 class="section-header">Specialized Legal Agents</h2>
+    <p style="font-size:0.95rem; color:var(--text-muted); margin-bottom: 2rem;">
+      HAYAGRIVA comes pre-bundled with five specialized Node.js-native agents that run audits and generate structured checklists.
+    </p>
+
+    <div class="agents-grid">
+      <div class="agent-card">
+        <h3 class="agent-card-title">Avoidance Scanner Agent</h3>
+        <p class="agent-card-desc">Audits bank statements and transaction ledgers. Flags preferential, undervalued, or fraudulent transfers within statutory look-back frames.</p>
+      </div>
+
+      <div class="agent-card">
+        <h3 class="agent-card-title">Claims Verification Agent</h3>
+        <p class="agent-card-desc">Cross-references financial creditor claim submissions against corporate ledgers. Validates proof tables and outlines discrepancy records.</p>
+      </div>
+
+      <div class="agent-card">
+        <h3 class="agent-card-title">Resolution Plan Evaluator</h3>
+        <p class="agent-card-desc">Evaluates multiple resolution plans side-by-side against structural compliance checklists. Compiles final scoring matrices.</p>
+      </div>
+
+      <div class="agent-card">
+        <h3 class="agent-card-title">NCLT Drafter Agent</h3>
+        <p class="agent-card-desc">Generates ready-to-file applications and petitions. Maps compiled facts to specific templates while preserving unresolved gap placeholders.</p>
+      </div>
+
+      <div class="agent-card" style="grid-column: span 2;">
+        <h3 class="agent-card-title">Litigation Tracker Agent</h3>
+        <p class="agent-card-desc">Monitors litigation progress, records limitations timelines, indexes case precedents, and drafts periodic compliance reports.</p>
+      </div>
+    </div>
+    <div class="page-footer">
+      <span class="nav-brand">HAYAGRIVA</span>
+      <span>PAGE 03 / AGENTS</span>
+    </div>
+  </div>
+
+  <!-- PAGE 4: TECH SPECS & GETTING STARTED -->
+  <div class="page">
+    <h2 class="section-header">Technical Specifications</h2>
+    
+    <table class="specs-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>⚡ Lite Mode</th>
+          <th>🧠 Standard Mode</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Hardware Targets</strong></td>
+          <td>8GB - 16GB RAM / Standard CPU</td>
+          <td>24GB+ RAM / GPU Workstations</td>
+        </tr>
+        <tr>
+          <td><strong>Vector Search</strong></td>
+          <td>100% Local ONNX (Offline)</td>
+          <td>100% Local ONNX (Offline)</td>
+        </tr>
+        <tr>
+          <td><strong>AI Model Support</strong></td>
+          <td>Disabled (Keyword/Similarity cards)</td>
+          <td>Local Ollama or Secured Cloud Keys</td>
+        </tr>
+        <tr>
+          <td><strong>Database Indexing</strong></td>
+          <td>SQLite FTS5</td>
+          <td>SQLite FTS5 + Hybrid Reranking</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-header">Quick Deployment</h2>
+    <div class="code-snippet">
+      # Clone the repository core<br>
+      $ <span>git clone</span> https://github.com/atulgrover/HAYAGRIVA.git<br><br>
+      # Boot up the local workspace IDE<br>
+      $ <span>cd</span> HAYAGRIVA && ./start.command
+    </div>
+
+    <div class="contact-footer">
+      <p>HAYAGRIVA is open-source core software distributed under the Apache License 2.0.</p>
+      <p style="margin-top:0.25rem;">Contact: <strong>legalops@hayagriva.io</strong> | GitHub: <strong>github.com/atulgrover/HAYAGRIVA</strong></p>
+    </div>
+
+    <div class="page-footer">
+      <span class="nav-brand">HAYAGRIVA</span>
+      <span>PAGE 04 / SPECS</span>
+    </div>
+  </div>
+
+</body>
+</html>

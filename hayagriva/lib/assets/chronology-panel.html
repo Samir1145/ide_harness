@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Case Chronology Timeline</title>
+  <style>
+    :root {
+      --bg-color: var(--theia-layout-color0, #1e1e1e);
+      --text-color: var(--theia-ui-font-color0, #f3f3f3);
+      --border-color: var(--theia-border-color, #3a3a3a);
+      --accent-color: var(--theia-accent-color0, #3b82f6);
+      --card-bg: rgba(255, 255, 255, 0.02);
+      --input-bg: var(--theia-input-background, #2d2d2d);
+      --input-border: var(--theia-input-border, #444);
+      --text-muted: #888;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+    .header h2 {
+      margin: 0;
+      font-weight: 500;
+      font-size: 18px;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .search-input {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-color);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      width: 200px;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--accent-color);
+    }
+    .btn {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    
+    /* Timeline styles */
+    .timeline {
+      position: relative;
+      margin: 20px 0;
+      padding-left: 24px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border-color);
+    }
+    .timeline-group {
+      margin-bottom: 24px;
+    }
+    .year-header {
+      position: relative;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-color);
+      margin-bottom: 16px;
+      margin-left: -24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .year-bullet {
+      width: 16px;
+      height: 16px;
+      background: var(--bg-color);
+      border: 3px solid var(--accent-color);
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      z-index: 1;
+    }
+    .timeline-item {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+    }
+    .timeline-item:hover {
+      border-color: #555;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -21px;
+      top: 18px;
+      width: 8px;
+      height: 8px;
+      background: var(--border-color);
+      border-radius: 50%;
+      border: 2px solid var(--bg-color);
+      transition: background-color 0.2s;
+    }
+    .timeline-item:hover::before {
+      background: var(--accent-color);
+    }
+    .item-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .item-date {
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    .item-source {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .item-context {
+      font-size: 13px;
+      opacity: 0.9;
+      line-height: 1.4;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>📅 Case Chronology Timeline</h2>
+    <div class="actions">
+      <input type="text" class="search-input" id="search" placeholder="Filter timeline..." oninput="renderTimeline()">
+      <button class="btn" onclick="copyMarkdown()">Export MD Table</button>
+    </div>
+  </div>
+
+  <div id="timelineContainer">Loading chronology...</div>
+
+  <script>
+    let events = [];
+    const params = new URLSearchParams(window.location.search);
+    const caseName = params.get('case') || 'Case_Alpha';
+
+    async function loadChronology() {
+      try {
+        const res = await fetch(`/api/hayagriva/chronology?case=${encodeURIComponent(caseName)}`);
+        if (res.ok) {
+          const data = await res.json();
+          events = data.events || [];
+          renderTimeline();
+        } else {
+          document.getElementById('timelineContainer').innerText = 'Failed to load timeline chronology.';
+        }
+      } catch (err) {
+        document.getElementById('timelineContainer').innerText = 'Error connecting to server.';
+      }
+    }
+
+    // Color bands for year groups
+    const yearColors = [
+      '#3b82f6', // blue
+      '#10b981', // green
+      '#f59e0b', // amber
+      '#8b5cf6', // purple
+      '#ec4899', // pink
+      '#06b6d4'  // cyan
+    ];
+
+    function getYearColor(yearStr) {
+      const year = parseInt(yearStr, 10) || 2020;
+      return yearColors[year % yearColors.length];
+    }
+
+    function renderTimeline() {
+      const container = document.getElementById('timelineContainer');
+      const searchVal = document.getElementById('search').value.toLowerCase().trim();
+      
+      const filtered = events.filter(e => {
+        return e.isoDate.toLowerCase().includes(searchVal) || 
+               e.displayDate.toLowerCase().includes(searchVal) ||
+               e.context.toLowerCase().includes(searchVal) ||
+               e.source.toLowerCase().includes(searchVal);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">No timeline events found matching query.</div>';
+        return;
+      }
+
+      // Group by year
+      const groups = {};
+      for (const e of filtered) {
+        const year = e.isoDate.split('-')[0] || 'Unknown';
+        if (!groups[year]) groups[year] = [];
+        groups[year].push(e);
+      }
+
+      const sortedYears = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+      
+      let html = '<div class="timeline">';
+      for (const year of sortedYears) {
+        const color = getYearColor(year);
+        html += `<div class="timeline-group">
+          <div class="year-header" style="color: ${color}">
+            <span class="year-bullet" style="border-color: ${color}"></span>
+            <span>${year}</span>
+          </div>`;
+        
+        for (const e of groups[year]) {
+          html += `
+            <div class="timeline-item">
+              <div class="item-meta">
+                <span class="item-date">${e.displayDate}</span>
+                <span class="item-source">${e.source} (p. ${e.page})</span>
+              </div>
+              <div class="item-context">${e.context}</div>
+            </div>`;
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function copyMarkdown() {
+      if (events.length === 0) return;
+      
+      let md = '| Date | Event / Context | Source Document | Page |\n';
+      md += '| --- | --- | --- | --- |\n';
+      for (const e of events) {
+        md += `| ${e.displayDate} | ${e.context.replace(/\|/g, '\\|')} | ${e.source} | ${e.page} |\n`;
+      }
+      
+      navigator.clipboard.writeText(md).then(() => {
+        alert('Timeline copied to clipboard as a Markdown table!');
+      }).catch(err => {
+        alert('Failed to copy to clipboard.');
+      });
+    }
+
+    window.onload = loadChronology;
+  </script>
+</body>
+</html>

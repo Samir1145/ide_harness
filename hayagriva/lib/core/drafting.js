@@ -22,6 +22,18 @@ async function draftDocument(caseDir, formatId) {
         throw new Error(`Drafting template or guidelines not found for format "${formatId}"`);
     }
 
+    const { loadLlmConfig } = require('./llm-client');
+    const config = loadLlmConfig({ caseDir });
+    if (config.activeMode === 'lite') {
+        const formatSkeleton = fs.readFileSync(formatPath, 'utf8');
+        return {
+            draftPath: null,
+            liteMode: true,
+            skeleton: formatSkeleton,
+            message: 'Lite Mode: Template skeleton returned. Switch to Standard mode for AI-assisted filling.'
+        };
+    }
+
     const formatSkeleton = fs.readFileSync(formatPath, 'utf8');
     const draftingPrompt = fs.readFileSync(promptPath, 'utf8');
 

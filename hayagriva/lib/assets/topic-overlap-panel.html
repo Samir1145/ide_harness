@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Topic Overlap Map</title>
+  <style>
+    :root {
+      --bg-color: var(--theia-layout-color0, #1e1e1e);
+      --text-color: var(--theia-ui-font-color0, #f3f3f3);
+      --border-color: var(--theia-border-color, #3a3a3a);
+      --accent-color: var(--theia-accent-color0, #3b82f6);
+      --card-bg: rgba(255, 255, 255, 0.02);
+      --input-bg: var(--theia-input-background, #2d2d2d);
+      --input-border: var(--theia-input-border, #444);
+      --text-muted: #888;
+      --success-color: #10b981;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+    .header h2 {
+      margin: 0;
+      font-weight: 500;
+      font-size: 18px;
+    }
+    .search-input {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-color);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      width: 240px;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--accent-color);
+    }
+    .topic-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .topic-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 14px 16px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .topic-card:hover {
+      border-color: #555;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .topic-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .topic-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--accent-color);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    /* Overlap bar */
+    .overlap-bar-container {
+      width: 120px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .overlap-bar {
+      height: 100%;
+      background: var(--accent-color);
+      border-radius: 3px;
+    }
+
+    .topic-body {
+      font-size: 13px;
+    }
+    .document-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .doc-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .doc-chip:hover {
+      border-color: var(--accent-color);
+      color: var(--text-color);
+      background: rgba(59, 130, 246, 0.05);
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .search-tip {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h2>🔗 Topic Overlap Map</h2>
+      <div class="search-tip">💡 Click any topic row to copy the search query to the clipboard.</div>
+    </div>
+    <input type="text" class="search-input" id="search" placeholder="Filter shared topics..." oninput="renderTopics()">
+  </div>
+
+  <div id="topicsContainer">Loading overlap map...</div>
+
+  <script>
+    let topics = [];
+    const params = new URLSearchParams(window.location.search);
+    const caseName = params.get('case') || 'Case_Alpha';
+
+    async function loadTopics() {
+      try {
+        const res = await fetch(`/api/hayagriva/topic-overlap?case=${encodeURIComponent(caseName)}`);
+        if (res.ok) {
+          const data = await res.json();
+          topics = data.topics || [];
+          renderTopics();
+        } else {
+          document.getElementById('topicsContainer').innerText = 'Failed to load topic overlap map.';
+        }
+      } catch (err) {
+        document.getElementById('topicsContainer').innerText = 'Error connecting to server.';
+      }
+    }
+
+    function renderTopics() {
+      const container = document.getElementById('topicsContainer');
+      const searchVal = document.getElementById('search').value.toLowerCase().trim();
+      
+      const filtered = topics.filter(t => {
+        return t.title.toLowerCase().includes(searchVal) || 
+               t.documents.some(d => d.toLowerCase().includes(searchVal));
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">No overlapping topics found. Ensure at least two documents share some indexed topics.</div>';
+        return;
+      }
+
+      // Find max count for ratio width calculation
+      const maxCount = Math.max(...topics.map(t => t.count), 2);
+
+      let html = '<div class="topic-list">';
+      for (const t of filtered) {
+        const widthPercent = Math.min(100, (t.count / maxCount) * 100);
+        html += `
+          <div class="topic-card" onclick="copySearchQuery('${t.title}')">
+            <div class="topic-meta">
+              <div class="topic-title">
+                <span>[${t.title}]</span>
+                <span class="badge">${t.count} docs</span>
+              </div>
+              <div class="overlap-bar-container">
+                <div class="overlap-bar" style="width: ${widthPercent}%"></div>
+              </div>
+            </div>
+            <div class="topic-body">
+              <div class="document-chips">
+                ${t.documents.map(d => `
+                  <span class="doc-chip">
+                    📄 ${d}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          </div>`;
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function copySearchQuery(title) {
+      navigator.clipboard.writeText(title).then(() => {
+        // Show subtle notification
+        const header = document.querySelector('.search-tip');
+        const oldText = header.innerText;
+        header.innerText = `✓ Copied "${title}" to clipboard! Paste it into the advisor chat.`;
+        header.style.color = '#4ade80';
+        setTimeout(() => {
+          header.innerText = oldText;
+          header.style.color = '';
+        }, 3000);
+      });
+    }
+
+    window.onload = loadTopics;
+  </script>
+</body>
+</html>

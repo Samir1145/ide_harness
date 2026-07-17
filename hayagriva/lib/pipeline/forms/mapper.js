@@ -108,6 +108,46 @@ async function populateFormInstance(caseDir, formId) {
     }
 
     // 3. Targeted Fallback Lookups for missing fields
+    const { loadLlmConfig } = require('../../core/llm-client');
+    const config = loadLlmConfig({ caseDir });
+    const liteMode = config.activeMode === 'lite';
+
+    if (liteMode) {
+        console.log('[Form Mapper] Lite Mode: Returning partial pre-fill from case_facts.md only.');
+        for (const missing of missingFields) {
+            populatedFields[missing.field.key] = {
+                value: 'XXXX',
+                originalExtractedValue: 'XXXX',
+                modifiedBy: 'llm',
+                lastUpdated: now,
+                source: 'N/A',
+                confidence: 'low',
+                explanation: 'Lite Mode: Switch to Standard mode to auto-extract missing fields.',
+                label: missing.field.label,
+                description: missing.field.description,
+                sectionId: missing.sectionId
+            };
+        }
+        // Rule validation
+        const flatData = {};
+        for (const key in populatedFields) {
+            flatData[key] = populatedFields[key].value;
+        }
+        const validationFailures = validateFormRules(flatData, schema.rules || []);
+        for (const key in populatedFields) {
+            delete populatedFields[key].validationError;
+        }
+        for (const fail of validationFailures) {
+            for (const fieldKey of fail.affectedFields || []) {
+                if (populatedFields[fieldKey]) {
+                    populatedFields[fieldKey].validationError = fail.message;
+                }
+            }
+        }
+        fs.writeFileSync(instancePath, JSON.stringify(populatedFields, null, 2), 'utf8');
+        return populatedFields;
+    }
+
     if (missingFields.length > 0) {
         console.log(`[Form Mapper] Scheduled ${missingFields.length} missing fields for targeted lookup.`);
         

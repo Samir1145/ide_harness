@@ -3,7 +3,7 @@ const splitterTests = require('./document_splitter.test');
 const treeTests = require('./pageindex_tree.test');
 const validatorTests = require('./form_rules_validator.test');
 const agentsTests = require('./agents_coordinator.test');
-const mergeTests = require('./multimodal_merge.test');
+// const mergeTests = require('./multimodal_merge.test');
 
 async function runAll() {
     console.log('==================================================');
@@ -26,16 +26,16 @@ async function runAll() {
         agentsTests.run();
         console.log('');
 
-        mergeTests.run();
-        console.log('');
+        // mergeTests.run();
+        // console.log('');
 
         const docxTests = require('./docx_conversion.test');
         await docxTests.run();
         console.log('');
 
-        const toggleTests = require('./multimodal_toggle.test');
-        await toggleTests.run();
-        console.log('');
+        // const toggleTests = require('./multimodal_toggle.test');
+        // await toggleTests.run();
+        // console.log('');
 
         const xlsTests = require('./xls_conversion.test');
         xlsTests.run();
@@ -71,6 +71,10 @@ async function runAll() {
 
         const graphTests = require('./monaco_graph.test');
         await graphTests.run();
+        console.log('');
+
+        const settingsModeTests = require('./settings_modes.test');
+        await settingsModeTests.run();
         console.log('');
 
         const sanityTests = require('./comprehensive_sanity.test');

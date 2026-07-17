@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HAYAGRIVA — The Local-First Legal Compiler & IDE</title>
+  <meta name="description" content="A local-first, privacy-guaranteed legal IDE for Insolvency Professionals and litigation teams. Sync Monaco markdown, scan avoidance ledgers, and run specialized RAG agents completely offline.">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ──────────────── BRAND TOKENS & UTILITIES ──────────────── */
+    :root {
+      --bg-void: hsl(220, 25%, 7%);
+      --bg-surface: hsl(220, 20%, 12%);
+      --bg-surface-glass: rgba(20, 24, 33, 0.7);
+      --border-glow: rgba(0, 212, 255, 0.15);
+      --border-glow-hover: rgba(0, 212, 255, 0.45);
+      
+      --color-cyan: hsl(195, 95%, 50%);
+      --color-cyan-dim: hsl(195, 95%, 40%);
+      --color-amber: hsl(35, 100%, 55%);
+      --color-green: hsl(145, 80%, 50%);
+      
+      --text-main: hsl(210, 20%, 95%);
+      --text-muted: hsl(210, 15%, 70%);
+      --text-dim: hsl(210, 10%, 50%);
+      
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background-color: var(--bg-void);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-void);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-surface);
+      border: 2px solid var(--bg-void);
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-cyan-dim);
+    }
+
+    /* ── BACKGROUND DECORATIVE GRID ── */
+    .glowing-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .radial-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 20%, transparent 20%, var(--bg-void) 70%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ──────────────── MAIN LAYOUT ──────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      background: rgba(13, 17, 23, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-glow);
+      z-index: 100;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.2rem 2rem;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--color-cyan);
+      letter-spacing: 0.05em;
+    }
+
+    .brand-logo code {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.75rem;
+      background: rgba(0, 212, 255, 0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      color: var(--text-main);
+      border: 1px solid var(--color-cyan);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .nav-links a:hover {
+      color: var(--color-cyan);
+      transition: var(--transition-smooth);
+    }
+
+    .nav-cta {
+      background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-cyan-dim) 100%);
+      color: var(--bg-void);
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+      transition: var(--transition-smooth);
+    }
+
+    .nav-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
+    }
+
+    .main-wrapper {
+      position: relative;
+      z-index: 10;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ── HERO SECTION ── */
+    .hero {
+      text-align: center;
+      padding: 8rem 0 4rem;
+      position: relative;
+    }
+
+    .badge-lite {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid var(--color-cyan);
+      color: var(--color-cyan);
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      margin-bottom: 2rem;
+      letter-spacing: 0.05em;
+    }
+
+    .hero h1 {
+      font-size: 4rem;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(180deg, var(--text-main) 30%, var(--text-dim) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      max-width: 760px;
+      margin: 0 auto 2.5rem;
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-cyan-dim) 100%);
+      color: var(--bg-void);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      padding: 0.9rem 2rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.25);
+      transition: var(--transition-smooth);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(0, 212, 255, 0.5);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--text-dim);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 1.05rem;
+      padding: 0.9rem 2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--color-cyan);
+      color: var(--color-cyan);
+    }
+
+    .cli-bar {
+      max-width: 600px;
+      margin: 0 auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 8px;
+      padding: 0.85rem 1.2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .cli-bar span {
+      color: var(--color-cyan);
+    }
+
+    .cli-copy-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--text-dim);
+      color: var(--text-main);
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: var(--transition-smooth);
+    }
+
+    .cli-copy-btn:hover {
+      background: var(--color-cyan);
+      border-color: var(--color-cyan);
+      color: var(--bg-void);
+    }
+
+    /* ── INTERACTIVE SIMULATION WORKSPACE ── */
+    .workspace-section {
+      padding: 4rem 0 8rem;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 3.5rem;
+      font-weight: 300;
+    }
+
+    .mock-ide-shell {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      height: 520px;
+    }
+
+    .ide-header {
+      background: hsl(220, 20%, 9%);
+      border-bottom: 1px solid var(--border-glow);
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ide-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .ide-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .ide-dot.red { background: #ff5f56; }
+    .ide-dot.yellow { background: #ffbd2e; }
+    .ide-dot.green { background: #27c93f; }
+
+    .ide-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: 2rem;
+    }
+
+    .ide-tab {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-bottom: none;
+      padding: 0.35rem 0.85rem;
+      border-radius: 4px 4px 0 0;
+      font-size: 0.75rem;
+      font-family: 'Roboto Mono', monospace;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .ide-tab.active {
+      color: var(--color-cyan);
+      border-color: var(--color-cyan);
+    }
+
+    .ide-body {
+      display: flex;
+      flex: 1;
+      height: calc(100% - 40px);
+      position: relative;
+    }
+
+    .ide-sidebar {
+      width: 240px;
+      background: hsl(220, 20%, 9%);
+      border-right: 1px solid var(--border-glow);
+      padding: 1rem;
+      font-size: 0.8rem;
+    }
+
+    .sidebar-section-title {
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .sidebar-file-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      padding: 0.35rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 0.25rem;
+    }
+
+    .sidebar-file-item.active {
+      background: rgba(0, 212, 255, 0.08);
+      color: var(--text-main);
+    }
+
+    .sidebar-file-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .ide-editor-area {
+      flex: 1;
+      display: flex;
+      background: hsl(220, 25%, 8%);
+    }
+
+    /* ── SIMULATION 1: MONACO BI-DIRECTIONAL SQLITE SYNC ── */
+    .monaco-panel {
+      flex: 1;
+      border-right: 1px solid var(--border-glow);
+      padding: 1.5rem;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .monaco-lines {
+      color: var(--text-dim);
+      text-align: right;
+      padding-right: 1rem;
+      user-select: none;
+    }
+
+    .monaco-editor-content {
+      color: var(--text-main);
+      outline: none;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .monaco-editor-content .md-bold {
+      color: var(--color-cyan);
+      font-weight: bold;
+    }
+
+    .monaco-editor-content .md-table-row {
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 2px solid var(--color-cyan);
+      padding-left: 0.5rem;
+      cursor: pointer;
+      display: block;
+      transition: var(--transition-smooth);
+    }
+
+    .monaco-editor-content .md-table-row:hover {
+      background: rgba(0, 212, 255, 0.08);
+    }
+
+    .sqlite-panel {
+      width: 320px;
+      background: hsl(220, 20%, 9%);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border-glow);
+    }
+
+    .sqlite-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .sqlite-badge {
+      background: rgba(145, 80, 50, 0.1);
+      border: 1px solid var(--color-green);
+      color: var(--color-green);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .sqlite-table {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.75rem;
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    .sqlite-table th {
+      text-align: left;
+      color: var(--text-dim);
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-glow);
+    }
+
+    .sqlite-table td {
+      padding: 0.5rem 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    }
+
+    .sqlite-table tr.highlighted td {
+      color: var(--color-cyan);
+      font-weight: bold;
+      background: rgba(0, 212, 255, 0.05);
+    }
+
+    /* ── SIMULATION 2: RAG CITATION SLIDING DRAWER ── */
+    .chat-view {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      height: 100%;
+    }
+
+    .chat-history {
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .chat-msg {
+      max-width: 80%;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .chat-msg.agent {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      align-self: flex-start;
+    }
+
+    .chat-msg.user {
+      background: var(--color-cyan-dim);
+      color: var(--bg-void);
+      align-self: flex-end;
+    }
+
+    .chat-citation {
+      background: rgba(0, 212, 255, 0.15);
+      border: 1px solid var(--color-cyan);
+      color: var(--color-cyan);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.75rem;
+      margin: 0 2px;
+      display: inline-block;
+      transition: var(--transition-smooth);
+    }
+
+    .chat-citation:hover {
+      background: var(--color-cyan);
+      color: var(--bg-void);
+    }
+
+    /* Citation Preview Drawer */
+    .citation-drawer {
+      position: absolute;
+      top: 0;
+      right: -320px;
+      width: 320px;
+      height: 100%;
+      background: hsl(220, 20%, 11%);
+      border-left: 1px solid var(--color-cyan);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 50;
+    }
+
+    .citation-drawer.open {
+      right: 0;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.25rem;
+    }
+
+    .drawer-close:hover {
+      color: var(--color-cyan);
+    }
+
+    .drawer-content {
+      flex: 1;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      overflow-y: auto;
+      border-bottom: 1px solid var(--border-glow);
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+    }
+
+    .drawer-content strong {
+      color: var(--text-main);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .drawer-cta {
+      background: var(--color-cyan);
+      color: var(--bg-void);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      border: none;
+      padding: 0.65rem;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.8rem;
+      transition: var(--transition-smooth);
+    }
+
+    .drawer-cta:hover {
+      background: var(--color-cyan-dim);
+    }
+
+    /* ── TIER SELECTOR SECTION ── */
+    .tier-section {
+      padding: 6rem 0;
+      position: relative;
+    }
+
+    .toggle-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .mode-label {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      transition: var(--transition-smooth);
+    }
+
+    .mode-label.active {
+      color: var(--text-main);
+    }
+
+    .mode-label.lite.active {
+      color: var(--color-cyan);
+    }
+
+    .mode-label.standard.active {
+      color: var(--color-amber);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 72px;
+      height: 38px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      cursor: pointer;
+      display: inline-block;
+      transition: var(--transition-smooth);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--color-cyan);
+      top: 3px;
+      left: 3px;
+      transition: var(--transition-smooth);
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+    }
+
+    .toggle-switch.standard-mode::after {
+      left: 37px;
+      background: var(--color-amber);
+      box-shadow: 0 0 10px rgba(255, 153, 0, 0.4);
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 3rem;
+      background: var(--bg-surface-glass);
+      border: 1px solid var(--border-glow);
+      padding: 3.5rem;
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .tier-specs h3 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .tier-specs p {
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      font-weight: 300;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      transition: var(--transition-smooth);
+    }
+
+    .feature-item.included {
+      color: var(--text-main);
+    }
+
+    .feature-item svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .feature-item.included svg {
+      fill: var(--color-cyan);
+    }
+
+    .feature-item.excluded {
+      opacity: 0.35;
+      text-decoration: line-through;
+    }
+
+    .feature-item.excluded svg {
+      fill: var(--text-dim);
+    }
+
+    /* ── FOOTER SECTION ── */
+    footer {
+      border-top: 1px solid var(--border-glow);
+      padding: 4rem 0;
+      text-align: center;
+      background: hsl(220, 25%, 5%);
+    }
+
+    footer p {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    footer .specs-tag {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BACKGROUND GRID -->
+  <div class="glowing-grid"></div>
+  <div class="radial-overlay"></div>
+
+  <!-- NAVIGATION HEADER -->
+  <header>
+    <div class="nav-container">
+      <div class="brand-logo" id="logo">
+        HAYAGRIVA
+        <code>v1.73</code>
+      </div>
+      <nav class="nav-links">
+        <a href="#interactive-workspace">Interactive IDE</a>
+        <a href="#mode-selector">Lite vs Standard</a>
+        <a href="#privacy">Privacy specs</a>
+        <a href="https://github.com/atulgrover/HAYAGRIVA" target="_blank">GitHub</a>
+      </nav>
+      <button class="nav-cta" onclick="document.getElementById('cli').scrollIntoView()">Install Server</button>
+    </div>
+  </header>
+
+  <div class="main-wrapper">
+
+    <!-- HERO PANEL -->
+    <section class="hero">
+      <div class="badge-lite">
+        <span>⚡</span> 100% LOCAL ONNX VECTOR EMBEDDINGS ENFORCED
+      </div>
+      <h1 id="hero-title">Compile Case Facts.<br>Build Compliance. Private First.</h1>
+      <p>
+        An integrated legal workspace environment designed for Insolvency Professionals and litigation teams. 
+        Auto-extract companion markdowns, verify claims, scan ledger arrays, and draft NCLT templates locally.
+      </p>
+      
+      <div class="hero-ctas">
+        <button class="btn-primary" onclick="document.getElementById('interactive-workspace').scrollIntoView()">Launch Interactive Demo</button>
+        <button class="btn-secondary" onclick="window.open('https://github.com/atulgrover/HAYAGRIVA')">View GitHub Specs</button>
+      </div>
+
+      <div class="cli-bar" id="cli">
+        <div>$ <span>curl</span> -L https://hayagriva.io/install.sh | sh && ./start.command</div>
+        <button class="cli-copy-btn" onclick="copyInstallCmd(this)">Copy</button>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE WORKSPACE DEMO -->
+    <section class="workspace-section" id="interactive-workspace">
+      <h2 class="section-title">Explore the Case Workspace IDE</h2>
+      <p class="section-subtitle">
+        Click items in the interactive panels below to experience HAYAGRIVA's bi-directional SQLite synchronization and RAG passage citation slide drawers.
+      </p>
+
+      <div class="mock-ide-shell">
+        <div class="ide-header">
+          <div class="ide-dots">
+            <span class="ide-dot red"></span>
+            <span class="ide-dot yellow"></span>
+            <span class="ide-dot green"></span>
+          </div>
+          <div class="ide-tabs">
+            <button class="ide-tab active" id="tab-editor" onclick="switchSimulation('editor')">case_facts.md (Monaco Sync)</button>
+            <button class="ide-tab" id="tab-rag" onclick="switchSimulation('rag')">RAG Chat (Citation Drawer)</button>
+          </div>
+          <div style="width: 60px;"></div>
+        </div>
+
+        <div class="ide-body">
+          <aside class="ide-sidebar">
+            <div class="sidebar-section-title">Workspace files</div>
+            <div class="sidebar-file-item active" id="file-facts">
+              <span>📝</span> case_facts.md
+            </div>
+            <div class="sidebar-file-item" id="file-ledger">
+              <span>📊</span> avoidance_ledger.md
+            </div>
+            <div class="sidebar-file-item" id="file-diagnostics">
+              <span>⚙️</span> diagnostic_log.json
+            </div>
+          </aside>
+
+          <div class="ide-editor-area">
+            
+            <!-- SIMULATION 1: MONACO SQLITE SYNC PANEL -->
+            <div class="ide-editor-area" id="sim-editor-panel">
+              <div class="monaco-panel">
+                <div style="display:flex; flex:1;">
+                  <div class="monaco-lines">
+                    1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9
+                  </div>
+                  <div class="monaco-editor-content">
+<span class="md-bold"># Case Facts & Avoidance Registry</span>
+
+Below is a live synchronized ledger. 
+<span class="md-bold">Click any markdown row</span> below to simulate editing a fact in Monaco:
+
+<span class="md-table-row" onclick="syncRow(1, '2026-05-10', 'Apex Ltd', '9,50,000', 'Preferential')">| 2026-05-10 | Apex Ltd | 9,50,000 | Preferential |</span>
+<span class="md-table-row" onclick="syncRow(2, '2026-06-15', 'Vertex Corp', '14,20,000', 'Undervalued')">| 2026-06-15 | Vertex Corp | 14,20,000 | Undervalued |</span>
+<span class="md-table-row" onclick="syncRow(3, '2026-07-02', 'Direc. Relative', '4,50,000', 'Undervalued')">| 2026-07-02 | Direc. Relative | 4,50,000 | Undervalued |</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="sqlite-panel">
+                <div class="sqlite-header">
+                  <span style="font-size:0.75rem; font-weight:700; color:var(--text-main);">SQLite database state</span>
+                  <span class="sqlite-badge">Active</span>
+                </div>
+                <table class="sqlite-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Party</th>
+                      <th>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sqlite-rows">
+                    <tr id="sql-row-1">
+                      <td>2026-05-10</td>
+                      <td>Apex Ltd</td>
+                      <td>9,50,000</td>
+                    </tr>
+                    <tr id="sql-row-2">
+                      <td>2026-06-15</td>
+                      <td>Vertex Corp</td>
+                      <td>14,20,000</td>
+                    </tr>
+                    <tr id="sql-row-3">
+                      <td>2026-07-02</td>
+                      <td>Direc. Relative</td>
+                      <td>4,50,000</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p style="font-size: 0.65rem; color: var(--text-dim); margin-top: auto; line-height: 1.4;">
+                  💡 When Monaco registers a document save event, the parser extracts raw table lines and updates corresponding records in <code>case_kv_dictionary.json</code> and SQLite immediately.
+                </p>
+              </div>
+            </div>
+
+            <!-- SIMULATION 2: RAG CITATION PANEL -->
+            <div class="ide-editor-area" id="sim-rag-panel" style="display: none; width: 100%;">
+              <div class="chat-view">
+                <div class="chat-history">
+                  <div class="chat-msg user">
+                    Has the corporate debtor executed any preferential transfers within the look-back period?
+                  </div>
+                  <div class="chat-msg agent">
+                    Yes. We identified a transfer of 9,50,000 to Apex Ltd on 2026-05-10 <span class="chat-citation" onclick="openDrawer('Apex Ltd', '9,50,000', '2026-05-10', 'IBC Section 43')">[source: Apex Ledger]</span> which falls within the 1-year statutory look-back period for unrelated creditors. Additionally, an undervalue transaction of 4,50,000 to a director's relative <span class="chat-citation" onclick="openDrawer('Director Relative', '4,50,000', '2026-07-02', 'IBC Section 45')">[source: Director Accounts]</span> was flagged within the 2-year look-back frame.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sliding Citation Drawer -->
+              <div class="citation-drawer" id="citation-drawer">
+                <div class="drawer-header">
+                  <span style="font-size:0.85rem; font-weight:700; color:var(--text-main);">Passage Citation Preview</span>
+                  <button class="drawer-close" onclick="closeDrawer()">×</button>
+                </div>
+                <div class="drawer-content" id="drawer-body">
+                  Click a citation link in the agent message to load preview.
+                </div>
+                <button class="drawer-cta" onclick="promoteDrawer()">Promote to Split Editor</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TIER SELECTOR MODE -->
+    <section class="tier-section" id="mode-selector">
+      <h2 class="section-title">Dual-Mode Architecture</h2>
+      <p class="section-subtitle">Toggle modes to see how HAYAGRIVA adapts dynamically to your hardware profile.</p>
+
+      <div class="toggle-container">
+        <span class="mode-label active lite" id="label-lite">⚡ Lite Mode</span>
+        <div class="toggle-switch" id="toggle-sw" onclick="toggleMode()"></div>
+        <span class="mode-label standard" id="label-standard">🧠 Standard Mode</span>
+      </div>
+
+      <div class="comparison-grid">
+        <div class="tier-specs">
+          <h3 id="tier-title" style="color: var(--color-cyan);">⚡ Lite Mode</h3>
+          <p id="tier-desc">Designed to run locally on low-end machines (8GB RAM laptops). Skips expensive model dependencies, delivering fast regex chronologies, local ONNX embeddings, and keyword matching without cloud costs.</p>
+          <div style="background: rgba(255,255,255,0.03); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border-glow);">
+            <span style="display:block; font-size:0.75rem; color:var(--text-dim); margin-bottom: 0.5rem; text-transform:uppercase;">Hardware Profile</span>
+            <strong id="tier-hardware" style="font-size: 1.1rem; font-family:'Outfit';">8GB - 16GB RAM / 100% Offline</strong>
+          </div>
+        </div>
+
+        <div>
+          <h4 style="font-size:1.1rem; margin-bottom: 1.5rem; font-family:'Outfit';">Available Feature Matrix</h4>
+          <ul class="feature-list" id="feature-matrix">
+            <!-- Features populated dynamically -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRIVACY SEGMENT -->
+    <section class="workspace-section" id="privacy" style="border-top: 1px solid var(--border-glow); padding-top: 6rem;">
+      <div style="max-width:800px; margin: 0 auto; text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 1.5rem;">🔒</div>
+        <h2 class="section-title">Zero Cloud Vectors. Absolute Privacy.</h2>
+        <p style="color:var(--text-muted); font-size:1.15rem; font-weight:300; margin-bottom: 2.5rem; line-height: 1.7;">
+          Traditional legal AI frameworks upload your client files to remote vector databases to calculate embeddings. HAYAGRIVA runs local ONNX transformers directly inside your CPU runtime. Your case databases, variables overlays, and text indices never cross network nodes, maintaining absolute statutory confidentiality.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="main-wrapper">
+      <p>© 2026 HAYAGRIVA. Licensed under the Apache License 2.0.</p>
+      <span class="specs-tag">Built with Node.js, SQLite FTS5, ONNX, and Monaco Editor.</span>
+    </div>
+  </footer>
+
+  <script>
+    // ── SIMULATION 1: MONACO SQLITE SYNC ROUTINES ──
+    function syncRow(id, date, party, amount, status) {
+      // Highlight row in sqlite mock
+      const sqlRows = document.querySelectorAll('#sqlite-rows tr');
+      sqlRows.forEach(row => row.classList.remove('highlighted'));
+      
+      const targetRow = document.getElementById('sql-row-' + id);
+      if (targetRow) {
+        targetRow.classList.add('highlighted');
+        // Simulate changing cell content visually
+        targetRow.cells[0].innerText = date;
+        targetRow.cells[1].innerText = party;
+        targetRow.cells[2].innerText = amount;
+      }
+      
+      // Temporary popup notice
+      const logo = document.getElementById('logo');
+      const origText = logo.innerHTML;
+      logo.innerHTML = 'SYNCED DB...';
+      logo.style.color = 'var(--color-green)';
+      setTimeout(() => {
+        logo.innerHTML = origText;
+        logo.style.color = 'var(--color-cyan)';
+      }, 1000);
+    }
+
+    // ── SIMULATION 2: RAG CITATION PREVIEW DRAWER ROUTINES ──
+    function switchSimulation(mode) {
+      const tabEditor = document.getElementById('tab-editor');
+      const tabRag = document.getElementById('tab-rag');
+      const simEditor = document.getElementById('sim-editor-panel');
+      const simRag = document.getElementById('sim-rag-panel');
+
+      if (mode === 'editor') {
+        tabEditor.classList.add('active');
+        tabRag.classList.remove('active');
+        simEditor.style.display = 'flex';
+        simRag.style.display = 'none';
+      } else {
+        tabEditor.classList.remove('active');
+        tabRag.classList.add('active');
+        simEditor.style.display = 'none';
+        simRag.style.display = 'flex';
+      }
+    }
+
+    function openDrawer(party, amount, date, statute) {
+      const drawer = document.getElementById('citation-drawer');
+      const body = document.getElementById('drawer-body');
+      
+      body.innerHTML = `
+        <strong>Source Document: Ledger Fact</strong>
+        <p style="margin-bottom:0.75rem;">Verified transaction entry:</p>
+        <div style="background:rgba(255,255,255,0.03); padding:0.75rem; border-radius:4px; font-family:'Roboto Mono', monospace; font-size:0.75rem; margin-bottom:1rem; border-left: 2px solid var(--color-cyan);">
+          Date: ${date}<br>
+          Party: ${party}<br>
+          Amount: INR ${amount}
+        </div>
+        <p style="line-height:1.4;">Classified as potentially voidable under <strong>${statute}</strong> of the Insolvency and Bankruptcy Code. Look-back status satisfied.</p>
+      `;
+      drawer.classList.add('open');
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById('citation-drawer');
+      drawer.classList.remove('open');
+    }
+
+    function promoteDrawer() {
+      alert("Promotion Action: The selected citation excerpt has been promoted to a side-by-side active Monaco editor tab.");
+      closeDrawer();
+    }
+
+    // ── TIER SELECTOR DATA & LOGIC ──
+    const featuresData = [
+      { name: "Local PDF/DOCX Ingestion", lite: true, standard: true },
+      { name: "100% Local ONNX Embeddings", lite: true, standard: true },
+      { name: "Chronology Timeline (Regex)", lite: true, standard: true },
+      { name: "Topic Overlap Map Scanner", lite: true, standard: true },
+      { name: "Monaco LSP Autocomplete", lite: true, standard: true },
+      { name: "D3.js Case Graph Viewer", lite: true, standard: true },
+      { name: "Local AES Law Decryption", lite: true, standard: true },
+      { name: "Claims Auditing Agent", lite: false, standard: true },
+      { name: "Avoidance Scanner Agent", lite: false, standard: true },
+      { name: "NCLT Drafter (Generative AI)", lite: false, standard: true },
+      { name: "RAG Fact Synthesis Loop", lite: false, standard: true },
+      { name: "Background Summary Queue", lite: false, standard: true }
+    ];
+
+    let currentMode = 'lite';
+
+    function renderFeatures() {
+      const matrix = document.getElementById('feature-matrix');
+      matrix.innerHTML = '';
+      
+      featuresData.forEach(feat => {
+        const isIncluded = (currentMode === 'lite') ? feat.lite : feat.standard;
+        const li = document.createElement('li');
+        li.className = `feature-item ${isIncluded ? 'included' : 'excluded'}`;
+        
+        li.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            ${isIncluded 
+              ? '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>' 
+              : '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>'}
+          </svg>
+          <span>${feat.name}</span>
+        `;
+        matrix.appendChild(li);
+      });
+    }
+
+    function toggleMode() {
+      const toggle = document.getElementById('toggle-sw');
+      const labelLite = document.getElementById('label-lite');
+      const labelStandard = document.getElementById('label-standard');
+      const title = document.getElementById('tier-title');
+      const desc = document.getElementById('tier-desc');
+      const hardware = document.getElementById('tier-hardware');
+
+      if (currentMode === 'lite') {
+        currentMode = 'standard';
+        toggle.classList.add('standard-mode');
+        labelLite.classList.remove('active');
+        labelStandard.classList.add('active');
+        
+        title.innerText = '🧠 Standard Mode';
+        title.style.color = 'var(--color-amber)';
+        desc.innerText = 'Unlocks background summarization, claims analysis, and statutory drafters. Connects to local Ollama nodes (Qwen-2.5-Coder) or API key bridges with strict prompt anonymization.';
+        hardware.innerText = '24GB+ RAM (Local Ollama) or Cloud API';
+      } else {
+        currentMode = 'lite';
+        toggle.classList.remove('standard-mode');
+        labelLite.classList.add('active');
+        labelStandard.classList.remove('active');
+        
+        title.innerText = '⚡ Lite Mode';
+        title.style.color = 'var(--color-cyan)';
+        desc.innerText = 'Designed to run locally on low-end machines (8GB RAM laptops). Skips expensive model dependencies, delivering fast regex chronologies, local ONNX embeddings, and keyword matching without cloud costs.';
+        hardware.innerText = '8GB - 16GB RAM / 100% Offline';
+      }
+      renderFeatures();
+    }
+
+    // ── CLI COPY CLIPBOARD TOOL ──
+    function copyInstallCmd(btn) {
+      const commandText = "curl -L https://hayagriva.io/install.sh | sh && ./start.command";
+      navigator.clipboard.writeText(commandText).then(() => {
+        btn.innerText = "Copied!";
+        setTimeout(() => {
+          btn.innerText = "Copy";
+        }, 2000);
+      });
+    }
+
+    // Initial load
+    renderFeatures();
+  </script>
+</body>
+</html>

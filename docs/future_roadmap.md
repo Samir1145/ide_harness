@@ -816,3 +816,76 @@ Implementing the full roadmap expands HAYAGRIVA from its original 6 management s
 | **Registry Management** | **RegMS** | **New** | **#14** | **Package registry, dependency management** |
 | **Lifecycle Management** | **LMS** | **New** | **#13, #20, #22** | **Semantic git, deadlines, analytics** |
 | **Governance & Collaboration** | **GovMS** | **New** | **#23, #24, #25, #26** | **Audit trail, RBAC, reviews, conflict scanning** |
+
+---
+
+## Appendix A — Lite vs Standard Mode Audit (2026-07-17)
+
+> Complete audit of all three pipeline steps across Lite and Standard modes, identifying what was originally missed in the first implementation plan pass. Used as the source of truth for the Lite Mode implementation.
+
+---
+
+### Step 1 — Ingestion Pipeline
+
+| Sub-step | Code Location | Lite Mode | Standard Mode | Plan Status |
+|---|---|---|---|---|
+| PDF → pdfexcavator text extraction | `pipeline/pdf/ingest.js` | ✅ local | ✅ local | ✅ Covered |
+| PDF quality gate (density < 30 chars/page → reject) | `pipeline/pdf/ingest.js` | ✅ local | ✅ local | ✅ Covered |
+| Lazy PDF paginator (pages 4–N in background) | `daemon/lazy_pdf_worker.js` | ✅ pdfexcavator | ✅ pdfexcavator | ✅ Covered |
+| **`multimodal: true` flag (vision LLM on pages)** | `routes.js` L1255, `pipeline/pdf/ingest.js` L15 | ❌ **must force `false`** | ✅ Cloud/large model | ⚠️ MISSED → added to plan |
+| Markdown cleaner LLM pass | `core/markdown-cleaner.js` | ❌ regex-only fallback | ✅ LLM pass | ✅ Covered |
+| Layout profiler `probeLayoutProfile()` A–G classification | `pipeline/common/helper.js` | ❌ returns `null` → paragraph splitter fallback | ✅ LLM A–G | ⚠️ Behaviour correct but not documented in plan |
+| Topic merge `resolveTopicMerge()` | `pipeline/common/text_ingest.js` L128 | ✅ already gated: `apiKey ? ... : []` — no API key = always `NEW`, no LLM called | ✅ LLM merge | ✅ Already safe — no change needed |
+| BM25 + FTS5 indexing | `core/bm25.js`, `core/sqlite-store.js` | ✅ local | ✅ local | ✅ Covered |
+| DOCX ingestion (Pandoc/mammoth) | `pipeline/docx/` | ✅ local, zero LLM | ✅ same | ⚠️ MISSED from feature table |
+| XLSX/XLS ingestion (xlsx-js) | `pipeline/xls/` | ✅ local, zero LLM | ✅ same | ⚠️ MISSED from feature table |
+| TiddlyWiki HTML ingestion | `pipeline/wiki/` | ✅ local HTML parse, zero LLM | ✅ same | ⚠️ MISSED from feature table |
+| Vector indexing (`indexVectorsToSqlite`) | `daemon/watcher.js` L1307 | ❌ skipped (`profile === 'lite'`) | ✅ ONNX | ✅ Covered |
+| KV extraction (`extractFileKV`) | `pipeline/common/extract.js` | ❌ skip in Lite | ✅ LLM schema-less | ✅ Covered |
+
+---
+
+### Step 2 — HIL Enrichment
+
+| Sub-step | Code Location | Lite Mode | Standard Mode | Plan Status |
+|---|---|---|---|---|
+| Lazy enrichment worker (summaries + Doc2Query) | `daemon/watcher.js` L882–L987 | ❌ silently skip → `enriched` | ✅ LLM | ✅ Covered |
+| Monaco editor + LSP diagnostics | `core/lsp-service.js` | ✅ fully local | ✅ same | ✅ Covered |
+| Monaco-SQLite sync (`case_facts.md`, `claims_registry.md`, `avoidance_ledger.md`) | `core/lsp-service.js` L188–L344 | ✅ fully local | ✅ same | ✅ Covered |
+| `@@` law hover + vault completion | `utils/vault-loader.js`, `core/lsp-service.js` L354, L479 | ✅ local decrypt + ONNX | ✅ same | ✅ Added to plan |
+| **Manual document review (3rd status dot)** | `routes.js` `/api/hayagriva/statuses/update` | ✅ pure DB write | ✅ same | ⚠️ MISSED from feature table |
+| **Active-Context Control Matrix (Plan 4)** | `concepts/active_rag_docs.json` + sidebar | ✅ JSON file, zero LLM | ✅ same | ⚠️ MISSED from feature table |
+| **3D Case Graph Viewer (D3.js)** | VMS — reads `index.json` | ✅ pure D3, zero LLM | ✅ same | ⚠️ MISSED from feature table |
+| **Document priority control (drag/drop rank)** | `routes.js` `/api/hayagriva/set-priority` | ✅ pure `index.json` write | ✅ same | ⚠️ MISSED from feature table |
+| **Wiki card creation (manual user entry)** | `pipeline/wiki/`, `routes.js` | ✅ pure markdown write + ingestWiki (no LLM) | ✅ same + wiki enrichment | ⚠️ MISSED from feature table |
+| Case Chronology Timeline | NEW `utils/chronology.js` | ✅ pure regex date extraction | ✅ same | ✅ In plan |
+| Topic Overlap Map | NEW `utils/topic-overlap.js` | ✅ concept card scan | ✅ same | ✅ In plan |
+
+---
+
+### Step 3 — Agentic Outputs
+
+| Sub-step | Code Location | Lite Mode | Standard Mode | Plan Status |
+|---|---|---|---|---|
+| **`/api/agents/chat` route — no Lite gate at HTTP layer** | `routes.js` L1788 | ❌ `classifyIntent()` calls LLM before any guard — raw error to user | ✅ works | ⚠️ **CRITICAL MISS** → added to plan |
+| **`classifyIntent()` in AgentCoordinator** | `agents/agent-coordinator.js` L25 | ❌ LLM call, no Lite guard | ✅ works | ⚠️ MISSED → fix at route level |
+| Passage search answer (`rag.query()` short-circuit) | `core/rag.js` L517 | ✅ planned `buildLiteResponse()` | ✅ LLM answer | ✅ In plan |
+| NCLT Drafter / IM Compiler / Evaluator / Avoidance / Claims | all `agents/*/agent.js` | ❌ all LLM — blocked | ✅ standard | ✅ Covered (blocked) |
+| `draftDocument()` in `drafting.js` | `core/drafting.js` | ❌ LLM call, no Lite gate | ✅ works | ⚠️ MISSED |
+| **Forms Agent partial fill from manual `case_facts.md`** | `pipeline/forms/mapper.js` L33–L46 | 🟡 KV dict lookup is **pure local file read** — if user manually fills `case_facts.md`, forms partial pre-fill works with zero LLM | ✅ full fill | ⚠️ **OOB OPPORTUNITY MISSED** → added to plan |
+| SC Layout Compiler / DOCX export | `core/docx-exporter.js` | ✅ fully local | ✅ same | ✅ Covered |
+| Model quality badge/warning on complex agents | NEW `utils/model-info.js` | N/A (no LLM in Lite) | ✅ planned | ✅ In plan |
+
+---
+
+### OOB Opportunities Summary
+
+| Opportunity | Description | Effort |
+|---|---|---|
+| **Forms partial pre-fill in Lite** | `populateFormInstance()` phase 1 (KV dict lookup) is pure local. If user manually edits `case_facts.md` → Monaco-SQLite sync → KV dict → partial form fill for free | Low |
+| **Litigation Tracker precedent search in Lite** | The vault `searchLaws()` runs on ONNX + BM25. In Lite mode, the Litigation Tracker could return ranked vault precedents without LLM synthesis | Medium |
+| **D3 Case Graph as first-class Lite feature** | Reads `index.json` built during ingestion. Already works. Just needs a toolbar button and promotion in the feature table | Trivial |
+| **Wiki manual creation in Lite** | `ingestWiki` + `ingestWikiCard` have no LLM calls. User can create wiki entries in Lite and they'll be indexed for search | Trivial |
+| **Multimodal force-disable in Lite** | Upload route must read `activeMode` and set `multimodal: false` to prevent accidental vision LLM calls | Trivial |
+| **Route-level Lite guard on `/api/agents/chat`** | Before calling `coordinator.run()`, read settings and if `activeMode === 'lite'`, route to `rag.query()` instead of agent | Low |
+

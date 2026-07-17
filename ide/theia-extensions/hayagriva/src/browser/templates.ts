@@ -1910,3 +1910,153 @@ export function draftingPanelHtml(caseName: string, apiPort: number = 3210): str
 </body>
 </html>`;
 }
+
+export function citationPreviewPanelHtml(docName: string, pageNum: number, contentMarkdown: string): string {
+  // Convert markdown newlines and basic headers/cards into HTML tags for presentation.
+  const escapeHtml = (text: string) => text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  const formattedContent = escapeHtml(contentMarkdown)
+    .replace(/\n\n/g, '<br/><br/>')
+    .replace(/\n/g, '<br/>')
+    .replace(/###\s+(.*)/g, '<h4>$1</h4>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+    font-size: var(--theia-ui-font-size1, 13px);
+    margin: 0;
+    padding: 15px;
+    background: var(--theia-layout-color1, #f3f3f3);
+    color: var(--theia-ui-font-color1, #333333);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+  }
+  .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
+    padding-bottom: 8px;
+  }
+  .header-container h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .close-btn {
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .close-btn:hover {
+    opacity: 1;
+  }
+  .metadata {
+    font-size: 11px;
+    opacity: 0.75;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .badge {
+    background: var(--theia-brand-color0, #0ea5e9);
+    color: #ffffff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+  }
+  .content-card {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--theia-layout-color3, #ffffff);
+    border: 1px solid var(--theia-border-color, #e0e0e0);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 15px;
+    line-height: 1.5;
+    font-size: 13px;
+    white-space: pre-wrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .content-card h4 {
+    margin: 0 0 8px 0;
+    color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 10px;
+  }
+  .btn {
+    flex: 1;
+    background: var(--theia-brand-color1, #0ea5e9);
+    color: #ffffff;
+    border: none;
+    padding: 8px 12px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 12px;
+    text-align: center;
+  }
+  .btn:hover {
+    background: #0284c7;
+  }
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid var(--theia-border-color, #ccc);
+    color: var(--theia-ui-font-color1, #333333);
+  }
+  .btn.secondary:hover {
+    background: rgba(0,0,0,0.05);
+  }
+</style>
+</head>
+<body>
+  <div class="header-container">
+    <h3>Citation Preview</h3>
+    <span class="close-btn" onclick="closeDrawer()">&times;</span>
+  </div>
+  <div class="metadata">
+    <span>Document: <strong>${escapeHtml(docName)}</strong></span>
+    <span class="badge">Page ${pageNum}</span>
+  </div>
+  <div class="content-card">
+    ${formattedContent}
+  </div>
+  <div class="actions">
+    <button class="btn secondary" onclick="closeDrawer()">Close</button>
+    <button class="btn" onclick="openFull()">Open Full Document</button>
+  </div>
+
+  <script>
+    function closeDrawer() {
+      window.parent.postMessage({ type: 'close-citation-preview' }, '*');
+    }
+    function openFull() {
+      window.parent.postMessage({ type: 'open-full-citation' }, '*');
+    }
+  </script>
+</body>
+</html>`;
+}

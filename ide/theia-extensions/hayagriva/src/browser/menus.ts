@@ -18,6 +18,8 @@ export class HayagrivaMenuContribution implements MenuContribution {
     registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openKvEditor`, label: 'Case KV Dictionary', order: '6' });
     registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openFormEditor`, label: 'Form Review Dashboard', order: '7' });
     registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openDraftingPanel`, label: 'Drafting Panel', order: '8' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openChronology`, label: 'Open Case Chronology', order: '9' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openTopicOverlap`, label: 'Open Topic Overlap Map', order: '10' });
 
     // File menu action
     registry.registerMenuAction([...CommonMenus.FILE, '1_hayagriva'], {

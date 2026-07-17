@@ -112,6 +112,40 @@ else
     done
 fi
 
+# Calculate hashes representing dependency locks and extensions for change detection
+calculate_checksum() {
+    (
+        cat "$HAYAGRIVA_DIR/package.json" 2>/dev/null
+        cat "$HAYAGRIVA_DIR/yarn.lock" 2>/dev/null
+        cat "$THEIA_DIR/package.json" 2>/dev/null
+        cat "$THEIA_DIR/yarn.lock" 2>/dev/null
+        find "$ROOT_DIR/ide/theia-extensions/hayagriva/src" -type f -name "*.ts" -exec cat {} + 2>/dev/null
+    ) | md5
+}
+
+# ── DOWNSTREAM UPDATE CHECK ──────────────────────────────────────────────────
+CHECKSUM_FILE="$THEIA_DIR/.last-launch-build-checksum"
+CURRENT_HASH=$(calculate_checksum)
+
+if [ ! -f "$CHECKSUM_FILE" ] || [ "$(cat "$CHECKSUM_FILE")" != "$CURRENT_HASH" ]; then
+    log "Downstream updates or extension modifications detected."
+    log "Auto-synchronizing dependencies and rebuilding frontend bundle. Please wait..."
+    
+    # Sync backend dependencies
+    cd "$HAYAGRIVA_DIR"
+    yarn install --frozen-lockfile || yarn install
+    
+    # Sync frontend dependencies and rebuild bundle
+    cd "$THEIA_DIR"
+    yarn install --frozen-lockfile || yarn install
+    yarn build
+    
+    # Save new checksum to tracking file
+    echo "$CURRENT_HASH" > "$CHECKSUM_FILE"
+    log "Frontend bundle and dependencies updated successfully."
+fi
+# ─────────────────────────────────────────────────────────────────────────────
+
 # Start Hayagriva Electron app
 log "Starting Hayagriva Electron app..."
 cd "$THEIA_DIR"

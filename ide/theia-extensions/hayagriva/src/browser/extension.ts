@@ -122,9 +122,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       const query = uri.query;
       const pageMatch = query.match(/page=(\d+)/);
       const pageNum = pageMatch ? parseInt(pageMatch[1], 10) : 1;
-      
-      await this.openCitationSideBySide(docName, pageNum);
-      return new Widget();
+      return await this.openCitationPreview(docName, pageNum);
     }
     
     const filePath = uri.path.toString();
@@ -220,6 +218,20 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       tooltip: 'Open Case Settings',
       icon: 'fa fa-cog',
       priority: 3,
+    });
+    registry.registerItem({
+      id: 'hayagriva-chronology-toolbar-item',
+      command: 'hayagriva:openChronology',
+      tooltip: 'Open Case Chronology',
+      icon: 'fa fa-calendar',
+      priority: 4,
+    });
+    registry.registerItem({
+      id: 'hayagriva-topic-overlap-toolbar-item',
+      command: 'hayagriva:openTopicOverlap',
+      tooltip: 'Open Topic Overlap Map',
+      icon: 'fa fa-link',
+      priority: 5,
     });
   }
 
@@ -618,6 +630,98 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
       }
     }
+  }
+
+  async openCitationPreview(docName: string, pageNum: number): Promise<Widget> {
+    const id = 'hayagriva-citation-preview';
+    let widget = this.shell.getWidgets('right').find(w => w.id === id);
+    
+    if (!widget) {
+      widget = new Widget();
+      widget.id = id;
+      widget.title.label = 'Citation Preview';
+      widget.title.closable = true;
+      widget.title.iconClass = 'fa fa-eye';
+    }
+
+    while (widget.node.firstChild) {
+      widget.node.removeChild(widget.node.firstChild);
+    }
+
+    const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (!workspaceRoot) return widget;
+    
+    const conceptsUri = new URI(workspaceRoot.toString()).resolve(`concepts/${docName}`);
+    let cardContent = `No citation excerpt available for Page ${pageNum} of ${docName}.`;
+    
+    try {
+      const treeUri = conceptsUri.resolve('pageindex_tree.json');
+      const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(treeUri.path.toString())}`);
+      if (res.ok) {
+        const treeData = await res.json();
+        const flatNodes: any[] = [];
+        function flatten(node: any) {
+          flatNodes.push(node);
+          if (node.children) {
+            for (const child of node.children) {
+              flatten(child);
+            }
+          }
+        }
+        flatten(treeData.tree);
+        
+        const targetNode = flatNodes.find(n => n.metadata && n.metadata.type === 'section' && n.pageStart <= pageNum && n.pageEnd >= pageNum);
+        if (targetNode) {
+          const safeTitle = targetNode.title.replace(/[^a-zA-Z0-9\s-_]/g, '').trim().replace(/\s+/g, '_') || 'untitled';
+          let cardTitle = safeTitle;
+          if (cardTitle.length > 60) {
+              let hash = 0;
+              for (let i = 0; i < targetNode.title.length; i++) {
+                  hash = (hash << 5) - hash + targetNode.title.charCodeAt(i);
+                  hash |= 0;
+              }
+              cardTitle = cardTitle.substring(0, 60) + '_' + Math.abs(hash);
+          }
+          
+          const cardUri = conceptsUri.resolve(`${cardTitle}.md`);
+          const cardRes = await fetch(`${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(cardUri.path.toString())}`);
+          if (cardRes.ok) {
+            const fileData = await cardRes.json();
+            cardContent = fileData.content || cardContent;
+          }
+        }
+      }
+    } catch (e: any) {
+      this.logger.error(`[HAYAGRIVA] Failed to load card details for preview: ${e.message}`);
+    }
+
+    const { citationPreviewPanelHtml } = require('./templates');
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = citationPreviewPanelHtml(docName, pageNum, cardContent);
+    widget.node.appendChild(iframe);
+
+    const messageListener = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'close-citation-preview') {
+        widget?.close();
+        window.removeEventListener('message', messageListener);
+      } else if (event.data && event.data.type === 'open-full-citation') {
+        this.openCitationSideBySide(docName, pageNum);
+        widget?.close();
+        window.removeEventListener('message', messageListener);
+      }
+    };
+    window.addEventListener('message', messageListener);
+
+    widget.disposed.connect(() => {
+      window.removeEventListener('message', messageListener);
+    });
+
+    this.shell.addWidget(widget, { area: 'right' });
+    this.shell.activateWidget(widget.id);
+    return widget;
   }
 
   async openCitationSideBySide(docName: string, pageNum: number): Promise<void> {
@@ -1424,6 +1528,74 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     iframe.style.height = '100%';
     iframe.style.border = 'none';
     iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/settings/panel?case=${encodeURIComponent(caseName)}`;
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
+  async openChronologyPanel(): Promise<Widget> {
+    const id = 'hayagriva-chronology-panel';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+    
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    let caseName = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      caseName = this.getCaseName(new URI(ws.toString()).path.toString());
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Case Chronology';
+    widget.title.caption = 'Date & event chronology timeline';
+    widget.title.iconClass = 'fa fa-calendar';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/chronology-panel?case=${encodeURIComponent(caseName)}`;
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
+  async openTopicOverlapPanel(): Promise<Widget> {
+    const id = 'hayagriva-topic-overlap-panel';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+    
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    let caseName = 'Case_Alpha';
+    const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+    if (ws) {
+      caseName = this.getCaseName(new URI(ws.toString()).path.toString());
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Topic Overlap Map';
+    widget.title.caption = 'Map concepts across multiple case files';
+    widget.title.iconClass = 'fa fa-link';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/topic-overlap-panel?case=${encodeURIComponent(caseName)}`;
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });

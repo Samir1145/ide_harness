@@ -320,7 +320,7 @@ function streamOpenRouter(messages, apiKey, model = 'google/gemini-2.5-flash') {
 
 function loadLlmConfig(opts) {
     const config = {
-        activeMode: 'local',
+        activeMode: 'lite',
         localRunner: 'ollama',
         localEndpoint: 'http://127.0.0.1:11434',
         localChatModel: 'qwen2.5-coder:1.5b',
@@ -412,77 +412,21 @@ async function getLocalEmbedding(text) {
 }
 
 async function getEmbedding(text, caseDir) {
-    const config = loadLlmConfig({ caseDir });
-    
-    if (config.activeMode === 'local') {
-        try {
-            return await getLocalEmbedding(text);
-        } catch (err) {
-            console.error(`[LLM Client] Local ONNX embedding failed: ${err.message}`);
-            return new Array(384).fill(0);
-        }
-    } else {
-        if (config.cloudProvider === 'gemini') {
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${config.apiKey}`;
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        content: { parts: [{ text }] }
-                    })
-                });
-                if (res.ok) {
-                    const json = await res.json();
-                    if (json.embedding && json.embedding.values) return json.embedding.values;
-                }
-                throw new Error(`Gemini API returned status ${res.status}`);
-            } catch (err) {
-                console.error(`[LLM Client] Gemini cloud embedding failed: ${err.message}. Falling back to local ONNX.`);
-                try {
-                    return await getLocalEmbedding(text);
-                } catch (_) {
-                    return new Array(384).fill(0);
-                }
-            }
-        } else if (config.cloudProvider === 'openai') {
-            try {
-                const url = `https://api.openai.com/v1/embeddings`;
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${config.apiKey}`
-                    },
-                    body: JSON.stringify({
-                        input: text,
-                        model: 'text-embedding-3-small'
-                    })
-                });
-                if (res.ok) {
-                    const json = await res.json();
-                    if (json.data && json.data[0] && json.data[0].embedding) return json.data[0].embedding;
-                }
-                throw new Error(`OpenAI API returned status ${res.status}`);
-            } catch (err) {
-                console.error(`[LLM Client] OpenAI cloud embedding failed: ${err.message}. Falling back to local ONNX.`);
-                try {
-                    return await getLocalEmbedding(text);
-                } catch (_) {
-                    return new Array(384).fill(0);
-                }
-            }
-        }
-    }
     try {
         return await getLocalEmbedding(text);
-    } catch (_) {
+    } catch (err) {
+        console.error(`[LLM Client] Local ONNX embedding failed: ${err.message}`);
         return new Array(384).fill(0);
     }
 }
 
 async function* streamChat(messages, opts = {}) {
     const config = loadLlmConfig(opts);
+    if (config.activeMode === 'lite') {
+        const err = new Error('Lite Mode: LLM generation disabled. Showing passage search results.');
+        err.code = 'LITE_MODE';
+        throw err;
+    }
     const hasImages = messages.some(m => m.images && m.images.length > 0);
 
     if (config.activeMode === 'local') {

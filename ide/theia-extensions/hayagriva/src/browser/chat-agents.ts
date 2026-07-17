@@ -19,6 +19,7 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
   readonly languageModelRequirements: LanguageModelRequirement[] = [{ purpose: 'chat' }];
   readonly agentSpecificVariables = [];
   readonly functions = [];
+  readonly requiresLargeModel: boolean = false;
 
   constructor(
     @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
@@ -45,6 +46,24 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
     
     const userMessage = request.request.text;
     const currentCase = this.getCaseName();
+
+    if (this.requiresLargeModel) {
+      try {
+        const modelRes = await fetch(`${this.getBackendUrl()}/api/hayagriva/llm/model-info?case=${encodeURIComponent(currentCase)}`);
+        if (modelRes.ok) {
+          const modelInfo = await modelRes.json();
+          if (modelInfo && modelInfo.tier === 'small') {
+            request.response.response.addContent(new MarkdownChatResponseContentImpl(
+              `> ⚠️ **Model Quality Notice:** You are running **${modelInfo.modelName}** (${modelInfo.sizeB}B parameters). ` +
+              `This agent produces significantly better results with a **7B+ model or Cloud API**. ` +
+              `Results may be incomplete or imprecise.\n\n`
+            ));
+          }
+        }
+      } catch (e) {
+        console.warn('[HAYAGRIVA] Failed to check model-info for quality badge:', e);
+      }
+    }
 
     try {
       const url = `${this.getBackendUrl()}/api/agents/chat`;
@@ -113,6 +132,7 @@ export class ClaimsVerificationChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Claims';
   readonly description = 'Audit creditor claims, calculate interest rates, and verify balances.';
   readonly iconClass = 'codicon codicon-briefcase';
+  override readonly requiresLargeModel = true;
 }
 
 @injectable()
@@ -121,6 +141,7 @@ export class ImCompilerChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'IM';
   readonly description = 'Compile the Information Memorandum (IM) under Regulation 36 of CIRP.';
   readonly iconClass = 'codicon codicon-book';
+  override readonly requiresLargeModel = true;
 }
 
 @injectable()
@@ -129,6 +150,7 @@ export class ResolutionPlanEvaluatorChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Plan';
   readonly description = 'Audit submitted resolution plans against Section 30(2) parameters.';
   readonly iconClass = 'codicon codicon-compass';
+  override readonly requiresLargeModel = true;
 }
 
 @injectable()
@@ -137,6 +159,7 @@ export class AvoidanceScannerChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Avoidance';
   readonly description = 'Scan financial ledgers and party relationships for avoidance transactions.';
   readonly iconClass = 'codicon codicon-search';
+  override readonly requiresLargeModel = true;
 }
 
 @injectable()
@@ -145,6 +168,7 @@ export class NcltDrafterChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'NCLT';
   readonly description = 'Generate and draft petitions, synopsis of dates, and legal affidavits.';
   readonly iconClass = 'codicon codicon-edit';
+  override readonly requiresLargeModel = true;
 }
 
 @injectable()

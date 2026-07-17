@@ -249,6 +249,30 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openChronology`, label: 'Open Case Chronology', iconClass: 'fa fa-calendar' },
+      { 
+        execute: async () => { await this.contribution.openChronologyPanel(); },
+        isVisible: (widget: any) => {
+          if (!widget) return true;
+          const id = (widget.id || '').toLowerCase();
+          return id.includes('explorer-view-container') || id === 'files';
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openTopicOverlap`, label: 'Open Topic Overlap Map', iconClass: 'fa fa-link' },
+      { 
+        execute: async () => { await this.contribution.openTopicOverlapPanel(); },
+        isVisible: (widget: any) => {
+          if (!widget) return true;
+          const id = (widget.id || '').toLowerCase();
+          return id.includes('explorer-view-container') || id === 'files';
+        }
+      }
+    );
+
+    registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openUploadSplit`, label: 'Upload to Hayagriva', iconClass: 'fa fa-upload' },
       { 
         execute: async () => { await this.contribution.openUploadSplit(); },

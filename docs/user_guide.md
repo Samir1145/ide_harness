@@ -13,6 +13,62 @@ When you upload documents into a Case Workspace, they progress through three seq
 
 ---
 
+## 1.5. Product Mode Feature Matrix: Lite vs. Standard
+
+HAYAGRIVA supports two processing modes to accommodate different hardware specifications and privacy constraints:
+*   **Lite Mode (default):** Designed for 8GB–16GB RAM devices. Operates offline, skipping LLM generations to prevent OOM errors, while providing local indexing, timeline chronology extraction, topic overlap maps, and local ONNX-powered semantic search.
+*   **Standard Mode:** Designed for 16GB–32GB+ RAM or cloud API configurations. Enables the complete suite of AI-assisted drafting, facts extraction, and evaluation agents.
+
+### Step 1 — Ingestion Pipeline
+
+| Feature | ⚡ Lite | 🧠 Standard (Local/Cloud) | Status |
+|---|---|---|---|
+| **PDF → Markdown (pdfexcavator)** | ✅ local extraction | ✅ local extraction | **Implemented** |
+| **DOCX Ingestion (mammoth)** | ✅ local extraction | ✅ local extraction | **Implemented** |
+| **XLSX / XLS Ingestion (xlsx-js)** | ✅ local extraction | ✅ local extraction | **Implemented** |
+| **TiddlyWiki HTML Ingestion** | ✅ local wiki parse | ✅ local wiki parse | **Implemented** |
+| **PDF Quality Density Gate** | ✅ local character limit | ✅ local character limit | **Implemented** |
+| **Lazy PDF Queue (Pages 4–N)** | ✅ local background queue | ✅ local background queue | **Implemented** |
+| **Layout Profiler Classification** | ❌ returns paragraph fallback | ✅ LLM A–G layout profiling | **Implemented** |
+| **Markdown Cleaner Pass** | ❌ regex-only cleaner | ✅ LLM markdown cleaner | **Implemented** |
+| **Topic Merge Across Docs** | ❌ always creates new topic | ✅ LLM topic merge | **Implemented** |
+| **BM25 Keyword Indexing** | ✅ local SQLite store | ✅ local SQLite store | **Implemented** |
+| **FTS5 Full-Text Search** | ✅ local SQLite store | ✅ local SQLite store | **Implemented** |
+| **Semantic Vector Indexing** | ✅ **100% Local ONNX** | ✅ **100% Local ONNX** (No cloud leaks) | **Implemented** |
+| **KV Fact Entity Extraction** | ❌ skipped | ✅ LLM key-value extraction | **Implemented** |
+
+### Step 2 — HIL Enrichment
+
+| Feature | ⚡ Lite | 🧠 Standard (Local/Cloud) | Status |
+|---|---|---|---|
+| **Lazy Background Worker** | ❌ skipped (auto-marks `enriched`) | ✅ LLM Q&A/summary generation | **Implemented** |
+| **Monaco Editor + LSP** | ✅ local autocompletion & hover | ✅ local autocompletion & hover | **Implemented** |
+| **Monaco-SQLite Sync** | ✅ updates facts, claims, avoidance | ✅ updates facts, claims, avoidance | **Implemented** |
+| **Statute Hover (`@@` refs)** | ✅ local vault decryption | ✅ local vault decryption | **Implemented** |
+| **Law Vault Search Completion** | ✅ local ONNX/BM25 search | ✅ local ONNX/BM25 search | **Implemented** |
+| **Manual Review (3rd Status Dot)**| ✅ local SQLite write | ✅ local SQLite write | **Implemented** |
+| **Active-Context Control Matrix** | ✅ local active docs RAG filter | ✅ local active docs RAG filter | **Implemented** |
+| **3D Case Graph Viewer (D3.js)** | ✅ local index.json node render | ✅ local index.json node render | **Implemented** |
+| **Document Priority Control** | ✅ local drag-and-drop hierarchy | ✅ local drag-and-drop hierarchy | **Implemented** |
+| **Wiki Card Creation** | ✅ local manual card creation | ✅ local manual + LLM enrichment | **Implemented** |
+| **Case Chronology Timeline** | ✅ local regex date extractor | ✅ local regex date extractor | **Implemented** |
+| **Topic Overlap Map** | ✅ local card index scanner | ✅ local card index scanner | **Implemented** |
+| **Semantic Passage Search** | ✅ local candidate retrieval | ✅ local candidate retrieval + rerank | **Implemented** |
+
+### Step 3 — Agentic Outputs / Actions
+
+| Feature | ⚡ Lite | 🧠 Standard (Local/Cloud) | Status |
+|---|---|---|---|
+| **SC Layout Compiler (DOCX)** | ✅ local Markdown-to-DOCX compiler | ✅ local Markdown-to-DOCX compiler | **Implemented** |
+| **Forms Agent Pre-fill** | ✅ partial pre-fill from case facts | ✅ full pre-fill (Phase 1 + Phase 2 RAG) | **Implemented** |
+| **AI RAG Chats / Answers** | ❌ returns formatted passage cards | ✅ full LLM synthesized responses | **Implemented** |
+| **`/api/agents/chat` Gating** | ❌ routes local RAG search directly | ✅ calls agent classification | **Implemented** |
+| **Complex Generative Agents** | ❌ blocked (NCLT, IM, Plan, Avoidance, Claims) | ✅ fully accessible | **Implemented** |
+| **Template Drafting** | ❌ returns raw templates with placeholders | ✅ compiles text via LLM | **Implemented** |
+| **Ollama Model Quality Badge** | N/A | ✅ inline warning badge for small models | **Implemented** |
+
+---
+
 ## 2. Ingestion Failure Modes & Resolutions
 
 ### 🔴 Step 1 Failure: Companion Extraction Fails (Dot 1 Red)

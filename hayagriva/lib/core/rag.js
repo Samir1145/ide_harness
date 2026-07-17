@@ -514,11 +514,33 @@ function replaceCitations(text, contexts) {
     return replaced;
 }
 
+function buildLiteResponse(queryText, contexts) {
+    const cards = contexts.map((ctx, i) => {
+        const excerpt = ctx.content.replace(/\s+/g, ' ').trim().substring(0, 600);
+        return `### [${i + 1}] ${ctx.docName} — ${ctx.title} (p.${ctx.page_number || '?'})\n\n${excerpt}${ctx.content.length > 600 ? '…' : ''}`;
+    });
+
+    const answer = [
+        `> ⚡ **Lite Mode — Semantic Passage Search:** *"${queryText}"*`,
+        `> Showing top ${contexts.length} ranked excerpts. Switch to Standard mode for AI-generated answers.`,
+        '',
+        ...cards
+    ].join('\n\n');
+
+    return { answer, sources: Array.from(new Set(contexts.map(c => c.docName))), liteMode: true };
+}
+
 async function query(caseDir, queryText, opts = {}) {
     try {
+        const { loadLlmConfig } = require('./llm-client');
+        const config = loadLlmConfig({ caseDir });
         const contexts = await retrieveContexts(caseDir, queryText);
         if (contexts.length === 0) {
             return { answer: 'I could not find matching concepts in the case files.', sources: [] };
+        }
+        
+        if (config.activeMode === 'lite') {
+            return buildLiteResponse(queryText, contexts);
         }
         
         const prompt = buildPrompt(queryText, contexts);
@@ -537,4 +559,4 @@ async function query(caseDir, queryText, opts = {}) {
     }
 }
 
-module.exports = { query, buildPrompt, retrieveContexts, getSafeFilename, replaceCitations };
+module.exports = { query, buildPrompt, retrieveContexts, getSafeFilename, replaceCitations, buildLiteResponse };
