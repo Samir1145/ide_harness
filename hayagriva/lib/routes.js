@@ -9,8 +9,9 @@ const { streamChat } = require('./core/llm-client');
 const { resolveTrigger, searchLaws, getVaultVersion, isVaultReady } = require('./utils/vault-loader');
 
 function resolveCaseDir(docsRoot, caseParam) {
-    if (caseParam && (caseParam.startsWith('/') || caseParam.includes(':\\') || caseParam.startsWith('file:///'))) {
-        let clean = caseParam;
+    const caseName = caseParam || getDefaultCaseName(docsRoot);
+    if (caseName && (caseName.startsWith('/') || caseName.includes(':\\') || caseName.startsWith('file:///'))) {
+        let clean = caseName;
         if (clean.startsWith('file:///')) {
             clean = clean.substring(7);
             if (process.platform === 'win32' && clean.startsWith('/')) {
@@ -19,7 +20,7 @@ function resolveCaseDir(docsRoot, caseParam) {
         }
         return clean;
     }
-    return path.join(docsRoot, caseParam || 'Case_Alpha');
+    return path.join(docsRoot, caseName || '');
 }
 
 const DEFAULT_SETTINGS = {
@@ -104,7 +105,7 @@ function getDefaultCaseName(docsRoot) {
             return dirs[0];
         }
     } catch (_) {}
-    return 'Case_Alpha';
+    return '';
 }
 
 module.exports = {
@@ -125,7 +126,7 @@ module.exports = {
 
         '/api/hayagriva/documents': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
-            const caseDir = path.join(docsRoot, caseName);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
             const documents = [];
 
             // 1. Collect indexed docs from index.json
@@ -404,7 +405,7 @@ module.exports = {
         '/api/hayagriva/ingest-status': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const basename = parsedUrl.query.basename || '';
-            const caseDir = path.join(docsRoot, caseName);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
             const pdfPath = path.join(caseDir, basename + '.pdf');
             const queueEntry = pendingPdfQueue.find(q => q.filePath === pdfPath);
             const complete = completedPdfSet.has(pdfPath);
@@ -720,7 +721,7 @@ module.exports = {
 
         '/api/hayagriva/wiki-cards': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
-            const caseDir = path.join(docsRoot, caseName);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
             const wikiDir = path.join(caseDir, 'wiki');
             
             const { parseMarkdownWithFrontmatter } = require('./utils/okf');
@@ -747,7 +748,7 @@ module.exports = {
 
         '/api/hayagriva/case-graph': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
-            const caseDir = path.join(docsRoot, caseName);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
             const conceptsDir = path.join(caseDir, 'concepts');
             const wikiDir = path.join(caseDir, 'wiki');
             
@@ -835,7 +836,7 @@ module.exports = {
 
         '/api/hayagriva/concepts': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
-            const caseDir = path.join(docsRoot, caseName);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
             const conceptsDir = path.join(caseDir, 'concepts');
             const list = [];
             
@@ -880,7 +881,7 @@ module.exports = {
 
         '/api/forms/kv-dictionary': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
-            const caseDir = path.join(docsRoot, caseName);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
             const dictPath = path.join(caseDir, 'reviews', 'case_kv_dictionary.json');
             let dictionary = {};
             if (fs.existsSync(dictPath)) {
@@ -898,7 +899,7 @@ module.exports = {
                 res.end(JSON.stringify({ error: 'Missing case or formId' }));
                 return;
             }
-            const caseDir = path.join(docsRoot, caseName);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
             const instancePath = path.join(caseDir, 'reviews', `filled-${formId}.json`);
             let fields = {};
             if (fs.existsSync(instancePath)) {
@@ -1201,8 +1202,8 @@ module.exports = {
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
                 const data = JSON.parse(body);
-                const caseName = data.case || 'Case_Alpha';
-                const caseDir = path.join(docsRoot, caseName);
+                const caseName = data.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
                 const qResult = await query(caseDir, data.query || 'Hello', { model: data.model });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(qResult));
@@ -1214,8 +1215,8 @@ module.exports = {
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
                 const data = JSON.parse(body);
-                const caseName = data.case || 'Case_Alpha';
-                const caseDir = path.join(docsRoot, caseName);
+                const caseName = data.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
                 const queryText = data.query || 'Hello';
                 const contexts = await retrieveContexts(caseDir, queryText);
                 
@@ -1236,7 +1237,7 @@ module.exports = {
                 const messages = [{ role: 'user', content: prompt }];
                 
                 try {
-                    const stream = streamChat(messages, { model: data.model });
+                    const stream = streamChat(messages, { model: data.model, caseDir: caseDir });
                     for await (const chunk of stream) {
                         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
                     }
@@ -1261,7 +1262,7 @@ module.exports = {
                     res.end(JSON.stringify({ error: 'Missing file parameter' }));
                     return;
                 }
-                const caseName = data.case || 'Case_Alpha';
+                const caseName = data.case || '';
                 const caseDir = resolveCaseDir(docsRoot, caseName);
                 ensureCaseSettings(caseDir);
                 const relative = path.relative(caseDir, file);
@@ -1345,7 +1346,7 @@ module.exports = {
                     res.end(JSON.stringify({ error: 'Missing file parameter' }));
                     return;
                 }
-                const caseName = data.case || 'Case_Alpha';
+                const caseName = data.case || '';
                 const caseDir = resolveCaseDir(docsRoot, caseName);
                 ensureCaseSettings(caseDir);
                 const relative = path.relative(caseDir, file);
@@ -1387,7 +1388,7 @@ module.exports = {
                         res.end(JSON.stringify({ error: 'Missing file parameter' }));
                         return;
                     }
-                    const caseName = data.case || 'Case_Alpha';
+                    const caseName = data.case || '';
                     const caseDir = resolveCaseDir(docsRoot, caseName);
                     
                     const isWikiHtml = file.endsWith('.wiki.html');
@@ -1477,7 +1478,7 @@ module.exports = {
                     res.end(JSON.stringify({ error: 'Missing file parameter' }));
                     return;
                 }
-                const caseName = data.case || 'Case_Alpha';
+                const caseName = data.case || '';
                 const caseDir = resolveCaseDir(docsRoot, caseName);
                 ensureCaseSettings(caseDir);
                 const relative = path.relative(caseDir, file);
@@ -1553,7 +1554,7 @@ module.exports = {
                     res.end(JSON.stringify({ error: 'Missing file parameter' }));
                     return;
                 }
-                const caseName = data.case || 'Case_Alpha';
+                const caseName = data.case || '';
                 const caseDir = resolveCaseDir(docsRoot, caseName);
                 const relative = path.relative(caseDir, file);
                 const isWikiHtml = file.endsWith('.wiki.html');
@@ -1608,7 +1609,7 @@ module.exports = {
                         res.end(JSON.stringify({ error: 'Missing file parameter' }));
                         return;
                     }
-                    const caseName = data.case || 'Case_Alpha';
+                    const caseName = data.case || '';
                     const caseDir = resolveCaseDir(docsRoot, caseName);
                     const relative = path.relative(caseDir, file);
                     updateStatus(caseDir, relative, 'reviewed');
@@ -1634,7 +1635,7 @@ module.exports = {
                         res.end(JSON.stringify({ error: 'Missing file parameter' }));
                         return;
                     }
-                    const caseName = data.case || 'Case_Alpha';
+                    const caseName = data.case || '';
                     const caseDir = resolveCaseDir(docsRoot, caseName);
                     const relative = path.relative(caseDir, file);
                     updateStatus(caseDir, relative, 'outline_approved');
@@ -1659,7 +1660,7 @@ module.exports = {
                     res.end(JSON.stringify({ error: 'Missing file parameter' }));
                     return;
                 }
-                const caseName = data.case || 'Case_Alpha';
+                const caseName = data.case || '';
                 const caseDir = resolveCaseDir(docsRoot, caseName);
                 const relative = path.relative(caseDir, file);
                 const isWikiHtml = file.endsWith('.wiki.html');
@@ -1719,7 +1720,7 @@ module.exports = {
                         res.end(JSON.stringify({ error: 'Missing file parameter' }));
                         return;
                     }
-                    const caseName = data.case || 'Case_Alpha';
+                    const caseName = data.case || '';
                     const caseDir = resolveCaseDir(docsRoot, caseName);
                     const absoluteFile = path.resolve(caseDir, file);
                     
@@ -1748,7 +1749,7 @@ module.exports = {
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
                 const data = JSON.parse(body);
-                const caseDir = path.join(docsRoot, data.case);
+                const caseDir = resolveCaseDir(docsRoot, data.case);
                 const reviewsDir = path.join(caseDir, 'reviews');
                 fs.mkdirSync(reviewsDir, { recursive: true });
                 const dictPath = path.join(reviewsDir, 'case_kv_dictionary.json');
@@ -1763,7 +1764,7 @@ module.exports = {
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
                 const data = JSON.parse(body);
-                const caseDir = path.join(docsRoot, data.case);
+                const caseDir = resolveCaseDir(docsRoot, data.case);
                 const { populateFormInstance } = require('./pipeline/forms/mapper');
                 const fields = await populateFormInstance(caseDir, data.formId);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1776,7 +1777,7 @@ module.exports = {
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
                 const data = JSON.parse(body);
-                const caseDir = path.join(docsRoot, data.case);
+                const caseDir = resolveCaseDir(docsRoot, data.case);
                 const workspaceRoot = path.join(__dirname, '..');
                 const schemaPath = path.join(__dirname, '../..', 'forms', data.formId, 'schema.json');
                 const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
@@ -1813,7 +1814,7 @@ module.exports = {
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
                 const data = JSON.parse(body);
-                const caseDir = path.join(docsRoot, data.case);
+                const caseDir = resolveCaseDir(docsRoot, data.case);
                 const instancePath = path.join(caseDir, 'reviews', `filled-${data.formId}.json`);
                 const fields = JSON.parse(fs.readFileSync(instancePath, 'utf8'));
                 
@@ -1835,7 +1836,7 @@ module.exports = {
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
                 const data = JSON.parse(body);
-                const caseDir = path.join(docsRoot, data.case);
+                const caseDir = resolveCaseDir(docsRoot, data.case);
                 const { draftDocument } = require('./core/drafting');
                 const result = await draftDocument(caseDir, data.formatId);
                 
@@ -1856,7 +1857,7 @@ module.exports = {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
-                    const caseDir = path.join(docsRoot, data.case);
+                    const caseDir = resolveCaseDir(docsRoot, data.case);
                     
                     // ── LITE MODE GATE ──────────────────────────────────────────
                     const { loadLlmConfig } = require('./core/llm-client');
@@ -1889,7 +1890,7 @@ module.exports = {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
-                    const caseDir = path.join(docsRoot, data.case || 'Case_Alpha');
+                    const caseDir = resolveCaseDir(docsRoot, data.case || '');
                     const { getCompletions } = require('./core/lsp-service');
                     const result = await getCompletions(caseDir, data.docUri, data.docContent, data.position);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1907,7 +1908,7 @@ module.exports = {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
-                    const caseDir = path.join(docsRoot, data.case || 'Case_Alpha');
+                    const caseDir = resolveCaseDir(docsRoot, data.case || '');
                     const { getHover } = require('./core/lsp-service');
                     const result = await getHover(caseDir, data.docUri, data.docContent, data.position);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1925,7 +1926,7 @@ module.exports = {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
-                    const caseDir = path.join(docsRoot, data.case || 'Case_Alpha');
+                    const caseDir = resolveCaseDir(docsRoot, data.case || '');
                     const { getDiagnostics } = require('./core/lsp-service');
                     const result = await getDiagnostics(caseDir, data.docUri, data.docContent);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1942,19 +1943,7 @@ module.exports = {
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
                 const data = JSON.parse(body);
-                let caseDir;
-                if (data.case && (data.case.startsWith('/') || data.case.includes(':\\') || data.case.startsWith('file:///'))) {
-                    let cleanCase = data.case;
-                    if (cleanCase.startsWith('file:///')) {
-                        cleanCase = cleanCase.substring(7); // Remove file://
-                        if (process.platform === 'win32' && cleanCase.startsWith('/')) {
-                            cleanCase = cleanCase.substring(1);
-                        }
-                    }
-                    caseDir = cleanCase;
-                } else {
-                    caseDir = path.join(docsRoot, data.case || 'Case_Alpha');
-                }
+                const caseDir = resolveCaseDir(docsRoot, data.case);
 
                 if (!fs.existsSync(caseDir)) {
                     fs.mkdirSync(caseDir, { recursive: true });

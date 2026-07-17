@@ -32,7 +32,7 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
   }
 
   protected getCaseName(): string {
-    let caseName = 'Case_Alpha';
+    let caseName = '';
     const ws = this.workspaceService.getWorkspaceRootUri(undefined);
     if (ws) {
       const parts = new URI(ws.toString()).path.toString().split(/[\\/]/);

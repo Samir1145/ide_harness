@@ -50,7 +50,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
         return decodeURIComponent(wsRoot.path.toString());
       }
     } catch (_) {}
-    return 'Case_Alpha';
+    return '';
   }
 
   private resolveUri(uri?: any): URI | undefined {
@@ -405,7 +405,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
       { execute: async () => {
         const activeEditor = this.editorManager.activeEditor;
         const ws = this.workspaceService.getWorkspaceRootUri(undefined);
-        let caseName = 'Case_Alpha';
+        let caseName = this.contribution.getActiveCaseName();
         if (activeEditor) {
           caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
         } else if (ws) {
@@ -420,7 +420,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
       { execute: async () => {
         const activeEditor = this.editorManager.activeEditor;
         const ws = this.workspaceService.getWorkspaceRootUri(undefined);
-        let caseName = 'Case_Alpha';
+        let caseName = this.contribution.getActiveCaseName();
         if (activeEditor) {
           caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
         } else if (ws) {
@@ -436,7 +436,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
       { execute: async () => {
         const activeEditor = this.editorManager.activeEditor;
         const ws = this.workspaceService.getWorkspaceRootUri(undefined);
-        let caseName = 'Case_Alpha';
+        let caseName = this.contribution.getActiveCaseName();
         if (activeEditor) {
           caseName = this.contribution.getCaseName(activeEditor.getResourceUri()!.path.toString());
         } else if (ws) {

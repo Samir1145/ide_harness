@@ -58,7 +58,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
         return decodeURIComponent(workspaceRoot.path.toString());
       }
     } catch (_) {}
-    return 'Case_Alpha';
+    return '';
   }
 
   getApiPort(): number {

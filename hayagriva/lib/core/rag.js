@@ -174,7 +174,7 @@ Question: ${queryText}
 
 Hypothetical Answer:`;
             
-            const hydeAnswer = await getChatResponse([{ role: 'user', content: prompt }], { timeout: 25000 });
+            const hydeAnswer = await getChatResponse([{ role: 'user', content: prompt }], { timeout: 25000, caseDir: caseDir });
             if (hydeAnswer && hydeAnswer.trim()) {
                 searchTerms = queryText + ' ' + hydeAnswer.trim();
                 console.log(`[RAG] HyDE Answer generated: "${hydeAnswer.trim().substring(0, 100)}..."`);
@@ -197,13 +197,30 @@ Hypothetical Answer:`;
             ORDER BY ftsScore ASC
             LIMIT 12
         `);
-        const sanitizedSearch = searchTerms
-            .replace(/[^a-zA-Z0-9\s]/g, ' ')
+        const STOP_WORDS = new Set([
+            'what', 'who', 'whom', 'whose', 'which', 'where', 'when', 'why', 'how',
+            'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did',
+            'a', 'an', 'the', 'and', 'but', 'or', 'as', 'if', 'of', 'at', 'by', 'for', 'with', 'about', 'against',
+            'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down',
+            'in', 'on', 'out', 'off', 'over', 'under', 'again', 'further', 'then', 'once',
+            'here', 'there', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such',
+            'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'should'
+        ]);
+
+        const rawWords = searchTerms
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
             .trim()
             .split(/\s+/)
-            .filter(Boolean)
-            .map(w => `${w}*`)
-            .join(' ');
+            .filter(Boolean);
+
+        let cleanWords = rawWords.filter(w => !STOP_WORDS.has(w));
+        if (cleanWords.length === 0) {
+            cleanWords = rawWords;
+        }
+
+        const sanitizedSearch = cleanWords.map(w => `${w}*`).join(' OR ');
         ftsRows = ftsQuery.all(sanitizedSearch || '');
     } catch (err) {
         console.warn('[SQLite Search] FTS search query failed, using empty results:', err.message);
@@ -447,7 +464,7 @@ ${candidatesListText}
 
 Indices list (e.g. 2,0,4,1,3):`;
             
-            const rerankResponse = await getChatResponse([{ role: 'user', content: prompt }], { timeout: 35000 });
+            const rerankResponse = await getChatResponse([{ role: 'user', content: prompt }], { timeout: 35000, caseDir: caseDir });
             console.log(`[RAG] Reranker response: "${rerankResponse.trim()}"`);
             
             const rankedIndices = rerankResponse.split(',')

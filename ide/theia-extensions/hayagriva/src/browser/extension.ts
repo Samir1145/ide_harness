@@ -300,7 +300,24 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       }
     } catch (e) {}
 
-    return 'Case_Alpha';
+    return '';
+  }
+
+  getActiveCaseName(): string {
+    try {
+      const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+      if (workspaceRoot) {
+        return decodeURIComponent(new URI(workspaceRoot.toString()).path.toString());
+      }
+    } catch (_) {}
+    const active = this.editorManager.activeEditor;
+    if (active) {
+      const uri = active.getResourceUri();
+      if (uri) {
+        return decodeURIComponent(uri.path.toString());
+      }
+    }
+    return '';
   }
 
   async ingestDocument(filePath: string, caseName: string): Promise<void> {
@@ -356,7 +373,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
         }
       }
       
-      let caseName = 'Case_Alpha';
+      let caseName = this.getActiveCaseName();
       const ws = this.workspaceService.getWorkspaceRootUri(undefined);
       if (ws) {
         caseName = new URI(ws.toString()).path.toString();
@@ -425,7 +442,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   initializeWikiExplorerWidget(): void {
     if (this.wikiWidget) return;
 
-    let initialCase = 'Case_Alpha';
+    let initialCase = this.getActiveCaseName();
     const ws = this.workspaceService.getWorkspaceRootUri(undefined);
     if (ws) {
       initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
@@ -579,7 +596,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   initializeConceptsExplorerWidget(): void {
     if (this.conceptsWidget) return;
 
-    let initialCase = 'Case_Alpha';
+    let initialCase = this.getActiveCaseName();
     const ws = this.workspaceService.getWorkspaceRootUri(undefined);
     if (ws) {
       initialCase = this.getCaseName(new URI(ws.toString()).path.toString());
@@ -898,7 +915,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                 }
               ];
 
-              let currentCase = 'Case_Alpha';
+              let currentCase = this.getActiveCaseName();
               const ws = this.workspaceService.getWorkspaceRootUri(undefined);
               if (ws) {
                 currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
@@ -1081,7 +1098,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
           provideHover: async (model: any, position: any, token: any) => {
             const docUri = model.uri.toString();
             const content = model.getValue();
-            let currentCase = 'Case_Alpha';
+            let currentCase = this.getActiveCaseName();
             const ws = this.workspaceService.getWorkspaceRootUri(undefined);
             if (ws) {
               currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
@@ -1145,7 +1162,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       if (!docUri.endsWith('.md')) return;
 
       const content = model.getValue();
-      let currentCase = 'Case_Alpha';
+      let currentCase = this.getActiveCaseName();
       const ws = this.workspaceService.getWorkspaceRootUri(undefined);
       if (ws) {
         currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
@@ -1510,7 +1527,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       return widget;
     }
 
-    let caseName = 'Case_Alpha';
+    let caseName = this.getActiveCaseName();
     const ws = this.workspaceService.getWorkspaceRootUri(undefined);
     if (ws) {
       caseName = this.getCaseName(new URI(ws.toString()).path.toString());
@@ -1544,7 +1561,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       return widget;
     }
 
-    let caseName = 'Case_Alpha';
+    let caseName = this.getActiveCaseName();
     const ws = this.workspaceService.getWorkspaceRootUri(undefined);
     if (ws) {
       caseName = this.getCaseName(new URI(ws.toString()).path.toString());
@@ -1578,7 +1595,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       return widget;
     }
 
-    let caseName = 'Case_Alpha';
+    let caseName = this.getActiveCaseName();
     const ws = this.workspaceService.getWorkspaceRootUri(undefined);
     if (ws) {
       caseName = this.getCaseName(new URI(ws.toString()).path.toString());
@@ -1615,9 +1632,48 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     }, 10000);
   }
 
+  updateStatusBarStyle(mode: 'lite' | 'standard' | 'offline'): void {
+    const style = document.getElementById('hayagriva-statusbar-style') || document.createElement('style');
+    style.id = 'hayagriva-statusbar-style';
+    
+    let bgColor = '#0d1117';
+    let textColor = '#c9d1d9';
+    
+    if (mode === 'lite') {
+      bgColor = '#002d3a';
+      textColor = '#00d4ff';
+    } else if (mode === 'standard') {
+      bgColor = '#3a2000';
+      textColor = '#ff9900';
+    } else if (mode === 'offline') {
+      bgColor = '#4a1010';
+      textColor = '#ff4d4d';
+    }
+    
+    style.textContent = `
+      #theia-statusbar, #theia-statusBar, .theia-statusBar, .theia-statusbar, [id*="statusbar"], [id*="statusBar"] {
+        background-color: ${bgColor} !important;
+        color: ${textColor} !important;
+      }
+      #theia-statusbar .statusbar-item, #theia-statusBar .statusbar-item, .theia-statusBar .statusbar-item, .theia-statusbar .statusbar-item {
+        color: ${textColor} !important;
+      }
+      #theia-statusbar .statusbar-item .codicon, #theia-statusBar .statusbar-item .codicon, .theia-statusBar .statusbar-item .codicon,
+      #theia-statusbar .statusbar-item .fa, #theia-statusBar .statusbar-item .fa, .theia-statusBar .statusbar-item .fa {
+        color: ${textColor} !important;
+      }
+    `;
+    
+    if (!style.parentElement) {
+      document.head.appendChild(style);
+    }
+  }
+
   async checkBackendHealth(): Promise<void> {
     try {
       const apiPort = this.getApiPort();
+      const caseName = this.getActiveCaseName();
+      
       const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/cases`);
       if (res.ok) {
         this.isBackendOnline = true;
@@ -1628,6 +1684,37 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
           tooltip: 'The Hayagriva Node.js backend proxy is running normally.',
           priority: 100
         });
+
+        // Retrieve settings to check mode status
+        let activeMode = 'lite';
+        let cloudProvider = '';
+        try {
+          const settingsRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/settings/get?case=${encodeURIComponent(caseName)}`);
+          if (settingsRes.ok) {
+            const settings = await settingsRes.json();
+            activeMode = settings.activeMode || 'lite';
+            cloudProvider = settings.cloudProvider || '';
+          }
+        } catch (_) {}
+
+        if (activeMode === 'standard') {
+          const providerLabel = cloudProvider ? ` (${cloudProvider})` : '';
+          this.statusBar.setElement('hayagriva-mode-item', {
+            text: `$(fa-brain) Standard Mode${providerLabel}`,
+            alignment: StatusBarAlignment.LEFT,
+            tooltip: 'Hayagriva is running in Standard Mode (specialized compliance agents, background worker queue, semantic reranking).',
+            priority: 150
+          });
+          this.updateStatusBarStyle('standard');
+        } else {
+          this.statusBar.setElement('hayagriva-mode-item', {
+            text: '$(fa-bolt) Lite Mode',
+            alignment: StatusBarAlignment.LEFT,
+            tooltip: 'Hayagriva is running in Lite Mode (100% offline, local ONNX search, low-resource profile).',
+            priority: 150
+          });
+          this.updateStatusBarStyle('lite');
+        }
         return;
       }
       throw new Error('Non-ok response');
@@ -1640,6 +1727,13 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
         tooltip: 'The Hayagriva Node.js backend is offline. Run ./start.command to start it.',
         priority: 100
       });
+      this.statusBar.setElement('hayagriva-mode-item', {
+        text: '$(fa-warning) Offline',
+        alignment: StatusBarAlignment.LEFT,
+        tooltip: 'Hayagriva backend proxy is offline.',
+        priority: 150
+      });
+      this.updateStatusBarStyle('offline');
 
       if (this.showOfflineWarning) {
         this.showOfflineWarning = false;
@@ -1649,7 +1743,6 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       }
     }
   }
-
 }
 
 export function convertToSnippet(text: string): { snippet: string, hasSnippets: boolean } {

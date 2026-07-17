@@ -2,7 +2,7 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-const srcPath = '/Users/atulgrover/Desktop/Screenshot 2026-07-11 at 4.07.34 PM.png';
+const srcPath = '/Users/atulgrover/.gemini/antigravity-ide/brain/b1e834e3-b829-4b3f-bc99-a6ec23037c7f/media__1784293860225.png';
 const outputDir = '/Users/atulgrover/Desktop/HAYAGRIVA/resources/resources';
 
 async function main() {
