@@ -82,7 +82,8 @@ async function bootstrapCase(caseDir) {
                     lower !== 'conversions' && 
                     lower !== 'reviews' && 
                     lower !== 'drafts' && 
-                    lower !== 'exports') {
+                    lower !== 'exports' &&
+                    lower !== 'summaries') {
                     scan(filePath);
                 }
             } else if (isDoc) {

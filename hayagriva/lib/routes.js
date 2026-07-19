@@ -456,6 +456,7 @@ module.exports = {
                                 lower !== 'reviews' && 
                                 lower !== 'drafts' && 
                                 lower !== 'exports' &&
+                                lower !== 'summaries' &&
                                 lower !== 'node_modules' &&
                                 lower !== 'bower_components' &&
                                 lower !== 'dist' &&
@@ -895,6 +896,80 @@ module.exports = {
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ concepts: list }));
+        },
+
+        '/api/hayagriva/learning-curves': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            const dbPath = path.join(caseDir, 'summaries', 'learning_curves', 'data_index', 'learning_curves.db');
+            
+            const list = [];
+            if (fs.existsSync(dbPath)) {
+                try {
+                    const crypto = require('crypto');
+                    const { DatabaseSync } = require('node:sqlite');
+                    const db = new DatabaseSync(dbPath);
+                    const query = parsedUrl.query.query || '';
+                    
+                    const vaultKeyHex = process.env.VAULT_KEY || '';
+                    const key = Buffer.from(vaultKeyHex, 'hex');
+
+                    function decryptContent(ciphertextBase64) {
+                        if (!ciphertextBase64) return '';
+                        try {
+                            const buffer = Buffer.from(ciphertextBase64, 'base64');
+                            const iv = buffer.subarray(0, 12);
+                            const authTag = buffer.subarray(12, 28);
+                            const ciphertext = buffer.subarray(28);
+                            const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+                            decipher.setAuthTag(authTag);
+                            return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+                        } catch (err) {
+                            console.error('[LSP Route] Failed to decrypt case content:', err.message);
+                            return '';
+                        }
+                    }
+
+                    let rows;
+                    if (query) {
+                        const stmt = db.prepare(`
+                            SELECT learning_curve_number, filename, case_title, issue, citation, date_of_order, court_tribunal, markdown_content
+                            FROM learning_curves_index 
+                            WHERE case_title LIKE ? OR filename LIKE ? OR issue LIKE ? OR citation LIKE ?
+                            LIMIT 50
+                        `);
+                        const likeQuery = `%${query}%`;
+                        rows = stmt.all(likeQuery, likeQuery, likeQuery, likeQuery);
+                    } else {
+                        const stmt = db.prepare(`
+                            SELECT learning_curve_number, filename, case_title, issue, citation, date_of_order, court_tribunal, markdown_content
+                            FROM learning_curves_index 
+                            ORDER BY learning_curve_number DESC
+                            LIMIT 50
+                        `);
+                        rows = stmt.all();
+                    }
+                    
+                    for (const r of rows) {
+                        list.push({
+                            case_title: r.case_title,
+                            filename: r.filename,
+                            number: r.learning_curve_number,
+                            issue: r.issue,
+                            citation: r.citation,
+                            date_of_order: r.date_of_order,
+                            court_tribunal: r.court_tribunal,
+                            relativePath: `summaries/learning_curves/${r.filename}`,
+                            content: decryptContent(r.markdown_content)
+                        });
+                    }
+                    db.close();
+                } catch (err) {
+                    console.error('[LSP Route] Failed to query learning_curves.db:', err.message);
+                }
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ learningCurves: list }));
         },
 
 

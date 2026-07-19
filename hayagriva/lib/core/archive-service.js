@@ -25,6 +25,7 @@ async function archiveCase(caseDir) {
             if (stat.isDirectory()) {
                 // Do not archive the concepts directory (it contains this database itself!)
                 if (lower !== 'concepts' && 
+                    lower !== 'summaries' && 
                     lower !== 'node_modules' && 
                     lower !== '.git' && 
                     lower !== 'build' && 

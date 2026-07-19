@@ -893,7 +893,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
               }
 
               // A. Level 1: Just typed "/", or typing the command prefix
-              if (!rawSlash.includes(' ') && !rawSlash.startsWith('law') && !rawSlash.startsWith('concept') && !rawSlash.startsWith('qa') && !rawSlash.startsWith('clause')) {
+              if (!rawSlash.includes(' ') && !rawSlash.startsWith('law') && !rawSlash.startsWith('concept') && !rawSlash.startsWith('qa') && !rawSlash.startsWith('clause') && !rawSlash.startsWith('case')) {
                 const commandSuggestions = [
                   {
                     label: '/law - Search Statutory Laws',
@@ -918,6 +918,14 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                     insertText: 'qa ',
                     range: replaceRange,
                     detail: 'Generated Case Q&As',
+                  },
+                  {
+                    label: '/case - Link Case Law Summaries',
+                    filterText: '/case',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: 'case ',
+                    range: replaceRange,
+                    detail: '581 Case Law Summaries',
                   },
                   {
                     label: '/clause - Insert Drafting Boilerplate',
@@ -1041,6 +1049,30 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                   };
                 });
                 return { suggestions };
+              }
+
+              // F. Level 2: Command matches "/case <query>"
+              if (rawSlashLower.startsWith('case')) {
+                const query = rawSlash.substring(4).trim().toLowerCase();
+                try {
+                  const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/learning-curves?case=${encodeURIComponent(currentCase)}&query=${encodeURIComponent(query)}`);
+                  if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
+                  const data = await res.json();
+                  const list = data.learningCurves || [];
+                  
+                  const suggestions = list.map((c: any) => ({
+                    label: `/case → ${c.case_title}`,
+                    filterText: `/case ${query}`,
+                    kind: monaco.languages.CompletionItemKind.Reference,
+                    insertText: c.content || `[${c.case_title}](${c.relativePath})`,
+                    range: replaceRange,
+                    detail: c.citation || 'Case Summary',
+                    documentation: `Issue: ${c.issue}\n\nDate: ${c.date_of_order} | Court: ${c.court_tribunal}`
+                  }));
+                  return { suggestions };
+                } catch {
+                  return { suggestions: [] };
+                }
               }
             }
 
