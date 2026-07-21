@@ -145,6 +145,9 @@ yarn --cwd ide/applications/electron build
 - [ ] Update `llm-client.js`: remove `streamOllama` + `checkOllamaHealth`, add `streamLlamafile()`
   - `streamLlamafile` = `streamOpenAI` pointed at `http://127.0.0.1:{port}`
   - Calls `ensureLlamafileRunning(modelName)` before first token
+- [ ] Implement strict 2,048-token context budget pre-flight check in `llm-client.js`
+  - Cap system prompt (~300 t) + RAG context (~1,236 t) + reserved generation (~512 t)
+  - If query/scope > 1,500 tokens, display UI notice: *"⚠️ Context Window Exceeded (2,048 Token Limit). Please refine your Active-Context matrix selection."* and step out cleanly.
 
 #### Priority 3 — GGUF Quantization (do on this Mac)
 - [ ] `brew install cmake git` (if not present)
