@@ -93,3 +93,94 @@ yarn --cwd ide/applications/electron build
 * 📘 [User Guide & Ingestion Pipeline](docs/user_guide.md)
 * 🛠️ [Build Guide](BUILD.md)
 * 🤝 [Contributing Guidelines](CONTRIBUTING.md)
+* 📓 [Dev Log — 2026-07-21](docs/dev-log-2026-07-21.md)
+
+---
+
+## 🗓️ Next Session — Resume Here (2026-07-22)
+
+> Last session: **Vault Distribution System + Sovereign LLM Architecture**  
+> Full session notes: [`docs/dev-log-2026-07-21.md`](docs/dev-log-2026-07-21.md)
+
+### What was completed last session
+- ✅ `vault-compiler.cjs` rewritten → 4 unified global vaults (laws, cases, docs stub, forms stub)
+- ✅ `publish-vaults.sh` → monthly GitHub Release pipeline
+- ✅ `api-server/` scaffolded → `api.hayagriva.app` activation server (Express + SQLite + Railway config)
+- ✅ `vault-loader.js` refactored → OS Keychain key, user vault path, `reloadVault()` hot-swap
+- ✅ `cases-vault-loader.js` created → cases vault search (hybrid BM25 + cosine)
+- ✅ `vault-manager.js` created → activate license, download+install vault, SSE progress
+- ✅ `routes.js` → 4 new `/api/vault/*` routes, removed `learning_curves.db` route
+- ✅ `keytar` added → OS Keychain for vault key storage
+- ✅ `summaries/` guards removed from watcher / cli / archive-service
+- ✅ HAYAGRIVA pushed to GitHub (`93b25d9`), ibc_vault committed locally
+
+### Architecture decisions locked in
+- **Sovereign-only** — no cloud LLM (OpenRouter/Gemini/OpenAI hidden from UI, not deleted yet)
+- **Ollama removed** — replaced with llamafile distribution via hayagriva.app
+- **Two modes only:** `lite` (search, no AI) and `local` (llamafile offline inference)
+- **Models:** LegalParam-2.9B + FinanceParam-2.9B as Q4_K_M llamafiles (~1.7 GB each, runs on 16GB Mac)
+- **v2 roadmap:** Fine-tune Param-1-2.9B on 17K IBC case summaries via QLoRA on RunPod
+
+---
+
+### ✅ Task List for Next Session
+
+#### Priority 1 — Settings UI (Vault & License tab)
+- [ ] Add "Vault & License" tab to `hayagriva/lib/assets/settings-dashboard.html`
+- [ ] Vault cards: Laws, Cases, Documents (stub), Forms (stub) — show version, size, Download button
+- [ ] Model cards: LegalParam-2.9B, FinanceParam-2.9B — show size, Download button
+- [ ] License key input field with "Activate" button → calls `POST /api/vault/activate`
+- [ ] SSE progress bar for vault/model downloads → consumes `GET /api/vault/download?vault=cases`
+- [ ] "Check for Updates" button → calls `GET /api/vault/status`
+- [ ] Remove cloud provider options (OpenRouter / Gemini / OpenAI) from Settings UI
+- [ ] Replace "Local Offline (Ollama)" label with "Local Offline (Hayagriva Models)"
+
+#### Priority 2 — llamafile Process Manager
+- [ ] Create `hayagriva/lib/utils/llamafile-runner.js`
+  - Spawns `model.llamafile --port {port} --n-gpu-layers 99` on demand
+  - Port registry (avoid conflicts if multiple models loaded)
+  - Health check loop (poll `/health` until ready, ~10s timeout)
+  - Idle kill after 10 min inactivity (configurable)
+  - macOS: `xattr -rd com.apple.quarantine` + `chmod +x` after download
+- [ ] Update `llm-client.js`: remove `streamOllama` + `checkOllamaHealth`, add `streamLlamafile()`
+  - `streamLlamafile` = `streamOpenAI` pointed at `http://127.0.0.1:{port}`
+  - Calls `ensureLlamafileRunning(modelName)` before first token
+
+#### Priority 3 — GGUF Quantization (do on this Mac)
+- [ ] `brew install cmake git` (if not present)
+- [ ] `pip3 install huggingface_hub gguf sentencepiece`
+- [ ] Clone `llama.cpp`, build with Metal: `cmake -DGGML_METAL=ON && cmake --build`
+- [ ] Download `bharatgenai/LegalParam-2.9B` weights via `huggingface_hub.snapshot_download`
+- [ ] Run `convert_hf_to_gguf.py` → F16 GGUF
+- [ ] Run `llama-quantize legalparam-f16.gguf legalparam-q4_k_m.gguf Q4_K_M`
+- [ ] Test: `llama-server --model legalparam-q4_k_m.gguf --port 8080 --n-gpu-layers 99`
+- [ ] Repeat for FinanceParam-2.9B
+- [ ] Wrap both as llamafile executables
+
+#### Priority 4 — Railway Deploy (api.hayagriva.app)
+- [ ] Create private GitHub repo for `api-server/`
+- [ ] Push `api-server/` to GitHub
+- [ ] Create Railway project → Deploy from GitHub repo
+- [ ] Set Railway env vars: `VAULT_KEY_LAWS`, `VAULT_KEY_CASES`, `NODE_ENV=production`
+- [ ] Add Namecheap CNAME: `api.hayagriva.app → [railway-domain].up.railway.app`
+- [ ] Run `npm run seed` with real vault keys to populate `licenses.db`
+- [ ] Test: `curl -X POST https://api.hayagriva.app/activate -d '{"licenseKey":"HAYG-TEST-0000-0001"}'`
+
+#### Priority 5 — ibc_vault GitHub remote
+- [ ] `gh repo create atulgrover/ibc-vault --private --source=. --push`
+
+---
+
+### Useful context for next session
+```
+Vault install path:  ~/Library/Application Support/Hayagriva/vaults/{laws|cases}/
+Model install path:  ~/Library/Application Support/Hayagriva/models/
+Keychain service:    "hayagriva"
+Keychain accounts:   "vault-laws", "vault-cases", "vault-documents", "vault-forms"
+License format:      HAYG-XXXX-XXXX-XXXX
+API base:            https://api.hayagriva.app
+Vault manifest:      https://api.hayagriva.app/vaults/latest.json
+LegalParam weights:  huggingface.co/bharatgenai/LegalParam-2.9B
+FinanceParam weights:huggingface.co/bharatgenai/FinanceParam-2.9B
+GGUF target:         Q4_K_M (~1.7 GB each, fits 16GB Mac)
+```
