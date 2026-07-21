@@ -1,0 +1,854 @@
+Created At: 2026-07-19T07:09:02Z
+Completed At: 2026-07-19T07:11:52Z
+Browser subagent result:
+Here is the complete JSON list of PDF filenames and titles extracted from Pages 1 to 14 of the ICSI IIP Learning Curves pagination:
+
+```json
+[
+  {
+    "page": 1,
+    "file": "17162651891700Learning curve 1045.pdf",
+    "title": "If GST Refund/ITC claim was not included in the sec 8 demand notice or sec 9 application, it cannot become a ground of default on which CIRP can be initiated"
+  },
+  {
+    "page": 1,
+    "file": "17162651566202Learning curve 1044.pdf",
+    "title": "Consent Decree passed by DRT for settlement between FC and CD does not affect the original date of default for the purpose of Section 10A of IBC"
+  },
+  {
+    "page": 1,
+    "file": "17162650805377Learning curve 1043.pdf",
+    "title": "Demand raised under GST after approval of Resolution Plan stands extinguished if the State has neither approached the RP nor the AA for the same"
+  },
+  {
+    "page": 1,
+    "file": "17162650488043Learning curve 1041.pdf",
+    "title": "For determining the minimum threshold of Rs. 1cr u/s 4, date of application for initiating CIRP is relevant, not the date of demand notice served u/s 8"
+  },
+  {
+    "page": 1,
+    "file": "17162650132227Learning curve 1040.pdf",
+    "title": "When Erstwhile RP was replaced with New RP, the decision taken by the New RP cannot be objected by the Erstwhile RP"
+  },
+  {
+    "page": 1,
+    "file": "17162649685210Learning curve 1039.pdf",
+    "title": "Adjudication of a dispute is not within the scope and ambit of the powers of the Liquidator."
+  },
+  {
+    "page": 1,
+    "file": "17162649361934Learning curve 1038.pdf",
+    "title": "Test to determine whether a debt is a financial debt is the existence of debt along with interest which is disbursed against the consideration for the time value of money"
+  },
+  {
+    "page": 1,
+    "file": "17162649068605Learning curve 1037.pdf",
+    "title": "The amount given as share application money cannot be treated to be a financial debt so as to enable the Appellant to trigger CIRP u/s 7 of IBC"
+  },
+  {
+    "page": 1,
+    "file": "17161176024110Learning curve 1036.pdf",
+    "title": "Appellant who has challenged the order on merits in which he has been unsuccessful, cannot be allowed to file an application to recall the order on the same ground on which the appeal was filed"
+  },
+  {
+    "page": 1,
+    "file": "17161175221583Learning curve 1035.pdf",
+    "title": "The timelines set forth under IBC need to be considered as of directory nature and not as mandatory in nature"
+  },
+  {
+    "page": 2,
+    "file": "17122315438923Learning curve 1034.pdf",
+    "title": "The assignee is entitled to all the legitimate rights exercisable under the IBC and enjoys the locus to file the restoration application before the AA"
+  },
+  {
+    "page": 2,
+    "file": "17122314963756Learning curve 1033.pdf",
+    "title": "IBC does not provide any leeway/scope to dissatisfied individual Homebuyers in a minority to override the commercial wisdom of the CoC"
+  },
+  {
+    "page": 2,
+    "file": "17122314678565Learning curve 1032.pdf",
+    "title": "Insolvency Proceedings u/s 7 of the IBC can be initiated against the Auction Purchaser in proceedings under SARFAESI even though the disbursement was not done to it directly."
+  },
+  {
+    "page": 2,
+    "file": "17108374642670Learning curve 1031 (1).pdf",
+    "title": "Insolvency proceedings under IBC does not prevent the CD from filing application u/s 11 of Arbitration and Conciliation Act, 1996 against other party"
+  },
+  {
+    "page": 2,
+    "file": "17108373819597Learning curve 1030 (2).pdf",
+    "title": "If 45th day for filing the Appeal u/s 61 of IBC is a Holiday and appeal is filed on the date when Court reopens, benefit of holiday cannot be extended to the Appellant."
+  },
+  {
+    "page": 2,
+    "file": "17098961997738Learning curve 1029.pdf",
+    "title": "The AA can't direct CoC to consider the suspended managements settlement proposal, without giving opportunity to Successful RA to respond."
+  },
+  {
+    "page": 2,
+    "file": "17098961639524Learning curve 1028.pdf",
+    "title": "The AA has jurisdiction to direct ED to release attached properties under PMLA"
+  },
+  {
+    "page": 2,
+    "file": "17095219125294Learning curve 1027.pdf",
+    "title": "Application for withdrawal of CIRP is to be necessarily filed by the Applicant who have initiated CIRP against the CD under Sec 7/9/10 of the IBC"
+  },
+  {
+    "page": 2,
+    "file": "17095218187696Learning curve 1026.pdf",
+    "title": "The fact that CIRP admission application is affirmed by the Appellate Tribunal does not denude the jurisdiction of AA to examine the allegations made u/s 65."
+  },
+  {
+    "page": 2,
+    "file": "17095217926124Learning curve 1025.pdf",
+    "title": "The AA has no power and authority under the IBC to declare an assessment order as void ab initio and non est in law"
+  },
+  {
+    "page": 3,
+    "file": "17095217007790Learning curve 1024.pdf",
+    "title": "When separate Purchase Orders were issued and separate invoices were raised by 3 associated companies of the CD, all the invoices cannot be clubbed to meet the threshold u/s 4 of IBC"
+  },
+  {
+    "page": 3,
+    "file": "17095216395132Learning curve 1023.pdf",
+    "title": "Amount of advance paid for purchase of shares of the CD does not fall under the definition of Financial Debt as it was not disbursed against the consideration for the time value of money."
+  },
+  {
+    "page": 3,
+    "file": "17095216084154Learning curve 1022.pdf",
+    "title": "The basis that the trademark was hypothecated for a bigger amount and has been assigned for lesser amount would not be a criterion for the purpose of declaring it to be undervalued transaction"
+  },
+  {
+    "page": 3,
+    "file": "17095211191832Learning curve 1021.pdf",
+    "title": "Claim in respect of a settlement agreement cannot be regarded as Operational Debt u/s 5(21)"
+  },
+  {
+    "page": 3,
+    "file": "17095210816666Learning curve 1020.pdf",
+    "title": "The protection of the moratorium will not be available to the directors/officers of the company."
+  },
+  {
+    "page": 3,
+    "file": "17095210476768Learning curve 1019.pdf",
+    "title": "CoC can take decision for liquidation of CD without taking any step regarding resolution of CD in CIRP"
+  },
+  {
+    "page": 3,
+    "file": "17095210184024Learning curve 1018 (1).pdf",
+    "title": "Supreme Court dismissed the plea to direct CG to notify Part III of IBC, 2016"
+  },
+  {
+    "page": 3,
+    "file": "17095209858564Learning curve 1017.pdf",
+    "title": "Insolvency Professionals are not public servants under Prevention of Corruption Act, 1988"
+  },
+  {
+    "page": 3,
+    "file": "17095209302965Learning curve 1016.pdf",
+    "title": "Non-discharge of barter component in the barter agreement cannot be considered to be Operational Debt as under IBC"
+  },
+  {
+    "page": 3,
+    "file": "17095209009227Learning curve 1015.pdf",
+    "title": "Amount deposited by the Homebuyers in Corpus Fund towards maintenance of constructed apartments does not qualify as Financial Debt."
+  },
+  {
+    "page": 4,
+    "file": "17023711585819Learning curve 1014.pdf",
+    "title": "Successful Auction Purchaser in Liquidation is not liable to pay the arrears of electricity dues of erstwhile CD for getting new connection"
+  },
+  {
+    "page": 4,
+    "file": "17023711228668Learning curve 1013.pdf",
+    "title": "There is no provision in IBC which requires upfront payment to dissenting FCs"
+  },
+  {
+    "page": 4,
+    "file": "17013411804036Learning curve 1012.pdf",
+    "title": "Distribution to secured creditor must be made as per their admitted claim and not as per security interest over assets of corporate debtor"
+  },
+  {
+    "page": 4,
+    "file": "17013411514582Learning curve 1011.pdf",
+    "title": "Resolution Plan cannot be faulted on the ground of the promissory estoppel against the RP who has admitted the claim of creditors."
+  },
+  {
+    "page": 4,
+    "file": "17008237189176Learning curve 1010.pdf",
+    "title": "If after repeated negotiations, a Resolution Plan has been approved by CoC, such commercial wisdom is not required to be called into question or casually interfered with by the AA"
+  },
+  {
+    "page": 4,
+    "file": "17004721814888Learning curve 1009.pdf",
+    "title": "In absence of Rental Agreement between parties, RP cant demand payment of usage charges for the asset of CD"
+  },
+  {
+    "page": 4,
+    "file": "17002150035795Learning curve 1008.pdf",
+    "title": "A joint application filed u/s 9 of the IBC is not maintainable if the individual claim of each of the joint applicant does not meet the threshold limit of Rs. 1 crore"
+  },
+  {
+    "page": 4,
+    "file": "16998685987859Learning curve 1007.pdf",
+    "title": "IBBI is the authority to regulate the functioning of the IPs and comprises of experts in the field; the courts do not sit as an Appellate Authority over the decisions taken by the experts."
+  },
+  {
+    "page": 4,
+    "file": "16994158605948Learning curve 1006.pdf",
+    "title": "After approval of the Resolution plan by the CoC, the claims of the creditors cannot be entertained, even if the Resolution plan is pending for approval with the AA."
+  },
+  {
+    "page": 4,
+    "file": "16990088522877Learning curve 1005.pdf",
+    "title": "If rectification order is made by the AA, the period of limitation for filing an appeal u/s 61 of IBC will start from the date of rectification order."
+  },
+  {
+    "page": 5,
+    "file": "16989247065365Learning curve 1004.pdf",
+    "title": "Application u/s 9 is not maintainable if the OC returned the principal amount paid by the CD during the pendency of CIRP application."
+  },
+  {
+    "page": 5,
+    "file": "16988361402367Learning curve 1003.pdf",
+    "title": "Registration of Assignment of debt is not mandatory for initiation of CIRP u/s 7 of the IBC"
+  },
+  {
+    "page": 5,
+    "file": "16983165302373Learning curve 1002.pdf",
+    "title": "The doctrine of election cannot be applied to prevent the FC from approaching the AA for initiation of CIRP if the FC already applied for relief before the DRT under SARFAESI"
+  },
+  {
+    "page": 5,
+    "file": "16977138787361Learning curve 1001.pdf",
+    "title": "No distinction can be made between Homebuyers who availed the remedy under RERA and Other Homebuyers for the purpose of Resolution Plan"
+  },
+  {
+    "page": 5,
+    "file": "16977138443528Learning curve 1000.pdf",
+    "title": "For a pre-existing dispute to be a ground to nullify an application under Section 9, it must exist at the time of filing reply to the demand notice issued under Sec 8 or at the time of filing Sec 9 application"
+  },
+  {
+    "page": 5,
+    "file": "16976049099479Learning curve 999.pdf",
+    "title": "The limitation for filing an Appeal shall commence from the date of the order and not from the date when aggrieved party have knowledge of the contents of the order"
+  },
+  {
+    "page": 5,
+    "file": "16974382237382Learning curve 998.pdf",
+    "title": "Liquidator is not entitled to claim fees and other costs from the applicant when scheme of compromise and arrangement proposed by Applicant is rejected by the Creditors"
+  },
+  {
+    "page": 5,
+    "file": "16971048297532Learning curve 997.pdf",
+    "title": "When the AA has already directed initiation of insolvency against the CD, on the application of the appellant, AA could not have modified the initiation of CIRP by confining the CIRP to one project."
+  },
+  {
+    "page": 5,
+    "file": "16969985092046Learning curve 996.pdf",
+    "title": "The amount payable by the insurance company belongs to the corporate debtor and the corporate debtor which is under the new management is entitled for the same"
+  },
+  {
+    "page": 5,
+    "file": "16968366038512Learning curve 995.pdf",
+    "title": "The scope and jurisdiction of AA under IBC, is limited and not as extensive as that of a civil court to enquire into disputes arising out of MoUs and specific performance."
+  },
+  {
+    "page": 6,
+    "file": "16968365776214Learning curve 994.pdf",
+    "title": "Fees payable to an Arbitrator has to be treated on par with the liquidator and to be treated as preferential even if CIRP is pending before NCLT"
+  },
+  {
+    "page": 6,
+    "file": "16968365497247Learning curve 993.pdf",
+    "title": "The notice of arbitration was replied by Operational Creditor stating that there is no pre-existing dispute cannot be a reason to ignore the dispute"
+  },
+  {
+    "page": 6,
+    "file": "16968365238883Learning curve 992.pdf",
+    "title": "In terms of proviso to Section 31(4), approval of CCI is mandatory and the approval of the CCI prior to approval of CoC is directory"
+  },
+  {
+    "page": 6,
+    "file": "16968364968447Learning curve 991.pdf",
+    "title": "Where CoC has approved, with more than 90% of voting share, it is not open to an AA in law to reject the CIRP withdrawal application"
+  },
+  {
+    "page": 6,
+    "file": "16968364669717Learning curve 990.pdf",
+    "title": "The successful resolution applicant cannot be insisted to pay the arrears payable by the corporate debtor for the period prior to the approval of resolution plan"
+  },
+  {
+    "page": 6,
+    "file": "16968364389687Learning curve 989.pdf",
+    "title": "Invocation of Guarantee during the period specified under Section 10-A renders the application filed under Section 7, non-maintainable"
+  },
+  {
+    "page": 6,
+    "file": "16950373832952Learning curve 988.pdf",
+    "title": "Litigation in the SARFAESI and DRT does not preclude the Bank to take specific remedy provided under Section 7 of the IBC"
+  },
+  {
+    "page": 6,
+    "file": "16950373444520Learning curve 987.pdf",
+    "title": "RP is not obliged to accept claims that are belatedly received after extended period of 90 days of the Insolvency Commencement Date and approval of the Resolution Plan"
+  },
+  {
+    "page": 6,
+    "file": "16950373118249Learning curve 986 (1).pdf",
+    "title": "It is not necessary that written financial contract is the only basis to prove a financial debt under Regulation 8(2) of CIRP Regulations."
+  },
+  {
+    "page": 6,
+    "file": "16950372723713Learning curve 985.pdf",
+    "title": "When there is a clear statutory bar in entertaining an appeal, which is filed beyond the period prescribed under the statute, the Tribunal cannot exercise its inherent powers and condone the delay."
+  },
+  {
+    "page": 7,
+    "file": "16944104801636Learning curve 984 (1).pdf",
+    "title": "The advances given by Property buyers to real estate developer will be considered as a borrowing and such amounts raised from allottees falls within the scope of Section 5(8)(f) of the Code"
+  },
+  {
+    "page": 7,
+    "file": "16939797498160Learning curve 983.pdf",
+    "title": "Since Performance Bank Guarantee is excluded from the definition Sec 3 (31) of IBC, it would not fall under Moratorium, in terms of Sec 14 of the IBC as well"
+  },
+  {
+    "page": 7,
+    "file": "16938092296580Learning curve 982.pdf",
+    "title": "The decision as to whether the CD is to be revived or not is essentially a business decision and hence should be left to the CoC"
+  },
+  {
+    "page": 7,
+    "file": "16935672968317Learning curve 981.pdf",
+    "title": "A Del Credere Agent who has paid to Principal Supplier the outstanding amount due from CD is an Operational Creditor, Sec 7 application filed by an OC is not maintainable"
+  },
+  {
+    "page": 7,
+    "file": "16933073798487Learning curve 980.pdf",
+    "title": "RP is required to conduct Section 29A due diligence, mere reliance on the affidavit submitted by the prospective Resolution Applicant will not suffice"
+  },
+  {
+    "page": 7,
+    "file": "16932802061267Learning curve 979 (002).pdf",
+    "title": "Proceedings under IBC against the Principal Borrower and the Corporate Guarantor can be initiated simultaneously"
+  },
+  {
+    "page": 7,
+    "file": "16932801396869Learning curve 978.pdf",
+    "title": "The AA cannot delay consideration of Resolution plan on the grounds that application for PUFE transaction shall be heard first."
+  },
+  {
+    "page": 7,
+    "file": "16932800937740Learning curve 977.pdf",
+    "title": "Its a commercial decision of CoC to accept a Resolution Plan which allocates value for relinquishment/extinguishment of personal guarantee"
+  },
+  {
+    "page": 7,
+    "file": "16932800518869Learning curve 976.pdf",
+    "title": "Admission of debt being due and payable by the CD amounts to clear acknowledgment of debt and belies the existences of any dispute"
+  },
+  {
+    "page": 7,
+    "file": "16932799927779Learning curve 975.pdf",
+    "title": "Dispute regarding refund/credit of Service Tax existing prior to the issuance of Demand notice amounts to a pre-existing dispute under IBC"
+  },
+  {
+    "page": 8,
+    "file": "16932799474673Learning curve 974.pdf",
+    "title": "Dispute regarding refund/credit of Service Tax existing prior to the issuance of Demand notice amounts to a pre-existing dispute under IBC"
+  },
+  {
+    "page": 8,
+    "file": "16932798983611Learning curve 973.pdf",
+    "title": "A section 9 application filed on 04.08.2020 i.e. subsequent to 24.03.2020 should fulfil the threshold of Rs. One crore, irrespective of when Demand Notice was served"
+  },
+  {
+    "page": 8,
+    "file": "16932798583378Learning curve 972.pdf",
+    "title": "Debt claimed by the Creditor must be crystallized, undisputed and not something which requires adjudication by competent authority"
+  },
+  {
+    "page": 8,
+    "file": "16932798183664Learning curve 971.pdf",
+    "title": "There can be no fetters on the commercial wisdom of the CoC"
+  },
+  {
+    "page": 8,
+    "file": "16932797813074Learning curve 970.pdf",
+    "title": "Issue of pre-existing dispute cannot be examined/ raised in Appeal when the CD had not filed an objection previously"
+  },
+  {
+    "page": 8,
+    "file": "16932797157238Learning curve 969.pdf",
+    "title": "A set off benefit cannot be claimed during Liquidation where due amount was demanded by the RP during CIRP but not paid"
+  },
+  {
+    "page": 8,
+    "file": "16932796598302Learning curve 968.pdf",
+    "title": "A cheque issued prior to date of commencement of CIRP and enchased during CIRP cannot be termed as preferential transaction or violative of the moratorium u/s 14 of IBC"
+  },
+  {
+    "page": 8,
+    "file": "16932795845075Learning curve 967.pdf",
+    "title": "Liability of corporate guarantor although is coextensive of the Principal Borrower but when the Guarantee requires invocation of the guarantee deed, default on the guarantor shall be the date when corporate guarantee has been invoked"
+  },
+  {
+    "page": 8,
+    "file": "16932795343148Learning curve 966.pdf",
+    "title": "A Co-Borrower who has not been disbursed any amount of loan can also fall under the definition of Section 5(8) of the IBC"
+  },
+  {
+    "page": 8,
+    "file": "16932794523918Learning curve 965.pdf",
+    "title": "IBC permits a resolution plan that entails restructuring"
+  },
+  {
+    "page": 9,
+    "file": "16932793853932Learning curve 964.pdf",
+    "title": "The credit available to the earlier management will not be available to the changed management as the changed management was not a taxpayer during the period of procurement of inputs or capital goods"
+  },
+  {
+    "page": 9,
+    "file": "16932793263203Learning curve 963.pdf",
+    "title": "If the Corporate Debtor is an MSME, it is not necessary for the promoters to compete with other resolution applicants to regain control of the Corporate Debtor"
+  },
+  {
+    "page": 9,
+    "file": "16932792537295Learning curve 962.pdf",
+    "title": "It is not mandatory for the Committee of Creditors to pay performance linked Incentive Fee to the Resolution Professional."
+  },
+  {
+    "page": 9,
+    "file": "16932791819366Learning curve 961.pdf",
+    "title": "There can be differential payment in payment of debts of FCs and OCs, however, there can be no difference in interse payment within a class of creditors"
+  },
+  {
+    "page": 9,
+    "file": "16932787423896Learning curve 960.pdf",
+    "title": "The Code does not stipulate that the Resolution Plan size is required to be more than the liquidation value"
+  },
+  {
+    "page": 9,
+    "file": "16932785772625Learning Curve 958.pdf",
+    "title": "Period of Limitation for filing appeal shall commence from the date of pronouncement of Order"
+  },
+  {
+    "page": 9,
+    "file": "16932785367266Learning curve 957.pdf",
+    "title": "The absence of formal written agreement would not bar the Financial Creditor from initiating the CIRP"
+  },
+  {
+    "page": 9,
+    "file": "16932782274790Learning curve 956.pdf",
+    "title": "Reason for accepting application for CIRP by AA is not mandatory"
+  },
+  {
+    "page": 9,
+    "file": "16932781615717Learning curve 955.pdf",
+    "title": "CoC cannot be constituted with sole Operational Creditor"
+  },
+  {
+    "page": 10,
+    "file": "16932780322206Learning curve 953.pdf",
+    "title": "An Asset Reconstruction Company (ARC) does not require prior approval of RBI for participating as a Resolution Co-Applicant under the IBC"
+  },
+  {
+    "page": 10,
+    "file": "16932776349151Learning curve 952.pdf",
+    "title": "The copy of the Resolution Plan, which is still in the process of approval or rejection by the Adjudicating Authority, cannot be given to a party who is neither a Claimant nor a Creditor or a participant"
+  },
+  {
+    "page": 10,
+    "file": "16932775605615Learning curve 951.pdf",
+    "title": "NCLAT is not vested with any power to review a judgment, however, in exercise of its inherent jurisdiction it can entertain an application for recall of judgment on sufficient grounds"
+  },
+  {
+    "page": 10,
+    "file": "16932775184386Learning curve 950.pdf",
+    "title": "Delay In Filing Of Appeal Under Section 42 Of IBC Is Condonable Under Section 5 Of Limitation Act."
+  },
+  {
+    "page": 10,
+    "file": "16932773454989Learning curve 948 (1).pdf",
+    "title": "Remedy against third party not available under Section 66 of IBC: Supreme Court"
+  },
+  {
+    "page": 11,
+    "file": "16922568663296IBC Learning Curve 944.png",
+    "title": "The payment of advance amount to receive the supply of goods and services from the CD does not come within the ambit of Operational Debt."
+  },
+  {
+    "page": 11,
+    "file": "16922567533659IBC Learning Curve 943.png",
+    "title": "The payment of advance amount to receive the supply of goods and services from the CD does not come within the ambit of Operational Debt."
+  },
+  {
+    "page": 11,
+    "file": "16922566425214IBC Learning Curve 942.png",
+    "title": "Ineligibility of Resolution Applicant as per S.164(2)(b) Companies Act can't be presumed unless competent authority declares disqualification"
+  },
+  {
+    "page": 11,
+    "file": "16922560253079IBC Learning Curve 941.png",
+    "title": "SC upheld a provision of the Companies Act 2013, which holds that workers' dues will not get preferential payment in the event a company undergoes liquidation as per the provisions of the Insolvency and Bankruptcy Code 2016."
+  },
+  {
+    "page": 11,
+    "file": "16922559049896IBC Learning Curve 940.png",
+    "title": "NCLAT Delhi Upholds Rejection Of Discovery & Inspection Application Filed By Corporate Debtor In Section 9 Petition."
+  },
+  {
+    "page": 11,
+    "file": "16922558111716IBC Learning Curve 939.png",
+    "title": "NCLAT rejected an appeal filed against the approval of the resolution plan which provided for payment of only 1% of the actual statutory dues of sales tax."
+  },
+  {
+    "page": 11,
+    "file": "16922556924909IBC Learning Curve 938.png",
+    "title": "A One Time Settlement (OTS) proposal is acknowledgement of debt in terms of Section 18 of Limitation Act, 1963"
+  },
+  {
+    "page": 11,
+    "file": "Learning Curve 937.png",
+    "title": "Financial Creditors who are minority Debenture Holders are entitled to initiate CIRP irrespective of presence of Debenture Trustee"
+  },
+  {
+    "page": 11,
+    "file": "Learning Curve 936.png",
+    "title": "Liquidation value found by the Registered Valuers cannot be allowed to be changed by the CoC"
+  },
+  {
+    "page": 11,
+    "file": "Learning Curve 935.png",
+    "title": "Claim Arising out of Partnership Business which is not a mere Claim of Supply of Material is not an \"Operational Debt\""
+  },
+  {
+    "page": 12,
+    "file": "Learning Curve 934.png",
+    "title": "Interest Bearing Refundable Advance Paid Under An MoU which has lost Legal force can still be categorized as Financial Debt"
+  },
+  {
+    "page": 12,
+    "file": "Learning curve 933.pdf",
+    "title": "If claim for Pre-CIRP dues has not been filed, Electricity Department is not entitled to recover such dues or to disconnect electricity"
+  },
+  {
+    "page": 12,
+    "file": "Learning_curve_932.pdf",
+    "title": "Resolution Professional Under IBC Will Come Within Meaning Of 'Public Servant' Under Prevention Of Corruption Act"
+  },
+  {
+    "page": 12,
+    "file": "Learning_curve_931.pdf",
+    "title": "NCLAT upheld the decision of the IRP whereby the claim of financial creditor was reduced after having been once admitted, based on an arbitral award"
+  },
+  {
+    "page": 12,
+    "file": "Learning_curve_930.pdf",
+    "title": "Section 14 of IBC would not bar a proceeding under the Prevention of Money Laundering Act, 2002"
+  },
+  {
+    "page": 12,
+    "file": "Learning_curve_929.pdf",
+    "title": "Financial Creditor who does not attend the proceeding, cannot be heard in saying that CIRP has wrongly been conducted"
+  },
+  {
+    "page": 12,
+    "file": "Learning_curve_928.pdf",
+    "title": "Unsuccessful Resolution Applicant has no locus standi to assail a Resolution Plan or its implementation since it is not a stakeholder as per Section 31(1) of IBC"
+  },
+  {
+    "page": 12,
+    "file": "Learning_curve_927.pdf",
+    "title": "Replacement of a Resolution Professional is complete as per the scheme of section 27 of IBC when the resolution is passed with the requisite 66% voting"
+  },
+  {
+    "page": 12,
+    "file": "Learning_curve_926.pdf",
+    "title": "Regulation 39(1A) cannot be read as a fetter on the powers of the CoC to discuss and deliberate and take further steps of negotiations with the Resolution Applicants, which resolutions are received after completion of Challenge Mechanism."
+  },
+  {
+    "page": 12,
+    "file": "Learning_curve_925.pdf",
+    "title": "A single application can be filed by the Operational Creditor for various claims arising out of separate work orders"
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_924.pdf",
+    "title": "An application under Section 9 of IBC must stand the test that Operational Creditors can only trigger CIRP when there is an undisputed debt and a default in payment thereof"
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_923.pdf",
+    "title": "If either the principal borrower or guarantor has been discharged then the other party would not stand discharged automatically till the liability is met out or discharged"
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_922.pdf",
+    "title": "The approval of resolution plan of a corporate debtor under the IBC will not extinguish the criminal liability of its erstwhile director under Section 138 of the Negotiable Instruments Act 1881"
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_921.pdf",
+    "title": "NCLT is not the proper Fora to determine the controversies revolving around the Attachment of Property under the Prohibition of Benami Property Transactions Act, 1988"
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_920.pdf",
+    "title": "When FCs have not been paid in full in the Resolution Plan, the OCs cannot claim a higher amount under the same"
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_919.pdf",
+    "title": "Liquidator is not obliged to seek permission of Adjudicating Authority for conducting sale of a Corporate Debtor as a going concern even after the first auction has taken place."
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_918.pdf",
+    "title": "Shareholders of CD have no locus to challenge the initiation of CIRP against the CD."
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_917.pdf",
+    "title": "NCLAT extends benefit of Limitation computation to Appeals filed between 01.11.2022 to 23.12.2022."
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_916.pdf",
+    "title": "If a Corporate Debtor merely requests statements or ledger from the Operational Creditor for verification, then such act would not amount to an admission of claim and would not renew the limitation period."
+  },
+  {
+    "page": 13,
+    "file": "Learning_curve_915.pdf",
+    "title": "Creditors must not shift the entire blame on the IRP on grounds of non-performance of duty and make him the scapegoat; the rigours of similar standards of discipline should also apply on the creditors."
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_914.pdf",
+    "title": "NCLT ordered liquidation of CD without mandate of the CoC where the Resolution Applicant wilfully failed to implement the plan."
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_913.pdf",
+    "title": "An application under Section 9 of IBC is not a suit and hence, the bar under Section 69(2) of Indian Partnership Act, 1932 is not applicable to a Section 9 application."
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_912.pdf",
+    "title": "By paying only 35.13% of the PF and Gratuity dues and thus treating the workmen/employees as Secured Creditors, the approved resolution plan violated Section 30(2) of IBC."
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_911.pdf",
+    "title": "The Liquidator has no jurisdiction to reject or modify already admitted claims, if he receives any additional information."
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_910.pdf",
+    "title": "The dues of the Income Tax dues are Government dues and Income Tax Authorities are a secured creditor."
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_909.pdf",
+    "title": "In case of realisation of Security Interest u/s 52(1)(b) of IBC, a Secured Creditor is confined to the amount of principal and interest as claimed in Form D"
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_908.pdf",
+    "title": "There cannot be simultaneous CIRP proceedings against the same Corporate Debtor"
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_907.pdf",
+    "title": "Assets of Subsidiary Company cannot be dealt with in CIRP of Holding Company"
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_906.pdf",
+    "title": "The financial debt which was claimed by the financial creditor would not be wiped out nor shall the nature and character of financial debt be changed on account of breach of the consent terms between the parties."
+  },
+  {
+    "page": 14,
+    "file": "Learning_curve_905.pdf",
+    "title": "Benefit u/s 10A of IBC can only be claimed when default occurs during prohibited period."
+  }
+]
+```
+
+## Detailed Browser Subagent Actions:
+
+### Step 2: view_file
+Arguments:
+```json
+{"AbsolutePath":"/Users/atulgrover/.gemini/antigravity-ide/brain/6710bfa5-50a2-463c-af83-2567c29352e5/browser/scratchpad_oerajn73.md","explanation":"Read the scratchpad file to check for existing context.","toolAction":"Viewing scratchpad file","toolSummary":"View scratchpad"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 4: replace_file_content
+Arguments:
+```json
+{"AllowMultiple":true,"Description":"Initialize the scratchpad with a task checklist.","EndLine":1,"Instruction":"Initialize scratchpad with task steps.","ReplacementContent":"# Task: Scrape PDF filenames and titles from ICSI IIP Learning Curves Pages 1 to 14\n\n## Checklist\n- [ ] Open the target website: `https://icsiiip.in/learning-curves.php`\n- [ ] Run the JS scrape script for pages 1 to 14 in the browser console\n- [ ] Retrieve and format the JSON result list\n- [ ] Report final JSON result list to the user\n\n## Notes\n- Target URL: https://icsiiip.in/learning-curves.php\n- Output should be a JSON array of `{ page, file, title }`\n","StartLine":1,"TargetContent":"","TargetFile":"/Users/atulgrover/.gemini/antigravity-ide/brain/6710bfa5-50a2-463c-af83-2567c29352e5/browser/scratchpad_oerajn73.md","explanation":"Initialize scratchpad with the task plan.","toolAction":"Updating scratchpad","toolSummary":"Edit scratchpad"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 6: open_browser_url
+Arguments:
+```json
+{"PageIdToReplace":"new_page","Url":"https://icsiiip.in/learning-curves.php","explanation":"Open the learning curves page in the browser.","toolAction":"Opening target URL","toolSummary":"Open browser URL"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 8: browser_get_dom
+Arguments:
+```json
+{"PageId":"16E348BBF856973E0C6CE50203054C47","explanation":"Get DOM of the opened page.","toolAction":"Reading DOM","toolSummary":"Get DOM"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 10: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Check tableRows element count","JavaScriptSource":"(() =\u003e {\n  const rows = document.querySelectorAll('#tableRows tr');\n  return {\n    count: rows.length,\n    firstRowText: rows[0]?.textContent || 'none'\n  };\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Check rows count","explanation":"Verify the selector for rows in the page.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 12: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Check page links count and attributes","JavaScriptSource":"(() =\u003e {\n  const links = document.querySelectorAll('a.page-link');\n  return Array.from(links).map(l =\u003e ({\n    text: l.textContent.trim(),\n    dataId: l.getAttribute('data-id'),\n    className: l.className\n  }));\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Check pagination links","explanation":"Verify pagination elements exist and have correct data-id attributes.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 14: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Test scrape first 2 pages","JavaScriptSource":"(async () =\u003e {\n  let results = [];\n  for (let page = 1; page \u003c= 2; page++) {\n    if (page \u003e 1) {\n      const link = document.querySelector(`a.page-link[data-id=\"${page}\"]`);\n      if (link) {\n        const oldFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n        link.click();\n        await new Promise(r =\u003e setTimeout(r, 1500));\n        let retries = 15;\n        while (retries \u003e 0) {\n          const newFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n          if (newFirstText \u0026\u0026 newFirstText !== oldFirstText) break;\n          await new Promise(r =\u003e setTimeout(r, 200));\n          retries--;\n        }\n      }\n    }\n    const rows = document.querySelectorAll('#tableRows tr');\n    rows.forEach(row =\u003e {\n      const linkEl = row.querySelector('th a');\n      const titleEl = row.querySelector('td');\n      if (linkEl \u0026\u0026 linkEl.getAttribute('href')) {\n        results.push({\n          page,\n          file: linkEl.getAttribute('href').split('/').pop(),\n          title: titleEl ? titleEl.textContent.trim() : ''\n        });\n      }\n    });\n  }\n  return results;\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Test scrape 2 pages","explanation":"Run scrape script for pages 1-2 to test.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 16: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Navigate back to page 1","JavaScriptSource":"(() =\u003e {\n  const link = document.querySelector('a.page-link[data-id=\"1\"]');\n  if (link) {\n    link.click();\n    return \"clicked page 1\";\n  }\n  return \"link not found\";\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Click page 1 link","explanation":"Click the page 1 pagination button.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 18: wait
+Arguments:
+```json
+{"duration_ms":2000,"explanation":"Wait for page 1 table rows to load.","toolAction":"Waiting","toolSummary":"Wait"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 20: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Verify first row on page 1","JavaScriptSource":"document.querySelector('#tableRows tr th a')?.textContent || ''","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Verify page 1 row","explanation":"Verify the first learning curve is 1045.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 22: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Scrape pages 1 to 14","JavaScriptSource":"(async () =\u003e {\n  let results = [];\n  for (let page = 1; page \u003c= 14; page++) {\n    if (page \u003e 1) {\n      const link = document.querySelector(`a.page-link[data-id=\"${page}\"]`);\n      if (link) {\n        const oldFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n        link.click();\n        await new Promise(r =\u003e setTimeout(r, 1500));\n        let retries = 15;\n        while (retries \u003e 0) {\n          const newFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n          if (newFirstText \u0026\u0026 newFirstText !== oldFirstText) break;\n          await new Promise(r =\u003e setTimeout(r, 200));\n          retries--;\n        }\n      }\n    }\n    const rows = document.querySelectorAll('#tableRows tr');\n    rows.forEach(row =\u003e {\n      const linkEl = row.querySelector('th a');\n      const titleEl = row.querySelector('td');\n      if (linkEl \u0026\u0026 linkEl.getAttribute('href')) {\n        results.push({\n          page,\n          file: linkEl.getAttribute('href').split('/').pop(),\n          title: titleEl ? titleEl.textContent.trim() : ''\n        });\n      }\n    });\n  }\n  return results;\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Scrape pages 1-14","explanation":"Run script to scrape pages 1-14.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_ERROR
+Error: error executing cascade step: CORTEX_STEP_TYPE_EXECUTE_BROWSER_JAVASCRIPT: action timed out
+
+### Step 24: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Check current page status","JavaScriptSource":"document.querySelector('#tableRows tr th a')?.textContent || ''","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Check current row","explanation":"Check the first item in the table to identify the current page.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 26: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Find active page number","JavaScriptSource":"(() =\u003e {\n  const activeLink = document.querySelector('li.page-item.active a.page-link, a.page-link.active');\n  if (activeLink) return activeLink.getAttribute('data-id') || activeLink.textContent.trim();\n  \n  // Alternative check: find parent li with class active\n  const activeLi = document.querySelector('li.active a.page-link');\n  if (activeLi) return activeLi.getAttribute('data-id') || activeLi.textContent.trim();\n  \n  return 'not found';\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Find active page","explanation":"Find the active page number in the pagination.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 28: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Scrape batch 1 (pages 1-5)","JavaScriptSource":"(async () =\u003e {\n  async function scrapeRange(startPage, endPage) {\n    let results = [];\n    for (let page = startPage; page \u003c= endPage; page++) {\n      const link = document.querySelector(`a.page-link[data-id=\"${page}\"]`);\n      if (link) {\n        const oldFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n        const isActive = link.parentElement.classList.contains('active') || link.classList.contains('active');\n        if (!isActive) {\n          link.click();\n          await new Promise(r =\u003e setTimeout(r, 1000));\n          let retries = 10;\n          while (retries \u003e 0) {\n            const newFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n            if (newFirstText \u0026\u0026 newFirstText !== oldFirstText) break;\n            await new Promise(r =\u003e setTimeout(r, 200));\n            retries--;\n          }\n        }\n      }\n      const rows = document.querySelectorAll('#tableRows tr');\n      rows.forEach(row =\u003e {\n        const linkEl = row.querySelector('th a');\n        const titleEl = row.querySelector('td');\n        if (linkEl \u0026\u0026 linkEl.getAttribute('href')) {\n          results.push({\n            page,\n            file: linkEl.getAttribute('href').split('/').pop(),\n            title: titleEl ? titleEl.textContent.trim() : ''\n          });\n        }\n      });\n    }\n    return results;\n  }\n  return await scrapeRange(1, 5);\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Scrape pages 1-5","explanation":"Scrape pages 1-5 and return the data.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 30: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Scrape batch 2 (pages 6-10)","JavaScriptSource":"(async () =\u003e {\n  async function scrapeRange(startPage, endPage) {\n    let results = [];\n    for (let page = startPage; page \u003c= endPage; page++) {\n      const link = document.querySelector(`a.page-link[data-id=\"${page}\"]`);\n      if (link) {\n        const oldFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n        const isActive = link.parentElement.classList.contains('active') || link.classList.contains('active');\n        if (!isActive) {\n          link.click();\n          await new Promise(r =\u003e setTimeout(r, 1000));\n          let retries = 10;\n          while (retries \u003e 0) {\n            const newFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n            if (newFirstText \u0026\u0026 newFirstText !== oldFirstText) break;\n            await new Promise(r =\u003e setTimeout(r, 200));\n            retries--;\n          }\n        }\n      }\n      const rows = document.querySelectorAll('#tableRows tr');\n      rows.forEach(row =\u003e {\n        const linkEl = row.querySelector('th a');\n        const titleEl = row.querySelector('td');\n        if (linkEl \u0026\u0026 linkEl.getAttribute('href')) {\n          results.push({\n            page,\n            file: linkEl.getAttribute('href').split('/').pop(),\n            title: titleEl ? titleEl.textContent.trim() : ''\n          });\n        }\n      });\n    }\n    return results;\n  }\n  return await scrapeRange(6, 10);\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Scrape pages 6-10","explanation":"Scrape pages 6-10 and return the data.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 32: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Check rows on current page","JavaScriptSource":"(() =\u003e {\n  const rows = document.querySelectorAll('#tableRows tr');\n  return Array.from(rows).map(row =\u003e {\n    const linkEl = row.querySelector('th a');\n    return linkEl ? linkEl.textContent.trim() : 'no link';\n  });\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Check current page rows","explanation":"List the items currently visible in the table.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 34: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Get current page status and rows details","JavaScriptSource":"(() =\u003e {\n  const activeLink = document.querySelector('li.page-item.active a.page-link, a.page-link.active, li.active a.page-link');\n  const activePage = activeLink ? (activeLink.getAttribute('data-id') || activeLink.textContent.trim()) : 'unknown';\n  \n  const rows = document.querySelectorAll('#tableRows tr');\n  const rowData = Array.from(rows).map(row =\u003e {\n    const linkEl = row.querySelector('th a');\n    const titleEl = row.querySelector('td');\n    return {\n      text: linkEl ? linkEl.textContent.trim() : 'no link',\n      href: linkEl ? linkEl.getAttribute('href') : null,\n      title: titleEl ? titleEl.textContent.trim() : ''\n    };\n  });\n  \n  return { activePage, rowData };\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Get current page \u0026 rows","explanation":"Get active page number and details of all rows currently visible in the table.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 36: open_browser_url
+Arguments:
+```json
+{"PageIdToReplace":"16E348BBF856973E0C6CE50203054C47","Url":"https://icsiiip.in/learning-curves.php","explanation":"Reload the page to start clean.","toolAction":"Reloading page","toolSummary":"Open browser URL"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 38: list_browser_pages
+Arguments:
+```json
+{"explanation":"List open browser pages.","toolAction":"Listing pages","toolSummary":"List pages"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 40: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Get page links on page 1","JavaScriptSource":"(() =\u003e {\n  const links = document.querySelectorAll('a.page-link');\n  return Array.from(links).map(l =\u003e ({\n    text: l.textContent.trim(),\n    dataId: l.getAttribute('data-id'),\n    className: l.className\n  }));\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Get page links","explanation":"List the pagination links on the current page.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 42: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Click page 2 and get rows","JavaScriptSource":"(() =\u003e {\n  const link = document.querySelector('a.page-link[data-id=\"2\"]');\n  if (link) {\n    link.click();\n    return \"clicked page 2\";\n  }\n  return \"link not found\";\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Click page 2","explanation":"Manually click the Page 2 link to inspect.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 44: wait
+Arguments:
+```json
+{"duration_ms":2000,"explanation":"Wait for page 2 content to load.","toolAction":"Waiting","toolSummary":"Wait"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 46: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Get rows on page 2","JavaScriptSource":"(() =\u003e {\n  const rows = document.querySelectorAll('#tableRows tr');\n  return Array.from(rows).map(row =\u003e {\n    const linkEl = row.querySelector('th a');\n    const titleEl = row.querySelector('td');\n    return {\n      text: linkEl ? linkEl.textContent.trim() : 'no link',\n      href: linkEl ? linkEl.getAttribute('href') : null,\n      title: titleEl ? titleEl.textContent.trim() : ''\n    };\n  });\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Get page 2 rows","explanation":"Get details of the rows currently visible on Page 2.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_DONE
+
+### Step 48: execute_browser_javascript
+Arguments:
+```json
+{"JavaScriptDescription":"Inspect first row of pages 1-14","JavaScriptSource":"(async () =\u003e {\n  let log = [];\n  // Go to page 1 first\n  let link1 = document.querySelector('a.page-link[data-id=\"1\"]');\n  if (link1) {\n    link1.click();\n    await new Promise(r =\u003e setTimeout(r, 2000));\n  }\n  \n  for (let p = 1; p \u003c= 14; p++) {\n    const link = document.querySelector(`a.page-link[data-id=\"${p}\"]`);\n    if (link) {\n      const oldFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n      const isActive = link.parentElement.classList.contains('active') || link.classList.contains('active');\n      if (!isActive) {\n        link.click();\n        await new Promise(r =\u003e setTimeout(r, 2000));\n      }\n      const newFirstText = document.querySelector('#tableRows tr th a')?.textContent;\n      log.push({ page: p, firstText: newFirstText });\n    } else {\n      log.push({ page: p, firstText: 'link not found' });\n    }\n  }\n  return log;\n})()","PageId":"16E348BBF856973E0C6CE50203054C47","Title":"Inspect pages 1-14","explanation":"Inspect first row of each page from 1 to 14.","toolAction":"Executing JavaScript","toolSummary":"Execute JS"}
+```
+Status: CORTEX_STEP_STATUS_ERROR
+Error: error executing cascade step: CORTEX_STEP_TYPE_EXECUTE_BROWSER_JAVASCRIPT: action ti
+<truncated 12097 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.

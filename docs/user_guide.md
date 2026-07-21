@@ -1,6 +1,14 @@
-# HAYAGRIVA Ingestion & AI Enrichment User Guide
+# HAYAGRIVA Legal IPE & Ingestion User Guide
 
-This guide describes how the three-stage file ingestion pipeline works, documents common failure modes (Gatekeeper blocks, memory exhaustion, scanned PDFs, offline cache misses), and provides clear step-by-step resolution paths to keep the system operational.
+**HAYAGRIVA** is an **Integrated Professional Environment (IPE)** designed for Advocates, Corporate Counsel, and Insolvency Professionals. It unifies legal document ingestion, precedent research, Markdown drafting, live case ledgers, and court-compliant petition publishing into one desktop workspace.
+
+## Executive Overview: The Legal IPE Concept
+An Integrated Professional Environment (IPE) synthesizes all tools, workflows, data streams, and communication channels a legal practitioner needs into a single interface. Much like an Integrated Development Environment (IDE) minimizes context-switching for software engineers, HAYAGRIVA minimizes context-switching for legal professionals by blending disconnected tools into one seamless desktop application shell:
+
+* **Smart Document & Asset Canvas:** Monaco-powered legal drafting editor with live `/law`, `/case`, `/clause`, and `@@` statutory hover cards.
+* **Unified Case Ledger Engine:** Bi-directional synchronization between Markdown ledgers (`case_facts.md`, `claims_registry.md`, `avoidance_ledger.md`) and SQLite database tables.
+* **Local-First & Encrypted:** Complete AES-256-GCM encryption at rest for statutory and case law vaults with zero cloud data leakage.
+* **Deterministic Compiler:** One-click conversion from Markdown to court-compliant Supreme Court & NCLAT `.docx` petitions (`/export-sc`).
 
 ---
 
@@ -118,23 +126,86 @@ HAYAGRIVA supports two processing modes to accommodate different hardware specif
 
 ---
 
-## 3. Installing LibreOffice for Silent Ingestion
-
-HAYAGRIVA integrates headless **LibreOffice** as a background format converter. 
-
-*   **100% Offline Privacy:** Document formatting is handled strictly in your local RAM/disk.
-*   **Zero Distractions:** LibreOffice runs programmatically. No graphical Word or Excel windows will pop up or take focus while you are drafting.
-
-### macOS Setup
-1.  Open your Terminal application.
-2.  Install via Homebrew cask:
-    ```bash
-    brew install --cask libreoffice
-    ```
-
-### Windows Setup
-1.  Download the MSI Installer from the official [LibreOffice Download Portal](https://www.libreoffice.org/download/).
-2.  Run the typical installation setup.
-3.  Restart the HAYAGRIVA launcher server once installation completes.
-
 *Once installed, the backend will auto-detect the installation path. No settings configurations are needed.*
+
+---
+
+## 4. Vault Distribution System
+
+HAYAGRIVA uses an encrypted, versioned **Vault** system to distribute curated legal and financial knowledge bases directly to users. Vaults are downloaded once and stored locally — no data is ever sent to a cloud server during search or inference.
+
+### The 4 Vaults
+
+| Vault | Contents | Status |
+|---|---|---|
+| **Laws Vault** | Full statutory text across all IBC domains | Available |
+| **Cases Vault** | Summaries of 17,000+ NCLT/NCLAT judgments and orders | Available |
+| **Documents Vault** | Standard legal document templates | Coming soon |
+| **Forms Vault** | IBBI prescribed forms with field guidance | Coming soon |
+
+### How to Download a Vault
+
+1. Open **Settings → Vault & License** tab inside HAYAGRIVA.
+2. Enter your license key (`HAYG-XXXX-XXXX-XXXX`) received via email after purchase.
+3. The app validates your key against `api.hayagriva.app` and stores your vault decryption key in the macOS/Windows Keychain.
+4. Click **Download** next to the vault you wish to install.
+5. The vault is downloaded, integrity-verified (SHA-256), and installed to:
+   - macOS: `~/Library/Application Support/Hayagriva/vaults/{name}/`
+   - Windows: `%APPDATA%\Hayagriva\vaults\{name}\`
+6. The app hot-swaps the new vault without requiring a restart.
+
+### Monthly Updates
+
+Vaults are refreshed monthly with new judgments and statutory amendments. You will receive an email notification. To update:
+1. Open **Settings → Vault & License**.
+2. Click **Check for Updates**.
+3. Click **Download** on any vault showing a new version.
+
+---
+
+## 5. Local AI — Sovereign LLM Mode
+
+HAYAGRIVA's AI features run **100% locally** using domain-tuned Indian legal language models. No case data, client names, or legal arguments are ever transmitted to a cloud API.
+
+### Two Operating Modes
+
+| Mode | AI | Speed | RAM Required |
+|---|---|---|---|
+| **⚡ Lite** | None (BM25 + semantic search only) | Instant | 8 GB |
+| **🧠 Local** | LegalParam / FinanceParam (offline LLM) | ~15–20 t/s | 16 GB |
+
+### Downloading a Local LLM
+
+Local models are distributed as **llamafile** executables — a single self-contained file (~1.7 GB) that includes the model weights and inference runtime. No separate software installation is required.
+
+1. Open **Settings → Vault & License**.
+2. Under **Local AI Models**, click **Download** next to the model you need.
+3. The model is installed to `~/Library/Application Support/Hayagriva/models/`.
+4. Switch your mode to **Local** in Settings to activate it.
+
+### Available Models
+
+| Model | Size | Specialisation | Context |
+|---|---|---|---|
+| **LegalParam-2.9B** | ~1.7 GB | IBC, NCLT, insolvency law across 14 legal domains | 2,048 tokens |
+| **FinanceParam-2.9B** | ~1.7 GB | Indian financial law: taxation, banking, investment | 2,048 tokens |
+
+> **Note:** These models are optimised for focused drafting and Q&A on retrieved case excerpts. For long document summarisation, use the vault search to retrieve relevant sections first, then prompt the model on those excerpts.
+
+---
+
+## 6. Troubleshooting
+
+### 🔴 Step 3 Failure: AI Enrichment Fails (Dot 3 Red)
+
+#### A. Out-of-Memory on 8GB–16GB RAM Systems
+- **Cause:** Running a local LLM alongside the IDE and browser can exhaust memory on lower-end machines.
+- **Resolution:** Switch to **Lite Mode** in Settings. All search and indexing features remain fully functional. AI drafting features are deactivated.
+
+#### B. Local Model Not Downloaded
+- **Cause:** Local mode is active but no LLM model file exists in the models directory.
+- **Resolution:** Go to **Settings → Vault & License → Local AI Models** and download a model. The model must be fully installed before Local mode can activate.
+
+#### C. Model Cold Start Delay
+- **Cause:** The LLM process needs ~5–10 seconds to start on first use.
+- **Resolution:** This is expected. A spinner will show in the chat panel during startup. Subsequent queries in the same session are instant.

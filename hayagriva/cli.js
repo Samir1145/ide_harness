@@ -6,6 +6,7 @@ const { createWatcher, ingestFile, registerUnprocessedFile } = require('./lib/da
 const { readIndex } = require('./lib/core/indexer');
 const { query } = require('./lib/core/rag');
 const { loadVault } = require('./lib/utils/vault-loader');
+const { loadCasesVault } = require('./lib/utils/cases-vault-loader');
 
 const HELP = `Usage: hayagriva <case-path>
 
@@ -82,8 +83,7 @@ async function bootstrapCase(caseDir) {
                     lower !== 'conversions' && 
                     lower !== 'reviews' && 
                     lower !== 'drafts' && 
-                    lower !== 'exports' &&
-                    lower !== 'summaries') {
+                    lower !== 'exports') {
                     scan(filePath);
                 }
             } else if (isDoc) {
@@ -189,6 +189,10 @@ async function main() {
 
     // Load encrypted law vault into RAM (no decrypted content ever touches disk)
     loadVault();
+
+    // Load cases vault (judgment summaries) — silently skipped if not yet downloaded
+    loadCasesVault();
+
 
     const argv = process.argv.slice(2);
     let caseArg = null;

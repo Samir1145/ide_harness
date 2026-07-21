@@ -1,25 +1,83 @@
 'use strict';
 /**
- * vault-loader.js  (Open Vault — 1-step JSON load)
+ * vault-loader.js  (Laws Vault)
+ * ─────────────────────────────────────────────────────────────────
+ * Loads the encrypted laws vault (statutory text) from:
+ *   1. ~/Library/Application Support/Hayagriva/vaults/laws/  (user-downloaded)
+ *   2. hayagriva/vault/  (bundled fallback)
+ *
+ * VAULT_KEY is read from the OS Keychain (keytar) when available,
+ * with a fallback to process.env.VAULT_KEY for local development.
  * ─────────────────────────────────────────────────────────────────
  */
 
-const path = require('path');
-const fs   = require('fs');
+const path   = require('path');
+const fs     = require('fs');
 const crypto = require('crypto');
 const zlib   = require('zlib');
+const os     = require('os');
 
-const VAULT_DIR  = path.join(__dirname, '..', '..', 'vault');
-const MANIFEST_PATH = path.join(VAULT_DIR, 'manifest.json');
-const DATA_PATH     = path.join(VAULT_DIR, 'laws.vlt.data');
-const VER_PATH   = path.join(VAULT_DIR, 'version.json');
-const OVERLAYS_DIR  = path.join(VAULT_DIR, 'user_overlays');
+// ── Vault path resolution ─────────────────────────────────────────
+// Check the user's Application Support directory first (downloaded vaults),
+// then fall back to the bundled vault shipped with the app.
 
+const USER_VAULTS_DIR  = process.platform === 'win32'
+  ? path.join(process.env.APPDATA || os.homedir(), 'Hayagriva', 'vaults', 'laws')
+  : path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'vaults', 'laws');
+
+const BUNDLED_VAULT_DIR = path.join(__dirname, '..', '..', 'vault');
+
+function resolveVaultDir() {
+  // Prefer user-downloaded vault if manifest exists there
+  if (fs.existsSync(path.join(USER_VAULTS_DIR, 'laws-manifest.json'))) {
+    return { dir: USER_VAULTS_DIR, prefix: 'laws-' };
+  }
+  // Bundled fallback (original layout — no prefix)
+  return { dir: BUNDLED_VAULT_DIR, prefix: '' };
+}
+
+const OVERLAYS_DIR = path.join(BUNDLED_VAULT_DIR, 'user_overlays');
+
+let _vaultDir    = null;
+let _prefix      = '';
+let _manifestPath = null;
+let _dataPath    = null;
+let _verPath     = null;
+
+function _resolvePaths() {
+  const { dir, prefix } = resolveVaultDir();
+  _vaultDir     = dir;
+  _prefix       = prefix;
+  _manifestPath = path.join(dir, `${prefix}manifest.json`);
+  _dataPath     = path.join(dir, `${prefix}laws.vlt.data`);
+  _verPath      = path.join(dir, `${prefix}version.json`);
+}
+
+_resolvePaths();
+
+// ── State ─────────────────────────────────────────────────────────
 let _index       = null;
-
 let _ready       = false;
 let _version     = null;
 const _overlays  = new Map();
+
+// ── VAULT_KEY via Keychain ────────────────────────────────────────
+const KEYCHAIN_SERVICE = 'hayagriva';
+const KEYCHAIN_ACCOUNT = 'vault-laws';
+
+async function getVaultKey() {
+  // 1. Try OS Keychain (production — user has activated a license)
+  try {
+    const keytar = require('keytar');
+    const keychainKey = await keytar.getPassword(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
+    if (keychainKey && keychainKey.length === 64) return keychainKey;
+  } catch (_) {
+    // keytar not available (dev environment without native build)
+  }
+  // 2. Fall back to environment variable (local dev)
+  const envKey = process.env.VAULT_KEY || '';
+  return envKey.length === 64 ? envKey : null;
+}
 
 // ── BM25 scorer ───────────────────────────────────────────────────
 
@@ -128,48 +186,58 @@ function loadOverlays() {
 }
 
 function loadVault() {
-    if (!fs.existsSync(MANIFEST_PATH)) {
-        console.warn(`[VaultLoader] No manifest found at ${MANIFEST_PATH} — law completion disabled.`);
+    _resolvePaths();
+
+    if (!fs.existsSync(_manifestPath)) {
+        console.warn(`[VaultLoader] No manifest found at ${_manifestPath} — law completion disabled.`);
         return false;
     }
 
-    const vaultKeyHex = process.env.VAULT_KEY || '';
-    if (vaultKeyHex.length !== 64) {
-        console.warn(`[VaultLoader] Missing or invalid VAULT_KEY (must be 64-char hex) — law completion disabled.`);
-        return false;
+    // Vault key is fetched async; loadVault() triggers a background resolve.
+    // The vault will only be fully ready once _getVaultKeyAndFinish completes.
+    _getVaultKeyAndFinish();
+    return true; // partial init — _ready set async
+}
+
+async function _getVaultKeyAndFinish() {
+    const vaultKeyHex = await getVaultKey();
+    if (!vaultKeyHex) {
+        console.warn('[VaultLoader] VAULT_KEY not available (no Keychain entry, no env var) — law completion disabled.');
+        return;
     }
 
-    if (!fs.existsSync(DATA_PATH)) {
-        console.warn(`[VaultLoader] No data file found at ${DATA_PATH} — law completion disabled.`);
-        return false;
+    if (!fs.existsSync(_dataPath)) {
+        console.warn(`[VaultLoader] No data file found at ${_dataPath} — law completion disabled.`);
+        return;
     }
 
     try {
-        _index = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
+        _index = JSON.parse(fs.readFileSync(_manifestPath, 'utf8'));
     } catch (e) {
         console.error('[VaultLoader] manifest.json parse error:', e.message);
-        return false;
+        return;
     }
 
-    // Load overlays and merge them into search index
     loadOverlays();
 
-    if (fs.existsSync(VER_PATH)) {
-        try { _version = JSON.parse(fs.readFileSync(VER_PATH, 'utf8')); } catch (_) {}
+    if (fs.existsSync(_verPath)) {
+        try { _version = JSON.parse(fs.readFileSync(_verPath, 'utf8')); } catch (_) {}
     }
 
     _ready = true;
-    console.log(`[VaultLoader] ✓ ${_index.length} law metadata entries successfully loaded into RAM`);
-    
-    // Fire-and-forget init
-    getEmbedding("init").catch(() => {});
-    
-    return true;
+    console.log(`[VaultLoader] ✓ ${_index.length} law entries loaded from ${_vaultDir}`);
+    getEmbedding('init').catch(() => {});
 }
 
 function isVaultReady() { return _ready; }
 
 function getVaultVersion() { return _version; }
+
+async function getLawTextAsync(id) {
+    const vaultKeyHex = await getVaultKey();
+    if (!vaultKeyHex) return null;
+    return _getLawTextWithKey(id, vaultKeyHex);
+}
 
 function getLawText(id) {
     if (!_ready || !_index) return null;
@@ -186,8 +254,22 @@ function getLawText(id) {
         return null;
     }
 
+    const vaultKeyHex = process.env.VAULT_KEY || '';
+    if (!vaultKeyHex || vaultKeyHex.length !== 64) return null;
+    return _getLawTextWithKey(id, vaultKeyHex);
+}
+
+function _getLawTextWithKey(id, vaultKeyHex) {
+    if (!_ready || !_index) return null;
+
+    if (_overlays.has(id)) return _overlays.get(id);
+
+    const entry = _index.find(e => e.id === id);
+    if (!entry || typeof entry.offset !== 'number' || typeof entry.length !== 'number') return null;
+    if (entry.offset === -1) return null;
+
     try {
-        const fd = fs.openSync(DATA_PATH, 'r');
+        const fd = fs.openSync(_dataPath, 'r');
         const buffer = Buffer.alloc(entry.length);
         fs.readSync(fd, buffer, 0, entry.length, entry.offset);
         fs.closeSync(fd);
@@ -202,7 +284,6 @@ function getLawText(id) {
         const authTag = buffer.subarray(16, 32);
         const ciphertext = buffer.subarray(32);
 
-        const vaultKeyHex = process.env.VAULT_KEY || '';
         const key = Buffer.from(vaultKeyHex, 'hex');
         const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
         decipher.setAuthTag(authTag);
@@ -297,8 +378,24 @@ async function resolveTrigger(trigger, topN = 3) {
     }));
 }
 
+/**
+ * reloadVault() — hot-swap: clear state and re-initialize from disk.
+ * Called by VaultManager after a new vault is downloaded and installed.
+ */
+async function reloadVault() {
+    console.log('[VaultLoader] Hot-swapping laws vault...');
+    _index   = null;
+    _ready   = false;
+    _version = null;
+    _overlays.clear();
+    _generateEmbeddings = null;
+    _resolvePaths();
+    loadVault();
+}
+
 module.exports = {
     loadVault,
+    reloadVault,
     isVaultReady,
     getLawText,
     searchLaws,

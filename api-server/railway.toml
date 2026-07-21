@@ -1,0 +1,13 @@
+# Railway deployment configuration for api.hayagriva.app
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node index.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
+
+[[services]]
+name = "hayagriva-api"

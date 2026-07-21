@@ -1,0 +1,4 @@
+node_modules/
+.env
+licenses.db
+data/latest.json

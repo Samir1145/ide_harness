@@ -7,6 +7,8 @@ const { ingestFile, updateStatus, queueForLazyProcessing, startLazyWorker, ensur
 const { pendingPdfQueue, completedPdfSet } = require('./daemon/lazy_pdf_worker');
 const { streamChat } = require('./core/llm-client');
 const { resolveTrigger, searchLaws, getVaultVersion, isVaultReady } = require('./utils/vault-loader');
+const { searchCases, isCasesVaultReady, getCasesVaultVersion } = require('./utils/cases-vault-loader');
+const { getVaultStatus, downloadAndInstallVault, activateLicense, onProgress, onStatus } = require('./utils/vault-manager');
 
 function resolveCaseDir(docsRoot, caseParam) {
     const caseName = caseParam || getDefaultCaseName(docsRoot);
@@ -898,80 +900,124 @@ module.exports = {
             res.end(JSON.stringify({ concepts: list }));
         },
 
-        '/api/hayagriva/learning-curves': (req, res, parsedUrl, docsRoot) => {
-            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
-            const caseDir = resolveCaseDir(docsRoot, caseName);
-            const dbPath = path.join(caseDir, 'summaries', 'learning_curves', 'data_index', 'learning_curves.db');
-            
-            const list = [];
-            if (fs.existsSync(dbPath)) {
-                try {
-                    const crypto = require('crypto');
-                    const { DatabaseSync } = require('node:sqlite');
-                    const db = new DatabaseSync(dbPath);
-                    const query = parsedUrl.query.query || '';
-                    
-                    const vaultKeyHex = process.env.VAULT_KEY || '';
-                    const key = Buffer.from(vaultKeyHex, 'hex');
-
-                    function decryptContent(ciphertextBase64) {
-                        if (!ciphertextBase64) return '';
-                        try {
-                            const buffer = Buffer.from(ciphertextBase64, 'base64');
-                            const iv = buffer.subarray(0, 12);
-                            const authTag = buffer.subarray(12, 28);
-                            const ciphertext = buffer.subarray(28);
-                            const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-                            decipher.setAuthTag(authTag);
-                            return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
-                        } catch (err) {
-                            console.error('[LSP Route] Failed to decrypt case content:', err.message);
-                            return '';
-                        }
-                    }
-
-                    let rows;
-                    if (query) {
-                        const stmt = db.prepare(`
-                            SELECT learning_curve_number, filename, case_title, issue, citation, date_of_order, court_tribunal, markdown_content
-                            FROM learning_curves_index 
-                            WHERE case_title LIKE ? OR filename LIKE ? OR issue LIKE ? OR citation LIKE ?
-                            LIMIT 50
-                        `);
-                        const likeQuery = `%${query}%`;
-                        rows = stmt.all(likeQuery, likeQuery, likeQuery, likeQuery);
-                    } else {
-                        const stmt = db.prepare(`
-                            SELECT learning_curve_number, filename, case_title, issue, citation, date_of_order, court_tribunal, markdown_content
-                            FROM learning_curves_index 
-                            ORDER BY learning_curve_number DESC
-                            LIMIT 50
-                        `);
-                        rows = stmt.all();
-                    }
-                    
-                    for (const r of rows) {
-                        list.push({
-                            case_title: r.case_title,
-                            filename: r.filename,
-                            number: r.learning_curve_number,
-                            issue: r.issue,
-                            citation: r.citation,
-                            date_of_order: r.date_of_order,
-                            court_tribunal: r.court_tribunal,
-                            relativePath: `summaries/learning_curves/${r.filename}`,
-                            content: decryptContent(r.markdown_content)
-                        });
-                    }
-                    db.close();
-                } catch (err) {
-                    console.error('[LSP Route] Failed to query learning_curves.db:', err.message);
-                }
+        '/api/hayagriva/learning-curves': async (req, res, parsedUrl) => {
+            // Deprecated: SQLite learning_curves.db — now served by the cases vault.
+            // Route kept for backward compat; delegates to /api/vault/search-cases.
+            const q = parsedUrl.query.query || '';
+            if (!isCasesVaultReady()) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ learningCurves: [], note: 'Cases vault not ready — download via Settings > Vault & License.' }));
             }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ learningCurves: list }));
+            try {
+                const results = await searchCases(q || 'insolvency', 50);
+                const list = results.map(r => ({
+                    case_title:    r.title,
+                    filename:      r.id,
+                    issue:         '',
+                    citation:      '',
+                    date_of_order: '',
+                    court_tribunal:'',
+                    content:       r.text,
+                }));
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ learningCurves: list }));
+            } catch (err) {
+                console.error('[Route] learning-curves (cases vault):', err.message);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ learningCurves: [], error: err.message }));
+            }
         },
 
+        // ─────────────────────────────────────────────────────────────────
+        // Vault Management Routes
+        // ─────────────────────────────────────────────────────────────────
+
+        '/api/vault/status': async (_req, res) => {
+            // Returns version + update availability for all 4 vaults.
+            try {
+                const status = await getVaultStatus();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, vaults: status }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: err.message }));
+            }
+        },
+
+        '/api/vault/activate': async (req, res) => {
+            // POST: { licenseKey: "HAYG-XXXX-XXXX-XXXX" }
+            // Validates with api.hayagriva.app and stores vault key in Keychain.
+            if (req.method !== 'POST') {
+                res.writeHead(405); return res.end();
+            }
+            let body = '';
+            req.on('data', d => { body += d; });
+            req.on('end', async () => {
+                try {
+                    const { licenseKey } = JSON.parse(body);
+                    const result = await activateLicense(licenseKey || '');
+                    res.writeHead(result.ok ? 200 : 400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ ok: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/vault/download': async (req, res, parsedUrl) => {
+            // GET /api/vault/download?vault=cases
+            // Streams download + install progress as Server-Sent Events.
+            const vaultName = parsedUrl.query.vault;
+            if (!['laws','cases','documents','forms'].includes(vaultName)) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ ok: false, error: 'Invalid vault name.' }));
+            }
+
+            res.writeHead(200, {
+                'Content-Type':  'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection':    'keep-alive',
+            });
+
+            const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+            const progressHandler = (p) => sendEvent({ type: 'progress', ...p });
+            const statusHandler   = (s) => sendEvent({ type: 'status',   ...s });
+            onProgress(progressHandler);
+            onStatus(statusHandler);
+
+            try {
+                const manifest = await getVaultStatus();
+                const entry = manifest[vaultName]?.remoteEntry;
+                if (!entry || !entry.url) throw new Error('No download URL available for this vault. Check for updates first.');
+                const result = await downloadAndInstallVault(vaultName, entry);
+                sendEvent({ type: 'done', ...result });
+            } catch (err) {
+                sendEvent({ type: 'error', error: err.message });
+            } finally {
+                res.end();
+            }
+        },
+
+        '/api/vault/search-cases': async (req, res, parsedUrl) => {
+            // GET /api/vault/search-cases?q=text&topN=10
+            // Searches the cases vault globally.
+            const q    = parsedUrl.query.q || '';
+            const topN = Math.min(parseInt(parsedUrl.query.topN || '10', 10), 50);
+            if (!isCasesVaultReady()) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ ok: false, results: [], note: 'Cases vault not loaded. Download via Settings.' }));
+            }
+            try {
+                const results = await searchCases(q, topN);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, results }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: err.message }));
+            }
+        },
 
 
         '/api/hayagriva/read-file': (req, res, parsedUrl, docsRoot) => {

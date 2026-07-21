@@ -370,7 +370,6 @@ function createWatcher(caseDir, onChange) {
         if (base === 'index.md' || base === 'index.json' || base === 'timeline.md') return true;
         if (base.startsWith('.') && base !== '.gitignore') return true;
         if (p.includes('concepts' + path.sep) || p.endsWith(path.sep + 'concepts')) return true;
-        if (p.includes('summaries' + path.sep) || p.endsWith(path.sep + 'summaries')) return true;
         if (p.includes('reviews' + path.sep) || p.endsWith(path.sep + 'reviews')) return true;
         if (p.includes('drafts' + path.sep) || p.endsWith(path.sep + 'drafts')) return true;
         if (p.includes('exports' + path.sep) || p.endsWith(path.sep + 'exports')) return true;
@@ -1049,7 +1048,6 @@ function generateCaseAudit(caseDir) {
                         lower !== 'reviews' && 
                         lower !== 'drafts' && 
                         lower !== 'exports' &&
-                        lower !== 'summaries' &&
                         lower !== 'node_modules' &&
                         lower !== 'bower_components' &&
                         lower !== 'dist' &&

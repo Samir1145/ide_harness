@@ -21,6 +21,7 @@
     "detect-libc": "^2.1.2",
     "docx": "^9.7.1",
     "gray-matter": "^4.0.3",
+    "keytar": "^7.9.0",
     "mammoth": "^1.8.0",
     "markdown-it": "^14.3.0",
     "pdfexcavator": "^0.1.2",
