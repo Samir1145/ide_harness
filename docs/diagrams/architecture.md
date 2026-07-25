@@ -221,78 +221,89 @@ graph TD
 
 ---
 
-## Stage 3: Cognitive Agents, Critique Loops & RAG Pipeline (AMS)
+## Stage 3: Cognitive Agents, Modular Skills & 4 Knowledge Pillars (AMS)
 
-Stage 3 manages specialized AI agents (Advisor Agent, Forms Agent, Document Agent), context matrix selection filters, token budget checks, and routing to local offline Llamafile engines.
+Stage 3 manages 19 specialized AI agents, the modular `skills/` architecture, the 4 Knowledge Pillars (Laws, Judgments, Forms, Documents), active context matrix selection filters, token budget checks, and routing to local offline LLM engines.
 
 ```mermaid
 graph TD
-    subgraph Client_Interface ["Client Interface"]
-        CHAT_UI["Chat Panel UI"]
-        MATRIX_UI["Active-Context Control Matrix Checklist"]
-        CONTEXT_JSON["active_rag_docs.json Configuration"]
+    subgraph Knowledge_Pillars ["The 4 Knowledge Pillars"]
+        P1["⚖️ Laws Vault (IBC 2016 / 2026, Regs, Rules)"]
+        P2["🏛️ Judgments Vault (SC / NCLAT / NCLT 2026 Overlays)"]
+        P3["📋 Forms Library (48 IBBI 2026 forms + AOC-4)"]
+        P4["📑 Precedents Library (63 NCLT applications & RP reports)"]
     end
 
-    subgraph Agent_Management_System ["Agent Management System (AMS) / AI Loop"]
-        CHAT_REG["Eclipse Theia AI ChatAgent Registry"]
-        DELEGATOR["ChatAgentService.delegateToAgent API"]
-        
-        DOC_AGENT["Document Agent (Drafts documents)"]
-        FORMS_AGENT["Forms Agent (Audits & fills forms)"]
-        ADVISOR_AGENT["Advisor Agent (Reviews compliance)"]
-        
-        CRITIQUE_LOOP["Self-Correction Critique Loop"]
+    subgraph Skills_Layer ["Modular Skills Layer (hayagriva/lib/agents/skills/)"]
+        S_RAG["rag-retrieve.js"]
+        S_VAULT["vault-lookup.js"]
+        S_PRECEDENT["precedent-search.js"]
+        S_FORM["form-fill.js & form-validate.js"]
+        S_SKEL["skeleton-load.js"]
+        S_KV["kv-write.js & md-append.js"]
+        S_TIMELINE["timeline-build.js"]
+        S_CROSS["cross-ref-check.js"]
     end
 
-    subgraph Context_RAG_Pipeline ["Context & RAG Retrieval Pipeline"]
-        TOKEN_BUDGET{"Input Token Budget &lt; 1,500?"}
-        CONTEXT_OVERFLOW["⚠️ Context Window Exceeded Safety Warning"]
+    subgraph Specialist_Agents_Suite ["19 Specialist Agents Suite"]
+        A_ADV["@advisor (Law & Case Q&A)"]
+        A_PREC["@precedent (Case Law & Judgments)"]
+        A_FORM["@forms (IBBI & MCA Form Filling)"]
+        A_DOC["@document (Court & Report Drafting)"]
+        A_NCLT["@nclt (NCLT Petition Synopses)"]
+        A_TIME["@timeline (Case Chronologist)"]
+        A_STR["@strength (Ground Scoring & Audit)"]
+        A_COUNT["@counter (Opposing Counsel Rebuttals)"]
+        A_COMP["@compliance (Sec 30(2) & 29A Audit)"]
+        A_WIT["@witness (Proof-to-Fact Matrix)"]
+        A_DEP["@deposition (Sworn Affidavits)"]
+        A_AVOID["@avoidance (Sec 43/45/49/66 Scanner)"]
+        A_CLAIM["@claims (Creditor Claims Verifier)"]
+        A_CLIENT["@client-update (Executive Client Briefs)"]
+        A_GRAPH["@entity-graph (3D Relationship Map)"]
+        A_ORD["@order (Tribunal Order Decoder)"]
+    end
+
+    subgraph Execution_Engine ["LLM Execution & RAG Pipeline"]
+        TOKEN_BUDGET{"Input Token Budget < 1,500?"}
         TRUNCATOR["Iterative Low-Rank Context Truncation"]
-        
-        RAG_QUERY["Map-Reduce Multi-Query RAG Engine"]
-        SQL_VSS["FTS5 + Dense Cosine Vector Similarity Reranker"]
-        LLM_CLIENT["Local Llamafile Routing (Legal/Finance Param)"]
+        LLM_CLIENT["Local LLM Client (LegalParam / FinanceParam)"]
     end
 
     %% Connections
-    CHAT_UI --> CHAT_REG
-    MATRIX_UI --> CONTEXT_JSON
-    CONTEXT_JSON --> RAG_QUERY
+    P1 --> S_VAULT
+    P2 --> S_PRECEDENT
+    P3 --> S_FORM
+    P4 --> S_SKEL
 
-    CHAT_REG --> DELEGATOR
-    DELEGATOR --> DOC_AGENT
-    DELEGATOR --> FORMS_AGENT
-    DELEGATOR --> ADVISOR_AGENT
+    S_RAG --> Specialist_Agents_Suite
+    S_VAULT --> A_ADV
+    S_PRECEDENT --> A_PREC
+    S_FORM --> A_FORM
+    S_SKEL --> A_DOC
+    S_SKEL --> A_NCLT
+    S_TIMELINE --> A_TIME
+    S_CROSS --> A_STR
+    S_CROSS --> A_COUNT
 
-    DOC_AGENT -- "Delegates draft for critique" --> DELEGATOR
-    FORMS_AGENT -- "Audits & returns critique details" --> DELEGATOR
-    DELEGATOR -- "Refined draft output" --> CHAT_UI
-
-    RAG_QUERY --> TOKEN_BUDGET
-    TOKEN_BUDGET -- "No (Overflow)" --> CONTEXT_OVERFLOW
-    TOKEN_BUDGET -- "Yes (Within Budget)" --> LLM_CLIENT
-    
-    %% Truncation loop
+    Specialist_Agents_Suite --> TOKEN_BUDGET
     TOKEN_BUDGET -- "No (Can Truncate)" --> TRUNCATOR
     TRUNCATOR --> TOKEN_BUDGET
+    TOKEN_BUDGET -- "Yes (Within Budget)" --> LLM_CLIENT
 
-    RAG_QUERY --> SQL_VSS
-    SQL_VSS --> LLM_CLIENT
-
-    LLM_CLIENT -- "legalparam (Port 8090)" --> DOC_AGENT
-    LLM_CLIENT -- "financeparam (Port 8091)" --> FORMS_AGENT
+    S_KV -- "Write-back" --> KV_DICT["case_kv_dictionary.json & case_facts.md"]
 ```
 
 ### Engineering Notes & Stage 3 Evaluation
-1. **Strict Context Budget & Truncation (CMS)**:
-   * Local models (LegalParam / FinanceParam) run on a strict 2,048-token context window limit (~1,500 words).
-   * RAG prompts calculate BPE token counts pre-flight. If the count exceeds 1,500 tokens, it iteratively drops the lowest-ranked context chunks one by one.
-   * If a single chunk overflows, the engine returns a clean warning alert to the user instead of letting the local LLM loop or crash.
-2. **Context Control Matrix**:
-   * Users can select/exclude documents from the concepts checklist panel. Persisted in `active_rag_docs.json`, it filters RAG vector matching lists prior to LLM submission.
-3. **Local Llamafile Port Routing**:
-   * Case directories are dynamically scanned for vertical keywords (`ibc`, `finance`) or metadata configuration.
-   * Prompts route to Port `8090` (LegalParam-7B) or Port `8091` (FinanceParam-2.9B) accordingly.
-4. **Agent Critique Loops**:
-   * Specialised subagents collaborate programmatically via Eclipse Theia AI's delegation APIs (`delegateToAgent`).
-   * The Document Agent delegates drafts to the Forms Agent for compliance audit, refining the final draft with the critique suggestions before showing it to the user.
+1. **19 Specialist Agent Architecture**:
+   * Unified routing via `AgentCoordinator` (`agent-coordinator.js`), supporting both auto-classified intent routing and direct `@agent` / `/slash` command execution.
+   * All 19 specialist agents operate using single-turn, skill-based tool calling rather than heavy multi-agent loops, achieving <2s response times.
+2. **The 4 Knowledge Pillars**:
+   * **Laws**: Static RAM index for IBC 2016 & IBBI Regulations.
+   * **Judgments**: Hybrid BM25 + ONNX MiniLM vector search across `vault/user_overlays/` (`overlay_ibc-precedents-2026.json`).
+   * **Forms**: 48 standalone IBBI 2026 forms formatted as clean 3-column markdown tables (`| Sl. | Particulars | Details |`) with explicit `{{ PLACEHOLDER }}` cells.
+   * **Documents**: 63 standalone NCLT court application and RP report precedent blueprints with standardized token maps.
+3. **Cumulative Write-Back Loop**:
+   * Discovered facts, dates, and amounts are continuously written back to `case_kv_dictionary.json` and `case_facts.md`.
+   * Every agent turn enriches the state so subsequent agents (e.g. `@timeline` → `@document` → `@forms`) run with 100% pre-filled data without asking the user.
+

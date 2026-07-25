@@ -33,16 +33,22 @@ Type `@` followed by the agent name, then your question or instruction.
 | You want to... | Call this agent |
 |---|---|
 | Ask a legal question about your case | `@advisor` |
-| Find an IBC/Companies Act section | `@advisor` |
-| Fill an IBBI form (Form A, B, F, H) | `@forms` |
-| Draft a petition or legal document | `@document` |
-| Build a Section 7/9/10 NCLT petition | `@nclt` |
-| Reconstruct the case timeline | `@timeline` |
-| Score the strength of your arguments | `@strength` |
-| Scan for avoidance transactions | `@avoidance` |
+| Find SC / NCLAT / NCLT precedents & case law | `@precedent` |
+| Fill an IBBI form (48 forms: Form A, B, F, H, etc.) | `@forms` |
+| Draft a petition, application, or report | `@document` |
+| Build a Section 7/9/10 NCLT petition synopsis | `@nclt` |
+| Reconstruct the full case timeline | `@timeline` |
+| Score the strength of your legal arguments | `@strength` |
+| Anticipate opposing counsel defenses & rebuttals | `@counter` |
+| Audit Resolution Plan against Sec 30(2) & Sec 29A | `@compliance` |
+| Build proof-to-fact witness & evidence matrix | `@witness` |
+| Draft court-ready sworn affidavits | `@deposition` |
+| Scan for avoidance transactions (Sec 43/45/49/66) | `@avoidance` |
 | Verify creditor claim amounts | `@claims` |
-| Map all entities in the case | `@entity-graph` |
-| Decode a tribunal order | `@order` |
+| Build executive client briefing status reports | `@client-update` |
+| Map all entities in the case (3D D3.js Graph) | `@entity-graph` |
+| Decode a tribunal order & compliance deadlines | `@order` |
+
 
 ---
 
