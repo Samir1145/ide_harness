@@ -133,6 +133,16 @@ These items strengthen contextual retrieval, semantic search capabilities, and f
 
 ---
 
+### 32. Out-of-the-Box (OOB) iPIE Platform Integration Bridge
+* **Goal:** Enable HAYAGRIVA to act as the offline, client-side Professional IDE for the upcoming Ministry of Corporate Affairs iPIE cloud ecosystem.
+* **Architecture:**
+  * **OOB Sync Packager:** Compile all local database slices, validated form JSONs, and chronological timeline logs into a signed, encrypted `.ipie.pack` bundle for manual upload in air-gapped environments.
+  * **Offline DSC Certificate Vault:** Store Digital Signature Certificates (DSC) and client secrets locally in VMS to execute offline e-signing on exported files prior to submission.
+  * **Dynamic Schema Sync Daemon:** Update local `validateFormRules` JSON templates on a regular loop (or via manual signed import) to prevent out-of-sync API rejections.
+  * **Temporary-to-Permanent ID Refactoring:** Map pre-filing temporary case IDs to official permanent iPIE IDs returned on NCLT admission, executing a local DB-wide sweep to update all indexed headers.
+
+---
+
 ### 27. Map-Reduce Multi-Query RAG Orchestrator
 * **Goal:** Enable broad, multi-layered legal inquiries (e.g., comparing multiple statutes or checking cross-file references) that cannot be resolved in a single query sweep.
 * **Architecture:**
@@ -976,4 +986,5 @@ Implementing the full roadmap expands HAYAGRIVA from its original 6 management s
 | **Wiki manual creation in Lite** | `ingestWiki` + `ingestWikiCard` have no LLM calls. User can create wiki entries in Lite and they'll be indexed for search | Trivial |
 | **Multimodal force-disable in Lite** | Upload route must read `activeMode` and set `multimodal: false` to prevent accidental vision LLM calls | Trivial |
 | **Route-level Lite guard on `/api/agents/chat`** | Before calling `coordinator.run()`, read settings and if `activeMode === 'lite'`, route to `rag.query()` instead of agent | Low |
+| **iPIE Platform Integration Bridge (Item 32)** | Offline `.ipie.pack` exports, VMS e-Sign keys vault, dynamic MCA/IBBI schemas sync, and temporary-to-permanent Case ID mapping refactoring. | High |
 
