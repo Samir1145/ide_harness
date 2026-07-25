@@ -1,64 +1,64 @@
 __Instrument 53  —  Report__
 
-__Progress Report \(quarterly\)__
+__Progress Report (quarterly)__
 
-__Statutory basis:  __*Regulation 15, IBBI \(Liquidation Process\) Regulations, 2016 — Progress Reports to the Adjudicating Authority, the Board and the SCC; first report within 15 days of the end of the quarter of appointment, and within 15 days of the end of every quarter thereafter, until dissolution\.*
+__Statutory basis:  __*Regulation 15, IBBI (Liquidation Process) Regulations, 2016 — Progress Reports to the Adjudicating Authority, the Board and the SCC; first report within 15 days of the end of the quarter of appointment, and within 15 days of the end of every quarter thereafter, until dissolution.*
 
-__PROGRESS REPORT No\. \[\_\_\] for the quarter ended \[DD\.MM\.YYYY\] in the matter of \[Name of the Corporate Debtor\] \(in liquidation\)\.__
+__PROGRESS REPORT No. [__] for the quarter ended [DD.MM.YYYY] in the matter of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation).__
 
-__A\.  Snapshot__
+__A.  Snapshot__
 
 __Particulars__
 
 __Details__
 
-Liquidation Commencement Date \(LCD\)
+Liquidation Commencement Date (LCD)
 
-\[DD\.MM\.YYYY\]
+[DD.MM.YYYY]
 
 Quarter covered
 
-\[DD\.MM\.YYYY\] to \[DD\.MM\.YYYY\]
+[DD.MM.YYYY] to [DD.MM.YYYY]
 
-Claims admitted to date \(₹\)
+Claims admitted to date (₹)
 
-\[\_\_\_\_\]
+[____]
 
-Realisations to date \(₹\)
+Realisations to date (₹)
 
-\[\_\_\_\_\]
+[____]
 
-Distributions to date \(₹\)
+Distributions to date (₹)
 
-\[\_\_\_\_\]
+[____]
 
-Liquidation cost incurred to date \(₹\)
+Liquidation cost incurred to date (₹)
 
-\[\_\_\_\_\]
+[____]
 
 Days elapsed since LCD
 
-\[\_\_\_\_\]
+[____]
 
-__B\.  Contents \(Reg\. 15\(2\)\)__
+__B.  Contents (Reg. 15(2))__
 
 - Settlement of the list of stakeholders and any modifications;
 - Details of any property that remains to be sold and realised, and the manner proposed;
 - Distributions made to stakeholders in the Section 53 order, with the Asset Sale Reports enclosed;
-- Developments in any material litigation, and the filing/status of avoidance applications \(Phase V\);
+- Developments in any material litigation, and the filing/status of avoidance applications (Phase V);
 - Any change in the estimated liquidation cost and the reasons; decisions taken at variance with SCC advice and the reasons;
-- Where the process continues beyond a year, the audited account of the liquidator’s receipts and payments \(Reg\. 15\(3\)\)\.
+- Where the process continues beyond a year, the audited account of the liquidator’s receipts and payments (Reg. 15(3)).
 
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+____________________________
 
-__\[Name of the Liquidator\]__
+__{{ THE_LIQUIDATOR }}__
 
-Liquidator of \[Name of the Corporate Debtor\] \(in liquidation\)
+Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
-IBBI Reg\. No\. \[\_\_\_\_\]  |  AFA valid up to \[DD\.MM\.YYYY\]  |  E\-mail: \[liquidation process e\-mail ID\]
+IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__Note:  __*Place the Progress Report before the SCC and file it with the AA and the Board within 15 days of the quarter\-end; enclose the CA certificate on Receipts & Payments \(Instrument 51\) where prepared\.*
+__Note:  __*Place the Progress Report before the SCC and file it with the AA and the Board within 15 days of the quarter-end; enclose the CA certificate on Receipts & Payments (Instrument 51) where prepared.*
 
-__CA RK Gupta__   |   Mobile \+91\-9811117243   |   rkg4247@gmail\.com   |   www\.carkgupta\.com
+__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice\. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter\.*
+*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

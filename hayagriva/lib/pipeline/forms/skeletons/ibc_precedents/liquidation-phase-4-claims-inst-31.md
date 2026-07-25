@@ -2,44 +2,44 @@ __Instrument 31  —  Decision letter__
 
 __Admission / rejection of claim — communication__
 
-__Statutory basis:  __*Section 40, IBC 2016 — the liquidator may admit or reject a claim in whole or in part, recording reasons in writing for any rejection, and shall communicate the decision within 7 days\.*
+__Statutory basis:  __*Section 40, IBC 2016 — the liquidator may admit or reject a claim in whole or in part, recording reasons in writing for any rejection, and shall communicate the decision within 7 days.*
 
-To,  \[Name of the claimant\]   |   Date: \[DD\.MM\.YYYY\]   |   Ref: \[LIQ/CD\-Name/CLAIM/\_\_/2026\]
+To,  {{ THE_CLAIMANT }}   |   Date: [DD.MM.YYYY]   |   Ref: {{ LIQ_CD_NAME_CLAIM_2026 }}
 
-__Subject:  __Decision on your claim \(Form \[\_\_\]\) for ₹\[\_\_\_\_\] in the liquidation of \[Name of the Corporate Debtor\]\.
+__Subject:  __Decision on your claim (Form [__]) for ₹[____] in the liquidation of [Name of the{{ CORPORATE_DEBTOR_NAME }}.
 
 On verification under Section 39, I have decided your claim as follows:
 
 __Particulars__
 
-__Amount \(₹\)__
+__Amount (₹)__
 
 Amount claimed
 
-\[\_\_\_\_\]
+[____]
 
 Amount admitted
 
-\[\_\_\_\_\]
+[____]
 
 Amount rejected
 
-\[\_\_\_\_\]
+[____]
 
-Class for distribution under s\.53
+Class for distribution under s.53
 
-\[secured / workmen / OC / FC / other\]
+{{ SECURED_WORKMEN_OC_FC_OTHER }}
 
-Reasons for rejection \(where applicable\): \[\_\_\_\_\]\. You may appeal against this decision to the Adjudicating Authority within 14 days of its receipt under Section 42 \(see Instrument 34\)\.
+Reasons for rejection (where applicable): [____]. You may appeal against this decision to the Adjudicating Authority within 14 days of its receipt under Section 42 (see Instrument 34).
 
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+____________________________
 
-__\[Name of the Liquidator\]__
+__{{ THE_LIQUIDATOR }}__
 
-Liquidator of \[Name of the Corporate Debtor\] \(in liquidation\)
+Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
-IBBI Reg\. No\. \[\_\_\_\_\]  |  AFA valid up to \[DD\.MM\.YYYY\]  |  E\-mail: \[liquidation process e\-mail ID\]
+IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91\-9811117243   |   rkg4247@gmail\.com   |   www\.carkgupta\.com
+__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice\. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter\.*
+*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
