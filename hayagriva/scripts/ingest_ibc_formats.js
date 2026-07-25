@@ -4,14 +4,17 @@ const path = require('path');
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const SOURCE_DIR = '/Users/atulgrover/Documents/zzz IBC formats/conversions';
 
-const FORMS_DIR = path.join(REPO_ROOT, 'hayagriva', 'lib', 'pipeline', 'forms', 'skeletons', 'forms');
-const PRECEDENTS_DIR = path.join(REPO_ROOT, 'hayagriva', 'lib', 'pipeline', 'forms', 'skeletons', 'precedents');
+const FORMS_DIR = path.join(REPO_ROOT, 'hayagriva', 'lib', 'pipeline', 'forms', 'skeletons', 'ibc_forms');
+const MCA_FORMS_DIR = path.join(REPO_ROOT, 'hayagriva', 'lib', 'pipeline', 'forms', 'skeletons', 'mca_forms');
+const PRECEDENTS_DIR = path.join(REPO_ROOT, 'hayagriva', 'lib', 'pipeline', 'forms', 'skeletons', 'ibc_precedents');
 const OVERLAYS_DIR = path.join(REPO_ROOT, 'hayagriva', 'vault', 'user_overlays');
 
 // Ensure target directories exist
 fs.mkdirSync(FORMS_DIR, { recursive: true });
+fs.mkdirSync(MCA_FORMS_DIR, { recursive: true });
 fs.mkdirSync(PRECEDENTS_DIR, { recursive: true });
 fs.mkdirSync(OVERLAYS_DIR, { recursive: true });
+
 
 console.log('Ingesting IBC Formats & Knowledge into HAYAGRIVA...');
 

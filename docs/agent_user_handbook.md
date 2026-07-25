@@ -495,8 +495,12 @@ When agents work, they automatically read from and write to these files in your 
 | `avoidance_ledger.md` | Flagged avoidance transactions | `@avoidance` |
 | `litigation_tracker.md` | Directions, deadlines from orders | `@order` |
 | `entity_graph.md` + `.json` | Entity relationship map | `@entity-graph` |
+| `skeletons/ibc_forms/` | IBBI 2026 official forms (.md) | Form fill engine |
+| `skeletons/mca_forms/` | MCA statutory form templates (.md) | Form fill engine |
+| `skeletons/ibc_precedents/` | NCLT applications & RP report templates (.md) | `@document`, `@nclt` |
 | `drafts/` folder | All generated document drafts | `@document`, `@nclt` |
 | `exports/` folder | JSON schemas ready for iPIE | `@forms` |
+
 
 > **The key insight**: Every time an agent runs, it makes the next agent's turn smarter. `@timeline` saves key dates → `@document` uses those dates to fill your petition draft automatically. `@claims` saves amounts → `@forms` uses those amounts to fill Form A without asking.
 
