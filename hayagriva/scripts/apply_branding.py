@@ -169,27 +169,27 @@ def apply_branding():
           display: none !important;
       }}
       svg.theia-WelcomeMessage-Logo {{
-          background-image: url('data:image/png;base64,{medium_b64}') !important;
+          background-image: url('data:image/png;base64,{large_b64}') !important;
           background-size: contain !important;
           background-repeat: no-repeat !important;
           background-position: center !important;
-          width: 120px !important;
-          height: 120px !important;
+          width: 320px !important;
+          height: 320px !important;
       }}
       svg.theia-WelcomeMessage-Logo[width="64"] {{
-          width: 64px !important;
-          height: 64px !important;
+          width: 240px !important;
+          height: 240px !important;
       }}
       .theia-AgentAvatar.codicon-copilot::before {{
           content: "" !important;
       }}
       .theia-AgentAvatar.codicon-copilot {{
-          background-image: url('data:image/png;base64,{small_b64}') !important;
+          background-image: url('data:image/png;base64,{medium_b64}') !important;
           background-size: contain !important;
           background-repeat: no-repeat !important;
           background-position: center !important;
-          width: 20px !important;
-          height: 20px !important;
+          width: 28px !important;
+          height: 28px !important;
           display: inline-block !important;
       }}
     `;"""
@@ -206,27 +206,27 @@ def apply_branding():
           display: none !important;
       }}
       svg.theia-WelcomeMessage-Logo {{
-          background-image: url('data:image/png;base64,{medium_b64}') !important;
+          background-image: url('data:image/png;base64,{large_b64}') !important;
           background-size: contain !important;
           background-repeat: no-repeat !important;
           background-position: center !important;
-          width: 120px !important;
-          height: 120px !important;
+          width: 320px !important;
+          height: 320px !important;
       }}
       svg.theia-WelcomeMessage-Logo[width="64"] {{
-          width: 64px !important;
-          height: 64px !important;
+          width: 240px !important;
+          height: 240px !important;
       }}
       .theia-AgentAvatar.codicon-copilot::before {{
           content: "" !important;
       }}
       .theia-AgentAvatar.codicon-copilot {{
-          background-image: url('data:image/png;base64,{small_b64}') !important;
+          background-image: url('data:image/png;base64,{medium_b64}') !important;
           background-size: contain !important;
           background-repeat: no-repeat !important;
           background-position: center !important;
-          width: 20px !important;
-          height: 20px !important;
+          width: 28px !important;
+          height: 28px !important;
           display: inline-block !important;
       }}""", content, flags=re.DOTALL)
             print("     ✓ Updated existing styling overrides in extension.ts")
