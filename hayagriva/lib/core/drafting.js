@@ -13,19 +13,22 @@ const { getChatResponse } = require('./llm-client');
 async function draftDocument(caseDir, formatId) {
     console.log(`[Drafting Engine] Generating draft for format "${formatId}"...`);
 
-    // 1. Resolve paths
-    const formatsRoot = path.join(__dirname, '../../..', 'templates');
-    const formatPath = path.join(formatsRoot, formatId, 'format.md');
-    const promptPath = path.join(formatsRoot, formatId, 'prompt.txt');
+    // 1. Resolve paths via unified skeleton skill
+    const { loadSkeleton } = require('../agents/skills/skeleton-load');
+    const REPO_ROOT = path.join(__dirname, '../../..');
+    const loaded = loadSkeleton(formatId, REPO_ROOT);
 
-    if (!fs.existsSync(formatPath) || !fs.existsSync(promptPath)) {
-        throw new Error(`Drafting template or guidelines not found for format "${formatId}"`);
+    if (!loaded) {
+        throw new Error(`Drafting template not found for format "${formatId}" in skeletons library.`);
     }
+
+    const formatSkeleton = loaded.content;
+    const draftingPrompt = `Draft a professional ${formatId} using the provided case context and placeholders.`;
+
 
     const { loadLlmConfig } = require('./llm-client');
     const config = loadLlmConfig({ caseDir });
     if (config.activeMode === 'lite') {
-        const formatSkeleton = fs.readFileSync(formatPath, 'utf8');
         return {
             draftPath: null,
             liteMode: true,
@@ -34,8 +37,6 @@ async function draftDocument(caseDir, formatId) {
         };
     }
 
-    const formatSkeleton = fs.readFileSync(formatPath, 'utf8');
-    const draftingPrompt = fs.readFileSync(promptPath, 'utf8');
 
     const reviewsDir = path.join(caseDir, 'reviews');
     const dictPath = path.join(reviewsDir, 'case_kv_dictionary.json');
