@@ -15,11 +15,26 @@ const { getChatResponse } = require('../../core/llm-client');
 // DMS skeletons directory (relative to repo root)
 const SKELETONS_SUBPATH = path.join('hayagriva', 'lib', 'pipeline', 'forms', 'skeletons');
 
+function getAllSkeletonFiles(dir) {
+    let results = [];
+    if (!fs.existsSync(dir)) return results;
+    const items = fs.readdirSync(dir, { withFileTypes: true });
+    for (const item of items) {
+        const fullPath = path.join(dir, item.name);
+        if (item.isDirectory()) {
+            results = results.concat(getAllSkeletonFiles(fullPath));
+        } else if (item.name.endsWith('.md')) {
+            results.push({ name: item.name, filePath: fullPath });
+        }
+    }
+    return results;
+}
+
 /**
  * Locates and reads a skeleton template by name.
  * Tries exact match first, then fuzzy match.
  *
- * @param {string} templateName - e.g. 'sec7-petition', 'reply-revision-petition'
+ * @param {string} templateName - e.g. 'sec7-petition', 'b4-avoidance-application'
  * @param {string} repoRoot     - Absolute path to repo root
  * @returns {{ name: string, content: string, filePath: string } | null}
  */
@@ -31,25 +46,23 @@ function loadSkeleton(templateName, repoRoot) {
         return null;
     }
 
-    const files = fs.readdirSync(skeletonDir).filter(f => f.endsWith('.md'));
+    const allFiles = getAllSkeletonFiles(skeletonDir);
+    const targetName = templateName.endsWith('.md') ? templateName : `${templateName}.md`;
 
-    // Exact match (with or without .md)
-    const exactName = templateName.endsWith('.md') ? templateName : `${templateName}.md`;
-    const exactFile = files.find(f => f === exactName);
-    if (exactFile) {
-        const filePath = path.join(skeletonDir, exactFile);
-        return { name: exactFile, content: fs.readFileSync(filePath, 'utf8'), filePath };
+    // Exact match
+    const exact = allFiles.find(f => f.name === targetName);
+    if (exact) {
+        return { name: exact.name, content: fs.readFileSync(exact.filePath, 'utf8'), filePath: exact.filePath };
     }
 
-    // Fuzzy match: find closest filename containing the template name
-    const fuzzy = files.find(f => f.toLowerCase().includes(templateName.toLowerCase().replace(/[\s_]/g, '-')));
+    // Fuzzy match
+    const slug = templateName.toLowerCase().replace(/[\s_]/g, '-');
+    const fuzzy = allFiles.find(f => f.name.toLowerCase().includes(slug));
     if (fuzzy) {
-        const filePath = path.join(skeletonDir, fuzzy);
-        return { name: fuzzy, content: fs.readFileSync(filePath, 'utf8'), filePath };
+        return { name: fuzzy.name, content: fs.readFileSync(fuzzy.filePath, 'utf8'), filePath: fuzzy.filePath };
     }
 
-    // List available templates for user guidance
-    console.warn(`[Skill:skeletonLoad] Template "${templateName}" not found. Available: ${files.join(', ')}`);
+    console.warn(`[Skill:skeletonLoad] Template "${templateName}" not found. Available: ${allFiles.map(f => f.name.replace('.md', '')).join(', ')}`);
     return null;
 }
 
@@ -61,10 +74,9 @@ function loadSkeleton(templateName, repoRoot) {
 function listSkeletons(repoRoot) {
     const skeletonDir = path.join(repoRoot, SKELETONS_SUBPATH);
     if (!fs.existsSync(skeletonDir)) return [];
-    return fs.readdirSync(skeletonDir)
-        .filter(f => f.endsWith('.md'))
-        .map(f => f.replace('.md', ''));
+    return getAllSkeletonFiles(skeletonDir).map(f => f.name.replace('.md', ''));
 }
+
 
 /**
  * Extracts all {{ PLACEHOLDER }} tokens from a skeleton content string.
