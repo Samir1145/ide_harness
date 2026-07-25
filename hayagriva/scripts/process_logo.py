@@ -74,20 +74,18 @@ def main():
     # Save the processed original square sizes
     # Small (128x128)
     white_square.resize((128, 128), Image.Resampling.LANCZOS).save(os.path.join(dest_dir, "hayagriva_small.png"), "PNG")
-    print("Created: hayagriva_small.png (white-on-transparent 128x128)")
+    black_square.resize((128, 128), Image.Resampling.LANCZOS).save(os.path.join(dest_dir, "hayagriva_small_black.png"), "PNG")
+    print("Created: hayagriva_small.png and hayagriva_small_black.png (128x128)")
     
     # Medium (256x256)
     white_square.resize((256, 256), Image.Resampling.LANCZOS).save(os.path.join(dest_dir, "hayagriva_medium.png"), "PNG")
-    print("Created: hayagriva_medium.png (white-on-transparent 256x256)")
+    black_square.resize((256, 256), Image.Resampling.LANCZOS).save(os.path.join(dest_dir, "hayagriva_medium_black.png"), "PNG")
+    print("Created: hayagriva_medium.png and hayagriva_medium_black.png (256x256)")
     
     # Large (512x512)
     white_square.resize((512, 512), Image.Resampling.LANCZOS).save(os.path.join(dest_dir, "hayagriva_large.png"), "PNG")
-    print("Created: hayagriva_large.png (white-on-transparent 512x512)")
-    
-    # Also save the black large for black icon targets
-    black_large_path = os.path.join(dest_dir, "hayagriva_large_black.png")
-    black_square.resize((512, 512), Image.Resampling.LANCZOS).save(black_large_path, "PNG")
-    print("Created: hayagriva_large_black.png (black-on-transparent 512x512)")
+    black_square.resize((512, 512), Image.Resampling.LANCZOS).save(os.path.join(dest_dir, "hayagriva_large_black.png"), "PNG")
+    print("Created: hayagriva_large.png and hayagriva_large_black.png (512x512)")
     
     print("[Logo Processor] Completed processing successfully!")
 

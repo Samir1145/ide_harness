@@ -9,6 +9,8 @@ small_logo_path = os.path.join(repo_root, "resources", "resources", "hayagriva_s
 medium_logo_path = os.path.join(repo_root, "resources", "resources", "hayagriva_medium.png")
 large_logo_path = os.path.join(repo_root, "resources", "resources", "hayagriva_large.png")
 large_logo_black_path = os.path.join(repo_root, "resources", "resources", "hayagriva_large_black.png")
+medium_logo_black_path = os.path.join(repo_root, "resources", "resources", "hayagriva_medium_black.png")
+small_logo_black_path = os.path.join(repo_root, "resources", "resources", "hayagriva_small_black.png")
 
 # White/Light logo targets (used on dark themes or general launcher window icons)
 white_targets = [
@@ -41,7 +43,11 @@ def apply_branding():
     print("[Branding Compiler] Starting application of Hayagriva horse logo...")
     
     # Verify files exist
-    for p in [small_logo_path, medium_logo_path, large_logo_path, large_logo_black_path]:
+    required_paths = [
+        small_logo_path, medium_logo_path, large_logo_path, 
+        large_logo_black_path, medium_logo_black_path, small_logo_black_path
+    ]
+    for p in required_paths:
         if not os.path.exists(p):
             print(f"Error: Required file {p} does not exist.")
             return
@@ -51,6 +57,9 @@ def apply_branding():
     small_b64 = load_base64(small_logo_path)
     medium_b64 = load_base64(medium_logo_path)
     large_b64 = load_base64(large_logo_path)
+    small_black_b64 = load_base64(small_logo_black_path)
+    medium_black_b64 = load_base64(medium_logo_black_path)
+    large_black_b64 = load_base64(large_logo_black_path)
 
     # 1. Overwrite launcher PNG icons (separated by theme color)
     print("  -> Copying large horse logo to launcher target icons...")
@@ -80,18 +89,27 @@ def apply_branding():
             with open(splash_path, "r", encoding="utf-8") as f:
                 content = f.read()
             
-            # Find the href attribute in the mask image
-            # Pattern matches: href="data:image/png;base64,..."
-            pattern = r'href="data:image/png;base64,[^"]+"'
-            new_href = f'href="data:image/png;base64,{large_b64}"'
-            updated_content, count = re.subn(pattern, new_href, content)
+            # Replace the full <image> tag inside the mask to set preserveAspectRatio="xMidYMid slice"
+            # This makes the square logo fill the entire 1160x484 canvas instead of fitting by height only
+            pattern = r'<image[^>]+href="data:image/png;base64,[^"]*"[^/]*/?>'
+            new_image = f'<image x="0" y="0" width="1160" height="484" preserveAspectRatio="xMidYMid slice" href="data:image/png;base64,{large_b64}"/>'
+            updated_content, count = re.subn(pattern, new_image, content)
             
             if count > 0:
                 with open(splash_path, "w", encoding="utf-8") as f:
                     f.write(updated_content)
                 print(f"     ✓ Patched: {os.path.relpath(splash_path, repo_root)}")
             else:
-                print(f"     ⚠️ Warning: No logo-mask href pattern matched in {splash_path}")
+                # Fallback: just replace the href
+                pattern2 = r'href="data:image/png;base64,[^"]+"'
+                new_href = f'href="data:image/png;base64,{large_b64}"'
+                updated_content, count2 = re.subn(pattern2, new_href, content)
+                if count2 > 0:
+                    with open(splash_path, "w", encoding="utf-8") as f:
+                        f.write(updated_content)
+                    print(f"     ✓ Patched (href only): {os.path.relpath(splash_path, repo_root)}")
+                else:
+                    print(f"     ⚠️ Warning: No logo-mask pattern matched in {splash_path}")
         else:
             print(f"     ⚠️ Warning: Splash screen not found at {splash_path}")
 
@@ -169,27 +187,29 @@ def apply_branding():
           display: none !important;
       }}
       svg.theia-WelcomeMessage-Logo {{
-          background-image: url('data:image/png;base64,{large_b64}') !important;
+          background-image: url('data:image/png;base64,{large_black_b64}') !important;
           background-size: contain !important;
           background-repeat: no-repeat !important;
           background-position: center !important;
-          width: 320px !important;
-          height: 320px !important;
+          width: 260px !important;
+          height: 260px !important;
+          max-width: 90% !important;
       }}
       svg.theia-WelcomeMessage-Logo[width="64"] {{
-          width: 240px !important;
-          height: 240px !important;
+          width: 220px !important;
+          height: 220px !important;
+          max-width: 90% !important;
       }}
       .theia-AgentAvatar.codicon-copilot::before {{
           content: "" !important;
       }}
       .theia-AgentAvatar.codicon-copilot {{
-          background-image: url('data:image/png;base64,{medium_b64}') !important;
+          background-image: url('data:image/png;base64,{small_black_b64}') !important;
           background-size: contain !important;
           background-repeat: no-repeat !important;
           background-position: center !important;
-          width: 28px !important;
-          height: 28px !important;
+          width: 24px !important;
+          height: 24px !important;
           display: inline-block !important;
       }}
     `;"""
@@ -206,27 +226,29 @@ def apply_branding():
           display: none !important;
       }}
       svg.theia-WelcomeMessage-Logo {{
-          background-image: url('data:image/png;base64,{large_b64}') !important;
+          background-image: url('data:image/png;base64,{large_black_b64}') !important;
           background-size: contain !important;
           background-repeat: no-repeat !important;
           background-position: center !important;
-          width: 320px !important;
-          height: 320px !important;
+          width: 260px !important;
+          height: 260px !important;
+          max-width: 90% !important;
       }}
       svg.theia-WelcomeMessage-Logo[width="64"] {{
-          width: 240px !important;
-          height: 240px !important;
+          width: 220px !important;
+          height: 220px !important;
+          max-width: 90% !important;
       }}
       .theia-AgentAvatar.codicon-copilot::before {{
           content: "" !important;
       }}
       .theia-AgentAvatar.codicon-copilot {{
-          background-image: url('data:image/png;base64,{medium_b64}') !important;
+          background-image: url('data:image/png;base64,{small_black_b64}') !important;
           background-size: contain !important;
           background-repeat: no-repeat !important;
           background-position: center !important;
-          width: 28px !important;
-          height: 28px !important;
+          width: 24px !important;
+          height: 24px !important;
           display: inline-block !important;
       }}""", content, flags=re.DOTALL)
             print("     ✓ Updated existing styling overrides in extension.ts")
