@@ -8,17 +8,22 @@ repo_root = "/Users/atulgrover/Desktop/HAYAGRIVA"
 small_logo_path = os.path.join(repo_root, "resources", "resources", "hayagriva_small.png")
 medium_logo_path = os.path.join(repo_root, "resources", "resources", "hayagriva_medium.png")
 large_logo_path = os.path.join(repo_root, "resources", "resources", "hayagriva_large.png")
+large_logo_black_path = os.path.join(repo_root, "resources", "resources", "hayagriva_large_black.png")
 
-# Icon target paths
-icon_targets = [
+# White/Light logo targets (used on dark themes or general launcher window icons)
+white_targets = [
     os.path.join(repo_root, "ide", "applications", "electron", "resources", "icons", "WindowIcon", "512-512.png"),
     os.path.join(repo_root, "ide", "applications", "electron", "resources", "icons", "MacLauncherIcons", "icon.icon", "Assets", "icon.png"),
     os.path.join(repo_root, "resources", "resources", "icons", "WindowIcon", "512-512.png"),
     os.path.join(repo_root, "resources", "resources", "icons", "512x512.png"),
-    os.path.join(repo_root, "resources", "resources", "icon_black_512.png"),
     os.path.join(repo_root, "resources", "resources", "icon_white_512.png"),
-    os.path.join(repo_root, "resources", "resources", "logo_black.png"),
     os.path.join(repo_root, "resources", "resources", "logo_white.png"),
+]
+
+# Black/Dark logo targets (used on light backgrounds)
+black_targets = [
+    os.path.join(repo_root, "resources", "resources", "icon_black_512.png"),
+    os.path.join(repo_root, "resources", "resources", "logo_black.png"),
 ]
 
 # Splash screen targets
@@ -36,7 +41,7 @@ def apply_branding():
     print("[Branding Compiler] Starting application of Hayagriva horse logo...")
     
     # Verify files exist
-    for p in [small_logo_path, medium_logo_path, large_logo_path]:
+    for p in [small_logo_path, medium_logo_path, large_logo_path, large_logo_black_path]:
         if not os.path.exists(p):
             print(f"Error: Required file {p} does not exist.")
             return
@@ -47,15 +52,26 @@ def apply_branding():
     medium_b64 = load_base64(medium_logo_path)
     large_b64 = load_base64(large_logo_path)
 
-    # 1. Overwrite launcher PNG icons
+    # 1. Overwrite launcher PNG icons (separated by theme color)
     print("  -> Copying large horse logo to launcher target icons...")
+    
+    # Write white-on-transparent logo to white targets
     with open(large_logo_path, "rb") as src_f:
-        large_bytes = src_f.read()
-    for target in icon_targets:
+        white_bytes = src_f.read()
+    for target in white_targets:
         os.makedirs(os.path.dirname(target), exist_ok=True)
         with open(target, "wb") as dest_f:
-            dest_f.write(large_bytes)
-        print(f"     ✓ Wrote: {os.path.relpath(target, repo_root)}")
+            dest_f.write(white_bytes)
+        print(f"     ✓ Wrote White Icon: {os.path.relpath(target, repo_root)}")
+        
+    # Write black-on-transparent logo to black targets
+    with open(large_logo_black_path, "rb") as src_f:
+        black_bytes = src_f.read()
+    for target in black_targets:
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "wb") as dest_f:
+            dest_f.write(black_bytes)
+        print(f"     ✓ Wrote Black Icon: {os.path.relpath(target, repo_root)}")
 
     # 2. Patch Splash Screen SVGs
     print("  -> Patching Splash Screen SVG files with base64 horse logo...")
