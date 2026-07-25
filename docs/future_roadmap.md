@@ -7,6 +7,85 @@
 
 ---
 
+# Product Pillars & Commercial Strategy
+
+## Core Product Pillars
+
+### 1. The "Word" Illusion: Abstracted UI & Page-Style Editor
+Traditional development tools overwhelm legal professionals with dark-mode terminals, complex file trees, and monospace fonts. We redefine the workspace to feel like an elegant page editor while keeping a high-performance editing engine running invisibly underneath.
+*   **Distraction-Free Layout:** Overrides the default Eclipse Theia workbench to hide the status bar, minimaps, and unneeded toolbars.
+*   **Page-Style Visual Overlays:** Centered, padded editor views with custom serif typography (e.g., Garamond, Georgia) to simulate a printed page interface.
+
+### 2. Dedicated "Legal LSP" (Language Server Protocol)
+We treat legal documents as code, using a custom Language Server Protocol engineered specifically for legal syntax. Built with **Langium** (TypeScript), we parse drafts into Abstract Syntax Trees (AST) for real-time validation.
+
+### 3. Local, Privacy-First AI Agents via MCP
+Corporate insolvency, transaction records, and litigation cases contain highly sensitive data. By leveraging the **Model Context Protocol (MCP)** and offline Ollama/Docker runtimes, AI agents query local vector databases without any data leaving the machine.
+
+### 4. Native Git for Lawyers: Track Changes, Simplified
+Git version control handles document integrity under the hood, while a custom Theia webview translates raw diff files into a clean "Track Changes" (insertions/deletions) redline visualizer.
+
+### 5. Automated Document Ingestion & Fact Extraction
+Raw uploads (`.pdf`, `.docx`, `.xlsx`) are digested automatically via Docling page-provenance extraction, Mammoth paragraph chunking, and SheetJS row-splitting to generate structured Markdown databases.
+
+### 6. "Invisible" Data Exchange (The Compilation Pipeline)
+Drafts are authored in structured, machine-readable formats. Upon clicking "Export", a backend compilation pipeline runs Pandoc and OpenXML wrappers to compile them into perfectly typeset, court-ready `.docx` documents.
+
+---
+
+
+
+## Out-of-the-Box (OOB) Concept Adaptations
+
+To push the legal drafting experience beyond basic editors, we borrow core engineering and design workflows from other successful IDE forks and non-developer workspaces:
+
+*   **The Overleaf "Split-Visual" Editor:** Like Overleaf's source/visual toggle, HAYAGRIVA allows users to write in a rich-text format while compiling clean, structured Markdown and YAML frontmatter in the background.
+*   **The Scrivener "Draft Binder" Outline:** Contracts and petitions are split into modular section files (e.g., *Jurisdiction*, *Limitation Clause*). Lawyers can rearrange these chapters inside a visual outline view, and the compilation pipeline merges them chronologically for export.
+*   **The Cursor-style Multi-File Indexing:** Indexes all case exhibits, affidavits, and correspondence so the local AI assistant can fetch facts and cross-check arguments across different files simultaneously.
+
+---
+
+## Advanced Features & "Legal Compiler" Extensions
+
+### I. Real-time "Malpractice Linting"
+Just as compilers check for syntax errors, HAYAGRIVA uses its LSP parser to flag high-risk legal draft issues:
+*   **Undefined Capitalized Terms:** Warns the writer if a capitalized term is used in the text (e.g. *"Resolution Professional"*) but does not have a matching definition in the Definitions section.
+*   **Unused Definitions:** Highlights terms defined in Section 1 but never cited in the body of the agreement.
+*   **Contradictory Timelines:** Alerts the user if Section 3 states *"payment due in 30 days"* while Section 9 states *"payment due within 15 days of invoicing"*.
+*   **Broken Cross-References:** Flags broken links (e.g., *"pursuant to Section 5.1"* when Section 5.1 does not exist in the active document).
+
+### II. Case Chronology "Time-Travel Debugger"
+A timeline is a litigation lawyer's debugger.
+*   Integrate a dynamic **Chronology Timeline Sidebar Panel** that compiles date-event sentences across all documents.
+*   Clicking an event node in the timeline panel acts as a "Go to Definition" link—automatically opening the corresponding source file and highlighting the exact page, paragraph, and line in yellow.
+
+### III. Multi-Document "Refactoring" (Global Rename)
+*   Right-clicking a corporate entity name or court reference and selecting "Rename" updates that entity across the petition, notices, accompanying exhibits, and JSON case logs instantly while keeping layout alignments intact.
+
+### IV. Drag-and-Drop "Clause Palette"
+*   A palette library containing standard dispute clauses, arbitration clauses, and boilerplate terms.
+*   Dragging a clause into the document prompts the user to fill in detected AST variables (e.g., `$JURISDICTION` or `$LIQUIDATED_DAMAGES_CAP`).
+
+---
+
+
+
+## Monetisation & Subscription Model
+
+To ensure recurring renewals, the encrypted law libraries are updated weekly with statutory amendments. A stale vault contains outdated laws, presenting a malpractice risk for advocates.
+
+| Tier | Price | Limits | Features |
+|---|---|---|---|
+| **Free** | Rs. 0 | 3 cases, 5 docs/case, 25 `@@` completions/day | IBC Core only (Sections 6-32), library frozen at install time, no auto-drafting. |
+| **Pro** | Rs. 2,999/month | Unlimited cases, docs, & `@@` completions | All libraries (IBC + Companies Act + CPC + CrPC + NI Act), weekly auto-updates, export to DOCX/PDF. |
+| **Firm** | Rs. 9,999/month | Up to 5 seats (Rs. 1,800/extra seat) | Shared case libraries, custom precedents, template customization, audit logging. |
+| **Enterprise** | Custom | Bespoke deployments | Fully air-gapped deployment, quarterly vault updates on signed USB. |
+
+---
+
+
+---
+
 ## Phase 1: Core Pipeline Stability & Interactive UX
 
 These items establish baseline reliability, thread-safety, user context configurations, and navigation components for the local workspace.
