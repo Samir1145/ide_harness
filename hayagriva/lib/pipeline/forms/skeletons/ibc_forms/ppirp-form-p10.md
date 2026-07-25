@@ -4,15 +4,15 @@ __FORM P10__
 
 __List of Claims__
 
-*Under Regulation 20 of the IBBI \(Pre\-packaged Insolvency Resolution Process\) Regulations, 2021*
+*Under Regulation 20 of the IBBI (Pre-packaged Insolvency Resolution Process) Regulations, 2021*
 
-__As on \_\_\_\_\_\_   \(Amount in ₹\)__
+__As on ______   (Amount in ₹)__
 
-__Sl\.__
+__Sl.__
 
 __Category of creditor__
 
-__No\. of claims__
+__No. of claims__
 
 __Amount__
 
@@ -36,37 +36,37 @@ Unsecured financial creditors belonging to any class
 
 3
 
-Secured financial creditors \(other than class creditors\)
+Secured financial creditors (other than class creditors)
 
 3
 
 4
 
-Unsecured financial creditors \(other than class creditors\)
+Unsecured financial creditors (other than class creditors)
 
 4
 
 5
 
-Operational creditors \(Workmen\)
+Operational creditors (Workmen)
 
 5
 
 6
 
-Operational creditors \(Employees\)
+Operational creditors (Employees)
 
 6
 
 7
 
-Operational creditors \(Government dues\)
+Operational creditors (Government dues)
 
 7
 
 8
 
-Operational creditors \(other than workmen, employees, Government\)
+Operational creditors (other than workmen, employees, Government)
 
 8
 
@@ -78,6 +78,6 @@ Other creditors, if any
 
 Total
 
-*Each category is supported by an Annexure \(1 to 9\) with, per creditor: name; identification no\.; amount of claim; nature of claim; amount covered by security interest / guarantee; whether a related party; % of voting share in the committee; amount of contingent claim; and amount of any mutual dues that may be set\-off\.*
+*Each category is supported by an Annexure (1 to 9) with, per creditor: name; identification no.; amount of claim; nature of claim; amount covered by security interest / guarantee; whether a related party; % of voting share in the committee; amount of contingent claim; and amount of any mutual dues that may be set-off.*
 
-\[For Corporate Debtor / Resolution Professional\]  \(Signature\)   Name: \_\_\_\_   Registration Number \(if RP\): \_\_\_\_   Relationship with corporate debtor: \_\_\_\_
+\[For Corporate Debtor / Resolution Professional\]  (Signature)   Name: ____   Registration Number (if RP): ____   Relationship with corporate debtor: ____

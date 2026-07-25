@@ -4,33 +4,33 @@ __FORM G__
 
 __Intimation of Decision on Security Interest__
 
-*Under Regulation 21A of the IBBI \(Liquidation Process\) Regulations, 2016*
+*Under Regulation 21A of the IBBI (Liquidation Process) Regulations, 2016*
 
 To: \[Name & Address of Liquidator\]
 
-Date: \_\_\_\_\_\_\_\_\_\_\_\_\_
+Date: _____________
 
-__A\. Details of Secured Creditor__
+__A. Details of Secured Creditor__
 
 __Name of Creditor__
 
-__PAN No\.__
+__PAN No.__
 
-__Authorised Signatory \(Name & Designation\)__
+__Authorised Signatory (Name & Designation)__
 
-__B\. Details of Security Interest__
+__B. Details of Security Interest__
 
 __Nature of Security__
 
-__Description of Secured Asset\(s\)__
+__Description of Secured Asset(s)__
 
-__Identification No\. \(CERSAI / ROC Charge ID, etc\.\)__
+__Identification No. (CERSAI / ROC Charge ID, etc.)__
 
-__Admitted Claim \(₹\)__
+__Admitted Claim (₹)__
 
-__C\. Decision \(strike out whichever is not applicable\)__
+__C. Decision (strike out whichever is not applicable)__
 
-I hereby elect to relinquish the security interest to the liquidation estate under section 52\(1\)\(a\) of the Code / realise the security interest under section 52\(1\)\(b\) of the Code\.
+I hereby elect to relinquish the security interest to the liquidation estate under section 52(1)(a) of the Code / realise the security interest under section 52(1)(b) of the Code.
 
 __Enclosures:__
 
@@ -40,10 +40,10 @@ __Enclosures:__
 
 ☐ Board resolution / authorisation
 
-☐ Other \(specify\): \_\_\_\_\_\_\_\_\_\_\_\_\_\_
+☐ Other (specify): ______________
 
-Name & Designation: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+Name & Designation: _______________________
 
-For and on behalf of: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+For and on behalf of: _______________________
 
-Signature: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_     Date: \_\_\_\_\_\_\_\_\_\_     Place: \_\_\_\_\_\_\_\_\_\_
+Signature: ___________________     Date: __________     Place: __________
