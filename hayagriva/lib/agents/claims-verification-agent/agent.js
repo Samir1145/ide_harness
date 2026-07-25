@@ -1,7 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const { getChatResponse } = require('../../core/llm-client');
-const { query } = require('../../core/rag');
+const { ragRetrieve, formatContextBlock } = require('../skills/rag-retrieve');
+const { extractEntities, extractAmounts } = require('../skills/entity-extract');
+const { writeCaseKV, readAllKV } = require('../skills/kv-write');
+const { appendTableRow } = require('../skills/md-append');
 
 class ClaimsVerificationAgent {
     constructor() {
@@ -11,47 +14,98 @@ class ClaimsVerificationAgent {
     }
 
     async run(caseDir, userMessage, history = []) {
-        console.log(`[Claims Agent] Analyzing query: "${userMessage}"`);
-        
-        // 1. Perform RAG query on claim files and invoices
-        let dbContext = '';
-        try {
-            const searchResults = await query(caseDir, `claim details amount principal interest invoices bank receipt ${userMessage}`);
-            if (searchResults && searchResults.results && searchResults.results.length > 0) {
-                dbContext = 'Relevant Claim & Invoice Contexts:\n';
-                searchResults.results.slice(0, 4).forEach((res, idx) => {
-                    dbContext += `\n[Reference ${idx + 1}] (Source: ${res.id})\n${res.text}\n`;
-                });
-            }
-        } catch (e) {
-            console.error(`[Claims Agent] RAG query failed:`, e.message);
-        }
+        console.log(`[Claims Verification Agent] Running verification...`);
 
-        // Load claims registry JSON file if it exists in the case folder
+        // 1. Load existing claims_registry.md for known claims
         let registryData = '';
-        try {
-            const registryPath = path.join(caseDir, 'concepts', 'claims_registry.json');
-            if (fs.existsSync(registryPath)) {
-                registryData = `\nCurrent Claims Registry State:\n${fs.readFileSync(registryPath, 'utf8')}\n`;
-            }
-        } catch (e) {
-            console.error(`[Claims Agent] Failed to read claims registry:`, e.message);
+        const registryPath = path.join(caseDir, 'claims_registry.md');
+        if (fs.existsSync(registryPath)) {
+            registryData = fs.readFileSync(registryPath, 'utf8');
         }
 
-        // 2. Build message payload
-        const messages = [
-            { role: 'system', content: this.instructions }
+        // 2. RAG retrieval for claim-related document chunks
+        const claimsQueries = [
+            'claim amount outstanding dues financial creditor',
+            'claim amount operational creditor invoice',
+            'total debt exposure loan outstanding',
+            'principal interest penal interest calculation',
+            'claim verification resolution professional'
         ];
 
-        history.forEach(h => {
-            messages.push({ role: h.role, content: h.content });
+        let allChunks = [];
+        for (const q of claimsQueries) {
+            const chunks = await ragRetrieve(caseDir, q, 2);
+            allChunks = allChunks.concat(chunks);
+        }
+
+        // Deduplicate chunks by docName + title
+        const seen = new Set();
+        allChunks = allChunks.filter(c => {
+            const k = `${c.docName}::${c.title}`;
+            if (seen.has(k)) return false;
+            seen.add(k); return true;
         });
 
-        let content = userMessage;
-        if (dbContext || registryData) {
-            content = `[Context Information]\n${dbContext}${registryData}\n\n[User Message]\n${userMessage}`;
+        // 3. Entity extraction across all retrieved chunks
+        const verifiedClaims = [];
+        const discrepancies = [];
+        const kv = readAllKV(caseDir);
+
+        for (const chunk of allChunks.slice(0, 6)) {
+            try {
+                const entities = await extractEntities(chunk.content, caseDir);
+                const amounts = entities.amounts || [];
+                const parties = entities.parties || [];
+
+                for (const amount of amounts) {
+                    // Cross-reference against KV dictionary known values
+                    const knownTotal = kv['total_claim_amount'];
+                    const isMismatch = knownTotal && !chunk.content.includes(knownTotal);
+
+                    const claim = {
+                        creditor: parties[0] || 'Unknown',
+                        amount: amount.raw,
+                        source: chunk.docName,
+                        section: chunk.title,
+                        verified: !isMismatch,
+                        flag: isMismatch ? '⚠️ MISMATCH' : '✅ VERIFIED'
+                    };
+
+                    if (isMismatch) discrepancies.push(claim);
+                    else verifiedClaims.push(claim);
+
+                    // Write-back each claim row to claims_registry.md
+                    appendTableRow(
+                        caseDir,
+                        'claims_registry.md',
+                        ['Creditor', 'Amount', 'Source', 'Status'],
+                        [claim.creditor, claim.amount, claim.source, claim.flag],
+                        this.name
+                    );
+                }
+            } catch (e) { /* non-fatal per chunk */ }
         }
-        messages.push({ role: 'user', content });
+
+        // 4. Write summary to KV
+        if (verifiedClaims.length > 0) {
+            writeCaseKV(caseDir, 'claims_verified_count', String(verifiedClaims.length), 'ClaimsAgent', this.name);
+        }
+        if (discrepancies.length > 0) {
+            writeCaseKV(caseDir, 'claims_discrepancy_count', String(discrepancies.length), 'ClaimsAgent', this.name);
+        }
+
+        // 5. Build LLM context for summary response
+        const contextBlock = formatContextBlock(allChunks.slice(0, 4), 'Retrieved Claim Documents');
+        const summaryBlock = `[Claims Verification Summary]
+- Chunks analysed: ${allChunks.length}
+- Claims verified: ${verifiedClaims.length}
+- Discrepancies flagged: ${discrepancies.length}
+${discrepancies.length > 0 ? '\n[Discrepancies]\n' + discrepancies.map(d => `- ${d.creditor}: ${d.amount} (${d.source})`).join('\n') : ''}
+${registryData ? '\n[Existing Claims Registry]\n' + registryData.substring(0, 400) : ''}`;
+
+        const messages = [{ role: 'system', content: this.instructions }];
+        history.forEach(h => messages.push({ role: h.role, content: h.content }));
+        messages.push({ role: 'user', content: `${summaryBlock}\n\n${contextBlock}\n\n[User Message]\n${userMessage}` });
 
         return await getChatResponse(messages, { caseDir });
     }

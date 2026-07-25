@@ -2,7 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const { getChatResponse } = require('../../core/llm-client');
 const { retrieveContexts, replaceCitations } = require('../../core/rag');
-const { resolveTrigger, searchLaws } = require('../../utils/vault-loader');
+const { formatContextBlock } = require('../skills/rag-retrieve');
+const { vaultLookup, formatVaultBlock } = require('../skills/vault-lookup');
+const { extractEntities } = require('../skills/entity-extract');
+const { writeMultiKV } = require('../skills/kv-write');
+const { appendToMarkdown } = require('../skills/md-append');
 
 class AdvisorAgent {
     constructor() {
@@ -14,84 +18,78 @@ class AdvisorAgent {
     async run(caseDir, userMessage, history = []) {
         console.log(`[Advisor Agent] Analyzing query: "${userMessage}"`);
         
-        // 1. Perform Case RAG retrieval to get case document contexts
-        let dbContext = '';
+        // 1. Case RAG retrieval
         let contexts = [];
+        let dbContext = '';
         try {
             contexts = await retrieveContexts(caseDir, userMessage);
             if (contexts && contexts.length > 0) {
-                dbContext = 'Relevant Case Documents:\n';
-                contexts.slice(0, 4).forEach((ctx, idx) => {
-                    dbContext += `\n[Reference [source:${idx}]] (Source: ${ctx.docName} | Section/Page: ${ctx.title})\n${ctx.content}\n`;
-                });
+                dbContext = formatContextBlock(contexts.slice(0, 4), 'Relevant Case Documents');
             }
         } catch (e) {
-            console.error(`[Advisor Agent] Case database query failed:`, e.message);
+            console.error(`[Advisor Agent] Case RAG query failed:`, e.message);
         }
 
-        // 2. Perform Law Vault lookup to query statutory codifications (e.g. IBC, Companies Act)
+        // 2. Law Vault lookup via skill (trigger detection + keyword fallback)
         let vaultContext = '';
         try {
-            let trigger = null;
-            const ibcMatch = userMessage.match(/(?:sec(?:tion)?\.?\s*|s)(\d+[a-z]?)(?:\s+of\s+ibc)?/i);
-            const coMatch = userMessage.match(/(?:sec(?:tion)?\.?\s*|s)(\d+[a-z]?)\s+of\s+companies\s+act/i);
-            
-            if (coMatch) {
-                trigger = `co/sec ${coMatch[1]}`;
-            } else if (ibcMatch) {
-                trigger = `ibc/sec ${ibcMatch[1]}`;
-            } else {
-                const generalMatch = userMessage.match(/(?:sec(?:tion)?\.?\s*|s)(\d+[a-z]?)/i);
-                if (generalMatch) {
-                    trigger = `ibc/sec ${generalMatch[1]}`;
-                }
-            }
-            
-            let matchedLaws = [];
-            if (trigger) {
-                console.log(`[Advisor Agent] Detected direct law trigger: "${trigger}"`);
-                matchedLaws = await resolveTrigger(trigger, 3);
-            }
-            
-            if (matchedLaws.length === 0) {
-                console.log(`[Advisor Agent] Falling back to keyword search in Law Vault...`);
-                matchedLaws = await searchLaws(userMessage, 3);
-            }
-            
-            if (matchedLaws && matchedLaws.length > 0) {
-                vaultContext = 'Relevant Law Vault Provisions:\n';
-                matchedLaws.forEach((law, idx) => {
-                    vaultContext += `\n[Law Reference ${idx + 1}] (Section: ${law.title} | ID: ${law.id})\n${law.text}\n`;
-                });
-            }
-        } catch (vaultErr) {
-            console.error(`[Advisor Agent] Law Vault query failed:`, vaultErr.message);
+            const laws = await vaultLookup(userMessage, 3);
+            vaultContext = formatVaultBlock(laws);
+        } catch (e) {
+            console.error(`[Advisor Agent] Law Vault query failed:`, e.message);
         }
 
-        // 3. Build message log
-        const messages = [
-            { role: 'system', content: this.instructions }
-        ];
+        // 3. Entity extraction → write-back to KV dictionary (context enrichment loop)
+        if (contexts.length > 0) {
+            try {
+                const combinedText = contexts.slice(0, 2).map(c => c.content).join('\n\n');
+                const entities = await extractEntities(combinedText, caseDir);
 
-        // Add history
-        history.forEach(h => {
-            messages.push({ role: h.role, content: h.content });
-        });
+                const kvPairs = {};
+                if (entities.parties && entities.parties.length > 0) {
+                    kvPairs['discovered_parties'] = entities.parties.join(', ');
+                }
+                if (entities.dates && entities.dates.length > 0) {
+                    kvPairs['discovered_dates'] = entities.dates.map(d => d.raw).join(', ');
+                }
+                if (entities.amounts && entities.amounts.length > 0) {
+                    kvPairs['discovered_amounts'] = entities.amounts.map(a => a.raw).join(', ');
+                }
+                if (Object.keys(kvPairs).length > 0) {
+                    writeMultiKV(caseDir, kvPairs, contexts[0].docName, this.name);
+                }
+            } catch (e) {
+                console.error(`[Advisor Agent] Entity extraction / write-back failed:`, e.message);
+            }
+        }
 
-        // Add active user turn with injected contexts
-        let content = userMessage;
+        // 4. Build prompt
+        const messages = [{ role: 'system', content: this.instructions }];
+        history.forEach(h => messages.push({ role: h.role, content: h.content }));
+
         const contextsToInject = [];
         if (vaultContext) contextsToInject.push(vaultContext);
         if (dbContext) contextsToInject.push(dbContext);
-        
+
+        let content = userMessage;
         if (contextsToInject.length > 0) {
             content = `[Context Information]\n${contextsToInject.join('\n\n')}\n\n[User Message]\n${userMessage}`;
         }
         messages.push({ role: 'user', content });
 
-        // 4. Call LLM
+        // 5. Call LLM
         const answer = await getChatResponse(messages, { caseDir });
-        return replaceCitations(answer, contexts);
+        const final = replaceCitations(answer, contexts);
+
+        // 6. Write-back: append Q&A finding to case_facts.md
+        try {
+            const shortQ = userMessage.length > 80 ? userMessage.substring(0, 80) + '...' : userMessage;
+            const shortA = final.length > 200 ? final.substring(0, 200) + '...' : final;
+            appendToMarkdown(caseDir, 'case_facts.md', '## Advisor Agent Findings',
+                `**Q:** ${shortQ}\n**A:** ${shortA}`, this.name);
+        } catch (e) { /* non-fatal */ }
+
+        return final;
     }
 }
 

@@ -1,7 +1,31 @@
 const fs = require('fs');
 const path = require('path');
 const { getChatResponse } = require('../../core/llm-client');
-const { query } = require('../../core/rag');
+const { ragRetrieve, formatContextBlock } = require('../skills/rag-retrieve');
+const { extractEntities, extractDates } = require('../skills/entity-extract');
+const { writeCaseKV } = require('../skills/kv-write');
+const { appendTableRow } = require('../skills/md-append');
+const { vaultLookup } = require('../skills/vault-lookup');
+
+// IBC lookback windows (in months from insolvency commencement date)
+const IBC_LOOKBACK = {
+    sec43_related_party: 24,   // Sec 43: Preferential — 2 yrs for related party
+    sec43_others:        12,   // Sec 43: Preferential — 1 yr for others
+    sec45_undervalue:    24,   // Sec 45: Undervalued transaction — 2 yrs
+    sec46_undervalue_rp: 24,   // Sec 46: Undervalued — related party — 2 yrs
+    sec49_extortionate:  Infinity, // Sec 49: Extortionate credit — any time
+    sec66_fraudulent:    Infinity, // Sec 66: Fraudulent trading — any time
+};
+
+function monthsBetween(d1, d2) {
+    return (d2 - d1) / (1000 * 60 * 60 * 24 * 30.44);
+}
+
+function parseFlexDate(str) {
+    if (!str) return null;
+    const d = new Date(str);
+    return isNaN(d) ? null : d;
+}
 
 class AvoidanceScannerAgent {
     constructor() {
@@ -11,47 +35,127 @@ class AvoidanceScannerAgent {
     }
 
     async run(caseDir, userMessage, history = []) {
-        console.log(`[Avoidance Scanner Agent] Scanning ledgers query: "${userMessage}"`);
-        
-        // 1. Query RAG for related party disclosures, ledgers, transfers
-        let dbContext = '';
-        try {
-            const searchResults = await query(caseDir, `related parties transfers transactions ledgers cashbook avoidance undervalue preference fraud ${userMessage}`);
-            if (searchResults && searchResults.results && searchResults.results.length > 0) {
-                dbContext = 'Relevant Financial Transactions Context:\n';
-                searchResults.results.slice(0, 4).forEach((res, idx) => {
-                    dbContext += `\n[Reference ${idx + 1}] (Source: ${res.id})\n${res.text}\n`;
-                });
-            }
-        } catch (e) {
-            console.error(`[Avoidance Scanner Agent] RAG transactions query failed:`, e.message);
+        console.log(`[Avoidance Scanner Agent] Running avoidance scan...`);
+
+        // Load CIRP commencement date from KV (needed for lookback calculations)
+        let cirpDate = null;
+        const kvPath = path.join(caseDir, 'concepts', 'case_kv_dictionary.json');
+        if (fs.existsSync(kvPath)) {
+            try {
+                const kv = JSON.parse(fs.readFileSync(kvPath, 'utf8'));
+                const dateStr = kv['date_of_cirp_commencement']?.value || kv['date_of_admission']?.value;
+                cirpDate = parseFlexDate(dateStr);
+            } catch (e) { /* no kv yet */ }
         }
 
-        // Load avoidance records from case folder if available
-        let avoidanceData = '';
-        try {
-            const ledgerPath = path.join(caseDir, 'concepts', 'avoidance_transactions.json');
-            if (fs.existsSync(ledgerPath)) {
-                avoidanceData = `\nActive Avoidance Candidates Log:\n${fs.readFileSync(ledgerPath, 'utf8')}\n`;
-            }
-        } catch (e) {
-            console.error(`[Avoidance Scanner Agent] Failed to read avoidance records:`, e.message);
-        }
-
-        // 2. Build message log
-        const messages = [
-            { role: 'system', content: this.instructions }
+        // 1. Multi-query RAG sweep for financial transactions
+        const avoidanceQueries = [
+            'related party transactions transfers payments preferential',
+            'undervalue transaction below market consideration',
+            'cash payment large amount director shareholder',
+            'loan repayment before insolvency commencement preference',
+            'fraudulent trading deception creditor defraud',
+            'extortionate credit unconscionable terms interest',
+            'property transfer encumbrance charge created',
+            'dividend paid distribution shareholders before default',
         ];
 
-        history.forEach(h => {
-            messages.push({ role: h.role, content: h.content });
+        let allChunks = [];
+        for (const q of avoidanceQueries) {
+            const chunks = await ragRetrieve(caseDir, q, 2);
+            allChunks = allChunks.concat(chunks);
+        }
+        // Deduplicate
+        const seen = new Set();
+        allChunks = allChunks.filter(c => {
+            const k = `${c.docName}::${c.title}`;
+            if (seen.has(k)) return false;
+            seen.add(k); return true;
         });
 
-        let content = userMessage;
-        if (dbContext || avoidanceData) {
-            content = `[Context Information]\n${dbContext}${avoidanceData}\n\n[User Message]\n${userMessage}`;
+        // 2. Load existing avoidance ledger
+        let existingLedger = '';
+        const ledgerPath = path.join(caseDir, 'concepts', 'avoidance_transactions.json');
+        if (fs.existsSync(ledgerPath)) {
+            existingLedger = fs.readFileSync(ledgerPath, 'utf8');
         }
-        messages.push({ role: 'user', content });
+
+        // 3. Extract entities + flag transactions
+        const flagged = [];
+        const ibcLaws = await vaultLookup('preferential undervalue avoidance transaction IBC section 43 45 49 66', 2);
+
+        for (const chunk of allChunks.slice(0, 8)) {
+            try {
+                const entities = await extractEntities(chunk.content, caseDir);
+                const dates = entities.dates || [];
+                const amounts = entities.amounts || [];
+
+                if (amounts.length === 0) continue; // No financial transaction here
+
+                for (const dateObj of dates) {
+                    const txDate = parseFlexDate(dateObj.raw);
+                    if (!txDate) continue;
+
+                    const monthsBack = cirpDate ? monthsBetween(txDate, cirpDate) : null;
+
+                    // Determine applicable IBC sections
+                    const applicableSections = [];
+                    if (monthsBack !== null) {
+                        if (monthsBack <= IBC_LOOKBACK.sec43_others)        applicableSections.push('Sec 43 (Preferential)');
+                        if (monthsBack <= IBC_LOOKBACK.sec45_undervalue)     applicableSections.push('Sec 45 (Undervalue)');
+                    }
+                    applicableSections.push('Sec 66 (Fraudulent — check manually)');
+
+                    const flag = {
+                        date: dateObj.raw,
+                        amounts: amounts.map(a => a.raw).join(', '),
+                        parties: (entities.parties || []).join(', '),
+                        source: chunk.docName,
+                        months_before_cirp: monthsBack !== null ? Math.round(monthsBack) : 'CIRP date unknown',
+                        applicable_sections: applicableSections,
+                        severity: applicableSections.length > 1 ? '🔴 HIGH' : '🟡 REVIEW',
+                    };
+
+                    flagged.push(flag);
+
+                    // Write-back to avoidance_ledger.md
+                    appendTableRow(
+                        caseDir,
+                        'avoidance_ledger.md',
+                        ['Date', 'Amount', 'Parties', 'Months Pre-CIRP', 'Sections', 'Severity', 'Source'],
+                        [flag.date, flag.amounts, flag.parties || '—', flag.months_before_cirp, applicableSections.join(', '), flag.severity, flag.source],
+                        this.name
+                    );
+                }
+            } catch (e) { /* non-fatal per chunk */ }
+        }
+
+        // 4. Save flagged transactions as JSON
+        if (flagged.length > 0) {
+            try {
+                fs.writeFileSync(ledgerPath, JSON.stringify(flagged, null, 2), 'utf8');
+                writeCaseKV(caseDir, 'avoidance_flags_count', String(flagged.length), 'AvoidanceAgent', this.name);
+            } catch (e) { /* non-fatal */ }
+        }
+
+        // 5. Build LLM context for narrative summary
+        const lawContext = ibcLaws.map((l, i) => `[IBC Provision ${i+1}] ${l.title}\n${l.text}`).join('\n\n');
+        const scanSummary = `[Avoidance Scan Summary]
+- Documents scanned: ${allChunks.length}
+- Transactions flagged: ${flagged.length}
+- CIRP commencement date: ${cirpDate ? cirpDate.toDateString() : 'Not found in KV — results are approximate'}
+
+${flagged.slice(0, 5).map((f, i) => `${i+1}. [${f.severity}] ${f.date} — ${f.amounts} — ${f.applicable_sections.join(', ')} (Source: ${f.source})`).join('\n')}
+${flagged.length > 5 ? `\n... and ${flagged.length - 5} more. See avoidance_ledger.md` : ''}`;
+
+        const contextBlock = formatContextBlock(allChunks.slice(0, 3), 'Financial Transaction Documents');
+
+        const messages = [{ role: 'system', content: this.instructions }];
+        history.forEach(h => messages.push({ role: h.role, content: h.content }));
+        messages.push({
+            role: 'user',
+            content: `${scanSummary}\n\n${lawContext ? 'Relevant IBC Provisions:\n' + lawContext + '\n\n' : ''}${contextBlock}\n\n[User Message]\n${userMessage}`
+        });
 
         return await getChatResponse(messages, { caseDir });
     }
