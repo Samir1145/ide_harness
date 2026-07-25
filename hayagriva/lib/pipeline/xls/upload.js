@@ -5,10 +5,10 @@ const xlsx = require('xlsx');
  * @param {string} filePath - Absolute path to the Excel file
  * @returns {string} Markdown text structured in markdown tables per sheet
  */
-function convertXlsx(filePath) {
-    console.log(`[Excel Importer] Converting Excel file: ${filePath}`);
+function convertXlsxSheets(filePath) {
+    console.log(`[Excel Importer] Converting Excel sheets: ${filePath}`);
     const workbook = xlsx.readFile(filePath);
-    let result = '';
+    const sheets = [];
     
     for (const sheetName of workbook.SheetNames) {
         const sheet = workbook.Sheets[sheetName];
@@ -23,6 +23,7 @@ function convertXlsx(filePath) {
         rows = cleanGrid(rows);
         if (rows.length === 0) continue;
         
+        let result = '';
         result += `# ${sheetName}\n\n`;
         const chunkSize = 100;
         const headers = rows[0];
@@ -40,8 +41,19 @@ function convertXlsx(filePath) {
             }
             result += '\n';
         }
+        
+        const cleanSheetName = sheetName.replace(/[^a-zA-Z0-9\s-_]/g, '').trim().replace(/\s+/g, '_');
+        sheets.push({
+            sheetName: cleanSheetName || 'Sheet',
+            markdown: result
+        });
     }
-    return result;
+    return sheets;
+}
+
+function convertXlsx(filePath) {
+    const sheets = convertXlsxSheets(filePath);
+    return sheets.map(s => s.markdown).join('\n\n');
 }
 
 /**
@@ -113,4 +125,4 @@ function cleanGrid(rows) {
     return cleanedRows;
 }
 
-module.exports = { convertXlsx };
+module.exports = { convertXlsx, convertXlsxSheets };

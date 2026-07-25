@@ -264,6 +264,28 @@ function runSelfHealingCleanup(caseDir, filePath, relative, ext) {
     } catch (e) {
         console.error('[SQLite Watcher] Failed to remove deleted document from DB:', e.message);
     }
+
+    // 5. Cascaded deletion for Excel sheet companions
+    if (ext === '.xlsx' || ext === '.xls') {
+        const destDir = path.dirname(filePath);
+        try {
+            if (fs.existsSync(destDir)) {
+                const files = fs.readdirSync(destDir);
+                const prefix = `${basename}_`;
+                for (const file of files) {
+                    if (file.startsWith(prefix) && file.endsWith('.md')) {
+                        const companionPath = path.join(destDir, file);
+                        if (fs.existsSync(companionPath)) {
+                            console.log(`[Watcher Cleanup] Deleting Excel sheet companion: ${companionPath}`);
+                            fs.unlinkSync(companionPath);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[Watcher Cleanup] Failed to run cascaded delete for Excel companions:', e.message);
+        }
+    }
 }
 
 function renameDocumentInDb(caseDir, oldRelative, newRelative) {
@@ -384,6 +406,7 @@ function createWatcher(caseDir, onChange) {
     startPdfIngestionDaemon();
 
     const pendingDeletions = new Map();
+    const debounceTimers = new Map();
 
     const watcher = chokidar.watch(caseDir, {
         ignored: ignore,
@@ -424,19 +447,46 @@ function createWatcher(caseDir, onChange) {
             }
 
             if (!isRename) {
-                if (typeof onChange === 'function') {
-                    onChange(filePath);
-                } else if (onChange && typeof onChange.onFileChange === 'function') {
-                    onChange.onFileChange(filePath);
+                if (debounceTimers.has(relative)) {
+                    clearTimeout(debounceTimers.get(relative));
                 }
+                const timer = setTimeout(async () => {
+                    debounceTimers.delete(relative);
+                    if (!fs.existsSync(filePath)) return;
+
+                    // Verify file hash before triggering ingestion
+                    try {
+                        const { calculateFileHashSync } = require('../utils/hashing');
+                        const currentHash = calculateFileHashSync(filePath);
+                        if (currentHash) {
+                            const db = getDb(caseDir);
+                            const row = db.prepare('SELECT hash, status FROM documents WHERE filename = ?').get(relative);
+                            if (row && row.hash === currentHash && row.status !== 'unprocessed') {
+                                console.log(`[Watcher] Skipping duplicate ingest event for unchanged file hash: ${relative}`);
+                                return;
+                            }
+                        }
+                    } catch (_) {}
+
+                    if (typeof onChange === 'function') {
+                        onChange(filePath);
+                    } else if (onChange && typeof onChange.onFileChange === 'function') {
+                        onChange.onFileChange(filePath);
+                    }
+                }, 1000);
+                debounceTimers.set(relative, timer);
             }
         } else if (event === 'unlink') {
-            console.log(`[Watcher] File deletion detected for: ${relative}. Debouncing 200ms...`);
+            console.log(`[Watcher] File deletion detected for: ${relative}. Debouncing 2000ms...`);
+            if (debounceTimers.has(relative)) {
+                clearTimeout(debounceTimers.get(relative));
+                debounceTimers.delete(relative);
+            }
             
             const timeout = setTimeout(() => {
                 pendingDeletions.delete(relative);
                 runSelfHealingCleanup(caseDir, filePath, relative, ext);
-            }, 200);
+            }, 2000);
 
             pendingDeletions.set(relative, timeout);
         }

@@ -30,8 +30,7 @@ async function run() {
     console.log('  -> Testing settings/save derivation and settings/get values...');
     const testCases = [
         { saveMode: 'lite', expectedProfile: 'lite' },
-        { saveMode: 'local', expectedProfile: 'standard' },
-        { saveMode: 'cloud', expectedProfile: 'standard' }
+        { saveMode: 'local', expectedProfile: 'standard' }
     ];
 
     for (const tc of testCases) {
@@ -39,12 +38,6 @@ async function run() {
         const savedConfig = {
             processingProfile: activeMode === 'lite' ? 'lite' : 'standard',
             activeMode: activeMode,
-            localRunner: 'ollama',
-            localEndpoint: 'http://127.0.0.1:11434',
-            localChatModel: 'qwen2.5-coder:1.5b',
-            localEmbedModel: 'nomic-embed-text',
-            cloudProvider: 'gemini',
-            cloudModel: 'gemini-1.5-flash',
             remindLibreOffice: true
         };
         fs.writeFileSync(settingsPath, JSON.stringify(savedConfig, null, 2), 'utf8');
@@ -257,11 +250,10 @@ Reserves content 2`,
     // Test Case 10: Model Info endpoint mock call (Stage 4)
     console.log('  -> Testing /api/hayagriva/llm/model-info endpoint...');
     
-    // 10a. Save as standard local mode with small model
+    // 10a. Save as standard local mode
     fs.writeFileSync(settingsPath, JSON.stringify({
         activeMode: 'local',
-        localChatModel: 'qwen2.5-coder:1.5b',
-        cloudModel: 'gemini-1.5-flash'
+        processingProfile: 'standard'
     }, null, 2), 'utf8');
     
     let modelInfoRes = null;
@@ -278,30 +270,29 @@ Reserves content 2`,
     
     routeHandler(reqMock, resMock, { query: { case: 'fixtures/temp_test_case' } }, __dirname);
     
-    if (modelInfoRes.activeMode !== 'local' || modelInfoRes.tier !== 'small' || modelInfoRes.sizeB !== 1.5) {
-        throw new Error(`Expected model info to be local small 1.5B, got: ${JSON.stringify(modelInfoRes)}`);
+    if (modelInfoRes.activeMode !== 'local' || modelInfoRes.tier !== 'local' || modelInfoRes.sizeB !== 2.9) {
+        throw new Error(`Expected model info to be local 2.9B, got: ${JSON.stringify(modelInfoRes)}`);
     }
     
-    // 10b. Save as cloud mode
+    // 10b. Save as lite mode
     fs.writeFileSync(settingsPath, JSON.stringify({
-        activeMode: 'cloud',
-        localChatModel: 'qwen2.5-coder:1.5b',
-        cloudModel: 'gemini-1.5-flash'
+        activeMode: 'lite',
+        processingProfile: 'lite'
     }, null, 2), 'utf8');
     
     routeHandler(reqMock, resMock, { query: { case: 'fixtures/temp_test_case' } }, __dirname);
-    if (modelInfoRes.activeMode !== 'cloud' || modelInfoRes.tier !== 'cloud') {
-        throw new Error(`Expected model info to be cloud, got: ${JSON.stringify(modelInfoRes)}`);
+    if (modelInfoRes.activeMode !== 'lite' || modelInfoRes.tier !== 'none' || modelInfoRes.sizeB !== null) {
+        throw new Error(`Expected model info to be lite/none, got: ${JSON.stringify(modelInfoRes)}`);
     }
     console.log('     ✓ model-info endpoint successfully returned tier specifications under different modes.');
 
-    // Test Case 11: 100% Local ONNX Embeddings under Cloud config (Stage 5)
-    console.log('  -> Testing 100% Local ONNX Embeddings under Cloud config...');
+    // Test Case 11: 100% Local ONNX Embeddings
+    console.log('  -> Testing 100% Local ONNX Embeddings...');
     const vecCloud = await getEmbedding('test text chunk', tempCaseDir);
     if (!vecCloud || vecCloud.length !== 384) {
-        throw new Error(`Expected getEmbedding to return local ONNX 384-dimension vector under cloud mode, got: ${vecCloud ? vecCloud.length : 'null'}`);
+        throw new Error(`Expected getEmbedding to return local ONNX 384-dimension vector, got: ${vecCloud ? vecCloud.length : 'null'}`);
     }
-    console.log('     ✓ getEmbedding successfully enforced local ONNX embedding even under Cloud config.');
+    console.log('     ✓ getEmbedding successfully returned local ONNX embedding.');
 
     // Test Case 12: Promoting ONNX Indexing to Lite Mode (Stage 5)
     console.log('  -> Testing ONNX Vector Indexing in Lite Mode...');
@@ -343,6 +334,61 @@ Reserves content 2`,
         throw new Error(`Mismatched indexed section title: ${vectorRows[0].section_title}`);
     }
     console.log('     ✓ indexVectorsToSqlite successfully indexed vector mappings under Lite Mode.');
+
+    // Test Case 13: RAG Pre-Flight Token Constraint and Truncation
+    console.log('  -> Testing RAG Pre-Flight Token Constraint and Truncation...');
+    // Write standard local settings
+    fs.writeFileSync(settingsPath, JSON.stringify({
+        activeMode: 'local',
+        processingProfile: 'standard'
+    }, null, 2), 'utf8');
+
+    // Add multiple chunks to database to exceed 1500 tokens
+    const longText = 'This is a very long text word repeating. '.repeat(100); // ~800 words
+    dbTest.prepare('DELETE FROM fts_chunks').run();
+    dbTest.prepare('DELETE FROM document_vectors').run();
+    
+    // Insert 3 massive chunks
+    for (let i = 0; i < 3; i++) {
+        dbTest.prepare(`
+            INSERT INTO fts_chunks (filename, section_title, page_number, chunk_index, content)
+            VALUES (?, ?, ?, ?, ?)
+        `).run('doc_a.pdf', `Section_${i}`, 2, i, longText);
+
+        const mockVector = new Float32Array(768).fill(0.1);
+        dbTest.prepare(`
+            INSERT INTO document_vectors (filename, section_title, page_number, chunk_index, content, vector_blob)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run('doc_a.pdf', `Section_${i}`, 2, i, longText, Buffer.from(mockVector.buffer));
+    }
+
+    // A: Test that query truncates down to fit within 1500 limit and tries to call LLM (throwing offline error)
+    const errMock = await query(tempCaseDir, 'repeating', { caseDir: tempCaseDir });
+    if (!errMock.answer.includes('Local LLM runner is offline')) {
+        throw new Error(`Expected offline error from LLM call after truncation, got: ${errMock.answer}`);
+    }
+    console.log('     ✓ RAG successfully ran pre-flight checks, truncated multi-chunks down, and passed.');
+
+    // B: Test that a single prompt that is SO massive that even a single chunk overflows triggers the boundary error
+    const superLongText = 'This is a super massive word repeating. '.repeat(1500); // ~12000 words
+    dbTest.prepare('DELETE FROM fts_chunks').run();
+    dbTest.prepare('DELETE FROM document_vectors').run();
+    dbTest.prepare(`
+        INSERT INTO fts_chunks (filename, section_title, page_number, chunk_index, content)
+        VALUES (?, ?, ?, ?, ?)
+    `).run('doc_a.pdf', 'Section_Super', 2, 0, superLongText);
+
+    const mockVectorSuper = new Float32Array(768).fill(0.1);
+    dbTest.prepare(`
+        INSERT INTO document_vectors (filename, section_title, page_number, chunk_index, content, vector_blob)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `).run('doc_a.pdf', 'Section_Super', 2, 0, superLongText, Buffer.from(mockVectorSuper.buffer));
+
+    const superResult = await query(tempCaseDir, 'repeating', { caseDir: tempCaseDir });
+    if (!superResult.answer.includes('Context Window Exceeded')) {
+        throw new Error(`Expected context window exceeded warning, got: ${JSON.stringify(superResult)}`);
+    }
+    console.log('     ✓ RAG successfully detected single chunk context overflow and returned graceful warning.');
 
     // Clean up all temporary files and folders
     try {

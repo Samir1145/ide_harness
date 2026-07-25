@@ -154,6 +154,79 @@
     .feature-item.yes { color: var(--success-color); }
     .feature-item.no { color: var(--danger-color); opacity: 0.6; }
 
+    /* Engine Status Badges */
+    .engine-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .engine-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.01);
+    }
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-text {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    /* Status Styles */
+    .engine-badge.active {
+      border-color: var(--success-color);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    .engine-badge.active .status-dot {
+      background-color: var(--success-color);
+      box-shadow: 0 0 8px var(--success-color);
+    }
+    .engine-badge.active .status-text {
+      color: var(--success-color);
+    }
+
+    .engine-badge.offline {
+      border-color: var(--danger-color);
+      background: rgba(239, 68, 68, 0.05);
+    }
+    .engine-badge.offline .status-dot {
+      background-color: var(--danger-color);
+      box-shadow: 0 0 8px var(--danger-color);
+    }
+    .engine-badge.offline .status-text {
+      color: var(--danger-color);
+    }
+
+    .engine-badge.probing .status-dot {
+      background-color: var(--warning-color);
+      animation: pulse 1s infinite alternate;
+    }
+    .engine-badge.probing .status-text {
+      color: var(--warning-color);
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
     /* Form Styles */
     .form-group {
       margin-bottom: 16px;
@@ -164,52 +237,6 @@
       font-weight: 500;
       margin-bottom: 6px;
       opacity: 0.85;
-    }
-    select, input[type="text"], input[type="password"] {
-      width: 100%;
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
-      color: var(--text-color);
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 13px;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    select:focus, input:focus {
-      border-color: var(--accent-color);
-    }
-    .helper-text {
-      font-size: 11px;
-      opacity: 0.6;
-      margin-top: 4px;
-    }
-    
-    /* Sub-Router Toggle for Standard Mode */
-    .sub-router-toggle {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .sub-router-option {
-      flex: 1;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 10px;
-      text-align: center;
-      cursor: pointer;
-      background: rgba(255, 255, 255, 0.01);
-      transition: all 0.2s;
-      font-size: 13px;
-      font-weight: 500;
-    }
-    .sub-router-option:hover {
-      background: rgba(255, 255, 255, 0.03);
-    }
-    .sub-router-option.active {
-      border-color: var(--accent-color);
-      background: rgba(59, 130, 246, 0.08);
     }
 
     .button-container {
@@ -231,22 +258,6 @@
     }
     button:hover {
       opacity: 0.9;
-    }
-    .password-wrapper {
-      position: relative;
-    }
-    .password-toggle {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
-      font-size: 12px;
-      opacity: 0.7;
-      user-select: none;
-    }
-    .password-toggle:hover {
-      opacity: 1;
     }
     
     #toast {
@@ -283,21 +294,21 @@
   <div class="container">
     <h2>
       <span>Hayagriva Case Settings</span>
-      <span class="version-badge" id="vaultVer">Loading Vault...</span>
+      <span class="version-badge" id="vaultVer">Vault Status</span>
     </h2>
     
     <form id="settingsForm">
-      <!-- Stage 1 Redesign: Mode Selection Tiles -->
+      <!-- Mode Selection Tiles -->
       <div class="section-title">🤖 AI Processing Mode</div>
       <div class="mode-tiles">
         <!-- Lite Mode Tile -->
         <div class="mode-tile" id="tileLite" onclick="selectMode('lite')">
           <div class="mode-tile-header">
-            <span>⚡ Lite Mode</span>
+            <span>⚡ Lite Mode (Search Only)</span>
             <span class="radio-indicator"></span>
           </div>
           <div class="mode-tile-desc">
-            For 8GB-16GB RAM machines. Fast local text search, zero background AI queues, zero LLM dependencies.
+            For 8GB-16GB RAM machines. Runs high-speed local passage search (FTS5 + ONNX), with zero local LLM memory overhead.
           </div>
           <div class="feature-comparison">
             <div class="feature-item yes">✓ Local Semantic Passage Search</div>
@@ -309,14 +320,14 @@
           </div>
         </div>
 
-        <!-- Standard Mode Tile -->
-        <div class="mode-tile" id="tileStandard" onclick="selectMode('standard')">
+        <!-- Offline AI Mode Tile -->
+        <div class="mode-tile" id="tileLocal" onclick="selectMode('local')">
           <div class="mode-tile-header">
-            <span>🧠 Standard Mode</span>
+            <span>🧠 Offline AI Mode (Llamafile)</span>
             <span class="radio-indicator"></span>
           </div>
           <div class="mode-tile-desc">
-            For 16GB-32GB+ RAM or API key users. Unlocks the complete suite of AI-assisted drafting, audits, and analysis.
+            For 16GB-32GB+ RAM machines. Unlocks full offline AI-assisted legal drafting, audits, and analysis using custom runners.
           </div>
           <div class="feature-comparison">
             <div class="feature-item yes">✓ Full AI Chat & Drafting Agents</div>
@@ -332,68 +343,35 @@
       <div class="section" id="liteInfoPanel" style="display: none;">
         <div class="section-title" style="color: var(--accent-color);">ℹ️ Lite Mode Active</div>
         <p style="margin: 0 0 10px 0; font-size: 13px; opacity: 0.85;">
-          HAYAGRIVA is running in <strong>Lite Mode</strong>. Standard features are disabled to keep your processor cool and prevent memory/OOM errors. Text ingestion and offline semantic index search will continue to work perfectly.
-        </p>
-        <p style="margin: 0; font-size: 12px; color: var(--text-muted);">
-          💡 <strong>Want to unlock AI?</strong> Switch to Standard Mode above and select "Cloud Online API" to run fast cloud LLM models without requiring a high-end machine.
+          HAYAGRIVA is running in <strong>Lite Mode</strong>. Local LLM models are completely shut down to keep your processor cool and prevent memory/OOM errors. Text ingestion and offline semantic index search will continue to work perfectly.
         </p>
       </div>
 
-      <!-- Settings panel for Standard Mode (Local vs Cloud Router) -->
-      <div class="section" id="standardConfigPanel" style="display: none;">
-        <div class="section-title">🧠 Standard Router Configuration</div>
+      <!-- Settings panel for Offline AI Mode -->
+      <div class="section" id="localConfigPanel" style="display: none;">
+        <div class="section-title">🖥 Offline Llamafile Configuration</div>
+        <p style="margin-top: 0; font-size: 13px; opacity: 0.85; line-height: 1.4;">
+          HAYAGRIVA routes LLM chat and drafting prompts locally using our pre-compiled Llamafile binaries. Please ensure the runners are running in the terminal workspace.
+        </p>
         
-        <label>Standard Routing Mode</label>
-        <div class="sub-router-toggle">
-          <div class="sub-router-option" id="subModeLocal" onclick="setSubMode('local')">🖥 Local Offline (Ollama)</div>
-          <div class="sub-router-option" id="subModeCloud" onclick="setSubMode('cloud')">☁️ Cloud Online API Key</div>
-        </div>
-
-        <!-- Local Configuration -->
-        <div id="localConfig">
-          <div class="form-group">
-            <label for="localRunner">Local LLM Runner</label>
-            <select id="localRunner" onchange="updateLocalModelList()">
-              <option value="ollama">Ollama (Default)</option>
-              <option value="vllm">vLLM</option>
-              <option value="custom">Custom OpenAI-compatible API</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="localEndpoint">Runner API Endpoint</label>
-            <input type="text" id="localEndpoint" placeholder="e.g. http://127.0.0.1:11434">
-          </div>
-          <div class="form-group">
-            <label for="localChatModel">Local Chat Model Name</label>
-            <input type="text" id="localChatModel" placeholder="e.g. qwen2.5-coder:1.5b">
-          </div>
-          <div class="form-group">
-            <label for="localEmbedModel">Local Embedding Model (Managed by System)</label>
-            <input type="text" id="localEmbedModel" value="all-MiniLM-L6-v2 (ONNX)" disabled style="opacity: 0.6; cursor: not-allowed;">
-          </div>
-        </div>
-
-        <!-- Cloud Configuration -->
-        <div id="cloudConfig" style="display: none;">
-          <div class="form-group">
-            <label for="cloudProvider">Cloud Provider</label>
-            <select id="cloudProvider" onchange="updateCloudModels()">
-              <option value="gemini">Google Gemini</option>
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
-              <option value="openrouter">OpenRouter</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="cloudApiKey">API Secret Key</label>
-            <div class="password-wrapper">
-              <input type="password" id="cloudApiKey" placeholder="Enter provider API key">
-              <span class="password-toggle" onclick="togglePassword()">👁️</span>
+        <label>Local Inference Engine Health Status</label>
+        <div class="engine-status-list">
+          <!-- Legal Engine Badge -->
+          <div class="engine-badge probing" id="legalBadge">
+            <span>Legal Engine (Port 8090 - legalparam)</span>
+            <div class="status-indicator">
+              <span class="status-dot"></span>
+              <span class="status-text">Probing...</span>
             </div>
           </div>
-          <div class="form-group">
-            <label for="cloudModel">Cloud Model Name</label>
-            <input type="text" id="cloudModel" placeholder="e.g. gemini-1.5-flash">
+          
+          <!-- Financial Engine Badge -->
+          <div class="engine-badge probing" id="financeBadge">
+            <span>Financial Engine (Port 8091 - financeparam)</span>
+            <div class="status-indicator">
+              <span class="status-dot"></span>
+              <span class="status-text">Probing...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -424,63 +402,60 @@
   <div id="toast">Settings saved successfully!</div>
 
   <script>
-    let activeMode = 'lite'; // 'lite', 'local', or 'cloud'
+    let activeMode = 'lite'; // 'lite' or 'local'
     const params = new URLSearchParams(window.location.search);
     const caseName = params.get('case') || 'Case_Alpha';
+    let statusInterval = null;
 
-    function selectMode(mainMode) {
-      if (mainMode === 'lite') {
-        activeMode = 'lite';
+    function selectMode(mode) {
+      activeMode = mode;
+      if (mode === 'lite') {
         document.getElementById('tileLite').classList.add('active');
-        document.getElementById('tileStandard').classList.remove('active');
+        document.getElementById('tileLocal').classList.remove('active');
         document.getElementById('liteInfoPanel').style.display = 'block';
-        document.getElementById('standardConfigPanel').style.display = 'none';
+        document.getElementById('localConfigPanel').style.display = 'none';
+        stopProbing();
       } else {
-        // Find whichever sub-mode was active
-        const isCloudActive = document.getElementById('subModeCloud').classList.contains('active');
-        activeMode = isCloudActive ? 'cloud' : 'local';
         document.getElementById('tileLite').classList.remove('active');
-        document.getElementById('tileStandard').classList.add('active');
+        document.getElementById('tileLocal').classList.add('active');
         document.getElementById('liteInfoPanel').style.display = 'none';
-        document.getElementById('standardConfigPanel').style.display = 'block';
-        setSubMode(activeMode);
+        document.getElementById('localConfigPanel').style.display = 'block';
+        startProbing();
       }
     }
 
-    function setSubMode(subMode) {
-      activeMode = subMode;
-      document.getElementById('subModeLocal').classList.toggle('active', subMode === 'local');
-      document.getElementById('subModeCloud').classList.toggle('active', subMode === 'cloud');
-      document.getElementById('localConfig').style.display = subMode === 'local' ? 'block' : 'none';
-      document.getElementById('cloudConfig').style.display = subMode === 'cloud' ? 'block' : 'none';
-    }
-
-    function togglePassword() {
-      const input = document.getElementById('cloudApiKey');
-      input.type = input.type === 'password' ? 'text' : 'password';
-    }
-
-    function updateLocalModelList() {
-      const runner = document.getElementById('localRunner').value;
-      const endpoint = document.getElementById('localEndpoint');
-      if (runner === 'ollama' && (!endpoint.value || endpoint.value.includes('localhost:8000'))) {
-        endpoint.value = 'http://127.0.0.1:11434';
-      } else if (runner === 'vllm' && (!endpoint.value || endpoint.value.includes('11434'))) {
-        endpoint.value = 'http://localhost:8000';
+    async function probeEngines() {
+      try {
+        const res = await fetch('/api/hayagriva/llm/engines-status');
+        if (res.ok) {
+          const status = await res.json();
+          updateEngineDisplay('legalBadge', status.legalActive);
+          updateEngineDisplay('financeBadge', status.financeActive);
+        }
+      } catch (err) {
+        console.warn('Engine status probe failed:', err);
+        updateEngineDisplay('legalBadge', false);
+        updateEngineDisplay('financeBadge', false);
       }
     }
 
-    function updateCloudModels() {
-      const provider = document.getElementById('cloudProvider').value;
-      const model = document.getElementById('cloudModel');
-      if (provider === 'gemini') {
-        model.value = 'gemini-1.5-flash';
-      } else if (provider === 'openai') {
-        model.value = 'gpt-4o-mini';
-      } else if (provider === 'anthropic') {
-        model.value = 'claude-3-5-sonnet';
-      } else if (provider === 'openrouter') {
-        model.value = 'google/gemini-2.5-flash';
+    function updateEngineDisplay(elementId, isActive) {
+      const element = document.getElementById(elementId);
+      element.className = 'engine-badge ' + (isActive ? 'active' : 'offline');
+      element.querySelector('.status-text').innerText = isActive ? 'Active' : 'Offline';
+    }
+
+    function startProbing() {
+      probeEngines();
+      if (!statusInterval) {
+        statusInterval = setInterval(probeEngines, 3000);
+      }
+    }
+
+    function stopProbing() {
+      if (statusInterval) {
+        clearInterval(statusInterval);
+        statusInterval = null;
       }
     }
 
@@ -501,37 +476,16 @@
           
           // Set layout version/vault status
           const vaultBadge = document.getElementById('vaultVer');
-          if (config.hasCloudKey || config.activeMode !== 'lite') {
-            vaultBadge.innerText = 'Vault Active';
-            vaultBadge.style.color = '#4ade80';
-          } else {
-            vaultBadge.innerText = 'Vault Offline';
-          }
-
-          // Router mode selection
           const modeVal = config.activeMode || 'lite';
-          if (modeVal === 'lite') {
-            selectMode('lite');
-          } else {
-            if (modeVal === 'cloud') {
-              document.getElementById('subModeLocal').classList.remove('active');
-              document.getElementById('subModeCloud').classList.add('active');
-            } else {
-              document.getElementById('subModeLocal').classList.add('active');
-              document.getElementById('subModeCloud').classList.remove('active');
-            }
-            selectMode('standard');
-          }
           
-          document.getElementById('localRunner').value = config.localRunner || 'ollama';
-          document.getElementById('localEndpoint').value = config.localEndpoint || 'http://127.0.0.1:11434';
-          document.getElementById('localChatModel').value = config.localChatModel || 'qwen2.5-coder:1.5b';
-          document.getElementById('localEmbedModel').value = config.localEmbedModel || 'nomic-embed-text';
-
-          document.getElementById('cloudProvider').value = config.cloudProvider || 'gemini';
-          document.getElementById('cloudModel').value = config.cloudModel || 'gemini-1.5-flash';
-          if (config.hasCloudKey) {
-            document.getElementById('cloudApiKey').placeholder = '•••••••••••••••• (Saved)';
+          if (modeVal === 'local') {
+            vaultBadge.innerText = 'Offline AI Mode';
+            vaultBadge.style.color = '#4ade80';
+            selectMode('local');
+          } else {
+            vaultBadge.innerText = 'Lite Mode';
+            vaultBadge.style.color = '';
+            selectMode('lite');
           }
 
           document.getElementById('remindLibreOffice').checked = config.remindLibreOffice !== false;
@@ -564,14 +518,7 @@
       
       const payload = {
         case: caseName,
-        activeMode: activeMode, // 'lite', 'local', or 'cloud'
-        localRunner: document.getElementById('localRunner').value,
-        localEndpoint: document.getElementById('localEndpoint').value,
-        localChatModel: document.getElementById('localChatModel').value,
-        localEmbedModel: document.getElementById('localEmbedModel').value,
-        cloudProvider: document.getElementById('cloudProvider').value,
-        cloudModel: document.getElementById('cloudModel').value,
-        cloudApiKey: document.getElementById('cloudApiKey').value,
+        activeMode: activeMode, // 'lite' or 'local'
         remindLibreOffice: document.getElementById('remindLibreOffice').checked
       };
       
@@ -584,12 +531,6 @@
         const data = await res.json();
         if (data.success) {
           showToast('Settings saved successfully!');
-          // Clear password value but show placeholder
-          if (payload.cloudApiKey) {
-            document.getElementById('cloudApiKey').value = '';
-            document.getElementById('cloudApiKey').placeholder = '•••••••••••••••• (Saved)';
-          }
-          // Reload settings to refresh status displays
           loadSettings();
         } else {
           showToast(data.error || 'Failed to save settings', true);

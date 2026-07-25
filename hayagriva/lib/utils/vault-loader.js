@@ -49,7 +49,8 @@ function _resolvePaths() {
   _vaultDir     = dir;
   _prefix       = prefix;
   _manifestPath = path.join(dir, `${prefix}manifest.json`);
-  _dataPath     = path.join(dir, `${prefix}laws.vlt.data`);
+  const dataFile = fs.existsSync(path.join(dir, `${prefix}laws.vlt.data`)) ? `${prefix}laws.vlt.data` : 'laws.vlt.data';
+  _dataPath     = path.join(dir, dataFile);
   _verPath      = path.join(dir, `${prefix}version.json`);
 }
 
@@ -193,10 +194,26 @@ function loadVault() {
         return false;
     }
 
-    // Vault key is fetched async; loadVault() triggers a background resolve.
-    // The vault will only be fully ready once _getVaultKeyAndFinish completes.
-    _getVaultKeyAndFinish();
-    return true; // partial init — _ready set async
+    const envKey = process.env.VAULT_KEY || '';
+    if (envKey.length === 64) {
+        try {
+            _index = JSON.parse(fs.readFileSync(_manifestPath, 'utf8'));
+            loadOverlays();
+            if (fs.existsSync(_verPath)) {
+                try { _version = JSON.parse(fs.readFileSync(_verPath, 'utf8')); } catch (_) {}
+            }
+            _ready = true;
+            console.log(`[VaultLoader] ✓ ${_index.length} law entries loaded synchronously from ${_vaultDir}`);
+            return true;
+        } catch (e) {
+            console.error('[VaultLoader] Error during synchronous vault load:', e.message);
+            return false;
+        }
+    }
+
+    // Without a valid 64-character VAULT_KEY, vault completion is disabled
+    console.warn('[VaultLoader] VAULT_KEY not available — law completion disabled.');
+    return false;
 }
 
 async function _getVaultKeyAndFinish() {

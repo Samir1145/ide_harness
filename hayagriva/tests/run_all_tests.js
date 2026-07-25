@@ -77,6 +77,10 @@ async function runAll() {
         await settingsModeTests.run();
         console.log('');
 
+        const stage1Tests = require('./stage1_enhancements.test');
+        await stage1Tests.run();
+        console.log('');
+
         const sanityTests = require('./comprehensive_sanity.test');
         sanityTests.run();
         console.log('');

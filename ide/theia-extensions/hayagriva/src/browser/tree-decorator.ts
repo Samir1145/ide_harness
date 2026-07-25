@@ -123,28 +123,22 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
             if (oldVal && newVal) {
               const baseName = key.split(/[\\/]/).pop() || key;
               // Dot 1: Companion MD extraction
-              if (oldVal.dot1 === 'blue' && newVal.dot1 !== 'blue') {
-                if (newVal.dot1 === 'red') {
-                  this.messageService.error(`Extraction failed for ${baseName}`);
-                } else if (newVal.dot1 === 'companion_ready') {
-                  this.messageService.info(`✓ Text extraction complete for ${baseName}`);
-                }
+              if (oldVal.dot1 !== 'red' && newVal.dot1 === 'red') {
+                this.messageService.error(`Extraction failed for ${baseName}: ${newVal.error || 'Unknown error'}`);
+              } else if (oldVal.dot1 === 'blue' && newVal.dot1 === 'companion_ready') {
+                this.messageService.info(`✓ Text extraction complete for ${baseName}`);
               }
               // Dot 2: AI Memory Indexing
-              if (oldVal.dot2 === 'blue' && newVal.dot2 !== 'blue') {
-                if (newVal.dot2 === 'red') {
-                  this.messageService.error(`Failed to index ${baseName} into AI Memory`);
-                } else if (newVal.dot2 === 'indexed') {
-                  this.messageService.info(`✓ ${baseName} successfully indexed into AI Memory`);
-                }
+              if (oldVal.dot2 !== 'red' && newVal.dot2 === 'red') {
+                this.messageService.error(`Failed to index ${baseName} into AI Memory: ${newVal.error || 'Unknown error'}`);
+              } else if (oldVal.dot2 === 'blue' && newVal.dot2 === 'indexed') {
+                this.messageService.info(`✓ ${baseName} successfully indexed into AI Memory`);
               }
               // Dot 3: AI Enrichment
-              if (oldVal.dot3 === 'blue' && newVal.dot3 !== 'blue') {
-                if (newVal.dot3 === 'red') {
-                  this.messageService.error(`AI Enrichment failed for ${baseName}`);
-                } else if (newVal.dot3 === 'green') {
-                  this.messageService.info(`✓ Full context AI enrichment ready for ${baseName}`);
-                }
+              if (oldVal.dot3 !== 'red' && newVal.dot3 === 'red') {
+                this.messageService.error(`AI Enrichment failed for ${baseName}: ${newVal.error || 'Unknown error'}`);
+              } else if (oldVal.dot3 === 'blue' && newVal.dot3 === 'green') {
+                this.messageService.info(`✓ Full context AI enrichment ready for ${baseName}`);
               }
             }
           }

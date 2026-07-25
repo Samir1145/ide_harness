@@ -27,6 +27,19 @@ const GLOSSARY_MAP = {
     'nbfc': 'Non-Banking Financial Company',
     'nbfcs': 'Non-Banking Financial Companies',
     'nbfc-nd-si': 'Non-Banking Financial Company Non-Deposit taking Systemically Important',
+    'ibc': 'Insolvency and Bankruptcy Code',
+    'cirp': 'Corporate Insolvency Resolution Process',
+    'coc': 'Committee of Creditors',
+    'irp': 'Interim Resolution Professional',
+    'rp': 'Resolution Professional',
+    'nclt': 'National Company Law Tribunal',
+    'nclat': 'National Company Law Appellate Tribunal',
+    'sarfaesi': 'Securitisation and Reconstruction of Financial Assets and Enforcement of Security Interest',
+    'sica': 'Sick Industrial Companies Act',
+    'drt': 'Debt Recovery Tribunal',
+    'drat': 'Debt Recovery Appellate Tribunal',
+    'hc': 'High Court',
+    'sc': 'Supreme Court of India',
     'rag': 'Retrieval Augmented Generation',
     'llm': 'Large Language Model',
     'llms': 'Large Language Models',
@@ -547,6 +560,12 @@ function buildLiteResponse(queryText, contexts) {
     return { answer, sources: Array.from(new Set(contexts.map(c => c.docName))), liteMode: true };
 }
 
+function estimateTokenCount(text) {
+    if (!text) return 0;
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+    return Math.ceil(wordCount * 1.35); // Safe BPE token estimator
+}
+
 async function query(caseDir, queryText, opts = {}) {
     try {
         const { loadLlmConfig } = require('./llm-client');
@@ -560,7 +579,26 @@ async function query(caseDir, queryText, opts = {}) {
             return buildLiteResponse(queryText, contexts);
         }
         
-        const prompt = buildPrompt(queryText, contexts);
+        let prompt = buildPrompt(queryText, contexts);
+        let tokenCount = estimateTokenCount(prompt);
+        
+        // Iterative truncation to fit within local model 1,500-token input budget
+        while (tokenCount > 1500 && contexts.length > 1) {
+            console.warn(`[RAG] Prompt has ${tokenCount} tokens (exceeds 1500 limit). Truncating context chunks from ${contexts.length} down to ${contexts.length - 1}...`);
+            contexts.pop();
+            prompt = buildPrompt(queryText, contexts);
+            tokenCount = estimateTokenCount(prompt);
+        }
+        
+        // Final fallback if even a single chunk overflows
+        if (tokenCount > 1500) {
+            console.error(`[RAG] Prompt still exceeds limit (${tokenCount} tokens) with single snippet.`);
+            return {
+                answer: "⚠️ **Context Window Exceeded:** The retrieved files or query contains too much text to process. Please select fewer documents in the Active-Context Control Matrix or shorten your question.",
+                sources: []
+            };
+        }
+        
         const messages = [{ role: 'user', content: prompt }];
         
         let answer = '';

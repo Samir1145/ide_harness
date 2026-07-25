@@ -28,14 +28,9 @@ function resolveCaseDir(docsRoot, caseParam) {
 const DEFAULT_SETTINGS = {
     processingProfile: 'lite',
     activeMode: 'lite',
-    localRunner: 'ollama',
-    localEndpoint: 'http://127.0.0.1:11434',
-    localChatModel: 'qwen2.5-coder:1.5b',
-    localEmbedModel: 'nomic-embed-text',
-    cloudProvider: 'gemini',
-    cloudModel: 'gemini-1.5-flash',
     remindLibreOffice: true
 };
+
 
 function ensureCaseSettings(caseDir) {
     try {
@@ -1158,20 +1153,6 @@ module.exports = {
                 } catch (_) {}
             }
 
-            // Check if API key exists in SQLite secure_secrets table
-            let hasCloudKey = false;
-            try {
-                const { getDb } = require('./core/sqlite-store');
-                const db = getDb(caseDir);
-                const secretKey = `${config.cloudProvider}_api_key`;
-                const row = db.prepare("SELECT secret_value FROM secure_secrets WHERE secret_key = ?").get(secretKey);
-                if (row && row.secret_value) {
-                    hasCloudKey = true;
-                }
-            } catch (err) {
-                console.error("Error reading secure key:", err);
-            }
-
             let libreOfficeDetected = false;
             try {
                 const { execSync } = require('child_process');
@@ -1194,24 +1175,47 @@ module.exports = {
             } catch (_) {}
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ...config, hasCloudKey, libreOfficeDetected }));
+            res.end(JSON.stringify({ ...config, libreOfficeDetected }));
         },
 
         '/api/hayagriva/llm/model-info': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
             const { loadLlmConfig } = require('./core/llm-client');
-            const { parseModelSize } = require('./utils/model-info');
             const config = loadLlmConfig({ caseDir });
-            const modelInfo = config.activeMode === 'local'
-                ? parseModelSize(config.localChatModel)
-                : { sizeB: null, tier: config.activeMode === 'lite' ? 'none' : 'cloud' };
+            
+            let vertical = 'legal';
+            if (caseDir) {
+                const caseConfigPath = path.join(caseDir, 'concepts', 'case_metadata.json');
+                if (fs.existsSync(caseConfigPath)) {
+                    try {
+                        const caseMeta = JSON.parse(fs.readFileSync(caseConfigPath, 'utf8'));
+                        vertical = caseMeta.vertical || 'legal';
+                    } catch (_) {}
+                } else if (caseDir.toLowerCase().includes('ibc') || caseDir.toLowerCase().includes('finance')) {
+                    vertical = 'finance';
+                }
+            }
+            
+            const modelName = vertical === 'finance' ? 'financeparam-2.9b' : 'legalparam-2.9b';
+            const sizeB = 2.9;
+            const tier = config.activeMode === 'lite' ? 'none' : 'local';
+            
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
                 activeMode: config.activeMode,
-                modelName: config.activeMode === 'local' ? config.localChatModel : config.cloudModel,
-                ...modelInfo
+                modelName: config.activeMode === 'local' ? modelName : 'None',
+                sizeB: config.activeMode === 'local' ? sizeB : null,
+                tier
             }));
+        },
+
+        '/api/hayagriva/llm/engines-status': async (req, res) => {
+            const { checkLlamafileHealth } = require('./core/llm-client');
+            const legalActive = await checkLlamafileHealth('http://127.0.0.1:8090');
+            const financeActive = await checkLlamafileHealth('http://127.0.0.1:8091');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ legalActive, financeActive }));
         }
     },
 
@@ -1318,24 +1322,10 @@ module.exports = {
                     const savedConfig = {
                         processingProfile: activeMode === 'lite' ? 'lite' : 'standard',
                         activeMode: activeMode,
-                        localRunner: data.localRunner || 'ollama',
-                        localEndpoint: data.localEndpoint || 'http://127.0.0.1:11434',
-                        localChatModel: data.localChatModel || 'qwen2.5-coder:1.5b',
-                        localEmbedModel: data.localEmbedModel || 'nomic-embed-text',
-                        cloudProvider: data.cloudProvider || 'gemini',
-                        cloudModel: data.cloudModel || 'gemini-1.5-flash',
                         remindLibreOffice: data.remindLibreOffice !== false
                     };
 
                     fs.writeFileSync(settingsPath, JSON.stringify(savedConfig, null, 2), 'utf8');
-
-                    // If API key is provided and not empty/placeholder, save to SQLite secure_secrets table
-                    if (data.cloudApiKey && data.cloudApiKey.trim() !== '') {
-                        const { getDb } = require('./core/sqlite-store');
-                        const db = getDb(caseDir);
-                        const secretKey = `${savedConfig.cloudProvider}_api_key`;
-                        db.prepare("INSERT OR REPLACE INTO secure_secrets (secret_key, secret_value) VALUES (?, ?)").run(secretKey, data.cloudApiKey.trim());
-                    }
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true }));

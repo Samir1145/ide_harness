@@ -1,0 +1,16 @@
+# Ollama Modelfile for BharatGen LegalParam 7B GGUF
+FROM ../models/llm/llamafile/legalparam-7b.gguf
+
+# Set context parameters
+PARAMETER num_ctx 2048
+PARAMETER temperature 0.3
+PARAMETER top_p 0.9
+
+# Chat template mapping user/assistant turns
+TEMPLATE """{{ if .System }}<system>
+{{ .System }}
+<assistant>
+{{ end }}{{ if .Prompt }}<user>
+{{ .Prompt }}
+<assistant>
+{{ end }}{{ .Response }}"""

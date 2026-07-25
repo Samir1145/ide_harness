@@ -1,28 +1,33 @@
 const fs = require('fs');
 const path = require('path');
-const { convertXlsx } = require('./upload');
+const { convertXlsxSheets } = require('./upload');
 
 /**
- * Ingests an Excel (.xlsx/.xls) workbook by converting it to a Markdown companion file.
+ * Ingests an Excel (.xlsx/.xls) workbook by converting each sheet tab into a separate companion Markdown file.
  */
 async function ingestXlsx(caseDir, filePath) {
     const ext = path.extname(filePath).toLowerCase();
     const relative = path.relative(caseDir, filePath);
     const basename = path.basename(filePath, ext);
 
-    console.log(`[Excel Ingestion] Converting ${relative} to Markdown companion...`);
-    const rawMd = convertXlsx(filePath);
+    console.log(`[Excel Ingestion] Converting ${relative} to separate sheet companions...`);
+    const sheets = convertXlsxSheets(filePath);
 
     const destDir = path.dirname(filePath);
     fs.mkdirSync(destDir, { recursive: true });
-    const companionPath = path.join(destDir, `${basename}.md`);
 
-    fs.writeFileSync(companionPath, rawMd, 'utf8');
-    console.log(`[Excel Ingestion] Created companion Markdown: ${companionPath}`);
+    const companionPaths = [];
+    for (const sheet of sheets) {
+        const companionPath = path.join(destDir, `${basename}_${sheet.sheetName}.md`);
+        fs.writeFileSync(companionPath, sheet.markdown, 'utf8');
+        console.log(`[Excel Ingestion] Created sheet companion Markdown: ${companionPath}`);
+        companionPaths.push(companionPath);
+    }
 
     return {
         sections: 0,
-        companionPath,
+        companionPath: companionPaths[0] || null,
+        companionPaths,
         isPartial: false
     };
 }

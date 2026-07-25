@@ -95,6 +95,15 @@ These items strengthen contextual retrieval, semantic search capabilities, and f
 
 ---
 
+### 31. Dual-Vector Search Loop (Hybrid Legal/Finance Cases)
+* **Goal:** Enable mixed cases containing both legal files and financial sheets to query the appropriate domain-specific embedding space without vector space contamination.
+* **Architecture:**
+  * **Domain Column Schema:** Add a `model_domain` string column to the SQLite `document_vectors` table (defaulting to `'legal'`).
+  * **File Routing Ingest:** During document ingestion, auto-detect file properties (e.g. extension `.xlsx` / `.csv` or path `/finance/`) to parse them using the `finance-embeddings-investopedia` model, setting `model_domain = 'finance'`. Other documents default to the `inlegal-sbert` model (`model_domain = 'legal'`).
+  * **Dual Query Pipeline:** When a user queries, generate query embeddings using both pipelines (`query_vec_legal` and `query_vec_finance`). Run parallel SQLite matches against their respective subsets in `document_vectors` and merge the resulting matching sections (sorted by score) to pass as RAG context to the LLM.
+
+---
+
 ## Phase 3: Compiler Foundations
 
 These items build the central parsing capabilities of the LDE to convert raw markdown prose into an Abstract Syntax Tree (AST) with variables validation and LSP compliance.
@@ -806,7 +815,7 @@ Implementing the full roadmap expands HAYAGRIVA from its original 6 management s
 |---|---|---|---|---|
 | Workspace Management | WMS | Existing | #4 | Case isolation, API server, config |
 | Ingestion Management | IMS | Existing | #2, #3, #30 | Document parsing, OCR, format conversion |
-| Context Management | CMS | Existing | #1, #12, #27, #28 | Indexing, search, retrieval, variable binding |
+| Context Management | CMS | Existing | #1, #12, #27, #28, #31 | Indexing, search, retrieval, variable binding, dual-vector routing |
 | Vault Management | VMS | Existing | #11, #29 | Encrypted law databases, Monaco providers, precedent resolution |
 | Drafting Management | DMS | Existing | — | Templates, placeholders, version archiving |
 | Agent Management | AMS | Existing | #5 | Subagents, delegation, process isolation |

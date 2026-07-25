@@ -21,6 +21,15 @@ vault/.obsidian/workspaces.json
 vault/.obsidian/cache/
 vault/.obsidian/appearance.json
 
-# Local binaries
+# Local binaries and model weights
 bin/
+models/
+
+# Python Virtual Environments
+.venv/
+__pycache__/
+
+# Temporary folders
+tmp_extract/
+
 

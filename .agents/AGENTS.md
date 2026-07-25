@@ -28,6 +28,8 @@ Refer to the following plans saved in the workspace:
 * **Plan 4 (Active-Context Control Matrix):** Provides a UI checklist mapping documents to active selection states (Exclude/Insights/Full) with dynamic token count calculation. (Roadmap #28)
 * **Plan 5 (Map-Reduce Multi-Query RAG):** Generates parallelized sub-queries to query SQLite FTS5/vector indices concurrently and synthesizes a single unified response. (Roadmap #27)
 * **Plan 6 (LibreOffice PDF OCR Fallback):** Auto-detects `soffice`, converts complex sheets to headless PDFs, renders pages, and transcribes visual cell layouts using Gemini Pro vision prompting. (Roadmap #3)
+* **Plan 7 (Dual-Vector Search Loop):** Enables hybrid cases containing both legal files and financial sheets to run parallel retrievals against the correct model's vector subsets. (Roadmap #31)
+
 
 ---
 
@@ -74,7 +76,11 @@ Refer to the following plans saved in the workspace:
 * **SQLite Ingestion Sequence Resolution**: Ensure the primary document record is registered in the `documents` table via `updateStatus(...)` *prior* to executing `indexToSqlite(...)` and `indexVectorsToSqlite(...)`. This avoids `FOREIGN KEY constraint failed` database errors on child section and vector tables referencing `documents(filename)` during standalone markdown/text file ingestion.
 * **Bootstrapping File Filters**: Excluded system files (`CASE_AUDIT.md`, `index.md`) and companion markdown files (which possess a corresponding binary parent document in the case folder) from the primary ingestion boot-scanner inside `cli.js` to eliminate double-indexing overhead and database constraint conflicts.
 * **Strict 2,048-Token Context Budget & Graceful Fallback**: Local LLM models (LegalParam / FinanceParam) operate on a strict 2,048-token context window limit (~1,500 words total).
-  * Always enforce a strict token budget: ~300 tokens for system prompt/instructions, ~1,236 tokens for RAG context + user query, and ~512 tokens reserved for model output generation.
   * If a user query or selected document scope exceeds 1,500 input tokens after RAG chunking, **never crash or send truncated data silently**.
   * Catch the overflow in pre-flight checks, graciously inform the user via a structured notice (*"⚠️ Context Window Exceeded: LegalParam context budget is 2,048 tokens (~1,200 words). Please refine selection in the Active-Context Control Matrix"*), and step back cleanly.
+* **GGUF Conversion & Compatibility Pipeline (Param-2.9B Family)**: Re-compiled and verified the local `FinanceParam-2.9b.gguf` under a standard `LlamaForCausalLM` format with BPE merges natively preserved and quantized to `Q4_K_M`.
+  * **macOS x86_64 Constraints**: Pin `torch==2.2.2` (latest available official x86_64 macOS build) and use `transformers==4.57.6` with `tokenizers==0.22.2` to resolve both import failures and fast tokenizer Rust-level deserialization crashes.
+  * **Vocabulary Corrections**: Automate patching (lowercase-to-uppercase byte tokens, padding tokens, duplicate `<s>` cleanup) using the parameterized `fix_vocab_from_hf.py` script.
+  * **Prompt Mismatches**: Use `<|user|>[PROMPT]</|/user|><|assistant|>` (strictly no spaces around the prompt) for `FinanceParam` and general `Param-1-2.9B-Instruct` models, and native Devanagari script for Hindi inputs to prevent looping/gibberish outputs. Detailed steps are in the [gguf-vocab-patching](file:///Users/atulgrover/Desktop/HAYAGRIVA/.agents/skills/gguf-vocab-patching/SKILL.md) skill.
+
 
