@@ -16,7 +16,3 @@ In the matter of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)  —  
 *[Verification and affidavit as per the NCLT Rules.]*
 
 __Note:  __*This is a claimant-side skeleton for completeness of the precedent set; the liquidator’s role is to defend the verified decision. Settle pleadings with counsel and verify the limitation position before filing.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

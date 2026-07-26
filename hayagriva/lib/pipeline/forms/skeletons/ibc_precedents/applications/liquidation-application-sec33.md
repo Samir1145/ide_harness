@@ -89,6 +89,3 @@ __• No prescribed form. __Section 33 read with Regulation 40 carries no form
 __• CoC’s commercial wisdom. __Under the Explanation to Section 33(2), the CoC may decide to liquidate at any time after its constitution and before confirmation of a resolution plan; such a decision is an exercise of commercial wisdom, to be supported by the recorded Regulation 40D reasons.
 
 __• Currency (2026). __Section 33, Section 34 and Regulations 40/40D continue in force as amended up to 2026; the IBC (Amendment) Act, 2026 contemplates a restructured liquidation framework — verify the notified commencement of any provision relied upon before filing.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

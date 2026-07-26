@@ -121,14 +121,9 @@ Prepared by:
 
 ____________________________
 
-__Ravinder Gupta & Associates, Chartered Accountants__
 
 Offices at Delhi and Bahadurgarh, Haryana
 
 For and on behalf of the Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 __Note:  __*This is a computation and record-keeping aid prepared by the firm to assist the Liquidator; the fixation of fee is the Committee’s decision (Route 1) or the operation of the scale (Route 2).*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

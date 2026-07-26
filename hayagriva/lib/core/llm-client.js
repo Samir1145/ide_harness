@@ -39,7 +39,8 @@ function streamLlamafile(messages, endpoint = LLAMAFILE_URL) {
                 messages,
                 stream: true,
                 temperature: 0.1,
-                max_tokens: 512
+                max_tokens: 512,
+                stop: ['<|user|>', '<|/user|>', '<|assistant|>', '<|/assistant|>', '<|endoftext|>', '<|end_of_text|>', '<0x0A><assistant>', '<assistant>']
             });
 
             const options = {
@@ -403,7 +404,7 @@ function streamOpenRouter(messages, apiKey, model = 'google/gemini-2.5-flash') {
 
 function loadLlmConfig(opts) {
     const config = {
-        activeMode: 'lite', // 'lite' or 'local'
+        activeMode: 'lite', // App starts in Lite Mode by default; switched to 'standard' when LLM started in Settings
         remindLibreOffice: true
     };
 
@@ -454,14 +455,8 @@ async function getEmbedding(text, caseDir) {
             return Array.from(output.data);
         } else {
             if (!_legalPipeline) {
-                const modelPath = path.join(__dirname, '..', '..', 'models', 'embeddings', 'legal', 'inlegal-sbert');
-                if (fs.existsSync(path.join(modelPath, 'model_quantized.onnx'))) {
-                    console.log(`[LLM Client] Loading local quantized Legal ONNX embedding model (768d) from: ${modelPath}`);
-                    _legalPipeline = await pipeline('feature-extraction', modelPath);
-                } else {
-                    console.log('[LLM Client] Fallback: Loading default ONNX transformers embedding model ("Xenova/all-MiniLM-L6-v2")...');
-                    _legalPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                }
+                console.log('[LLM Client] Loading Legal ONNX embedding model ("Xenova/all-MiniLM-L6-v2")...');
+                _legalPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
             }
             const output = await _legalPipeline(text, { pooling: 'mean', normalize: true });
             return Array.from(output.data);
@@ -475,17 +470,14 @@ async function getEmbedding(text, caseDir) {
 
 async function* streamChat(messages, opts = {}) {
     const config = loadLlmConfig(opts);
-    if (config.activeMode === 'lite') {
-        const err = new Error('Lite Mode: LLM generation disabled. Showing passage search results.');
-        err.code = 'LITE_MODE';
-        throw err;
-    }
-    
     // Strict 1,500 token input budget pre-flight check
     const totalChars = messages.reduce((acc, m) => acc + (m.content ? m.content.length : 0), 0);
     const approxTokens = Math.ceil(totalChars / 4);
     if (approxTokens > 1500) {
         console.warn(`[LLM Client] Warning: Prompt size (~${approxTokens} tokens) exceeds LegalParam context budget (1,500 tokens max).`);
+        const err = new Error(`⚠️ Context Window Exceeded: LegalParam context budget is 2,048 tokens (~1,500 tokens max). Please refine selection or shorten prompt.`);
+        err.code = 'CONTEXT_EXCEEDED';
+        throw err;
     }
 
     // Resolve case vertical to set correct Llamafile port endpoint
@@ -508,6 +500,14 @@ async function* streamChat(messages, opts = {}) {
     }
 
     const isLlamafileRunning = await checkLlamafileHealth(targetEndpoint);
+
+    if (config.activeMode === 'lite' || !isLlamafileRunning) {
+        const targetPort = targetEndpoint.replace('http://127.0.0.1:', '');
+        const err = new Error(`LLM Engine (Port ${targetPort}) is OFFLINE. Click "Start Engine" in Settings to enable full local AI generation.`);
+        err.code = 'LITE_MODE';
+        throw err;
+    }
+
     if (isLlamafileRunning) {
         console.log(`[LLM Client] Routing query to local Llamafile server (${targetEndpoint})`);
         try {
@@ -518,13 +518,10 @@ async function* streamChat(messages, opts = {}) {
             throw e;
         }
     }
-    
-    const targetPort = targetEndpoint.replace('http://127.0.0.1:', '');
-    throw new Error(`Local LLM runner is offline (Llamafile on Port ${targetPort}). Please start llamafile to process request.`);
 }
 
 async function getChatResponse(messages, opts = {}) {
-    const timeoutMs = opts.timeout || 30000;
+    const timeoutMs = opts.timeout || 120000;
     
     const fetchPromise = (async () => {
         let fullText = '';

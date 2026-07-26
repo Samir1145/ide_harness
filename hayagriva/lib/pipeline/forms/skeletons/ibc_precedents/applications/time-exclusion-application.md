@@ -89,6 +89,3 @@ __• Exclusion vs extension. __Exclusion of time (this application) is distin
 __• Authority. __Quinn Logistics India Pvt. Ltd. v. Mack Soft Tech Pvt. Ltd., NCLAT (Company Appeal (AT) (Insolvency) No. 185 of 2018) — grounds for exclusion of period from CIRP.
 
 __• Currency (2026). __Rule 11, Regulation 40C and Section 60(5) continue in force as amended up to 2026; verify the notified commencement of any 2026 provision relied upon, and whether Regulation 40C remains apposite to the cause pleaded.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

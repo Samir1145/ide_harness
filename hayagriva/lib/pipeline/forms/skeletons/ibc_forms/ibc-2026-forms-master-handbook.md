@@ -8,11 +8,8 @@ A single\-file compilation of the IBC case forms across all five processes — C
 
 *Companion to the presentation “IBC — What Changed in 2026: Amendments in the Act, Regulations, Rules & Forms\.”*
 
-__Ravinder Gupta & Associates, Chartered Accountants  ·  Delhi__
 
-Mobile \+91\-9811117243  |  rkg4247@gmail\.com  |  www\.carkgupta\.com  |  YouTube @CARKGUPTA
 
-*For information and educational purposes only\. Verify against the Gazette / primary notifications before use\.*
 
 Compiled 07 July 2026 · 20260707\_0730\_IST
 
@@ -5213,4 +5210,3 @@ Circular — Formats under the IBBI \(Bankruptcy Process for Personal Guarantors
 The bankruptcy process \(Chapter IV, Part III of the Code\) covers, in outline: written consent to act as bankruptcy trustee \(regulation 4\); claim with proof by a creditor \(regulation 7\); and the proxy form for meetings of creditors \(regulation 21\)\. For the exact, current formats, refer to the 02\.06\.2026 bankruptcy\-formats circular on the IBBI website\.
 
 *This handbook reproduces the personal\-guarantor insolvency forms \(A, B, C\) in full above; the monitoring and bankruptcy formats are cited rather than reproduced, as their templates are specified in the separate circulars noted here\.*
-

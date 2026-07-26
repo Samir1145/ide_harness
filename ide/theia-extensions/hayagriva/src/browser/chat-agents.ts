@@ -161,15 +161,6 @@ export class AvoidanceScannerChatAgent extends BaseHayagrivaChatAgent {
 }
 
 @injectable()
-export class NcltDrafterChatAgent extends BaseHayagrivaChatAgent {
-  readonly id = 'NCLT';
-  readonly name = 'NCLT';
-  readonly description = 'Generate and draft petitions, synopsis of dates, and legal affidavits.';
-  readonly iconClass = 'codicon codicon-edit';
-  override readonly requiresLargeModel = true;
-}
-
-@injectable()
 export class LitigationTrackerChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'Litigation';
   readonly name = 'Litigation';

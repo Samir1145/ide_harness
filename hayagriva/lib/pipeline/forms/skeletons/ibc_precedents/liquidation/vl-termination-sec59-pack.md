@@ -1,6 +1,4 @@
-__  CA RK GUPTA__
 
-  National Faculty on IBC  ·  Ravinder Gupta & Associates, Chartered Accountants
 
 __IBC PRECEDENT SERIES__
 
@@ -30,11 +28,9 @@ Delhi (adapt as applicable)
 
 __Prepared under the brand__
 
-CA RK Gupta
 
 __  Disclaimer  __
 
-*  This material is provided under the CA RK Gupta brand for information and educational purposes only; it is not legal advice and does not substitute the bare text of the Code, the Regulations or the current IBBI-notified forms. Items in gold brackets are placeholders to be completed for the specific matter. Note that the liquidator’s filings — the report to the Adjudicating Authority and the intimation to IBBI and the Registrar of Companies — are made by the appointed insolvency professional in his own name, not by the company.*
 
 # __1.  The exit route at a glance__
 
@@ -326,5 +322,4 @@ __{{ NAME }}__ — Liquidator  |  IBBI Reg. No. __[•]__
 
 Place: __{{ DELHI }}__     Date: __[•]__
 
-__  Confirm before filing: __whether Regulation 42(2) contemplates this report as an intimation for record or a formal application before the Bench, the applicable NCLT Bench, and the current IBBI-notified intimation form / electronic filing mode. Settle these with the appointed liquidator for the matter in hand.  
-
+__  Confirm before filing: __whether Regulation 42(2) contemplates this report as an intimation for record or a formal application before the Bench, the applicable NCLT Bench, and the current IBBI-notified intimation form / electronic filing mode. Settle these with the appointed liquidator for the matter in hand.

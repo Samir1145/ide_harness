@@ -225,6 +225,3 @@ __• Look-back / relevant time. __Preferential (Sec. 43(4)): 2 years before I
 __• Authorities. __Anuj Jain, Interim RP for Jaypee Infratech Ltd. v. Axis Bank Ltd., (2020) 8 SCC 401 — discrete tests for preferential, undervalued and Section 66 transactions; the RP must plead each category on its own ingredients rather than rolling them together.
 
 __• Disclosure linkage (2025–2026). __Ensure each transaction is itemised in the Information Memorandum under Regulation 36(2)(ha) and intimated to PRAs under Regulation 35A(3A), failing which a resolution plan is barred by Regulation 38(2A) from dealing with it. Verify the notified commencement of any 2026 provision relied upon.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

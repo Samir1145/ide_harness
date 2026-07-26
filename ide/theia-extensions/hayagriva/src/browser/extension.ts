@@ -216,6 +216,13 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     `;
     document.head.appendChild(style);
 
+    // Enable Monaco inline completions & ghost text preferences
+    try {
+      this.preferenceService.set('editor.inlineSuggest.enabled', true);
+      this.preferenceService.set('editor.suggestOnTriggerCharacters', true);
+      this.preferenceService.set('editor.quickSuggestions', { other: true, comments: true, strings: true });
+    } catch (_) {}
+
     // Disabled custom sidebars - users interact via the native file tree status dots
     this.initializeWikiExplorerWidget();
     this.initializeConceptsExplorerWidget();
@@ -860,20 +867,115 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
     const checkMonaco = () => {
       if (!monaco || !monaco.languages || !monaco.languages.registerCompletionItemProvider) {
-        setTimeout(checkMonaco, 300);
+        console.log("[HAYAGRIVA-DEBUG] monaco not ready"); setTimeout(checkMonaco, 300);
         return;
       }
 
       const LANGS = ['markdown', 'plaintext'];
 
       for (const lang of LANGS) {
+        // ── 1. Standard Completion Item Provider (@ and / triggers) ──────────────────────
         monaco.languages.registerCompletionItemProvider(lang, {
-          triggerCharacters: ['/'],
+          triggerCharacters: ['@', '/'],
           provideCompletionItems: async (model: any, position: any, _context: any, token: any) => {
             const lineText: string = model.getLineContent(position.lineNumber);
             const textUpToCursor = lineText.substring(0, position.column - 1);
 
-            // ── Notion-Style Slash Commands ─────────────────────────────────
+            let currentCase = this.getActiveCaseName();
+            const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+            if (ws) {
+              currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
+            }
+
+            // ── A. Statutory Law & Concepts Trigger (@@ or @) ──────────────────────
+            const atMatch = textUpToCursor.match(/(?:^|\s)@@?([\w\s./,-]*)$/);
+            if (atMatch) {
+              const atIdx = textUpToCursor.search(/(?:^|\s)@@?([\w\s./,-]*)$/);
+              const matchStr = atMatch[0];
+              const atSymbolIdx = matchStr.indexOf('@') + atIdx;
+              const typedPrefix = textUpToCursor.substring(atSymbolIdx); // e.g. "@", "@@", "@@ibc"
+
+              const replaceRange = new monaco.Range(
+                position.lineNumber,
+                atSymbolIdx + 1,
+                position.lineNumber,
+                position.column
+              );
+
+              const rawAt = atMatch[1];
+              const query = rawAt.trim();
+
+              if (!query) {
+                const categorySuggestions = [
+                  {
+                    label: `${typedPrefix}ibc/ - Search Insolvency & Bankruptcy Code`,
+                    filterText: `${typedPrefix}ibc`,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: `${typedPrefix}ibc/`,
+                    range: replaceRange,
+                    detail: 'Statutory Law Vault'
+                  },
+                  {
+                    label: `${typedPrefix}mca/ - Search Companies Act & Rules`,
+                    filterText: `${typedPrefix}mca`,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: `${typedPrefix}mca/`,
+                    range: replaceRange,
+                    detail: 'Statutory Law Vault'
+                  },
+                  {
+                    label: `${typedPrefix}sec - Search Statutory Sections`,
+                    filterText: `${typedPrefix}sec`,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: `${typedPrefix}sec `,
+                    range: replaceRange,
+                    detail: 'Statutory Law Vault'
+                  },
+                  {
+                    label: `${typedPrefix}concept - Link Case Facts`,
+                    filterText: `${typedPrefix}concept`,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: `${typedPrefix}concept `,
+                    range: replaceRange,
+                    detail: 'Workspace Concept Nodes'
+                  },
+                  {
+                    label: `${typedPrefix}qa - Link Q&A Cards`,
+                    filterText: `${typedPrefix}qa`,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: `${typedPrefix}qa `,
+                    range: replaceRange,
+                    detail: 'Generated Case Q&As'
+                  }
+                ];
+                return { suggestions: categorySuggestions };
+              }
+
+              const results = await fetchCompletions(query);
+              if (token.isCancellationRequested) return { suggestions: [] };
+
+              const suggestions = results.map((r: any) => {
+                const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+                const { snippet, hasSnippets } = convertToSnippet(cleanText);
+                const titleOrSection = r.title || `Section ${r.section}`;
+                return {
+                  label: `${typedPrefix}${r.id || titleOrSection} - ${titleOrSection}`,
+                  filterText: `${typedPrefix}${query}`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: snippet,
+                  insertTextRules: hasSnippets
+                    ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                    : undefined,
+                  range: replaceRange,
+                  detail: r.id || 'Statutory Law',
+                  documentation: cleanText.substring(0, 300) + '...'
+                };
+              });
+
+              return { suggestions };
+            }
+
+            // ── B. Notion-Style Slash Commands ─────────────────────────────────
             const slashMatch = textUpToCursor.match(/(?:^|\s)\/([\w\s./,-]*)$/);
             if (slashMatch) {
               const slashIdx = textUpToCursor.search(/(?:^|\s)\/([\w\s./,-]*)$/);
@@ -888,7 +990,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
               
               const rawSlash = slashMatch[1];
               const rawSlashLower = rawSlash.toLowerCase();
-              
+
               const CLAUSES = [
                 {
                   id: 'arbitration',
@@ -917,14 +1019,16 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                 }
               ];
 
-              let currentCase = this.getActiveCaseName();
-              const ws = this.workspaceService.getWorkspaceRootUri(undefined);
-              if (ws) {
-                currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
-              }
-
               // A. Level 1: Just typed "/", or typing the command prefix
-              if (!rawSlash.includes(' ') && !rawSlash.startsWith('law') && !rawSlash.startsWith('concept') && !rawSlash.startsWith('qa') && !rawSlash.startsWith('clause') && !rawSlash.startsWith('case')) {
+              if (!rawSlash.includes(' ') &&
+                  !rawSlash.startsWith('law') &&
+                  !rawSlash.startsWith('ibc') &&
+                  !rawSlash.startsWith('mca') &&
+                  !rawSlash.startsWith('sec') &&
+                  !rawSlash.startsWith('concept') &&
+                  !rawSlash.startsWith('qa') &&
+                  !rawSlash.startsWith('clause') &&
+                  !rawSlash.startsWith('case')) {
                 const commandSuggestions = [
                   {
                     label: '/law - Search Statutory Laws',
@@ -933,6 +1037,30 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                     insertText: 'law ',
                     range: replaceRange,
                     detail: 'AES Encrypted Law Vault',
+                  },
+                  {
+                    label: '/ibc - Insolvency & Bankruptcy Code',
+                    filterText: '/ibc',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: 'ibc ',
+                    range: replaceRange,
+                    detail: 'IBC 2016 Rules & Regulations',
+                  },
+                  {
+                    label: '/mca - Companies Act & Rules',
+                    filterText: '/mca',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: 'mca ',
+                    range: replaceRange,
+                    detail: 'Companies Act 2013',
+                  },
+                  {
+                    label: '/sec - Statutory Section Lookup',
+                    filterText: '/sec',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: 'sec ',
+                    range: replaceRange,
+                    detail: 'Section Search',
                   },
                   {
                     label: '/concept - Link Case Facts',
@@ -983,20 +1111,24 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                 return { suggestions: commandSuggestions };
               }
 
-              // B. Level 2: Command matches "/law <query>"
-              if (rawSlashLower.startsWith('law')) {
-                const query = rawSlash.substring(3).trim();
-                if (query.length < 3) return { suggestions: [] };
+              // B. Level 2: Command matches "/law <query>", "/ibc <query>", "/mca <query>", "/sec <query>"
+              if (rawSlashLower.startsWith('law') || rawSlashLower.startsWith('ibc') || rawSlashLower.startsWith('mca') || rawSlashLower.startsWith('sec')) {
+                let query = rawSlash.trim();
+                if (rawSlashLower.startsWith('law')) {
+                  query = rawSlash.substring(3).trim();
+                }
+                if (query.length < 2) return { suggestions: [] };
                 
                 const results = await fetchCompletions(query);
                 if (token.isCancellationRequested) return { suggestions: [] };
                 
+                const prefixCmd = rawSlash.split(/\s+/)[0];
                 const suggestions = results.map((r: any) => {
                   const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
                   const { snippet, hasSnippets } = convertToSnippet(cleanText);
                   return {
-                    label: `/law → ${r.title || `Section ${r.section}`}`,
-                    filterText: `/law ${query}`,
+                    label: `/${prefixCmd} → ${r.title || `Section ${r.section}`}`,
+                    filterText: `/${rawSlash}`,
                     kind: monaco.languages.CompletionItemKind.Snippet,
                     insertText: snippet,
                     insertTextRules: hasSnippets
@@ -1110,9 +1242,176 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
             return { suggestions: [] };
           }
         });
+
+        // ── 2. Monaco Inline Completions Provider (Ghost Text) ────────────────
+        if (monaco.languages.registerInlineCompletionsProvider) {
+          monaco.languages.registerInlineCompletionsProvider(lang, {
+            provideInlineCompletions: async (model: any, position: any, _context: any, token: any) => {
+              const lineText: string = model.getLineContent(position.lineNumber);
+              const textUpToCursor = lineText.substring(0, position.column - 1);
+
+              const CLAUSES = [
+                { id: 'arbitration', title: 'arbitration clause', text: 'Any dispute, controversy, or claim arising out of or relating to this contract, including its formation, breach, termination, or invalidity, shall be referred to and finally resolved by arbitration under the Arbitration and Conciliation Act, 1996. The tribunal shall consist of one arbitrator. The venue/seat of arbitration shall be New Delhi, and the language of the proceedings shall be English.' },
+                { id: 'governing_law', title: 'governing law & jurisdiction', text: 'This Agreement shall be governed by, construed, and enforced in accordance with the laws of India. The parties agree that the courts located in New Delhi shall have exclusive jurisdiction to settle any disputes arising under this Agreement.' },
+                { id: 'indemnity', title: 'indemnification clause', text: 'The Indemnifying Party shall defend, indemnify, and hold harmless the Indemnified Party from and against any and all claims, losses, damages, liabilities, and expenses (including reasonable legal fees) arising from any breach of this Agreement or negligent acts.' },
+                { id: 'confidentiality', title: 'confidentiality clause', text: 'Each party agrees to hold in strict confidence all confidential information disclosed by the other party. Neither party shall disclose such information to any third party without the prior written consent of the disclosing party, except as required by law. This obligation survives for 3 years post-termination.' },
+                { id: 'force_majeure', title: 'force majeure clause', text: 'Neither party shall be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, war, riot, fire, flood, labor dispute, or government actions, provided prompt notice is given.' }
+              ];
+
+              let currentCase = this.getActiveCaseName();
+              const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+              if (ws) {
+                currentCase = this.getCaseName(new URI(ws.toString()).path.toString());
+              }
+
+              // A. Check for statutory law commands (/law, /ibc, /mca, /sec or @@, @)
+              const lawSlashMatch = textUpToCursor.match(/(?:^|\s)\/(law|ibc|mca|sec)(?:\s+([\w\s./,-]*))?$/i);
+              const atMatch = textUpToCursor.match(/(?:^|\s)@@?([\w\s./,-]+)$/);
+
+              if (lawSlashMatch || atMatch) {
+                let query = '';
+                let matchStartChar = '/';
+                if (atMatch) {
+                  query = atMatch[1].trim();
+                  matchStartChar = '@';
+                } else if (lawSlashMatch) {
+                  const cmd = lawSlashMatch[1].toLowerCase();
+                  const rest = (lawSlashMatch[2] || '').trim();
+                  query = cmd === 'law' ? (rest || 'ibc') : `${cmd} ${rest}`.trim();
+                  matchStartChar = '/';
+                }
+
+                if (query.length >= 2) {
+                  const results = await fetchCompletions(query);
+                  if (!token.isCancellationRequested && results && results.length > 0) {
+                    const first = results[0];
+                    const cleanText = (first.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+                    
+                    const searchRegex = atMatch ? /(?:^|\s)@@?([\w\s./,-]+)$/ : /(?:^|\s)\/(law|ibc|mca|sec)(?:\s+[\w\s./,-]*)?$/i;
+                    const matchIdx = textUpToCursor.search(searchRegex);
+                    const activeMatch = atMatch || lawSlashMatch;
+                    const matchStr = activeMatch![0];
+                    const symbolIdx = matchStr.indexOf(matchStartChar) + matchIdx;
+                    const typedText = textUpToCursor.substring(symbolIdx);
+
+                    const replaceRange = new monaco.Range(
+                      position.lineNumber,
+                      symbolIdx + 1,
+                      position.lineNumber,
+                      position.column
+                    );
+
+                    return {
+                      items: [
+                        {
+                          insertText: `${typedText}\n${cleanText}`,
+                          range: replaceRange
+                        }
+                      ]
+                    };
+                  }
+                }
+              }
+
+              // B. Check for /clause <query> for ghost text preview
+              const slashClauseMatch = textUpToCursor.match(/(?:^|\s)\/clause(?:\s+([\w\s./,-]*))?$/i);
+              if (slashClauseMatch) {
+                const query = (slashClauseMatch[1] || '').trim().toLowerCase();
+                const match = query ? CLAUSES.find(c => c.id.includes(query) || c.title.includes(query)) : CLAUSES[0];
+                if (match) {
+                  const slashIdx = textUpToCursor.search(/(?:^|\s)\/clause(?:\s+[\w\s./,-]*)?$/i);
+                  const typedText = textUpToCursor.substring(slashIdx);
+                  const replaceRange = new monaco.Range(
+                    position.lineNumber,
+                    slashIdx + 1,
+                    position.lineNumber,
+                    position.column
+                  );
+                  return {
+                    items: [
+                      {
+                        insertText: `${typedText}\n${match.text}`,
+                        range: replaceRange
+                      }
+                    ]
+                  };
+                }
+              }
+
+              // C. Check for /concept <query>
+              const conceptMatch = textUpToCursor.match(/(?:^|\s)\/concept(?:\s+([\w\s./,-]*))?$/i);
+              if (conceptMatch) {
+                const query = (conceptMatch[1] || '').trim().toLowerCase();
+                try {
+                  const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/concepts?case=${encodeURIComponent(currentCase)}`);
+                  if (!token.isCancellationRequested && res.ok) {
+                    const data = await res.json();
+                    const list = data.concepts || [];
+                    const filtered = query ? list.filter((c: any) => c.title.toLowerCase().includes(query)) : list;
+                    if (filtered.length > 0) {
+                      const first = filtered[0];
+                      const slashIdx = textUpToCursor.search(/(?:^|\s)\/concept(?:\s+[\w\s./,-]*)?$/i);
+                      const typedText = textUpToCursor.substring(slashIdx);
+                      const replaceRange = new monaco.Range(
+                        position.lineNumber,
+                        slashIdx + 1,
+                        position.lineNumber,
+                        position.column
+                      );
+                      return {
+                        items: [
+                          {
+                            insertText: `${typedText} [${first.title}](${first.relativePath})`,
+                            range: replaceRange
+                          }
+                        ]
+                      };
+                    }
+                  }
+                } catch (_) {}
+              }
+
+              // D. Check for /qa <query>
+              const qaMatch = textUpToCursor.match(/(?:^|\s)\/qa(?:\s+([\w\s./,-]*))?$/i);
+              if (qaMatch) {
+                const query = (qaMatch[1] || '').trim().toLowerCase();
+                try {
+                  const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/wiki-cards?case=${encodeURIComponent(currentCase)}`);
+                  if (!token.isCancellationRequested && res.ok) {
+                    const data = await res.json();
+                    const list = data.cards || [];
+                    const filtered = query ? list.filter((c: any) => c.title.toLowerCase().includes(query) || c.filename.toLowerCase().includes(query)) : list;
+                    if (filtered.length > 0) {
+                      const first = filtered[0];
+                      const slashIdx = textUpToCursor.search(/(?:^|\s)\/qa(?:\s+[\w\s./,-]*)?$/i);
+                      const typedText = textUpToCursor.substring(slashIdx);
+                      const replaceRange = new monaco.Range(
+                        position.lineNumber,
+                        slashIdx + 1,
+                        position.lineNumber,
+                        position.column
+                      );
+                      return {
+                        items: [
+                          {
+                            insertText: `${typedText} [${first.title}](wiki/${first.filename})`,
+                            range: replaceRange
+                          }
+                        ]
+                      };
+                    }
+                  }
+                } catch (_) {}
+              }
+
+              return { items: [] };
+            },
+            disposeInlineCompletions: () => {}
+          });
+        }
       }
 
-      this.logger.info('[HAYAGRIVA] Command Dropdown (/) registered for markdown and plaintext.');
+      this.logger.info('[HAYAGRIVA] Monaco Completion Items (@ and /) and Ghost Text Provider registered for markdown and plaintext.');
     };
 
     checkMonaco();

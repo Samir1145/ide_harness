@@ -119,6 +119,3 @@ __• Form FA is prescribed; the covering letter and the application are not. 
 __• Thresholds and timing. __Withdrawal requires 90% CoC approval; the RP submits within three days. Swiss Ribbons Pvt. Ltd. v. Union of India, (2019) 4 SCC 17, upheld Section 12A and the 90% threshold; Brilliant Alloys Pvt. Ltd. v. S. Rajagopal held the Regulation 30A timeline directory, so withdrawal may be permitted even after issue of the invitation for expression of interest in appropriate cases, for reasons recorded.
 
 __• Currency (2026). __Section 12A and Regulation 30A continue in force as amended up to 2026; use the current Form FA, and verify the notified commencement of any 2026 provision relied upon.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

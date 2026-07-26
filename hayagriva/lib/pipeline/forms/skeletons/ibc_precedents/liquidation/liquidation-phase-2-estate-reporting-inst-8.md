@@ -55,7 +55,3 @@ The erstwhile management / Key Managerial Personnel of [Name of the{{ CORPORATE_
 Handed over by (KMP): ____________________	Taken over by: {{ LIQUIDATOR }}
 
 __Note:  __*Where access is denied or assets are not handed over, record the fact here and proceed under Instrument 15 (cooperation) and, if necessary, by application to the Adjudicating Authority.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

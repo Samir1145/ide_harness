@@ -1,4 +1,3 @@
-__RAVINDER GUPTA & ASSOCIATES__
 
 __Chartered Accountants  __
 
@@ -563,4 +562,3 @@ __{{ THE_LIQUIDATOR }}__
 Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (In Liquidation)
 
 IBBI Reg. No. [•]  |  AFA valid up to [DD.MM.YYYY]  |  Place: Delhi  |  Date: [DD.MM.YYYY]
-

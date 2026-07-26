@@ -1,9 +1,6 @@
-**CA RK Gupta**
 
 National Faculty on IBC
 
-Mobile +91-9811117243 \| rkg4247@gmail.com \| www.carkgupta.com \|
-YouTube @CARKGUPTA
 
 **IBC Precedent Pack**
 
@@ -13,7 +10,6 @@ Section 59(5A)–(5C) of the Insolvency and Bankruptcy Code, 2016 read
 with Regulation 42 of the IBBI (Voluntary Liquidation Process)
 Regulations, 2017
 
-*For information and educational purposes only*
 
 **A. Governing framework at a glance**
 
@@ -261,5 +257,3 @@ is annexed to Form J.
 6. Verify the current Form J and its annexure lettering against
 Circular No. IBBI/VL/97/2026 dated 02.06.2026 before use. Default place
 / jurisdiction: Delhi.
-
-*For information and educational purposes only.*

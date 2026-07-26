@@ -1,6 +1,5 @@
 __CA RK GUPTA__
 
-__Mobile: \+91-9811117243  |  rkg4247@gmail.com  |  www.carkgupta.com__
 
 __CONFIDENTIALITY UNDERTAKINGS FOR THE INFORMATION MEMORANDUM__
 
@@ -8,7 +7,6 @@ Member of the Committee of Creditors  •  (Prospective) Resolution Applicant
 
 *Under the IBBI (CIRP) Regulations, 2016 and the Insolvency and Bankruptcy Code, 2016*
 
-__*For information and educational purposes only*__
 
 __A.  Legal basis — which undertaking, under which provision__
 
@@ -136,4 +134,3 @@ Date
 [DD.MM.YYYY]
 
 *Practice note: each updated Information Memorandum (for instance, an IM updated to disclose identified avoidance or fraudulent/wrongful-trading transactions) is to be shared under the same confidentiality undertakings as the original. The undertaking should therefore be expressed to extend to all updates and supplements to the IM.*
-

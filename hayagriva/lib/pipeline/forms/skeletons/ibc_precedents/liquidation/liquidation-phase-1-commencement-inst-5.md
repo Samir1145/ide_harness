@@ -25,7 +25,3 @@ IBBI Reg. No. {{ IBBI_IPA_00X_IP_NXXXXX_XXXX_XXXX_XXXXX }}  |  AFA valid up to [
 Address for correspondence: {{ ADDRESS }}  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*Reg. 12A requires a single designated process e-mail; ensure it is reflected in Form B, on the IBBI electronic platform and in all subsequent notices and reports.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

@@ -19,7 +19,3 @@ __C.  Record for the file__
 In the liquidation of [Name of the{{ CORPORATE_DEBTOR_NAME }}, the going-concern sale [had not commenced / had commenced on [DD.MM.YYYY]] as on 14.10.2025. Accordingly, the estate is being realised [by asset sale under Reg. 32(a)–(d)] / {{ UNDER_THE_CONTINUING_PRE_AMENDMENT_GOING_CONCERN_PROCESS }}.
 
 __Note:  __*This instrument is retained as a status note, not a sale precedent. The going-concern option ended because liquidation was never intended as an alternative rescue mechanism; resolution belongs in CIRP.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

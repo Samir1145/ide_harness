@@ -63,7 +63,3 @@ Other stakeholders / shareholders
 s.53(1)(g)–(h)
 
 __Note:  __*Prepare the list within the period specified after the last date for receipt of claims, file it as required, and update it as claims are verified, modified or appealed.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

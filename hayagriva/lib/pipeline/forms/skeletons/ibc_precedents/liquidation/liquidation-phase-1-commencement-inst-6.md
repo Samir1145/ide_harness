@@ -55,7 +55,3 @@ IBBI Reg. No. {{ IBBI_IPA_00X_IP_NXXXXX_XXXX_XXXX_XXXXX }}  |  AFA valid up to [
 Address for correspondence: {{ ADDRESS }}  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*Enclose a certified copy of the liquidation order with each intimation. Where the business is continued under s.35(1)(e), tailor the bank-operation request accordingly.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

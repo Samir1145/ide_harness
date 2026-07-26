@@ -97,7 +97,3 @@ Register of unclaimed dividends & undistributed proceeds
 [ ]
 
 __Note:  __*Maintain the registers from the LCD; reconcile the cash book and bank ledger with the liquidation bank account (Instrument 13) at each Progress Report.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

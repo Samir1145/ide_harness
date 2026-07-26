@@ -1,4 +1,3 @@
-__RAVINDER GUPTA & ASSOCIATES__
 
 __CHARTERED ACCOUNTANTS__
 
@@ -130,7 +129,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -160,7 +158,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -190,7 +187,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -262,7 +258,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -290,7 +285,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -356,7 +350,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 

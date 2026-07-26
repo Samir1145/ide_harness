@@ -93,7 +93,7 @@ Prompt: "${message}"`;
             'im':         this.im,
             'plan':       this.plan,
             'avoidance':  this.avoidance,
-            'nclt':       this.nclt,
+            'nclt':       this.document,
             'litigation': this.litigation,
             // OOB Phase C agents
             'timeline':    this.timeline,

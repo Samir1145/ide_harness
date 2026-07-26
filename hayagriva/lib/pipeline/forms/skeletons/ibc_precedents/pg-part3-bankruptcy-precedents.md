@@ -1,4 +1,3 @@
-__RAVINDER GUPTA & ASSOCIATES__
 
 __CHARTERED ACCOUNTANTS__
 
@@ -130,7 +129,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -160,7 +158,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -190,7 +187,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -262,7 +258,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -290,7 +285,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -356,7 +350,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -373,4 +366,3 @@ Date: ___ /___ /20__	(Signature)
 •	Distribution: the order of priority is under Section 178; the 2026 explanation clarifies the treatment of government dues. Discharge is under Section 138, with the effect (and excluded debts) under Section 139.
 
 *Currency — to confirm against the gazette before filing: (i) the exact text of the amendments to Sections 121 and 124, of new Section 164A, and of the explanation to Section 178; (ii) the current bankruptcy Forms and fee following the Bankruptcy (Second Amendment) Regulations, 2026 (notified 1 June 2026); and (iii) Section 183A (penalty for frivolous or vexatious proceedings), as a risk note across Part III filings. The Code-level position reflects the IBC (Amendment) Act, 2026 in force 26 May 2026 (MCA S.O. 2625(E) dated 22 May 2026).*
-

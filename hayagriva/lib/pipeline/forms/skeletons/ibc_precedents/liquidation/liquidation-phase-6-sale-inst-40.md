@@ -82,7 +82,3 @@ __Reserve price (₹)__
 [____]
 
 __Note:  __*No asset may be sold to a person ineligible under Section 29A to submit a resolution plan; obtain the bidder’s Section 29A declaration before sale.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

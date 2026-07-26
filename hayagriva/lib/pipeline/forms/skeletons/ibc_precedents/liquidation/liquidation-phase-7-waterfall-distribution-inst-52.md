@@ -21,7 +21,3 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*Keep proof of service and follow up promptly; persistent non-return may require an application to the Adjudicating Authority for recovery, and the amount retained may attract interest.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

@@ -105,6 +105,3 @@ __• No prescribed form. __Section 30(2) and Regulation 39 require the RP to 
 __• Mandatory contents. __Test each plan against Regulation 38 (priority of CIRP costs and dissenting-FC/OC payments; statement on avoidance transactions; eligibility; term, implementation schedule, management/control and supervision; and treatment of stakeholders).
 
 __• Currency (2026). __Sections 29A, 30 and 31 and Regulations 37–39 continue in force; the IBC (Amendment) Act, 2026 does not prescribe a form for this report. Verify the current Form H and the notified commencement of any 2026 provision relied upon, and apply the latest CIRP (Amendment) Regulations to the contents of the plan.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

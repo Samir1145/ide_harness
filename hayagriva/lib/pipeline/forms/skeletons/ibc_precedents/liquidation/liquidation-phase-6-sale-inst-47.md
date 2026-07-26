@@ -16,7 +16,3 @@ __B.  Assignment process__
 4. Bring the consideration into the liquidation estate; record the assignment in the Progress Report.
 
 __Note:  __*Assigning NRRA (including avoidance-action proceeds) prevents value erosion and a dissolution stalemate; the assignee, not the dissolved{{ CORPORATE_DEBTOR_NAME }}, carries the matter forward.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

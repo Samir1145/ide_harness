@@ -1,4 +1,3 @@
-__RAVINDER GUPTA & ASSOCIATES__
 
 __CHARTERED ACCOUNTANTS__
 
@@ -282,7 +281,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -354,7 +352,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -404,7 +401,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -476,7 +472,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -540,7 +535,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -592,7 +586,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -658,7 +651,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -772,7 +764,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -806,7 +797,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -874,7 +864,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -923,4 +912,3 @@ __•	__Forms to use: by Circular No. IBBI/IIRP/98/2026 dated 2 June 2026 (issue
 __•	__Breach of the repayment plan / cheque dishonour (Item I) follows the Regulation 20 mechanism strictly: on forming the opinion of a failure, the RP issues the 20(1) notice within three days of knowledge, giving the guarantor fifteen days to address the failure or explain it; if the guarantor addresses or satisfactorily explains it, the RP reports to creditors under 20(2) within seven days; and only if the matter is not covered by 20(2) does the RP apply to the AA under Section 116(2) read with Regulation 20(3). A single breach does not bring the Repayment Plan to an end: Regulation 20(3) confers only a power to seek directions in connection with implementation, and premature end under Section 118 is a distinct consequence that arises only where the Plan is not fully implemented within the period mentioned in it. I-1 and I-2 are RP correspondence; I-3 is the Tribunal filing. The affected creditor’s Section 138 remedy (I-4) is independent of the Code and is available because the Section 101 moratorium ceases on approval of the Plan — mind the 30-day demand and 15-day cure timelines under the NI Act.
 
 __•	__Currency: these precedents reflect the IRP for PG to CD Regulations, 2019 through the 2026 Amendment (under which the 2 June 2026 forms circular was issued), including Regulation 17A (mandatory meeting, 2024 Amendment) and Regulation 17B as substituted by the 2026 Amendment — the non-submission application now being made in accordance with Section 106(1A) of the Code. Two items to confirm against the gazette before filing: (i) the exact text of Section 106(1A) and of the substituted Regulation 17B; and (ii) for Precedent H, the bankruptcy-side position following the Bankruptcy (Second Amendment) Regulations, 2026 (notified 1 June 2026), which revised the bankruptcy forms and asset-transfer coordination.
-

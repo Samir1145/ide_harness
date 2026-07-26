@@ -124,8 +124,10 @@ async function fillPlaceholders(skeletonContent, caseDir, repoRoot) {
             value = kv['date_of_default']; source = 'kv_alias';
         }
 
-        // Step 2: RAG + LLM fill for unfilled placeholders
-        if (!value) {
+        // Step 2: RAG + LLM fill for unfilled placeholders (bypassed in Lite Mode)
+        const { loadLlmConfig } = require('../../core/llm-client');
+        const config = loadLlmConfig({ caseDir });
+        if (!value && config.activeMode !== 'lite') {
             const query = name.toLowerCase().replace(/_/g, ' ');
             const chunks = await ragRetrieve(caseDir, query, 2);
             if (chunks.length > 0) {

@@ -421,4 +421,3 @@ _______________________________
 {{ NAME }}, Liquidator  |  IP Regn. No.: ______
 
 __*Practitioner notes: *__*(1) The three intimations (NCLT / IBBI / ROC) carry the same Form J and Reg 42(2) report as enclosures. (2) Deemed termination flows from the ROC intimation (s.59(5C)) — time it deliberately. (3) File the electronic-platform Forms VL 3 / VL 4 (Reg 41A) within their timelines. (4) Re-verify the current text of the Circular and Form J on ibbi.gov.in before filing, as forms may be revised by circular. This kit is a drafting aid and not legal advice.*
-

@@ -32,7 +32,3 @@ __Route__
 
 1. Before dissolution — apply to the Liquidator; on verification, the Liquidator requests the Board to release the amount, which the Board releases to the Liquidator for onward distribution; the Liquidator intimates the Adjudicating Authority.
 2. After dissolution — apply directly to the Board in Form I; another claimant must furnish evidence of entitlement to the Liquidator or the Board.
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

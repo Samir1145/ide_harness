@@ -34,7 +34,3 @@ __{{ THE_INSOLVENCY_PROFESSIONAL }}__
 Proposed/continuing Liquidator  |  IBBI Reg. No. [____]  |  AFA up to [DD.MM.YYYY]
 
 __Note:  __*Where the CoC has recommended the name of the RP (or another IP) to act as Liquidator under Regulation 3A, enclose the relevant extract of the CoC minutes. Take the operative text of Form AA from the current Schedule before filing.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

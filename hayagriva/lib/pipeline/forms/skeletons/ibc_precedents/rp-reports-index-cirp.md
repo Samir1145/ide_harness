@@ -263,6 +263,3 @@ __•  IBC (Amendment) Act, 2026. __Act No. 6 of 2026 received Presidential asse
 __•  CIRP Regulations & Forms. __The CIRP Regulations, 2016 have been amended through 2025–2026, and IBBI revised the CIRP Forms in May 2025. Before relying on this index, confirm that IBBI has not, in the interim, prescribed a form for any item listed above and use the current version of every excluded form.
 
 __•  Verify before reliance. __This is a compiled practice aid, not legal advice; reconcile each entry against the bare Act, the current Regulations and the model CIRP timeline (Reg. 40A) before use.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

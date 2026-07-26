@@ -111,6 +111,3 @@ __• Verify the timeline. __Regulation 30C was introduced by the real-estate-
 __• RERA interface. __Read with the real-estate amendments permitting project-wise handling and engagement of a facilitator for large classes of allottees; keep RERA registrations alive and reconcile the allottees’ claims (Form CA) with project records.
 
 __• Currency (2026). __Regulation 30C and the allied real-estate provisions continue in force as amended up to 2026; verify the latest CIRP (Amendment) Regulations and the notified commencement of any 2026 provision relied upon.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

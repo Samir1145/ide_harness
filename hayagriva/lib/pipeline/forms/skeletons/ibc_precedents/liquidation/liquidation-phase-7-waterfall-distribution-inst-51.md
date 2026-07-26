@@ -44,7 +44,6 @@ __Certification__
 
 On the basis of our examination and the information and explanations given to us, we certify that the above Receipts & Payments Account is in agreement with the books and the liquidation bank account, that the distributions are recorded in the Section 53 order of priority, and that the realisations and payments are, to the best of our knowledge and belief, true and correct.
 
-__For Ravinder Gupta & Associates__
 
 Chartered Accountants  |  FRN [______]
 
@@ -57,7 +56,3 @@ UDIN: [______________]   |   Place: Delhi   |   Date: [DD.MM.YYYY]
 Offices at Delhi and Bahadurgarh, Haryana
 
 __Note:  __*This certificate is issued by the firm to assist the Liquidator’s reporting (Reg. 5) and the Form H reconciliation; generate the UDIN on issue and retain the working papers.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

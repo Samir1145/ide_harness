@@ -56,9 +56,7 @@ Reg. 2B; s.230, CA 2013
 
 __How to use this pack.  __Each instrument below is a stand-alone precedent for the *liquidator* of a{{ CORPORATE_DEBTOR_NAME }}placed in liquidation under Section 33. Replace every __{{ BRACKETED_PLACEHOLDER }}__ with the facts of the matter. Default place / jurisdiction is Delhi. The fee note (Instrument 3) reflects the __Regulation 4 substituted by the IBBI (Liquidation Process) (Fourth Amendment) Regulations, 2026 (w.e.f. 01.06.2026)__, which is distribution-based; for matters that commenced before that date, apply the pre-amendment Regulation 4 instead.
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 1  —  Practice aid__
 
@@ -129,9 +127,7 @@ __C.  Standing timeline to diarise__
 
 __Note:  __*Read this aid with the actual order: the AA may give case-specific directions (e.g., continuation of business, sale as a going concern, or carve-outs) that override the default position above.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 2  —  Form AA__
 
@@ -170,9 +166,7 @@ Proposed/continuing Liquidator  |  IBBI Reg. No. [____]  |  AFA up to [DD.MM.YYY
 
 __Note:  __*Where the CoC has recommended the name of the RP (or another IP) to act as Liquidator under Regulation 3A, enclose the relevant extract of the CoC minutes. Take the operative text of Form AA from the current Schedule before filing.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 3  —  Firm-prepared__
 
@@ -297,7 +291,6 @@ Prepared by:
 
 ____________________________
 
-__Ravinder Gupta & Associates, Chartered Accountants__
 
 Offices at Delhi and Bahadurgarh, Haryana
 
@@ -305,9 +298,7 @@ For and on behalf of the Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (
 
 __Note:  __*This is a computation and record-keeping aid prepared by the firm to assist the Liquidator; the fixation of fee is the Committee’s decision (Route 1) or the operation of the scale (Route 2).*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 4  —  Form B__
 
@@ -384,9 +375,7 @@ Address for correspondence: {{ ADDRESS }}  |  E-mail: {{ LIQUIDATION_PROCESS_E_M
 
 __Note:  __*Publish in one English and one regional-language newspaper in wide circulation at the location of the registered office and principal activity, on the website (if any) of the CD, and on the Board’s website / electronic platform as required. Use the operative Form B from the current Schedule.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 5  —  Notice__
 
@@ -416,9 +405,7 @@ Address for correspondence: {{ ADDRESS }}  |  E-mail: {{ LIQUIDATION_PROCESS_E_M
 
 __Note:  __*Reg. 12A requires a single designated process e-mail; ensure it is reflected in Form B, on the IBBI electronic platform and in all subsequent notices and reports.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 6  —  Intimation letters__
 
@@ -478,9 +465,7 @@ Address for correspondence: {{ ADDRESS }}  |  E-mail: {{ LIQUIDATION_PROCESS_E_M
 
 __Note:  __*Enclose a certified copy of the liquidation order with each intimation. Where the business is continued under s.35(1)(e), tailor the bank-operation request accordingly.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 7  —  Note & application skeleton__
 
@@ -521,8 +506,3 @@ IBBI Reg. No. {{ IBBI_IPA_00X_IP_NXXXXX_XXXX_XXXX_XXXXX }}  |  AFA valid up to [
 Address for correspondence: {{ ADDRESS }}  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*This is a skeleton only. Settle the scheme, valuations, Section 29A undertakings and class composition with counsel, and verify the current text of Regulation 2B and Regulation 39BA before filing.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
-

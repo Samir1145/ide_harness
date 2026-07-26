@@ -27,7 +27,3 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*Reconcile receipts and payments to this account in every Progress Report and in Form H. Reg. 41 requires that money be paid in forthwith.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

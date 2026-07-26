@@ -24,7 +24,3 @@ __C.  Where the secured creditor realises (Reg. 21A(2))__
 3. Any shortfall after enforcement ranks under s.53(1)(e) for the unpaid secured debt (s.52(9)).
 
 __Note:  __*These payment obligations are mandatory even when the secured creditor realises outside the estate (Moser Baer Karamchari Union v. Union of India, SC 2023).*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

@@ -72,9 +72,7 @@ Reg. 38
 
 __Important — read first.  __The 2025 Second Amendment (w.e.f. 14.10.2025) __deleted Regulations 32(e), 32(f) and 32A, removing “sale as a going concern” from liquidation__ (and CIRP Regulation 39C was deleted). For all liquidations where a going-concern sale had not commenced by that date, the estate is realised by __asset sale only under Regulation 32(a)–(d)__. Instrument 41 records this status and the transitional position. Sale is ordinarily by e-auction under Schedule I; private sale only in the four circumstances and after prior SCC consultation; no sale to a person ineligible under Section 29A (proviso to s.35(1)(f)). Replace every __{{ BRACKETED_PLACEHOLDER }}__; default jurisdiction is Delhi.
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 40  —  Sale strategy__
 
@@ -161,9 +159,7 @@ __Reserve price (₹)__
 
 __Note:  __*No asset may be sold to a person ineligible under Section 29A to submit a resolution plan; obtain the bidder’s Section 29A declaration before sale.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 41  —  Status & transitional note__
 
@@ -187,9 +183,7 @@ In the liquidation of [Name of the{{ CORPORATE_DEBTOR_NAME }}, the going-concern
 
 __Note:  __*This instrument is retained as a status note, not a sale precedent. The going-concern option ended because liquidation was never intended as an alternative rescue mechanism; resolution belongs in CIRP.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 42  —  Process document__
 
@@ -247,9 +241,7 @@ __C.  Process steps__
 
 __Note:  __*No asset may be sold to a Section 29A-ineligible person. Take the operative Schedule I and the e-auction terms from the current Regulations before issuing the notice.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 43  —  Process note__
 
@@ -270,9 +262,7 @@ Prior consultation with the SCC was held on [DD.MM.YYYY] (advice recorded under 
 
 __Note:  __*A private sale must not be used to bypass the auction process; the four circumstances are exhaustive, and SCC consultation is mandatory.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 44  —  Report__
 
@@ -328,9 +318,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*Enclose each Asset Sale Report with the relevant Progress Report (Phase VIII) and reconcile realisations to the liquidation bank account.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 45  —  Realisation & pay-in__
 
@@ -379,9 +367,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 46  —  Recovery__
 
@@ -429,9 +415,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 47  —  Assignment__
 
@@ -452,9 +436,7 @@ __B.  Assignment process__
 
 __Note:  __*Assigning NRRA (including avoidance-action proceeds) prevents value erosion and a dissolution stalemate; the assignee, not the dissolved{{ CORPORATE_DEBTOR_NAME }}, carries the matter forward.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 48  —  Call notice__
 
@@ -476,9 +458,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 49  —  AA application__
 
@@ -503,8 +483,3 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*Distribution in specie is a last resort after sale and assignment have been exhausted; it requires the permission of the Adjudicating Authority.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
-

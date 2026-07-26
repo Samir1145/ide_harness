@@ -8,11 +8,8 @@ A practitioner's readiness checklist that pairs with the IBC 2026 Forms Handbook
 
 *Companion to the presentation “IBC — What Changed in 2026” and the IBC 2026 Forms Handbook.*
 
-__Ravinder Gupta & Associates, Chartered Accountants  ·  Delhi__
 
-Mobile \+91-9811117243  |  rkg4247@gmail.com  |  www.carkgupta.com  |  YouTube @CARKGUPTA
 
-*For information and educational purposes only. Verify against the Gazette / primary notifications before use. This is a readiness aid, not a substitute for the form-specific requirements in the regulations and circulars.*
 
 Compiled 07 July 2026 · 20260707_0730_IST
 
@@ -507,4 +504,3 @@ __F.  General — for every filing__
 ☐  An IST-dated, branded copy of the completed form retained for the case record.
 
 ☐  Confirmation of the current form version on the IBBI website before filing (forms are now revised by circular).
-

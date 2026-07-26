@@ -39,3 +39,8 @@ hayagriva/bin/
 
 # Do not ignore the backend source code directory
 !hayagriva/lib/
+
+# Local case runtime files
+case_facts.md
+concepts/
+drafts/

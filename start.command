@@ -112,6 +112,8 @@ else
     done
 fi
 
+log "App started in Lite Mode. LLM engines (Port 8090/8091) remain offline until manually started in Settings."
+
 # Calculate hashes representing dependency locks and extensions for change detection
 calculate_checksum() {
     (

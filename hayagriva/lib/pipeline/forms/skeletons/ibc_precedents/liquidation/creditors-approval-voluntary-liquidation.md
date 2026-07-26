@@ -106,4 +106,3 @@ Name: ____________    DIN / Reg. No.: ____________
 Date: ____________    Place: ____________
 
 __Compliance pointers. __The approval must be obtained within seven days of the members' resolution; the liquidation commencement date is the date of the members' resolution, subject to this creditors' approval (Section 59(5) / Regulation 3(3)). Where any debt is owed and this two-thirds approval is not obtained, the voluntary liquidation cannot proceed under Section 59. Notify the Registrar and the Board within seven days of the approval (Regulation 3(2)).
-

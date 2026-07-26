@@ -91,7 +91,3 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*File the Asset Memorandum (Instrument 11) along with this Preliminary Report. Share with the Board and the SCC as required.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

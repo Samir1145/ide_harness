@@ -42,35 +42,14 @@ e. I shall make the disclosures in accordance with the code of conduct set out i
 
 f. I am having the following processes in hand:
 
-__Sl.__
-
-__Role as__
-
-__No. of Processes on the date of Consent__
-
-1
-
-Interim Resolution Professional
-
-2
-
-Resolution Professional of — (a) Corporate Debtors  (b) Individuals
-
-3
-
-Liquidator of — (a) Liquidation Processes  (b) Voluntary Liquidation Processes
-
-4
-
-Bankruptcy Trustee
-
-5
-
-Authorised Representative
-
-6
-
-Any other (please state)
+| Sl. | Role as | No. of Processes on Date of Consent |
+|---|---|---|
+| 1. | Interim Resolution Professional | {{ IRP_PROCESSES_COUNT }} |
+| 2. | Resolution Professional (Corporate Debtors / Individuals) | {{ RP_PROCESSES_COUNT }} |
+| 3. | Liquidator (Liquidation / Voluntary Liquidation) | {{ LIQUIDATOR_PROCESSES_COUNT }} |
+| 4. | Bankruptcy Trustee | {{ BANKRUPTCY_TRUSTEE_COUNT }} |
+| 5. | Authorised Representative | {{ AR_PROCESSES_COUNT }} |
+| 6. | Any other role | {{ OTHER_ROLE_COUNT }}
 
 Date: _______________            (Signature of the insolvency professional)
 

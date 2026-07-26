@@ -85,7 +85,3 @@ ____________________________
 Signature of the claimant / authorised representative
 
 __Note:  __*Financial creditors shall submit proof of claim by electronic means only. Take the operative Form C from the current Schedule II before filing; an unsubmitted claim collated during the CIRP is deemed submitted under Section 38.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

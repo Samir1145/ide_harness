@@ -23,7 +23,3 @@ __B.  Assets excluded from the liquidation estate (s.36(4))__
 - Any other assets as may be notified by the Central Government in consultation with a financial sector regulator.
 
 __Note:  __*Schedule each included and excluded asset in the Asset Memorandum (Instrument 11). Where a third party claims an excluded asset, record the basis (title/trust/bailment) and supporting documents.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

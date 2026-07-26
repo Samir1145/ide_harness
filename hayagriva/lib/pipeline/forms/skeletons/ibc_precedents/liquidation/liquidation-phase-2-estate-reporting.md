@@ -80,9 +80,7 @@ s.37
 
 __How to use this pack.  __These eleven instruments cover the first 75 days of conduct — taking control of the estate, the two statutory 75-day filings (Preliminary Report and Asset Memorandum), the records and bank-account framework, and the engagement of professionals and valuers. Replace every __{{ BRACKETED_PLACEHOLDER }}__ with the facts of the matter. Default place / jurisdiction is Delhi. The Asset Memorandum and valuation reports are to be shared with the Stakeholders’ Consultation Committee only against a confidentiality undertaking (2024 amendments).
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 8  —  Takeover note__
 
@@ -142,9 +140,7 @@ Handed over by (KMP): ____________________	Taken over by: {{ LIQUIDATOR }}
 
 __Note:  __*Where access is denied or assets are not handed over, record the fact here and proceed under Instrument 15 (cooperation) and, if necessary, by application to the Adjudicating Authority.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 9  —  Estate note__
 
@@ -172,9 +168,7 @@ __B.  Assets excluded from the liquidation estate (s.36(4))__
 
 __Note:  __*Schedule each included and excluded asset in the Asset Memorandum (Instrument 11). Where a third party claims an excluded asset, record the basis (title/trust/bailment) and supporting documents.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 10  —  Report to AA__
 
@@ -270,9 +264,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*File the Asset Memorandum (Instrument 11) along with this Preliminary Report. Share with the Board and the SCC as required.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 11  —  Memorandum__
 
@@ -333,9 +325,7 @@ ____________________________
 
 __Note:  __*The reserve price for any auction is set with reference to the Reg. 35 value; keep the valuation not more than the permitted age before sale.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 12  —  Records framework__
 
@@ -437,9 +427,7 @@ Register of unclaimed dividends & undistributed proceeds
 
 __Note:  __*Maintain the registers from the LCD; reconcile the cash book and bank ledger with the liquidation bank account (Instrument 13) at each Progress Report.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 13  —  Bank request__
 
@@ -471,9 +459,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*Reconcile receipts and payments to this account in every Progress Report and in Form H. Reg. 41 requires that money be paid in forthwith.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 14  —  Engagement letter__
 
@@ -508,9 +494,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*Disclose the appointment and the basis of fee to the SCC. The bar on percentage/success-linked fees under Reg. 7 is strict.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 15  —  Direction letter__
 
@@ -545,9 +529,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*Keep a record of service. Repeated non-cooperation may also be reported in the Progress Reports and to the Board.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 16  —  Notice & application__
 
@@ -591,9 +573,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*Observe the six-month period from the LCD (or seek extension). A person sustaining loss from the disclaimer may prove as a creditor for the loss.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 17  —  Engagement letter__
 
@@ -622,9 +602,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*Appoint two valuers per relevant asset class. Keep the valuation current (within the permitted age) before fixing the reserve price for sale.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 18  —  Requisitions__
 
@@ -677,8 +655,3 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*Maintain a register of requisitions and responses. Section 37 access supports the Asset Memorandum, the claims verification and the avoidance inquiries.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
-

@@ -72,7 +72,3 @@ IBBI Reg. No. {{ IBBI_IPA_00X_IP_NXXXXX_XXXX_XXXX_XXXXX }}  |  AFA valid up to [
 Address for correspondence: {{ ADDRESS }}  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*Publish in one English and one regional-language newspaper in wide circulation at the location of the registered office and principal activity, on the website (if any) of the CD, and on the Board’s website / electronic platform as required. Use the operative Form B from the current Schedule.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

@@ -37,7 +37,3 @@ IBBI Reg. No. {{ IBBI_IPA_00X_IP_NXXXXX_XXXX_XXXX_XXXXX }}  |  AFA valid up to [
 Address for correspondence: {{ ADDRESS }}  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*This is a skeleton only. Settle the scheme, valuations, Section 29A undertakings and class composition with counsel, and verify the current text of Regulation 2B and Regulation 39BA before filing.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

@@ -32,9 +32,7 @@ s.54; Reg. 14
 
 __How to use this pack.  __The liquidator files a Progress Report within 15 days of the end of every quarter, to the Adjudicating Authority, the Board and the SCC, until dissolution. The liquidation is to be completed within __180 days of the LCD (Regulation 44, as substituted by the 2026 Fourth Amendment)__; where it cannot be, the liquidator — on the SCC’s instruction — applies to the Adjudicating Authority for continuation, with a report explaining the delay and the additional time required, and continues to act meanwhile. Early dissolution under Section 54 / Regulation 14 requires the __consent of the SCC__ (2024 amendment). Replace every __{{ BRACKETED_PLACEHOLDER }}__; default jurisdiction is Delhi.
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 53  —  Report__
 
@@ -97,9 +95,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*Place the Progress Report before the SCC and file it with the AA and the Board within 15 days of the quarter-end; enclose the CA certificate on Receipts & Payments (Instrument 51) where prepared.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 54  —  Application__
 
@@ -132,9 +128,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 55  —  Application__
 
@@ -170,8 +164,3 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
 __Note:  __*On a dissolution order, forward a copy to the Registrar of Companies within 7 days (s.54(3)); preserve the records (Reg. 45A). Early dissolution short-circuits Phases VI–VII where there is nothing to realise or distribute.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
-

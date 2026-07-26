@@ -135,4 +135,3 @@ Registration No.: ____________
 Date and Place: ____________
 
 __Publication. __Publish in one English and one regional-language newspaper with wide circulation at the location of the registered office and principal office (if any) and any other location of material business operations; on the website of the corporate person (if any); and on the website designated by the Board (if any). The last date for claims is thirty days from the liquidation commencement date.
-

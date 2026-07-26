@@ -66,7 +66,3 @@ __C.  Standing timeline to diarise__
 - Completion of liquidation — ordinarily within one year, per the model timeline (Reg. 47).
 
 __Note:  __*Read this aid with the actual order: the AA may give case-specific directions (e.g., continuation of business, sale as a going concern, or carve-outs) that override the default position above.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

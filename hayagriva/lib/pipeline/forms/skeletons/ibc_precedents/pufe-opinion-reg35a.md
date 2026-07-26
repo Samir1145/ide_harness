@@ -171,6 +171,3 @@ __• Look-back / relevant time. __Preferential (Sec. 43, relevant time under 
 __• Authorities. __Anuj Jain, Interim RP for Jaypee Infratech Ltd. v. Axis Bank Ltd., (2020) 8 SCC 401, on the approach to preferential transactions and the discrete tests under Sections 43, 45 and 66.
 
 __• Currency (2026). __Sections 43–51 and 66 and Regulation 35A continue in force; the IBC (Amendment) Act, 2026 strengthens the avoidance-transaction framework but does not prescribe a form for this record. Verify the notified commencement of any 2026 provision relied upon, and the current CIRP Form requiring disclosure of avoidance transactions.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

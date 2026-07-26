@@ -32,9 +32,7 @@ s.35(2); Reg. 8; Reg. 31A(10)–(11)
 
 __How to use this pack.  __The SCC is the creditor-oversight body in liquidation. It is constituted within 60 days of the LCD and advises the liquidator; its advice (by a 66% vote of representatives present and voting) is __not binding__, but where the liquidator decides at variance with it he must record reasons in writing and report them in the next Progress Report. These instruments reflect the 2024 amendments (quarterly meetings; mandatory cost / legal-status / progress disclosure at every meeting) and the 2025 omission of clause (f) of Reg. 31A(1). Replace every __{{ BRACKETED_PLACEHOLDER }}__ with the facts of the matter; default jurisdiction is Delhi.
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 19  —  Constitution order & note__
 
@@ -116,9 +114,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 20  —  Notice & conduct__
 
@@ -197,9 +193,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 21  —  Advice record__
 
@@ -268,8 +262,3 @@ __{{ THE_LIQUIDATOR }}__
 Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
-

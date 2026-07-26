@@ -1,4 +1,3 @@
-__RAVINDER GUPTA & ASSOCIATES__
 
 __CHARTERED ACCOUNTANTS__
 
@@ -98,7 +97,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -222,7 +220,6 @@ IBBI Reg. No. IBBI/IPA-___/IP-___/20__-__/_____
 
 AFA valid up to ______; Address for service: ______
 
-Email: rkg4247@gmail.com
 
 Date: ___ /___ /20__	(Signature)
 
@@ -239,4 +236,3 @@ Date: ___ /___ /20__	(Signature)
 •	Resolution professional’s report: the Section 99 report is now to be submitted within twenty-one days (substituted for ten days) of the appointment; service of the report tracks Section 99(10) as amended.
 
 *Currency — to confirm against the gazette before filing: (i) the exact text and numbering of Section 96(4) and of the amended Section 99(1) and (10); and (ii) the current Forms A/B/C and the fee under the Application (PG to CD) Rules, 2019 as amended. The Code-level position reflects the IBC (Amendment) Act, 2026 in force with effect from 26 May 2026 (MCA S.O. 2625(E) dated 22 May 2026); regulation- and rule-level vintages are to be confirmed.*
-

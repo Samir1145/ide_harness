@@ -103,6 +103,3 @@ __• No prescribed form. __Neither the Code nor the Regulations prescribe a f
 __• Interface with Reg. 35A. __Keep these comments consistent with the Regulation 35A opinion (75th day) and determination (115th day), and use them as the evidentiary base for the avoidance applications filed by the 135th day.
 
 __• Currency (2026). __Section 25(2)(j) and Regulation 35A continue in force; the IBC (Amendment) Act, 2026 strengthens avoidance provisions but prescribes no form for these comments. Verify the notified commencement of any 2026 provision relied upon.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

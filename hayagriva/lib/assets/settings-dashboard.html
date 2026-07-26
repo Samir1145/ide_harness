@@ -189,6 +189,24 @@
       text-transform: uppercase;
     }
     
+    .engine-btn {
+      background: var(--accent-color, #2563eb);
+      color: #ffffff;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .engine-btn:hover {
+      opacity: 0.85;
+    }
+    .engine-btn.stop-btn {
+      background: var(--danger-color, #dc2626);
+    }
+
     /* Status Styles */
     .engine-badge.active {
       border-color: var(--success-color);
@@ -361,19 +379,31 @@
         <div class="engine-status-list">
           <!-- Legal Engine Badge -->
           <div class="engine-badge probing" id="legalBadge">
-            <span>Legal Engine (Port 8090 - legalparam)</span>
-            <div class="status-indicator">
-              <span class="status-dot"></span>
-              <span class="status-text">Probing...</span>
+            <div>
+              <span>Legal Engine (Port 8090 - legalparam)</span>
+              <div class="status-indicator" style="margin-top: 4px;">
+                <span class="status-dot"></span>
+                <span class="status-text">Probing...</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="engine-btn" onclick="toggleEngine('legal', 'start')">Start Engine</button>
+              <button type="button" class="engine-btn stop-btn" onclick="toggleEngine('legal', 'stop')">Stop</button>
             </div>
           </div>
           
           <!-- Financial Engine Badge -->
           <div class="engine-badge probing" id="financeBadge">
-            <span>Financial Engine (Port 8091 - financeparam)</span>
-            <div class="status-indicator">
-              <span class="status-dot"></span>
-              <span class="status-text">Probing...</span>
+            <div>
+              <span>Financial Engine (Port 8091 - financeparam)</span>
+              <div class="status-indicator" style="margin-top: 4px;">
+                <span class="status-dot"></span>
+                <span class="status-text">Probing...</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="engine-btn" onclick="toggleEngine('finance', 'start')">Start Engine</button>
+              <button type="button" class="engine-btn stop-btn" onclick="toggleEngine('finance', 'stop')">Stop</button>
             </div>
           </div>
         </div>
@@ -459,6 +489,26 @@
       if (statusInterval) {
         clearInterval(statusInterval);
         statusInterval = null;
+      }
+    }
+
+    async function toggleEngine(engine, action) {
+      try {
+        showToast(`${action === 'start' ? 'Starting' : 'Stopping'} ${engine} engine...`);
+        const res = await fetch(`/api/hayagriva/engine/${action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ engine })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`${engine} engine ${action}ed successfully.`);
+          setTimeout(probeEngines, 2000);
+        } else {
+          showToast(data.error || `Failed to ${action} ${engine} engine.`, true);
+        }
+      } catch (err) {
+        showToast(`Error toggling ${engine} engine`, true);
       }
     }
 

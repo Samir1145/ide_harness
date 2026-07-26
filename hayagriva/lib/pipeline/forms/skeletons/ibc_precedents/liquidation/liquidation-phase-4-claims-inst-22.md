@@ -54,7 +54,3 @@ __Date received__
 [DD.MM.YYYY]
 
 __Note:  __*Maintain the register of claims and dividends (Instrument 12). Carry deemed-submission CIRP claims into this register and verify them under the Reg. 30 proviso.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

@@ -109,6 +109,3 @@ __• Timeline. __File within 2 days of verification of claims (Reg. 17(1)); c
 __• Composition. __Exclude related-party FCs (1st proviso to Sec. 21(2)); use Reg. 16 where there is no FC / only OCs; appoint an Authorised Representative for a class of FCs under Sec. 21(6A) r/w Reg. 16A and Form CA.
 
 __• Currency (2026). __Sections 18, 21, 24 and Regulations 12–17 continue in force in substantially the same terms; the IBC (Amendment) Act, 2026 (Act No. 6 of 2026, assent 06.04.2026) does not prescribe a form for this report. Use the current IBBI CIRP Forms (revised May 2025) for Form A and the claim forms, and verify the notified commencement of any provision relied upon.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

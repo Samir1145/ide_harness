@@ -84,11 +84,7 @@ A-1 — Admission order; A-2 — Facts and documents giving rise to the relief s
 
 __DRAFTING NOTE — STATUTORY CURRENCY (NOT PART OF THE PLEADING)__
 
-__• Scope and limits of Section 60(5). __The residuary jurisdiction is wide but tethered to the insolvency: Gujarat Urja Vikas Nigam Ltd. v. Amit Gupta, (2021) 7 SCC 209, confirms that Section 60(5)(c) covers matters arising solely from or relating to the insolvency of the{{ CORPORATE_DEBTOR_NAME }}; Embassy Property Developments Pvt. Ltd. v. State of Karnataka, (2020) 13 SCC 308, holds it does not extend to public-law matters or the grant/renewal of governmental largesse, which lie in the writ/statutory domain. Frame the relief within these limits.
 
 __• No prescribed form. __Section 60(5) applications carry no format; this residuary template is to be tailored to the precise relief, with self-contained facts and grounds.
 
 __• Currency (2026). __Section 60(5) continues in force as amended up to 2026; verify the notified commencement of any 2026 provision relied upon.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

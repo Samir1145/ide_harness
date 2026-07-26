@@ -572,7 +572,82 @@ async function query(caseDir, queryText, opts = {}) {
         const config = loadLlmConfig({ caseDir });
         const contexts = await retrieveContexts(caseDir, queryText);
         if (contexts.length === 0) {
-            return { answer: 'I could not find matching concepts in the case files.', sources: [] };
+            // Check if query is asking to list / view available document templates
+            const isListQuery = /\b(list|show\s+me|available|what|find|search|inventory|templates|formats)\b/i.test(queryText) &&
+                                /\b(document|documents|file|files|template|templates|format|formats|report|reports|petition|petitions|issues)\b/i.test(queryText);
+
+            if (isListQuery) {
+                try {
+                    const { listSkeletons } = require('../agents/skills/skeleton-load');
+                    const REPO_ROOT = require('path').join(__dirname, '..', '..', '..');
+                    const available = listSkeletons(REPO_ROOT);
+                    const q = queryText.toLowerCase();
+                    const topicTokens = q.replace(/show|me|list|all|the|documents|avaibale|available|for|issues|templates|formats|what|are|in|with|of|drafts/gi, '').trim().split(/\s+/).filter(t => t.length > 2);
+
+                    let matches = available;
+                    if (topicTokens.length > 0) {
+                        matches = available.filter(s => {
+                            const name = s.toLowerCase();
+                            return topicTokens.some(t => name.includes(t) || (t === 'coc' && (name.includes('coc') || name.includes('creditor'))));
+                        });
+                    }
+                    if (matches.length === 0) matches = available;
+
+                    let responseMarkdown = `> ℹ️ **Note: List Query Recognized. Available Document Templates Below:**\n\n`;
+                    responseMarkdown += `### 📋 Available Templates (${matches.length} Found)\n\n`;
+                    responseMarkdown += `| Sl. | Template Name | Category / Purpose | How to Request |\n`;
+                    responseMarkdown += `|---|---|---|---|\n`;
+                    matches.forEach((m, idx) => {
+                        const cleanName = m.replace(/[\-_]/g, ' ').toUpperCase();
+                        responseMarkdown += `| ${idx + 1}. | **${m}** | ${cleanName} | \`@Document draft ${m}\` |\n`;
+                    });
+                    responseMarkdown += `\n> 💡 **Tip:** Type \`@Document draft <template-name>\` to generate any format above with active case data.`;
+
+                    return { answer: responseMarkdown, sources: [] };
+                } catch (_) {}
+            }
+
+            let skeletonName = null;
+            try {
+                const docAgent = require('../agents/document-agent/agent');
+                if (docAgent && docAgent.detectSkeleton) {
+                    skeletonName = docAgent.detectSkeleton(queryText);
+                }
+            } catch (_) {}
+
+            if (skeletonName) {
+                try {
+                    const { loadSkeleton } = require('../agents/skills/skeleton-load');
+                    const REPO_ROOT = require('path').join(__dirname, '..', '..', '..');
+                    const loaded = loadSkeleton(skeletonName, REPO_ROOT);
+                    if (loaded && loaded.content) {
+                        return {
+                            answer: `> ℹ️ **Note: No specific matching case files found in RAG context. Loaded standard template skeleton below:**\n\n${loaded.content}`,
+                            sources: []
+                        };
+                    }
+                } catch (_) {}
+            }
+
+            return {
+                answer: `> ℹ️ **Note: No specific matching case files found in RAG context for your query.**\n\n` +
+                        `Here is the standard legal format outline for **"${queryText}"**:\n\n` +
+                        `### 1. Parties & Jurisdiction\n` +
+                        `- **Applicant / Financial Creditor:** \`{{ FINANCIAL_CREDITOR_NAME }}\`\n` +
+                        `- **Corporate Debtor:** \`{{ CORPORATE_DEBTOR_NAME }}\`\n` +
+                        `- **Adjudicating Authority:** NCLT Bench \`{{ NCLT_BENCH_LOCATION }}\`\n\n` +
+                        `### 2. Particulars of Debt & Default\n` +
+                        `| Sl. | Particulars | Details |\n` +
+                        `|---|---|---|\n` +
+                        `| 1. | Total Amount of Debt | \`{{ TOTAL_DEBT_AMOUNT }}\` |\n` +
+                        `| 2. | Date of Default | \`{{ DEFAULT_DATE }}\` |\n` +
+                        `| 3. | Financial Contract Reference | \`{{ LOAN_AGREEMENT_REF }}\` |\n\n` +
+                        `### 3. Reliefs & Prayers Sought\n` +
+                        `1. Admit the application under Section 7 / Section 9 of the Insolvency & Bankruptcy Code, 2016.\n` +
+                        `2. Declare a moratorium under Section 14 of the Code.\n` +
+                        `3. Appoint \`{{ PROPOSED_IRP_NAME }}\` as the Interim Resolution Professional.`,
+                sources: []
+            };
         }
         
         if (config.activeMode === 'lite') {

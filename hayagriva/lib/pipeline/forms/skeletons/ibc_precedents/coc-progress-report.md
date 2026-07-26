@@ -133,6 +133,3 @@ __• No prescribed form. __Periodic progress/status reports to the CoC are re
 __• Confidentiality. __Do not disclose the fair value or liquidation value in this report; these are confidential under Regulation 35(2) and are shared only as permitted.
 
 __• Currency (2026). __Sections 18, 23, 25 and the model timeline (Reg. 40A) continue in force as amended up to 2026; align the snapshot with the current CIRP Forms and verify the notified commencement of any 2026 provision relied upon.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

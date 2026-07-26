@@ -53,7 +53,3 @@ __C.  Process steps__
 4. On full payment, execute the certificate of sale / sale deed and hand over the asset; record the sale in the Asset Sale Report (Instrument 44).
 
 __Note:  __*No asset may be sold to a Section 29A-ineligible person. Take the operative Schedule I and the e-auction terms from the current Regulations before issuing the notice.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

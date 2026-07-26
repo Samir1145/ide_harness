@@ -60,9 +60,7 @@ Reg. 47B
 
 __How to use this pack.  __On completion of realisation and distribution, the liquidator files the Final Report and the Form H compliance certificate with the application for dissolution under Section 54 — to be made within 180 days of the LCD, extendable by the Adjudicating Authority by up to 90 days (s.54(1), 2025 amendment). Unclaimed dividends and undistributed proceeds (with tax disclosed) are deposited in the Corporate Liquidation Account before dissolution; stakeholders withdraw in Form I. A copy of the dissolution order is forwarded to the Registrar of Companies __within 7 days (s.54(3))__; records are preserved for 8 years (Reg. 45A); and the LIQ forms are filed on the IBBI platform per Regulation 47B. Replace every __{{ BRACKETED_PLACEHOLDER }}__; default jurisdiction is Delhi.
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 56  —  Report__
 
@@ -109,9 +107,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 57  —  Compliance certificate__
 
@@ -139,9 +135,7 @@ IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION
 
 __Note:  __*Form H is mandatory with the dissolution application (and, where a scheme of compromise/arrangement is sanctioned, on approval of the scheme — 2025). Take the operative Form H from the current Schedule II.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 58  —  Application__
 
@@ -168,9 +162,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 59  —  Deposit statement__
 
@@ -216,9 +208,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 60  —  Form I__
 
@@ -255,9 +245,7 @@ __Route__
 1. Before dissolution — apply to the Liquidator; on verification, the Liquidator requests the Board to release the amount, which the Board releases to the Liquidator for onward distribution; the Liquidator intimates the Adjudicating Authority.
 2. After dissolution — apply directly to the Board in Form I; another claimant must furnish evidence of entitlement to the Liquidator or the Board.
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 61  —  Records note__
 
@@ -283,9 +271,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 62  —  Intimation__
 
@@ -309,9 +295,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 63  —  e-Monitoring tracker__
 
@@ -412,8 +396,3 @@ __{{ THE_LIQUIDATOR }}__
 Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
-

@@ -123,6 +123,3 @@ __• Form H is prescribed; the covering letter and the application are not. _
 __• Binding effect / clean slate. __Ghanashyam Mishra & Sons Pvt. Ltd. v. Edelweiss Asset Reconstruction Co. Ltd., (2021) 9 SCC 657 — on approval, all claims not part of the resolution plan stand extinguished and no person may initiate proceedings for a debt not forming part of the plan; plead the clean-slate effect and the binding nature on governmental authorities.
 
 __• Currency (2026). __Sections 30, 31 and Regulations 38–39 continue in force as amended up to 2026; use the current Form H, and verify the notified commencement of any 2026 provision relied upon.
-
-*Prepared by Ravinder Gupta & Associates, Chartered Accountants — New Delhi & Bahadurgarh (Haryana).*
-

@@ -151,4 +151,3 @@ __4.	__The liquidator continues to discharge responsibilities until the applicat
 __5.	__File the application in the prescribed form under Rule 11 / the applicable NCLT Rules with the requisite court fee, affidavit in support, and index of annexures; serve on stakeholders as directed.
 
 __6.	__Replace all bracketed placeholders [●] with case-specific particulars and delete inapplicable options. Confirm the exact operative wording of Regulation 44(2) against the bare notification (IBBI/2026-27/GN/REG151 dated 01.06.2026) and the applicable bench before filing.
-

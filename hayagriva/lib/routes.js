@@ -1220,6 +1220,85 @@ module.exports = {
     },
 
     POST: {
+        '/api/hayagriva/engine/start': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const engine = data.engine === 'finance' ? 'finance' : 'legal';
+                    const scriptPath = path.join(__dirname, '..', 'scripts', 'run-llama-server.sh');
+                    const { spawn } = require('child_process');
+                    
+                    const child = spawn('bash', [scriptPath, engine], {
+                        detached: true,
+                        stdio: 'ignore'
+                    });
+                    child.unref();
+
+                    // Update active case settings to activeMode: 'standard'
+                    const caseName = data.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    if (caseDir && fs.existsSync(caseDir)) {
+                        const settingsPath = path.join(caseDir, 'hayagriva_settings.json');
+                        let settings = {};
+                        if (fs.existsSync(settingsPath)) {
+                            try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch (_) {}
+                        }
+                        settings.activeMode = 'standard';
+                        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, message: `${engine} engine started. Mode set to Standard.`, activeMode: 'standard' }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/engine/stop': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const port = data.engine === 'finance' ? '8091' : '8090';
+                    const { execSync } = require('child_process');
+                    try {
+                        execSync(`lsof -t -i:${port} | xargs kill -9`, { stdio: 'ignore' });
+                    } catch (_) {}
+
+                    // Check if any engines remain running
+                    const { checkLlamafileHealth } = require('./core/llm-client');
+                    const legalActive = await checkLlamafileHealth('http://127.0.0.1:8090');
+                    const financeActive = await checkLlamafileHealth('http://127.0.0.1:8091');
+
+                    // If no engines are active, revert case settings to activeMode: 'lite'
+                    const caseName = data.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    let newMode = (legalActive || financeActive) ? 'standard' : 'lite';
+                    
+                    if (caseDir && fs.existsSync(caseDir)) {
+                        const settingsPath = path.join(caseDir, 'hayagriva_settings.json');
+                        let settings = {};
+                        if (fs.existsSync(settingsPath)) {
+                            try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch (_) {}
+                        }
+                        settings.activeMode = newMode;
+                        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, message: `Engine on port ${port} stopped.`, activeMode: newMode }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
         // Called by the frontend at workspace startup to synchronously write settings.json
         // BEFORE Theia renders the sidebar — so Open Editors is hidden from the first render.
         '/api/hayagriva/bootstrap-case': (req, res, parsedUrl, docsRoot) => {
@@ -1376,7 +1455,46 @@ module.exports = {
                 });
 
                 if (contexts.length === 0) {
-                    res.write(`data: ${JSON.stringify({ content: 'I could not find matching concepts in the case files.' })}\n\n`);
+                    let skeletonName = null;
+                    try {
+                        const docAgent = require('./agents/document-agent/agent');
+                        if (docAgent && docAgent.detectSkeleton) {
+                            skeletonName = docAgent.detectSkeleton(queryText);
+                        }
+                    } catch (_) {}
+
+                    let fallbackText = '';
+                    if (skeletonName) {
+                        try {
+                            const { loadSkeleton } = require('./agents/skills/skeleton-load');
+                            const REPO_ROOT = require('path').join(__dirname, '..', '..');
+                            const loaded = loadSkeleton(skeletonName, REPO_ROOT);
+                            if (loaded && loaded.content) {
+                                fallbackText = `> ℹ️ **Note: No specific matching case files found in RAG context. Loaded standard template skeleton below:**\n\n${loaded.content}`;
+                            }
+                        } catch (_) {}
+                    }
+
+                    if (!fallbackText) {
+                        fallbackText = `> ℹ️ **Note: No specific matching case files found in RAG context for your query.**\n\n` +
+                            `Here is the standard legal format outline for **"${queryText}"**:\n\n` +
+                            `### 1. Parties & Jurisdiction\n` +
+                            `- **Applicant / Financial Creditor:** \`{{ FINANCIAL_CREDITOR_NAME }}\`\n` +
+                            `- **Corporate Debtor:** \`{{ CORPORATE_DEBTOR_NAME }}\`\n` +
+                            `- **Adjudicating Authority:** NCLT Bench \`{{ NCLT_BENCH_LOCATION }}\`\n\n` +
+                            `### 2. Particulars of Debt & Default\n` +
+                            `| Sl. | Particulars | Details |\n` +
+                            `|---|---|---|\n` +
+                            `| 1. | Total Amount of Debt | \`{{ TOTAL_DEBT_AMOUNT }}\` |\n` +
+                            `| 2. | Date of Default | \`{{ DEFAULT_DATE }}\` |\n` +
+                            `| 3. | Financial Contract Reference | \`{{ LOAN_AGREEMENT_REF }}\` |\n\n` +
+                            `### 3. Reliefs & Prayers Sought\n` +
+                            `1. Admit the application under Section 7 / Section 9 of the Insolvency & Bankruptcy Code, 2016.\n` +
+                            `2. Declare a moratorium under Section 14 of the Code.\n` +
+                            `3. Appoint \`{{ PROPOSED_IRP_NAME }}\` as the Interim Resolution Professional.`;
+                    }
+
+                    res.write(`data: ${JSON.stringify({ content: fallbackText })}\n\n`);
                     res.write(`data: ${JSON.stringify({ done: true, sources: [] })}\n\n`);
                     res.end();
                     return;
@@ -2011,7 +2129,7 @@ module.exports = {
                     // ── LITE MODE GATE ──────────────────────────────────────────
                     const { loadLlmConfig } = require('./core/llm-client');
                     const config = loadLlmConfig({ caseDir });
-                    if (config.activeMode === 'lite') {
+                    if (config.activeMode === 'lite' && !data.agent) {
                         const { query } = require('./core/rag');
                         const result = await query(caseDir, data.message, { caseDir });
                         res.writeHead(200, { 'Content-Type': 'application/json' });

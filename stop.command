@@ -30,7 +30,11 @@ for port in 3210 3000 8080 9222 8090 8091; do
     fi
 done
 
-# Clean up orphaned processes matching the HAYAGRIVA repository directory
-pkill -f "/HAYAGRIVA/" 2>/dev/null || true
+# Revert case settings to activeMode: lite for next boot
+find "$HOME/Documents" -name "hayagriva_settings.json" -type f 2>/dev/null | while read -r f; do
+    if [ -f "$f" ]; then
+        node -e "try { const p = process.argv[1]; const data = JSON.parse(require('fs').readFileSync(p, 'utf8')); data.activeMode = 'lite'; require('fs').writeFileSync(p, JSON.stringify(data, null, 2), 'utf8'); } catch (_) {}" "$f" 2>/dev/null || true
+    fi
+done
 
 log "Hayagriva stopped."

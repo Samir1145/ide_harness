@@ -56,7 +56,3 @@ ____________________________
 {{ THE_LIQUIDATOR }}  |  Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 __Note:  __*The reserve price for any auction is set with reference to the Reg. 35 value; keep the valuation not more than the permitted age before sale.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*

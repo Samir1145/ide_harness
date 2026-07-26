@@ -92,9 +92,7 @@ s.42
 
 __How to use this pack.  __Claims are received within 30 days of the LCD in Forms C / D / E / F; an unsubmitted claim collated during the CIRP is __deemed submitted under Section 38__. The liquidator verifies (Reg. 30), admits or rejects with reasons and communicates within 7 days (s.40), determines value (s.41), and prepares the list of stakeholders (Reg. 31). A creditor may appeal to the Adjudicating Authority within 14 days (s.42). Replace every __{{ BRACKETED_PLACEHOLDER }}__ with the facts of the matter; default jurisdiction is Delhi.
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 22  —  Claims note__
 
@@ -153,9 +151,7 @@ __Date received__
 
 __Note:  __*Maintain the register of claims and dividends (Instrument 12). Carry deemed-submission CIRP claims into this register and verify them under the Reg. 30 proviso.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 23  —  Form C__
 
@@ -245,9 +241,7 @@ Signature of the claimant / authorised representative
 
 __Note:  __*Financial creditors shall submit proof of claim by electronic means only. Take the operative Form C from the current Schedule II before filing; an unsubmitted claim collated during the CIRP is deemed submitted under Section 38.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 24  —  Form D__
 
@@ -337,9 +331,7 @@ Signature of the claimant / authorised representative
 
 __Note:  __*Financial creditors shall submit proof of claim by electronic means only. Take the operative Form D from the current Schedule II before filing; an unsubmitted claim collated during the CIRP is deemed submitted under Section 38.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 25  —  Form E__
 
@@ -429,9 +421,7 @@ Signature of the claimant / authorised representative
 
 __Note:  __*Financial creditors shall submit proof of claim by electronic means only. Take the operative Form E from the current Schedule II before filing; an unsubmitted claim collated during the CIRP is deemed submitted under Section 38.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 26  —  Form F__
 
@@ -513,9 +503,7 @@ Signature of the claimant / authorised representative
 
 __Note:  __*Financial creditors shall submit proof of claim by electronic means only. Take the operative Form F from the current Schedule II before filing; an unsubmitted claim collated during the CIRP is deemed submitted under Section 38.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 27  —  Election & proof__
 
@@ -544,9 +532,7 @@ __C.  Where the secured creditor realises (Reg. 21A(2))__
 
 __Note:  __*These payment obligations are mandatory even when the secured creditor realises outside the estate (Moser Baer Karamchari Union v. Union of India, SC 2023).*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 28  —  Substantiation letter__
 
@@ -572,9 +558,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 29  —  Determination note__
 
@@ -602,9 +586,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 30  —  Verification memo__
 
@@ -652,9 +634,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 31  —  Decision letter__
 
@@ -698,9 +678,7 @@ Liquidator of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)
 
 IBBI Reg. No. [____]  |  AFA valid up to [DD.MM.YYYY]  |  E-mail: {{ LIQUIDATION_PROCESS_E_MAIL_ID }}
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 32  —  Valuation record__
 
@@ -748,9 +726,7 @@ Total
 
 __Note:  __*The valuation of claims feeds the list of stakeholders (Instrument 33) and the s.53 waterfall (Phase VII).*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 33  —  List__
 
@@ -818,9 +794,7 @@ s.53(1)(g)–(h)
 
 __Note:  __*Prepare the list within the period specified after the last date for receipt of claims, file it as required, and update it as claims are verified, modified or appealed.*
 
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
 
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
 
 __Instrument 34  —  Appeal skeleton__
 
@@ -840,8 +814,3 @@ In the matter of [Name of the{{ CORPORATE_DEBTOR_NAME }} (in liquidation)  —  
 *[Verification and affidavit as per the NCLT Rules.]*
 
 __Note:  __*This is a claimant-side skeleton for completeness of the precedent set; the liquidator’s role is to defend the verified decision. Settle pleadings with counsel and verify the limitation position before filing.*
-
-__CA RK Gupta__   |   Mobile \+91-9811117243   |   rkg4247@gmail.com   |   www.carkgupta.com
-
-*For information and educational purposes only — a practice aid, not legal advice. Verify the current consolidated Code, Regulations and IBBI circulars before use in any specific matter.*
-

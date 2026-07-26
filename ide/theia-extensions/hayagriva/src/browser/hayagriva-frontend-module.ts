@@ -19,7 +19,6 @@ import {
   ImCompilerChatAgent,
   ResolutionPlanEvaluatorChatAgent,
   AvoidanceScannerChatAgent,
-  NcltDrafterChatAgent,
   LitigationTrackerChatAgent
 } from './chat-agents';
 
@@ -55,6 +54,5 @@ export default new ContainerModule((bind) => {
   bind(ChatAgent).to(ImCompilerChatAgent).inSingletonScope();
   bind(ChatAgent).to(ResolutionPlanEvaluatorChatAgent).inSingletonScope();
   bind(ChatAgent).to(AvoidanceScannerChatAgent).inSingletonScope();
-  bind(ChatAgent).to(NcltDrafterChatAgent).inSingletonScope();
   bind(ChatAgent).to(LitigationTrackerChatAgent).inSingletonScope();
 });
