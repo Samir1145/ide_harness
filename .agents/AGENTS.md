@@ -89,6 +89,23 @@ Refer to the following plans saved in the workspace:
   * **Shutdown Reversion**: Executing `stop.command` or closing the app kills running LLM engines and resets `activeMode` back to `"lite"` so that the next launch starts cleanly in Lite mode every time.
 * **Specialized Agent Export Contracts**: Subagent files (such as `document-agent/agent.js`) must export the constructor class directly (`module.exports = DocumentAgent; DocumentAgent.detectSkeleton = detectSkeleton;`) to prevent `TypeError: DocumentAgent is not a constructor` instantiation failures in `agent-coordinator.js`.
 * **Dual-Layer Template Inventory Interceptor**: Queries asking for document templates (e.g. `show me a list of all documents available for COC issues`) are intercepted by both `DocumentAgent.run` and `rag.js` to return a 3-column table of available matching templates with `@Document draft <template-name>` request links.
-
-
+* **Content-Type Auto-Routing (Plan 7 Dual-Vector Loop)**: Classifies document chunks at ingestion time strictly by file extension (`.xlsx`, `.xls`, `.csv`, `.tsv` -> `Finance-Embeddings`; `.pdf`, `.docx`, `.md`, `.txt`, `.tiddlywiki`, `wiki/` -> `InLegal-SBERT`). Stores `vector_type` in SQLite `document_vectors` table with self-healing migration.
+* **Dual-Query RAG & RRF Fusion**: Generates dual query embeddings concurrently (`InLegal-SBERT` and `Finance-Embeddings`), evaluates cosine similarity strictly within matching model vector spaces, and merges candidate passages via Reciprocal Rank Fusion (RRF).
+* **Background ONNX Pre-Warmup**: `warmupEmbeddingPipeline('legal')` pre-loads `InLegal-SBERT` into native memory during `/api/hayagriva/bootstrap-case` when a workspace opens, eliminating the ~2.5s cold-start freeze on the user's first RAG search query.
+* **Smart ONNX Idle Eviction (5m TTL)**: Tracks last embedding access timestamp (`_lastEmbeddingAccess`). A 60-second background monitor disposes in-process ONNX model pipelines (`_legalPipeline`, `_financePipeline`) after 5 minutes of inactivity, releasing ~250 MB of native RAM back to macOS dynamically.
+* **Single-Engine LLM Hot-Swapping (50% RAM Savings)**: Consolidated local LLM execution (`LegalParam-2.9B` and `FinanceParam-2.9B`) to unified port `8090`. Starting or switching domain engines in Settings automatically terminates the active process on port 8090 and spawns the newly selected 2.9B model engine, cutting LLM memory footprint in half (from ~5.5 GB to ~2.7 GB).
+* **macOS Dock Icon in Development Mode (B012)**: In `yarn start` (development mode), `electron-builder.yml`'s `mac.icon` setting is **never applied** — the macOS Dock and window title bar use whatever the Electron binary has unless you set it programmatically. The fix is to add a `darwin` block inside `frontend/theia-extensions/product/src/electron-main/icon-contribution.ts` that calls `app.dock?.setIcon(icon)` and `window.setIcon(icon)`. After editing, always rebuild: `yarn --cwd frontend/theia-extensions/product build && yarn --cwd frontend/applications/electron build`.
+* **Icon Asset Transparency Bug (B013)**: The old `process_branding.py` script generated transparent PNGs by extracting only non-white pixels, resulting in **7–18% visible pixels** — near-invisible on any background. The canonical approach is to use `@napi-rs/canvas` (installed in `backend/`) to draw the master logo centered on a **solid white 512×512 canvas**. The updated script is `backend/scripts/process_branding.js`. Always verify generated icons have 100% opaque pixels (`alpha channel = 255` everywhere) before rebuilding.
+* **Branding & Logo Management Pipeline (B014)**:
+  * **Master File**: `branding/hayagriva_logo.png`
+  * **Processor**: `node backend/scripts/process_branding.js` (uses `@napi-rs/canvas` to create solid 512x512 app launcher icons and transparent PNG banners `TheiaIDE.png`/`TheiaIDE-next.png` for UI panels so light/dark themes render without white background boxes).
+  * **Extension Override Trap**: `frontend/theia-extensions/hayagriva/src/browser/extension.ts` MUST use `background-image: var(--theia-branding-logo) !important;`. Never hardcode `data:image/png;base64,...` strings in `extension.ts`, as they override theme CSS at runtime.
+  * **Build & Cache Sequence**:
+    1. Replace `branding/hayagriva_logo.png`
+    2. `node backend/scripts/process_branding.js`
+    3. `find frontend/theia-extensions -name "*.tsbuildinfo" -delete`
+    4. `yarn --cwd frontend/theia-extensions/hayagriva build`
+    5. `yarn --cwd frontend/theia-extensions/product build`
+    6. `yarn --cwd frontend/applications/electron build`
+    7. Full reference guide is documented at [docs/BRANDING_AND_LOGO_MANAGEMENT.md](file:///Users/atulgrover/Desktop/HAYAGRIVA/docs/BRANDING_AND_LOGO_MANAGEMENT.md).
 

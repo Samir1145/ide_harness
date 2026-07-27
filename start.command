@@ -5,11 +5,6 @@
 # Robust PATH setup for macOS environment
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
-# Local Ollama LLM optimization parameters
-export OLLAMA_MODEL="qwen2.5-coder:1.5b"
-export OLLAMA_FLASH_ATTENTION=1
-export OLLAMA_NUM_PARALLEL=1
-
 # Load NVM (Node Version Manager) if installed
 export NVM_DIR="$HOME/.nvm"
 if [ -s "$NVM_DIR/nvm.sh" ]; then
@@ -31,8 +26,8 @@ set -e
 
 # Dynamically resolve root directory of the command
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-HAYAGRIVA_DIR="$ROOT_DIR/hayagriva"
-THEIA_DIR="$ROOT_DIR/ide/applications/electron"
+HAYAGRIVA_DIR="$ROOT_DIR/backend"
+THEIA_DIR="$ROOT_DIR/frontend/applications/electron"
 LOGFILE="/tmp/hayagriva-launcher.log"
 
 # Clean up any residual processes from previous sessions to prevent port conflicts
@@ -121,7 +116,9 @@ calculate_checksum() {
         cat "$HAYAGRIVA_DIR/yarn.lock" 2>/dev/null
         cat "$THEIA_DIR/package.json" 2>/dev/null
         cat "$THEIA_DIR/yarn.lock" 2>/dev/null
-        find "$ROOT_DIR/ide/theia-extensions/hayagriva/src" -type f -name "*.ts" -exec cat {} + 2>/dev/null
+        find "$ROOT_DIR/frontend/theia-extensions/hayagriva/src" -type f -exec cat {} + 2>/dev/null
+        find "$ROOT_DIR/frontend/theia-extensions/product/src" -type f 2>/dev/null
+        find "$ROOT_DIR/branding" -type f -not -path "*/node_modules/*" 2>/dev/null
     ) | md5
 }
 
@@ -137,8 +134,11 @@ if [ ! -f "$CHECKSUM_FILE" ] || [ "$(cat "$CHECKSUM_FILE")" != "$CURRENT_HASH" ]
     cd "$HAYAGRIVA_DIR"
     yarn install --frozen-lockfile || yarn install
     
-    # Sync frontend dependencies and rebuild bundle
-    cd "$ROOT_DIR/ide/theia-extensions/hayagriva"
+    # Sync frontend extensions and rebuild bundle
+    cd "$ROOT_DIR/frontend/theia-extensions/product"
+    yarn build
+
+    cd "$ROOT_DIR/frontend/theia-extensions/hayagriva"
     yarn build
     
     cd "$THEIA_DIR"
@@ -150,6 +150,32 @@ if [ ! -f "$CHECKSUM_FILE" ] || [ "$(cat "$CHECKSUM_FILE")" != "$CURRENT_HASH" ]
     log "Frontend bundle and dependencies updated successfully."
 fi
 # ─────────────────────────────────────────────────────────────────────────────
+
+# Ensure Electron Dock launcher wrapper is installed
+ELECTRON_MAC_DIR="$ROOT_DIR/frontend/node_modules/electron/dist/Electron.app/Contents/MacOS"
+if [ -d "$ELECTRON_MAC_DIR" ]; then
+    if [ -f "$ELECTRON_MAC_DIR/Electron" ] && [ ! -f "$ELECTRON_MAC_DIR/Electron.bin" ]; then
+        log "Configuring Electron Dock launcher wrapper..."
+        mv "$ELECTRON_MAC_DIR/Electron" "$ELECTRON_MAC_DIR/Electron.bin"
+        cat << 'EOF' > "$ELECTRON_MAC_DIR/Electron"
+#!/bin/zsh
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../../../../../../.." && pwd)"
+
+if [ ! -f "$ROOT_DIR/start.command" ]; then
+    ROOT_DIR="/Users/atulgrover/Desktop/HAYAGRIVA"
+fi
+
+if [ "$#" -eq 0 ]; then
+    exec "$ROOT_DIR/start.command"
+else
+    exec "$SCRIPT_DIR/Electron.bin" "$@"
+fi
+EOF
+        chmod +x "$ELECTRON_MAC_DIR/Electron"
+        log "Electron Dock launcher wrapper configured."
+    fi
+fi
 
 # Start Hayagriva Electron app
 log "Starting Hayagriva Electron app..."
