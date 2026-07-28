@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HAYAGRIVA — Private AI Workspace for Legal & Insolvency Professionals</title>
+  <meta name="description" content="A 100% private, offline legal AI workspace for Insolvency Professionals and litigation teams. Organize case files, audit claims, fill compliance forms, and draft court petitions safely.">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ──────────────── BRAND TOKENS & DUAL THEMES ──────────────── */
+    :root, [data-theme="dark"] {
+      --bg-void: hsl(220, 25%, 7%);
+      --bg-surface: hsl(220, 20%, 12%);
+      --bg-surface-elevated: hsl(220, 22%, 15%);
+      --bg-surface-glass: rgba(20, 24, 33, 0.75);
+      --border-glow: rgba(0, 212, 255, 0.18);
+      --border-glow-hover: rgba(0, 212, 255, 0.5);
+      --border-amber: rgba(255, 170, 0, 0.3);
+      --border-green: rgba(39, 201, 63, 0.3);
+      
+      --color-cyan: hsl(195, 95%, 50%);
+      --color-cyan-dim: hsl(195, 95%, 40%);
+      --color-cyan-glow: rgba(0, 212, 255, 0.3);
+      --color-amber: hsl(38, 100%, 55%);
+      --color-amber-glow: rgba(255, 170, 0, 0.3);
+      --color-green: hsl(145, 80%, 50%);
+      --color-purple: hsl(270, 85%, 65%);
+      --color-pink: hsl(330, 85%, 60%);
+      
+      --text-main: hsl(210, 20%, 96%);
+      --text-muted: hsl(210, 15%, 72%);
+      --text-dim: hsl(210, 10%, 52%);
+      
+      --grid-line-color: rgba(0, 212, 255, 0.035);
+      --header-bg: rgba(13, 17, 23, 0.85);
+      --code-bg: hsl(220, 25%, 8%);
+      --card-bg: hsl(220, 20%, 12%);
+      --shadow-elevated: 0 25px 60px rgba(0, 0, 0, 0.5);
+      --banner-glow: radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.22) 0%, transparent 70%);
+      
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-void: hsl(215, 25%, 97%);
+      --bg-surface: hsl(0, 0%, 100%);
+      --bg-surface-elevated: hsl(215, 20%, 92%);
+      --bg-surface-glass: rgba(255, 255, 255, 0.88);
+      --border-glow: rgba(0, 150, 214, 0.22);
+      --border-glow-hover: rgba(0, 150, 214, 0.6);
+      --border-amber: rgba(230, 140, 0, 0.35);
+      --border-green: rgba(30, 160, 50, 0.35);
+      
+      --color-cyan: hsl(195, 95%, 38%);
+      --color-cyan-dim: hsl(195, 85%, 30%);
+      --color-cyan-glow: rgba(0, 150, 214, 0.25);
+      --color-amber: hsl(34, 100%, 40%);
+      --color-amber-glow: rgba(230, 140, 0, 0.25);
+      --color-green: hsl(145, 80%, 35%);
+      --color-purple: hsl(270, 75%, 48%);
+      --color-pink: hsl(330, 75%, 45%);
+      
+      --text-main: hsl(220, 30%, 12%);
+      --text-muted: hsl(220, 15%, 35%);
+      --text-dim: hsl(220, 10%, 55%);
+      
+      --grid-line-color: rgba(0, 150, 214, 0.06);
+      --header-bg: rgba(245, 247, 252, 0.9);
+      --code-bg: hsl(215, 20%, 94%);
+      --card-bg: hsl(0, 0%, 100%);
+      --shadow-elevated: 0 15px 40px rgba(0, 30, 60, 0.08);
+      --banner-glow: radial-gradient(circle at 50% 50%, rgba(0, 150, 214, 0.18) 0%, transparent 70%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background-color: var(--bg-void);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    h1, h2, h3, h4, h5 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-void);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-surface-elevated);
+      border: 2px solid var(--bg-void);
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-cyan-dim);
+    }
+
+    /* ── BACKGROUND DECORATIVE GRID ── */
+    .glowing-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(var(--grid-line-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line-color) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .radial-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 15%, var(--color-cyan-glow) 0%, transparent 40%),
+        radial-gradient(circle at 80% 35%, var(--color-amber-glow) 0%, transparent 45%),
+        radial-gradient(circle at 50% 0%, transparent 40%, var(--bg-void) 85%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ──────────────── NAVIGATION ──────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      background: var(--header-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-glow);
+      z-index: 100;
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .nav-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 2rem;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--color-cyan);
+      letter-spacing: 0.04em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .nav-links a {
+      transition: var(--transition-smooth);
+    }
+
+    .nav-links a:hover {
+      color: var(--color-cyan);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* THEME TOGGLE BUTTON */
+    .theme-toggle-btn {
+      background: var(--bg-surface-glass);
+      border: 1px solid var(--border-glow);
+      color: var(--text-main);
+      padding: 0.45rem 0.95rem;
+      border-radius: 20px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: var(--transition-smooth);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      min-height: 40px;
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--color-cyan);
+      color: var(--color-cyan);
+      transform: translateY(-1px);
+    }
+
+    /* MOBILE HAMBURGER BUTTON & DRAWER */
+    .mobile-menu-btn {
+      display: none;
+      background: var(--bg-surface-glass);
+      border: 1px solid var(--border-glow);
+      color: var(--text-main);
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+      font-size: 1.25rem;
+      cursor: pointer;
+      min-height: 40px;
+    }
+
+    .mobile-nav-drawer {
+      display: none;
+      flex-direction: column;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-glow);
+      padding: 1rem 2rem;
+      gap: 1rem;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .mobile-nav-drawer.open {
+      display: flex;
+    }
+
+    .mobile-nav-drawer a {
+      color: var(--text-main);
+      padding: 0.5rem 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+
+    .main-wrapper {
+      position: relative;
+      z-index: 10;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ── FULL LOGO HERO BANNER ── */
+    .haya-banner-container {
+      margin-top: 2rem;
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border-glow);
+      background: var(--bg-surface-glass);
+      box-shadow: var(--shadow-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      min-height: 380px;
+    }
+
+    .haya-banner-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -20%;
+      width: 140%;
+      height: 200%;
+      background: var(--banner-glow);
+      pointer-events: none;
+    }
+
+    .haya-official-banner-logo {
+      width: auto;
+      height: auto;
+      max-height: 320px;
+      max-width: 90%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 50px var(--color-cyan-glow));
+      position: relative;
+      z-index: 2;
+      transition: transform 0.3s ease, filter 0.3s ease;
+      transform: none;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .haya-official-banner-logo:hover {
+        transform: scale(1.03);
+        filter: drop-shadow(0 0 70px var(--color-cyan-glow));
+      }
+    }
+
+    /* ── HERO SECTION ── */
+    .hero {
+      text-align: center;
+      padding: 3.5rem 0 3.5rem;
+      position: relative;
+    }
+
+    .badge-lite {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid var(--color-cyan);
+      color: var(--color-cyan);
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.78rem;
+      padding: 0.4rem 0.95rem;
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    .hero h1 {
+      font-size: 3.4rem;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-amber) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      max-width: 840px;
+      margin: 0 auto 2.5rem;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      font-weight: 300;
+      line-height: 1.7;
+    }
+
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-cyan-dim) 100%);
+      color: #0d1117;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 0.85rem 2rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px var(--color-cyan-glow);
+      transition: var(--transition-smooth);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 44px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(0, 212, 255, 0.5);
+    }
+
+    /* ── SECTIONS GENERAL ── */
+    .section-padding {
+      padding: 5rem 0;
+      position: relative;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+
+    .section-tag {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--color-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .section-title {
+      font-size: 2.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto;
+      font-size: 1.1rem;
+      font-weight: 300;
+    }
+
+    /* ── INTERACTIVE MOCK WORKSPACE PREVIEW ── */
+    .mock-ide-shell {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-elevated);
+      display: flex;
+      flex-direction: column;
+      min-height: 500px;
+      position: relative;
+    }
+
+    .ide-header {
+      background: var(--code-bg);
+      border-bottom: 1px solid var(--border-glow);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .ide-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .ide-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .ide-dot.red { background: #ff5f56; }
+    .ide-dot.yellow { background: #ffbd2e; }
+    .ide-dot.green { background: #27c93f; }
+
+    .ide-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: 1rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+    }
+
+    .ide-tab {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-bottom: none;
+      padding: 0.45rem 0.95rem;
+      border-radius: 6px 6px 0 0;
+      font-size: 0.78rem;
+      font-family: 'Roboto Mono', monospace;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      white-space: nowrap;
+    }
+
+    .ide-tab.active {
+      color: var(--color-cyan);
+      border-color: var(--color-cyan);
+      background: var(--code-bg);
+    }
+
+    .ide-body {
+      display: flex;
+      flex: 1;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .ide-sidebar {
+      width: 220px;
+      background: var(--code-bg);
+      border-right: 1px solid var(--border-glow);
+      padding: 1rem;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .sidebar-section-title {
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.75rem;
+    }
+
+    .sidebar-file-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      padding: 0.4rem 0.6rem;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 0.3rem;
+      font-size: 0.78rem;
+      transition: var(--transition-smooth);
+    }
+
+    .sidebar-file-item.active {
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--color-cyan);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+    }
+
+    .sidebar-file-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .ide-editor-area {
+      flex: 1;
+      display: flex;
+      background: var(--code-bg);
+      position: relative;
+      overflow: hidden;
+      min-width: 300px;
+    }
+
+    .monaco-panel {
+      flex: 1;
+      padding: 1rem 1.25rem;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .monaco-editor-content {
+      color: var(--text-main);
+      outline: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex: 1;
+    }
+
+    .sim-doc-header {
+      border-bottom: 1px solid var(--border-glow);
+      padding-bottom: 0.65rem;
+    }
+
+    .sim-doc-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--color-cyan);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sim-doc-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .md-table-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin: 0.25rem 0;
+    }
+
+    .md-table-header-row {
+      display: grid;
+      grid-template-columns: 35px 95px 1fr 110px 140px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-glow);
+    }
+
+    .md-table-row {
+      display: grid;
+      grid-template-columns: 35px 95px 1fr 110px 140px;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-left: 3px solid var(--color-cyan);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      transition: var(--transition-smooth);
+    }
+
+    .md-table-row:hover, .md-table-row.active-row {
+      background: rgba(0, 212, 255, 0.12);
+      border-color: var(--color-cyan);
+      transform: translateX(2px);
+    }
+
+    .md-tag {
+      font-size: 0.68rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      width: fit-content;
+      text-align: center;
+    }
+    .md-tag.cyan { background: rgba(0, 212, 255, 0.12); color: var(--color-cyan); border: 1px solid var(--color-cyan); }
+    .md-tag.amber { background: rgba(255, 170, 0, 0.12); color: var(--color-amber); border: 1px solid var(--color-amber); }
+    .md-tag.purple { background: rgba(145, 80, 255, 0.15); color: var(--color-purple); border: 1px solid var(--color-purple); }
+
+    .sqlite-panel {
+      width: 280px;
+      background: var(--bg-surface-elevated);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border-glow);
+      flex-shrink: 0;
+    }
+
+    .sqlite-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .sqlite-badge {
+      background: rgba(39, 201, 63, 0.12);
+      border: 1px solid var(--color-green);
+      color: var(--color-green);
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+    }
+
+    .sqlite-table {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.72rem;
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    .sqlite-table th {
+      text-align: left;
+      color: var(--text-dim);
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-glow);
+    }
+
+    .sqlite-table td {
+      padding: 0.4rem 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+
+    .sqlite-table tr.highlighted td {
+      color: var(--color-cyan);
+      font-weight: bold;
+      background: rgba(0, 212, 255, 0.08);
+    }
+
+    /* Citation Preview Drawer */
+    .citation-drawer {
+      position: absolute;
+      top: 0;
+      right: -340px;
+      width: 320px;
+      height: 100%;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--color-cyan);
+      box-shadow: -10px 0 35px rgba(0, 0, 0, 0.4);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 50;
+    }
+
+    .citation-drawer.open {
+      right: 0;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.25rem;
+    }
+
+    .drawer-close:hover {
+      color: var(--color-cyan);
+    }
+
+    .drawer-cta {
+      background: var(--color-cyan);
+      color: #0d1117;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      border: none;
+      padding: 0.65rem;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.8rem;
+      transition: var(--transition-smooth);
+    }
+
+    /* ── SECTION 1: 3-STEP LEGAL WORKFLOW ── */
+    .stage-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .stage-card {
+      background: var(--bg-surface-glass);
+      border: 1px solid var(--border-glow);
+      border-radius: 14px;
+      padding: 2rem;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: var(--transition-smooth);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stage-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--color-cyan);
+      box-shadow: 0 15px 40px var(--color-cyan-glow);
+    }
+
+    .stage-number-badge {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 0.3rem 0.85rem;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+      width: fit-content;
+    }
+
+    .stage-1 .stage-number-badge {
+      background: rgba(0, 212, 255, 0.12);
+      border: 1px solid var(--color-cyan);
+      color: var(--color-cyan);
+    }
+
+    .stage-2 .stage-number-badge {
+      background: rgba(255, 170, 0, 0.12);
+      border: 1px solid var(--color-amber);
+      color: var(--color-amber);
+    }
+
+    .stage-3 .stage-number-badge {
+      background: rgba(145, 80, 255, 0.15);
+      border: 1px solid var(--color-purple);
+      color: var(--color-purple);
+    }
+
+    .stage-card h3 {
+      font-size: 1.6rem;
+      margin-bottom: 1rem;
+      line-height: 1.25;
+    }
+
+    .stage-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.65;
+      margin-bottom: 1.5rem;
+      font-weight: 300;
+    }
+
+    .stage-feature-list {
+      list-style: none;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .stage-feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+
+    .stage-feature-list li svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .stage-1 li svg { fill: var(--color-cyan); }
+    .stage-2 li svg { fill: var(--color-amber); }
+    .stage-3 li svg { fill: var(--color-purple); }
+
+    /* Pillar Badges Grid in Stage 3 */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    .pillar-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-glow);
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+
+    .pillar-box strong {
+      display: block;
+      color: var(--color-cyan);
+      font-size: 0.85rem;
+      margin-bottom: 0.2rem;
+    }
+
+    /* ── SECTION 2: EASY SHORTCUTS ── */
+    .commands-container {
+      background: var(--bg-surface-glass);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      padding: 2.5rem;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .command-tabs-nav {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .cmd-tab-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-glow);
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.98rem;
+      padding: 0.65rem 1.35rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      min-height: 44px;
+    }
+
+    .cmd-tab-btn.active {
+      background: rgba(0, 212, 255, 0.12);
+      border-color: var(--color-cyan);
+      color: var(--color-cyan);
+      box-shadow: 0 0 20px var(--color-cyan-glow);
+    }
+
+    .cmd-tab-btn.active.agent-tab {
+      background: rgba(255, 170, 0, 0.12);
+      border-color: var(--color-amber);
+      color: var(--color-amber);
+      box-shadow: 0 0 20px var(--color-amber-glow);
+    }
+
+    .commands-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .command-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 10px;
+      padding: 1.5rem;
+      transition: var(--transition-smooth);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .command-card:hover {
+      border-color: var(--color-cyan);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-elevated);
+    }
+
+    .command-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .command-name {
+      font-family: 'Roboto Mono', monospace;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--color-cyan);
+      background: rgba(0, 212, 255, 0.1);
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+
+    .agent-name {
+      color: var(--color-amber);
+      background: rgba(255, 170, 0, 0.1);
+      border-color: rgba(255, 170, 0, 0.3);
+    }
+
+    .command-category {
+      font-size: 0.7rem;
+      font-family: 'Roboto Mono', monospace;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .command-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      font-weight: 300;
+    }
+
+    .command-example {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-main);
+      background: var(--code-bg);
+      padding: 0.5rem 0.75rem;
+      border-radius: 5px;
+      border-left: 2px solid var(--color-cyan);
+      word-break: break-word;
+    }
+
+    .agent-example {
+      border-left-color: var(--color-amber);
+    }
+
+    /* ── SECTION 3: CUSTOM TEMPLATES & SKILLS ── */
+    .skills-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      margin-bottom: 4rem;
+    }
+
+    .skills-info-card {
+      background: var(--bg-surface-glass);
+      border: 1px solid var(--border-glow);
+      border-radius: 14px;
+      padding: 2.25rem;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .skills-info-card h3 {
+      font-size: 1.8rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .skills-info-card p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+      font-weight: 300;
+    }
+
+    .skill-code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: 8px;
+      padding: 1.25rem;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-main);
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+
+    .skill-code-block .k { color: var(--color-cyan); }
+    .skill-code-block .s { color: var(--color-green); }
+    .skill-code-block .c { color: var(--text-dim); }
+
+    .skills-list-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+
+    .skill-item-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 10px;
+      padding: 1.25rem;
+      transition: var(--transition-smooth);
+    }
+
+    .skill-item-card:hover {
+      border-color: var(--color-cyan);
+      transform: translateY(-3px);
+    }
+
+    .skill-item-card h4 {
+      font-size: 1rem;
+      color: var(--color-cyan);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .skill-item-card p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* What You Can Do Box */
+    .capabilities-box {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.06) 0%, rgba(255, 170, 0, 0.06) 100%);
+      border: 1px solid var(--border-glow);
+      border-radius: 14px;
+      padding: 2.25rem;
+    }
+
+    .capabilities-box h3 {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .capabilities-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.75rem;
+    }
+
+    .cap-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+
+    .cap-card .icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .cap-card h4 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .cap-card p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── LAPTOP MODE SELECTOR SECTION ── */
+    .toggle-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.25rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .mode-label {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      transition: var(--transition-smooth);
+      text-align: center;
+    }
+
+    .mode-label.active.lite { color: var(--color-cyan); }
+    .mode-label.active.standard { color: var(--color-amber); }
+
+    .toggle-switch {
+      position: relative;
+      width: 72px;
+      height: 38px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      cursor: pointer;
+      display: inline-block;
+      transition: var(--transition-smooth);
+      flex-shrink: 0;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--color-cyan);
+      top: 3px;
+      left: 3px;
+      transition: var(--transition-smooth);
+      box-shadow: 0 0 12px var(--color-cyan-glow);
+    }
+
+    .toggle-switch.standard-mode::after {
+      left: 37px;
+      background: var(--color-amber);
+      box-shadow: 0 0 12px var(--color-amber-glow);
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 3rem;
+      background: var(--bg-surface-glass);
+      border: 1px solid var(--border-glow);
+      padding: 3rem;
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .tier-specs h3 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .tier-specs p {
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      font-weight: 300;
+      line-height: 1.65;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      transition: var(--transition-smooth);
+    }
+
+    .feature-item.included { color: var(--text-main); }
+    .feature-item svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+    .feature-item.included svg { fill: var(--color-cyan); }
+    .feature-item.excluded { opacity: 0.35; text-decoration: line-through; }
+    .feature-item.excluded svg { fill: var(--text-dim); }
+
+    /* ── FOOTER SECTION ── */
+    footer {
+      border-top: 1px solid var(--border-glow);
+      padding: 3.5rem 0;
+      text-align: center;
+      background: var(--header-bg);
+    }
+
+    footer p {
+      color: var(--text-dim);
+      font-size: 0.88rem;
+    }
+
+    footer .specs-tag {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+      display: block;
+    }
+
+    /* ──────────────── FULL MOBILE RESPONSIVE QUERIES ──────────────── */
+    @media (max-width: 900px) {
+      .nav-links { display: none; }
+      .mobile-menu-btn { display: inline-flex; align-items: center; justify-content: center; }
+      
+      .main-wrapper { padding: 0 1.25rem; }
+      .nav-container { padding: 0.85rem 1.25rem; }
+      
+      .haya-banner-container {
+        min-height: 240px;
+        padding: 2rem 1rem;
+        margin-top: 1.25rem;
+        border-radius: 16px;
+      }
+      .haya-official-banner-logo {
+        height: auto;
+        max-height: 200px;
+        width: auto;
+        max-width: 95%;
+        transform: none;
+      }
+      
+      .hero { padding: 2.5rem 0 2.5rem; }
+      .hero h1 { font-size: 2.3rem; line-height: 1.2; }
+      .hero p { font-size: 1.05rem; margin-bottom: 2rem; }
+      
+      .section-padding { padding: 3.5rem 0; }
+      .section-title { font-size: 2rem; }
+      .section-subtitle { font-size: 1rem; }
+      
+      .stage-cards-grid, 
+      .commands-grid, 
+      .skills-wrapper, 
+      .skills-list-grid, 
+      .capabilities-grid, 
+      .comparison-grid,
+      .feature-list {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+      }
+      
+      .commands-container,
+      .skills-info-card,
+      .capabilities-box,
+      .comparison-grid {
+        padding: 1.5rem 1.25rem;
+      }
+
+      .cmd-tab-btn {
+        width: 100%;
+        text-align: center;
+      }
+      
+      .ide-body {
+        flex-direction: column !important;
+      }
+
+      .ide-sidebar {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-glow);
+      }
+
+      .ide-editor-area {
+        flex-direction: column !important;
+        width: 100% !important;
+      }
+
+      .monaco-panel {
+        width: 100% !important;
+        flex: none !important;
+        border-bottom: 1px solid var(--border-glow);
+        padding: 1rem !important;
+      }
+
+      .sqlite-panel {
+        width: 100% !important;
+        border-left: none !important;
+        border-top: 1px solid var(--border-glow) !important;
+        padding: 1rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 1.85rem; }
+      .brand-logo { font-size: 1.2rem; }
+      .haya-official-banner-logo { max-height: 220px; transform: scale(1.4); }
+      .command-header { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BACKGROUND DECORATIVE GRID & GRADIENTS -->
+  <div class="glowing-grid"></div>
+  <div class="radial-overlay"></div>
+
+  <!-- NAVIGATION HEADER -->
+  <header>
+    <div class="nav-container">
+      <a href="#" class="brand-logo" id="logo">
+        HAYAGRIVA
+      </a>
+
+      <nav class="nav-links">
+        <a href="#stages">How It Works</a>
+        <a href="#commands">Shortcuts</a>
+        <a href="#agents-skills">Custom Templates</a>
+        <a href="#ipie-gateway">iPIE Integration</a>
+        <a href="#simulation">Live Demo</a>
+        <a href="#dual-mode">Laptop Modes</a>
+        <a href="#privacy">Data Privacy</a>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- LIGHT / DARK MODE TOGGLE BUTTON -->
+        <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()">
+          <span id="theme-btn-icon">☀️</span> <span id="theme-btn-text">Light Mode</span>
+        </button>
+
+        <!-- MOBILE HAMBURGER MENU BUTTON -->
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle Navigation Menu">
+          ☰
+        </button>
+      </div>
+    </div>
+
+    <!-- MOBILE NAVIGATION OVERLAY DRAWER -->
+    <div class="mobile-nav-drawer" id="mobile-drawer">
+      <a href="#stages" onclick="toggleMobileMenu()">How It Works</a>
+      <a href="#commands" onclick="toggleMobileMenu()">Shortcuts</a>
+      <a href="#agents-skills" onclick="toggleMobileMenu()">Custom Templates</a>
+      <a href="#ipie-gateway" onclick="toggleMobileMenu()">iPIE Integration</a>
+      <a href="#simulation" onclick="toggleMobileMenu()">Live Demo</a>
+      <a href="#dual-mode" onclick="toggleMobileMenu()">Laptop Modes</a>
+      <a href="#privacy" onclick="toggleMobileMenu()">Data Privacy</a>
+    </div>
+  </header>
+
+  <div class="main-wrapper">
+
+    <!-- FULL-WIDTH OFFICIAL HAYAGRIVA LOGO HERO BANNER (NO TEXT) -->
+    <section class="haya-banner-container" id="brand-banner">
+      <!-- OFFICIAL HAYAGRIVA LOGO COVERING THE ENTIRE BANNER -->
+      <img src="resources/hayagriva_logo_white.png" alt="Official Hayagriva Emblem Banner" class="haya-official-banner-logo" id="banner-logo-img">
+    </section>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+      <div class="badge-lite">
+        <span>🔒 100% PRIVATE &amp; OFFLINE LEGAL AI WORKSPACE</span>
+      </div>
+
+      <h1>
+        The Smart AI Workspace for<br>
+        <span>Insolvency &amp; Litigation Teams</span>
+      </h1>
+
+      <p>
+        Organize case files, search thousands of pages instantly, fill official compliance forms, check statutory look-back deadlines, and draft court-ready petitions — completely offline on your computer.
+      </p>
+
+      <div class="hero-ctas">
+        <button class="btn-primary" onclick="document.getElementById('stages').scrollIntoView({behavior: 'smooth'})">
+          Explore How It Works →
+        </button>
+      </div>
+    </section>
+
+    <!-- LIVE INTERACTIVE SIMULATION WORKSPACE -->
+    <section class="section-padding" id="simulation">
+      <div class="section-header">
+        <span class="section-tag">Interactive Preview</span>
+        <h2 class="section-title">See Hayagriva in Action</h2>
+        <p class="section-subtitle">Click on any transaction line in the document below to watch how Hayagriva updates your case database instantly.</p>
+      </div>
+
+      <div class="mock-ide-shell">
+        <div class="ide-header">
+          <div style="display: flex; align-items: center; width: 100%;">
+            <div class="ide-dots">
+              <div class="ide-dot red"></div>
+              <div class="ide-dot yellow"></div>
+              <div class="ide-dot green"></div>
+            </div>
+            <div class="ide-tabs">
+              <button class="ide-tab active" id="tab-editor" onclick="switchSimulation('editor')">📄 suspicious_transactions.md</button>
+              <button class="ide-tab" id="tab-rag" onclick="switchSimulation('rag')">🤖 AI Legal Assistant</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ide-body">
+          <!-- SIDEBAR -->
+          <div class="ide-sidebar">
+            <div class="sidebar-section-title">Case Files</div>
+            <div class="sidebar-file-item active">
+              <span>📄</span> suspicious_transactions.md
+            </div>
+            <div class="sidebar-file-item">
+              <span>📄</span> claims_registry.md
+            </div>
+            <div class="sidebar-file-item">
+              <span>📄</span> case_facts.md
+            </div>
+            
+            <div class="sidebar-section-title" style="margin-top: 1rem;">Legal Code Vault</div>
+            <div class="sidebar-file-item">
+              <span>⚖️</span> IBC_2016_Code.aes
+            </div>
+            <div class="sidebar-file-item">
+              <span>📋</span> IBBI_Form_H.md
+            </div>
+            <div class="sidebar-file-item">
+              <span>📁</span> Precedents
+            </div>
+          </div>
+
+          <!-- SIMULATION 1: MONACO BI-DIRECTIONAL SYNC -->
+          <div class="ide-editor-area" id="sim-editor-panel">
+            <div class="monaco-panel">
+              <div class="monaco-editor-content">
+                <div class="sim-doc-header">
+                  <div class="sim-doc-title">📄 Suspicious Transactions Audit</div>
+                  <div class="sim-doc-sub">Click any transaction row below to update your case database in real-time:</div>
+                </div>
+                
+                <div class="md-table-container">
+                  <div class="md-table-header-row">
+                    <span>#</span>
+                    <span>Date</span>
+                    <span>Entity Name</span>
+                    <span>Amount</span>
+                    <span>Classification</span>
+                  </div>
+
+                  <div class="md-table-row" onclick="syncRow(1, '2025-11-14', 'Apex Traders Ltd', '45,00,000', 'UNVERIFIED')">
+                    <span>01</span>
+                    <span>2025-11-14</span>
+                    <strong style="color:var(--text-main);">Apex Traders Ltd</strong>
+                    <span style="color:var(--color-cyan); font-weight:600;">₹45,00,000</span>
+                    <span class="md-tag cyan">Priority Transfer</span>
+                  </div>
+
+                  <div class="md-table-row" onclick="syncRow(2, '2025-12-02', 'Zenith Logistics', '1,20,00,000', 'VERIFIED')">
+                    <span>02</span>
+                    <span>2025-12-02</span>
+                    <strong style="color:var(--text-main);">Zenith Logistics</strong>
+                    <span style="color:var(--color-cyan); font-weight:600;">₹1,20,00,000</span>
+                    <span class="md-tag amber">Below Market Price</span>
+                  </div>
+
+                  <div class="md-table-row" onclick="syncRow(3, '2026-01-20', 'Promoter Related Entity', '80,00,000', 'VERIFIED')">
+                    <span>03</span>
+                    <span>2026-01-20</span>
+                    <strong style="color:var(--text-main);">Promoter Entity</strong>
+                    <span style="color:var(--color-cyan); font-weight:600;">₹80,00,000</span>
+                    <span class="md-tag purple">High Interest</span>
+                  </div>
+                </div>
+
+                <div style="font-size:0.72rem; color:var(--text-dim); margin-top:0.25rem;">
+                  ⚡ Edits saved here automatically update your case database and summary reports.
+                </div>
+              </div>
+            </div>
+
+            <!-- MOCK SQLITE PANEL -->
+            <div class="sqlite-panel">
+              <div class="sqlite-header">
+                <span style="font-family:'Roboto Mono'; font-size:0.75rem; font-weight:bold;">Case Database Sync</span>
+                <span class="sqlite-badge">Auto Synced</span>
+              </div>
+              <table class="sqlite-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Party</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="sqlite-rows">
+                  <tr id="sql-row-1">
+                    <td>2025-11-14</td>
+                    <td>Apex Traders</td>
+                    <td>45,00,000</td>
+                  </tr>
+                  <tr id="sql-row-2">
+                    <td>2025-12-02</td>
+                    <td>Zenith Logist.</td>
+                    <td>1,20,00,000</td>
+                  </tr>
+                  <tr id="sql-row-3">
+                    <td>2026-01-20</td>
+                    <td>Promoter Rel.</td>
+                    <td>80,00,000</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style="margin-top:auto; font-size:0.7rem; color:var(--text-dim); line-height:1.4;">
+                ⚡ Any changes made in your document update your master database automatically.
+              </div>
+            </div>
+          </div>
+
+          <!-- SIMULATION 2: RAG CITATION DRAWER -->
+          <div class="ide-editor-area" id="sim-rag-panel" style="display:none; flex-direction:column; width:100%;">
+            <div style="flex:1; padding: 1.25rem; overflow-y:auto; display:flex; flex-direction:column; gap:1rem;">
+              <div style="background:var(--bg-surface); border:1px solid var(--border-glow); padding:1rem; border-radius:8px; align-self:flex-start; max-width:90%; font-size:0.85rem;">
+                <span style="color:var(--color-amber); font-weight:bold;">@advisor</span><br>
+                Check transaction #2 for potential Section 45 Undervalued transaction challenge.
+              </div>
+
+              <div style="background:var(--bg-surface); border:1px solid var(--border-glow); padding:1rem; border-radius:8px; align-self:flex-start; max-width:95%; font-size:0.85rem;">
+                <span style="color:var(--color-cyan); font-weight:bold;">Advisor Assistant</span><br>
+                Based on document analysis 
+                <span class="chat-citation" onclick="openDrawer('Zenith Logistics', '1,20,00,000', '2025-12-02', 'Section 45 IBC')">[source: suspicious_transactions#row2]</span>, 
+                the payment of INR 1,20,00,000 made to Zenith Logistics occurred within the 1-year look-back period for non-related parties.
+              </div>
+            </div>
+
+            <!-- SLIDING CITATION DRAWER -->
+            <div class="citation-drawer" id="citation-drawer">
+              <div class="drawer-header">
+                <span style="font-family:'Outfit'; font-weight:bold; color:var(--color-cyan);">Source Document Excerpt</span>
+                <button class="drawer-close" onclick="closeDrawer()">✕</button>
+              </div>
+              <div id="drawer-body" style="font-size:0.8rem; color:var(--text-muted); flex:1;">
+                <!-- Populated by JS -->
+              </div>
+              <button class="drawer-cta" onclick="promoteDrawer()">Open Full Document Side-by-Side</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: 3x3 SOVEREIGN LEGAL ARCHITECTURE -->
+    <section class="section-padding" id="stages">
+      <div class="section-header">
+        <span class="section-tag">3×3 Sovereign Legal Architecture</span>
+        <h2 class="section-title">The Air-Gapped Legal Development Environment</h2>
+        <p class="section-subtitle">Hayagriva structures your legal practice into 3 In-App Workspace Sections and 3 Downloadable Portal Plug-ins.</p>
+      </div>
+
+      <!-- GRID 1: 3 IN-APP WORKSPACE SECTIONS -->
+      <div style="margin-bottom: 3.5rem;">
+        <h3 style="font-family:'Outfit'; font-size:1.35rem; color:var(--color-cyan); margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+          <span>📥</span> In-App Workspace Sections (Inside Your Case Folder)
+        </h3>
+        <div class="stage-cards-grid">
+          <!-- WORKSPACE SECTION 1 -->
+          <div class="stage-card stage-1">
+            <div class="stage-number-badge"><span>SECTION 1</span> • Ground Truth Layer</div>
+            <h3>📁 Case Data &amp; Facts</h3>
+            <p>Drop multi-format case files (PDFs, Word docs, Excel sheets). Hayagriva slices them into companion markdown section cards and builds your master key-value dictionary.</p>
+            <ul class="stage-feature-list">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Multi-Format Ingestion (PDF, Word, Excel, TiddlyWiki)</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Companion Section Slicing (concepts/&lt;doc&gt;/)</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Auto-Extracted Case KV Dictionary (case_kv_dictionary.json)</span></li>
+            </ul>
+          </div>
+
+          <!-- WORKSPACE SECTION 2 -->
+          <div class="stage-card stage-2">
+            <div class="stage-number-badge"><span>SECTION 2</span> • Verification Layer</div>
+            <h3>⚖️ Professional Audits &amp; Inputs</h3>
+            <p>Human oversight &amp; claim ledgers. Edit claims or avoidance tables in Monaco to sync live with SQLite (<code>verified_by_user = 1</code>). Control context with 3-stage status dot flags.</p>
+            <ul class="stage-feature-list">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Bi-Directional Monaco-SQLite Database Sync</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>3-Stage Status Dots (Reviewed, Needs Verification, AI)</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Active-Context Control Matrix for RAG Scope</span></li>
+            </ul>
+          </div>
+
+          <!-- WORKSPACE SECTION 3 -->
+          <div class="stage-card stage-3">
+            <div class="stage-number-badge"><span>SECTION 3</span> • Synthesis Layer</div>
+            <h3>🤖 AI Enhancements &amp; Exporters</h3>
+            <p>Synthesize court-ready petitions using specialized domain subagents. Rerank hybrid search with dual-model RRF RAG and compile directly to Supreme Court DOCX layout.</p>
+            <ul class="stage-feature-list">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Specialized Subagents (@Document, @Advisor, @Forms)</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Dual RRF Fusion RAG (InLegal-SBERT + Finance)</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>1-Click Supreme Court Layout Exporter (/export-sc)</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRID 2: 3 DOWNLOADABLE PORTAL PLUG-INS -->
+      <div>
+        <h3 style="font-family:'Outfit'; font-size:1.35rem; color:var(--color-amber); margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+          <span>📦</span> Downloadable Portal Plug-ins (Licensing Portal Marketplace)
+        </h3>
+        <div class="stage-cards-grid">
+          <!-- PLUGIN PACK 1 -->
+          <div class="stage-card stage-1">
+            <div class="stage-number-badge" style="background:rgba(255,170,0,0.15); color:var(--color-amber); border-color:rgba(255,170,0,0.3);"><span>PACK 1</span> • Intelligence Engines</div>
+            <h3>🧠 Models Pack</h3>
+            <p>Download local ONNX embedding models and quantized 2.9B LLM engines to run AI inferences 100% offline on your laptop with zero cloud latency.</p>
+            <ul class="stage-feature-list">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>InLegal-SBERT &amp; Finance-Embeddings Pipelines</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Quantized LegalParam-2.9B.gguf &amp; FinanceParam-2.9B</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>100% Air-Gapped (Zero Data Transmission)</span></li>
+            </ul>
+          </div>
+
+          <!-- PLUGIN PACK 2 -->
+          <div class="stage-card stage-2">
+            <div class="stage-number-badge" style="background:rgba(255,170,0,0.15); color:var(--color-amber); border-color:rgba(255,170,0,0.3);"><span>PACK 2</span> • Reference Libraries</div>
+            <h3>📚 Encrypted Vaults Pack</h3>
+            <p>Encrypted local databases (<code>laws.vlt</code>) containing statutory Acts, supreme court judgments, and statutory forms. Decrypted dynamically in RAM.</p>
+            <ul class="stage-feature-list">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>AES-256 Encrypted Statutory Acts (IBC 2016, Companies Act)</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Monaco Precedent &amp; Citation Autocomplete (/law, /case)</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>48 IBBI Compliance Forms &amp; Petition Templates</span></li>
+            </ul>
+          </div>
+
+          <!-- PLUGIN PACK 3 -->
+          <div class="stage-card stage-3">
+            <div class="stage-number-badge" style="background:rgba(255,170,0,0.15); color:var(--color-amber); border-color:rgba(255,170,0,0.3);"><span>PACK 3</span> • Domain Co-Pilots</div>
+            <h3>⚡ Specialist Agents Pack</h3>
+            <p>Specialized Node.js domain agent modules that plug directly into the workspace to audit claims, verify compliance forms, and write briefs.</p>
+            <ul class="stage-feature-list">
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Insolvency &amp; Claim Auditor Subagents</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>MCA Regulatory &amp; Corporate Compliance Agent</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Critique &amp; Audit Verification Loops</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: EASY SHORTCUTS -->
+    <section class="section-padding" id="commands">
+      <div class="section-header">
+        <span class="section-tag">Simple Keyboard Shortcuts</span>
+        <h2 class="section-title">Type <code>/</code> for Action or <code>@</code> for AI Assistants</h2>
+        <p class="section-subtitle">No complicated menus to learn. Just type a forward slash or mention an AI assistant to get things done instantly.</p>
+      </div>
+
+      <div class="commands-container">
+        <div class="command-tabs-nav">
+          <button class="cmd-tab-btn active" id="btn-slash" onclick="switchCmdTab('slash')">⚡ Action Shortcuts ( / )</button>
+          <button class="cmd-tab-btn agent-tab" id="btn-agent" onclick="switchCmdTab('agent')">🤖 AI Assistants ( @ )</button>
+        </div>
+
+        <!-- SLASH COMMANDS GRID -->
+        <div class="commands-grid" id="grid-slash">
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name">/export-sc</span>
+              <span class="command-category">Court Export</span>
+            </div>
+            <p class="command-desc">Exports your active document into a Supreme Court compliant Word file (A4 paper, Times New Roman 14pt, 1.5 line spacing, 4cm left/right margins).</p>
+            <div class="command-example">/export-sc filename="petition_v2.docx"</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name">/ingest</span>
+              <span class="command-category">File Import</span>
+            </div>
+            <p class="command-desc">Imports new PDF files, bank statements, or contracts into your case workspace safely without freezing your app.</p>
+            <div class="command-example">/ingest file="bank_statements.pdf"</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name">/audit</span>
+              <span class="command-category">Transaction Scan</span>
+            </div>
+            <p class="command-desc">Scans claims registries or avoidance ledgers to highlight transactions that fall within statutory look-back periods.</p>
+            <div class="command-example">/audit ledger="avoidance_ledger.md"</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name">/matrix</span>
+              <span class="command-category">Document Select</span>
+            </div>
+            <p class="command-desc">Selects which documents the AI should read and monitors your laptop's memory usage.</p>
+            <div class="command-example">/matrix budget=2048</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name">/form</span>
+              <span class="command-category">Form Tables</span>
+            </div>
+            <p class="command-desc">Inserts standardized 3-column IBBI compliance tables into your document with blank placeholders highlighted.</p>
+            <div class="command-example">/form name="Form_H_Approval"</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name">/qna</span>
+              <span class="command-category">Case Wiki</span>
+            </div>
+            <p class="command-desc">Searches your case question bank and displays interactive collapsible answers right inside your editor.</p>
+            <div class="command-example">/qna query="Resolution Plan Voting"</div>
+          </div>
+        </div>
+
+        <!-- AGENT MENTIONS GRID -->
+        <div class="commands-grid" id="grid-agent" style="display:none;">
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name agent-name">@advisor</span>
+              <span class="command-category">Legal Advisor</span>
+            </div>
+            <p class="command-desc">Ask legal questions regarding statutory provisions under the Insolvency &amp; Bankruptcy Code (IBC 2016) and Companies Act.</p>
+            <div class="command-example agent-example">@advisor What are the look-back periods under Section 43?</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name agent-name">@forms</span>
+              <span class="command-category">Form Filling AI</span>
+            </div>
+            <p class="command-desc">Auto-fills official IBBI or MCA compliance forms using facts and figures extracted directly from your case files.</p>
+            <div class="command-example agent-example">@forms Populate Form H using claims_registry.md</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name agent-name">@document</span>
+              <span class="command-category">Petition Drafter</span>
+            </div>
+            <p class="command-desc">Drafts NCLT petitions, legal briefs, and statutory notices, and automatically double-checks them for accuracy.</p>
+            <div class="command-example agent-example">@document Draft NCLT petition for Section 7 admission</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name agent-name">@vault</span>
+              <span class="command-category">Judgment Finder</span>
+            </div>
+            <p class="command-desc">Searches your offline legal vault and case precedent database for matching Supreme Court judgments.</p>
+            <div class="command-example agent-example">@vault Find rulings on CIRP withdrawal under 12A</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name agent-name">@coc</span>
+              <span class="command-category">CoC Coordinator</span>
+            </div>
+            <p class="command-desc">Calculates CoC voting share percentages, excludes related parties (0%), and drafts voting ballots &amp; notices.</p>
+            <div class="command-example agent-example">@coc Calculate voting shares from claims_registry.md</div>
+          </div>
+
+          <div class="command-card">
+            <div class="command-header">
+              <span class="command-name agent-name">@evaluator</span>
+              <span class="command-category">Plan &amp; Form H Auditor</span>
+            </div>
+            <p class="command-desc">Audits Resolution Plans under Section 30(2) &amp; 29A and compiles Regulation 39(4) Form H certificates.</p>
+            <div class="command-example agent-example">@evaluator Audit Plan for Section 30(2) &amp; Form H</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: CUSTOM TEMPLATES & SKILLS -->
+    <section class="section-padding" id="agents-skills">
+      <div class="section-header">
+        <span class="section-tag">Custom Legal Templates</span>
+        <h2 class="section-title">Custom Legal Templates &amp; Skills</h2>
+        <p class="section-subtitle">Easily add your law firm's standard petition templates, compliance checklists, and custom workflows.</p>
+      </div>
+
+      <div class="skills-wrapper">
+        <!-- HOW TEMPLATES WORK -->
+        <div class="skills-info-card">
+          <h3>
+            <span>💡</span> How Custom Templates Work
+          </h3>
+          <p>
+            Templates and skills are simple folders containing instructions and sample formats. You can save your firm's custom drafting guidelines directly in your project folder (<code>.agents/skills/</code>).
+          </p>
+
+          <div class="skill-code-block">
+            <span class="c"># Example Folder Structure for a Custom Template</span><br>
+            .agents/skills/<span class="k">supreme-court-exporter</span>/<br>
+            ├── <span class="s">SKILL.md</span> <span class="c">(Guidelines &amp; Margins)</span><br>
+            ├── scripts/<span class="s">export_court_docx.py</span><br>
+            └── references/<span class="s">court_rules.md</span>
+          </div>
+        </div>
+
+        <!-- SKILLS SHOWCASE GRID -->
+        <div class="skills-list-grid">
+          <div class="skill-item-card">
+            <h4>⚖️ supreme-court-exporter</h4>
+            <p>Converts raw markdown notes into court-ready Word documents adhering to Supreme Court formatting standards.</p>
+          </div>
+
+          <div class="skill-item-card">
+            <h4>🎯 active-context-matrix</h4>
+            <p>Monitors document sizes automatically to keep your laptop running fast without freezing or crashing.</p>
+          </div>
+
+          <div class="skill-item-card">
+            <h4>🔍 local-ocr-cleaner</h4>
+            <p>Scans PDF files locally, filters out blank pages, and flags unreadable scanned pages automatically.</p>
+          </div>
+
+          <div class="skill-item-card">
+            <h4>🛠️ gguf-vocab-patching</h4>
+            <p>Ensures local offline AI models run smoothly without technical token mismatches or errors.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- WHAT THE USER CAN DO -->
+      <div class="capabilities-box">
+        <h3>What You Can Do with Hayagriva</h3>
+        
+        <div class="capabilities-grid">
+          <div class="cap-card">
+            <div class="icon">🚀</div>
+            <h4>Automate Routine Tasks</h4>
+            <p>Fill complex IBBI forms, verify creditor claims, and draft petitions in seconds.</p>
+          </div>
+
+          <div class="cap-card">
+            <div class="icon">🔒</div>
+            <h4>100% Offline &amp; Private</h4>
+            <p>All AI models, databases, and files run locally on your laptop. Confidential case data never leaves your computer.</p>
+          </div>
+
+          <div class="cap-card">
+            <div class="icon">📦</div>
+            <h4>Customize for Your Firm</h4>
+            <p>Add custom templates to teach Hayagriva your firm's specific drafting style and formatting standards.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: iPIE GATEWAY & WORKFLOW INTEGRATION -->
+    <section class="section-padding" id="ipie-gateway" style="background: rgba(0, 212, 255, 0.02); border-top: 1px solid var(--border-glow); border-bottom: 1px solid var(--border-glow);">
+      <div class="section-header">
+        <span class="section-tag">🏛️ MCA iPIE / IPAI Ecosystem</span>
+        <h2 class="section-title">Local Private Workbench ➔ Govt. iPIE Central Portal</h2>
+        <p class="section-subtitle">Draft, evaluate, and audit case files locally in 100% private Hayagriva — then sync verified reports directly to MCA's Integrated Platform for IBC Ecosystem (iPIE) via API.</p>
+      </div>
+
+      <!-- WORKFLOW STEPPER -->
+      <div style="margin-bottom: 3.5rem;">
+        <h3 style="text-align: center; font-size: 1.25rem; margin-bottom: 2rem; color: var(--color-cyan); font-family: 'Outfit'; uppercase; letter-spacing: 0.05em;">
+          🔄 End-to-End Execution Workflow: Hayagriva to iPIE Portal
+        </h3>
+
+        <div class="capabilities-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+          <div class="cap-card" style="position: relative; border-left: 3px solid var(--color-cyan);">
+            <div class="icon" style="background: rgba(0, 212, 255, 0.1); color: var(--color-cyan); font-weight: 700;">1</div>
+            <h4>Air-Gapped Ingestion</h4>
+            <p>Import NCLT petitions, financial ledgers, and NeSL Record of Default (RoD) files into your local Hayagriva workspace. Key facts are extracted locally without cloud exposure.</p>
+          </div>
+
+          <div class="cap-card" style="position: relative; border-left: 3px solid var(--color-amber);">
+            <div class="icon" style="background: rgba(255, 170, 0, 0.1); color: var(--color-amber); font-weight: 700;">2</div>
+            <h4>AI Subagent Audit</h4>
+            <p>Run <code>@evaluator</code> for Section 30(2) &amp; Section 29A Resolution Plan audits. Run <code>@coc</code> to calculate voting shares and generate voting ballots.</p>
+          </div>
+
+          <div class="cap-card" style="position: relative; border-left: 3px solid var(--color-purple);">
+            <div class="icon" style="background: rgba(147, 51, 234, 0.1); color: var(--color-purple); font-weight: 700;">3</div>
+            <h4>Auto-Form Compiler</h4>
+            <p>Auto-compile Regulation 39(4) <strong>Form H Compliance Certificates</strong> and court-ready pleadings formatted to Supreme Court standards.</p>
+          </div>
+
+          <div class="cap-card" style="position: relative; border-left: 3px solid var(--color-green);">
+            <div class="icon" style="background: rgba(39, 201, 63, 0.1); color: var(--color-green); font-weight: 700;">4</div>
+            <h4>1-Click iPIE Sync</h4>
+            <p>Push audited claims, verified evaluation reports, Form H certificates, and CIRP progress reports directly into the central MCA iPIE Portal via secured APIs.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- iPIE TOUCHPOINTS GRID -->
+      <div style="background: var(--bg-surface-glass); border: 1px solid var(--border-glow); border-radius: 16px; padding: 2rem; backdrop-filter: blur(16px);">
+        <h3 style="font-size: 1.2rem; margin-bottom: 1.5rem; color: var(--text-main); font-family: 'Outfit';">
+          🔌 Integrated Ecosystem Touchpoints (iPIE Pillars)
+        </h3>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+          <div style="background: rgba(255, 255, 255, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-glow);">
+            <div style="font-weight: 700; color: var(--color-cyan); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+              💾 NeSL Information Utility (IU)
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">Import authenticated debt &amp; Record of Default (RoD) certificates directly into <code>claims_registry.md</code>.</p>
+          </div>
+
+          <div style="background: rgba(255, 255, 255, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-glow);">
+            <div style="font-weight: 700; color: var(--color-amber); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+              🏢 MCA-21 Portal Gateway
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">Cross-check Corporate Debtor CIN, Director DINs, active charges, and financial statements (AOC-4 / MGT-7).</p>
+          </div>
+
+          <div style="background: rgba(255, 255, 255, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-glow);">
+            <div style="font-weight: 700; color: var(--color-purple); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+              ⚖️ NCLT / NCLAT e-Courts
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">Auto-sync daily cause lists, order sheets, and filing scrutiny notes for the active case workspace.</p>
+          </div>
+
+          <div style="background: rgba(255, 255, 255, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-glow);">
+            <div style="font-weight: 700; color: var(--color-green); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+              📋 IBBI Regulatory Gateway
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">Track statutory CIRP deadlines ($T_0 \rightarrow T_{330}$) with live Mermaid Gantt charts and push Form IP-1 / progress reports.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: LAPTOP MODES -->
+    <section class="section-padding" id="dual-mode">
+      <div class="section-header">
+        <span class="section-tag">Hardware Adaptability</span>
+        <h2 class="section-title">Works Great on Any Laptop</h2>
+        <p class="section-subtitle">Toggle modes below to see how Hayagriva adapts smoothly whether you are using a basic laptop or a high-end workstation.</p>
+      </div>
+
+      <div class="toggle-container">
+        <span class="mode-label active lite" id="label-lite">⚡ Fast Mode (Standard Laptop)</span>
+        <div class="toggle-switch" id="toggle-sw" onclick="toggleMode()"></div>
+        <span class="mode-label standard" id="label-standard">🧠 Full AI Mode (Power Machine)</span>
+      </div>
+
+      <div class="comparison-grid">
+        <div class="tier-specs">
+          <h3 id="tier-title" style="color: var(--color-cyan);">⚡ Fast Mode (Standard Laptop)</h3>
+          <p id="tier-desc">Designed to run smoothly on any standard laptop (8GB RAM). Delivers super-fast document search, instant table sync, and court formatting without draining your battery or memory.</p>
+          <div style="background: rgba(255,255,255,0.03); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border-glow);">
+            <span style="display:block; font-size:0.75rem; color:var(--text-dim); margin-bottom: 0.5rem; text-transform:uppercase;">Hardware Requirement</span>
+            <strong id="tier-hardware" style="font-size: 1.1rem; font-family:'Outfit';">8GB - 16GB RAM / 100% Offline</strong>
+          </div>
+        </div>
+
+        <div>
+          <h4 style="font-size:1.1rem; margin-bottom: 1.5rem; font-family:'Outfit';">Included Capabilities</h4>
+          <ul class="feature-list" id="feature-matrix">
+            <!-- Features populated dynamically -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: PRIVACY SEGMENT -->
+    <section class="section-padding" id="privacy" style="border-top: 1px solid var(--border-glow);">
+      <div style="max-width:800px; margin: 0 auto; text-align: center;">
+        <div style="font-size: 3.5rem; margin-bottom: 1.5rem;">🔒</div>
+        <h2 class="section-title">Your Client Confidential Data Never Leaves Your Device</h2>
+        <p style="color:var(--text-muted); font-size:1.15rem; font-weight:300; margin-bottom: 2.5rem; line-height: 1.7;">
+          Unlike online web-based AI tools that upload sensitive case documents to cloud servers, Hayagriva runs 100% locally inside your computer. Your client files, contracts, financial ledgers, and court petitions are never transmitted over the internet.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="main-wrapper">
+      <p>© 2026 HAYAGRIVA. Built for Legal &amp; Insolvency Professionals.</p>
+      <span class="specs-tag">Private • Offline • Court-Compliant</span>
+    </div>
+  </footer>
+
+  <script>
+    // ── MOBILE MENU TOGGLE ROUTINE ──
+    function toggleMobileMenu() {
+      const drawer = document.getElementById('mobile-drawer');
+      drawer.classList.toggle('open');
+    }
+
+    // ── LIGHT / DARK MODE THEME SWITCHER ROUTINES ──
+    function initTheme() {
+      const savedTheme = localStorage.getItem('hayagriva-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeButton(savedTheme);
+      updateLogosForTheme(savedTheme);
+    }
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+      
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('hayagriva-theme', newTheme);
+      updateThemeButton(newTheme);
+      updateLogosForTheme(newTheme);
+    }
+
+    function updateThemeButton(theme) {
+      const icon = document.getElementById('theme-btn-icon');
+      const text = document.getElementById('theme-btn-text');
+      
+      if (theme === 'light') {
+        icon.innerText = '🌙';
+        text.innerText = 'Dark Mode';
+      } else {
+        icon.innerText = '☀️';
+        text.innerText = 'Light Mode';
+      }
+    }
+
+    function updateLogosForTheme(theme) {
+      const bannerLogo = document.getElementById('banner-logo-img');
+      
+      if (theme === 'light') {
+        if (bannerLogo) bannerLogo.src = 'resources/hayagriva_logo_black.png';
+      } else {
+        if (bannerLogo) bannerLogo.src = 'resources/hayagriva_logo_white.png';
+      }
+    }
+
+    // ── SIMULATION 1: MONACO SQLITE SYNC ROUTINES ──
+    function syncRow(id, date, party, amount, status) {
+      const sqlRows = document.querySelectorAll('#sqlite-rows tr');
+      sqlRows.forEach(row => row.classList.remove('highlighted'));
+      
+      const targetRow = document.getElementById('sql-row-' + id);
+      if (targetRow) {
+        targetRow.classList.add('highlighted');
+        targetRow.cells[0].innerText = date;
+        targetRow.cells[1].innerText = party.substring(0, 12);
+        targetRow.cells[2].innerText = amount;
+      }
+      
+      const logo = document.getElementById('logo');
+      logo.style.color = 'var(--color-green)';
+      setTimeout(() => {
+        logo.style.color = 'var(--color-cyan)';
+      }, 1000);
+    }
+
+    // ── SIMULATION 2: RAG CITATION PREVIEW DRAWER ROUTINES ──
+    function switchSimulation(mode) {
+      const tabEditor = document.getElementById('tab-editor');
+      const tabRag = document.getElementById('tab-rag');
+      const simEditor = document.getElementById('sim-editor-panel');
+      const simRag = document.getElementById('sim-rag-panel');
+
+      if (mode === 'editor') {
+        tabEditor.classList.add('active');
+        tabRag.classList.remove('active');
+        simEditor.style.display = 'flex';
+        simRag.style.display = 'none';
+      } else {
+        tabEditor.classList.remove('active');
+        tabRag.classList.add('active');
+        simEditor.style.display = 'none';
+        simRag.style.display = 'flex';
+      }
+    }
+
+    function openDrawer(party, amount, date, statute) {
+      const drawer = document.getElementById('citation-drawer');
+      const body = document.getElementById('drawer-body');
+      
+      body.innerHTML = `
+        <strong style="color:var(--text-main); font-size:0.9rem;">Source Document Excerpt:</strong>
+        <p style="margin-bottom:0.75rem; margin-top:0.5rem;">Verified transaction entry:</p>
+        <div style="background:rgba(255,255,255,0.04); padding:0.75rem; border-radius:4px; font-family:'Roboto Mono', monospace; font-size:0.75rem; margin-bottom:1rem; border-left: 2px solid var(--color-cyan);">
+          Date: ${date}<br>
+          Party: ${party}<br>
+          Amount: INR ${amount}
+        </div>
+        <p style="line-height:1.4;">Classified as potentially voidable under <strong style="color:var(--color-amber);">${statute}</strong> of the Insolvency and Bankruptcy Code. Look-back status satisfied.</p>
+      `;
+      drawer.classList.add('open');
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById('citation-drawer');
+      drawer.classList.remove('open');
+    }
+
+    function promoteDrawer() {
+      alert("Promotion Action: The selected citation excerpt has been opened side-by-side in your active workspace tab.");
+      closeDrawer();
+    }
+
+    // ── COMMAND TABS SWITCHING ──
+    function switchCmdTab(tab) {
+      const btnSlash = document.getElementById('btn-slash');
+      const btnAgent = document.getElementById('btn-agent');
+      const gridSlash = document.getElementById('grid-slash');
+      const gridAgent = document.getElementById('grid-agent');
+
+      if (tab === 'slash') {
+        btnSlash.classList.add('active');
+        btnAgent.classList.remove('active');
+        gridSlash.style.display = 'grid';
+        gridAgent.style.display = 'none';
+      } else {
+        btnSlash.classList.remove('active');
+        btnAgent.classList.add('active');
+        gridSlash.style.display = 'none';
+        gridAgent.style.display = 'grid';
+      }
+    }
+
+    // ── TIER SELECTOR DATA & LOGIC ──
+    const featuresData = [
+      { name: "Local PDF & Word Document Import", lite: true, standard: true },
+      { name: "100% Offline Private Search", lite: true, standard: true },
+      { name: "Transaction Date Timeline", lite: true, standard: true },
+      { name: "Document Auto-Complete", lite: true, standard: true },
+      { name: "Automatic Database Table Sync", lite: true, standard: true },
+      { name: "Court-Ready Word Exporter (A4)", lite: true, standard: true },
+      { name: "Visual Case Graph Viewer", lite: true, standard: true },
+      { name: "Encrypted Statutory Legal Vault", lite: true, standard: true },
+      { name: "Claims Auditing AI Assistant", lite: false, standard: true },
+      { name: "Look-back Transaction Scanner", lite: false, standard: true },
+      { name: "NCLT Petition Drafter (@document)", lite: false, standard: true },
+      { name: "Background Document Processing", lite: false, standard: true }
+    ];
+
+    let currentMode = 'lite';
+
+    function renderFeatures() {
+      const matrix = document.getElementById('feature-matrix');
+      matrix.innerHTML = '';
+      
+      featuresData.forEach(feat => {
+        const isIncluded = (currentMode === 'lite') ? feat.lite : feat.standard;
+        const li = document.createElement('li');
+        li.className = `feature-item ${isIncluded ? 'included' : 'excluded'}`;
+        
+        li.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            ${isIncluded 
+              ? '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>' 
+              : '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>'}
+          </svg>
+          <span>${feat.name}</span>
+        `;
+        matrix.appendChild(li);
+      });
+    }
+
+    function toggleMode() {
+      const toggle = document.getElementById('toggle-sw');
+      const labelLite = document.getElementById('label-lite');
+      const labelStandard = document.getElementById('label-standard');
+      const title = document.getElementById('tier-title');
+      const desc = document.getElementById('tier-desc');
+      const hardware = document.getElementById('tier-hardware');
+
+      if (currentMode === 'lite') {
+        currentMode = 'standard';
+        toggle.classList.add('standard-mode');
+        labelLite.classList.remove('active');
+        labelStandard.classList.add('active');
+        
+        title.innerText = '🧠 Full AI Mode (Power Machine)';
+        title.style.color = 'var(--color-amber)';
+        desc.innerText = 'Unlocks AI petition drafters, claim auditing, and deep document analysis using local offline AI models or optional cloud bridges with strict privacy.';
+        hardware.innerText = '16GB - 24GB+ RAM (Power Mac / PC)';
+      } else {
+        currentMode = 'lite';
+        toggle.classList.remove('standard-mode');
+        labelLite.classList.add('active');
+        labelStandard.classList.remove('active');
+        
+        title.innerText = '⚡ Fast Mode (Standard Laptop)';
+        title.style.color = 'var(--color-cyan)';
+        desc.innerText = 'Designed to run smoothly on any standard laptop (8GB RAM). Delivers super-fast document search, instant table sync, and court formatting without draining your battery or memory.';
+        hardware.innerText = '8GB - 16GB RAM / 100% Offline';
+      }
+      renderFeatures();
+    }
+
+    // Initialize Theme and Features on Load
+    initTheme();
+    renderFeatures();
+  </script>
+</body>
+</html>

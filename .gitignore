@@ -37,8 +37,10 @@ twillm/twillm-wiki/tiddlers/vault-loader/
 # Local binaries
 hayagriva/bin/
 
-# Do not ignore the backend source code directory
+# Do not ignore the backend source code directory and agent packs
 !hayagriva/lib/
+!backend/lib/
+!backend/vault/agent_packs/
 
 # Local case runtime files
 case_facts.md

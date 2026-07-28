@@ -107,5 +107,11 @@ Refer to the following plans saved in the workspace:
     4. `yarn --cwd frontend/theia-extensions/hayagriva build`
     5. `yarn --cwd frontend/theia-extensions/product build`
     6. `yarn --cwd frontend/applications/electron build`
-    7. Full reference guide is documented at [docs/BRANDING_AND_LOGO_MANAGEMENT.md](file:///Users/atulgrover/Desktop/HAYAGRIVA/docs/BRANDING_AND_LOGO_MANAGEMENT.md).
+* **Workspace Domain Manifest (`case_manifest.json`)**: Auto-bootstrapped per workspace on case open (`ensureCaseManifest`). Allows `detectDocumentVectorType()` in `llm-client.js` to prioritize explicit per-file domain tags (`fileDomains`) over file-extension heuristics, maintaining 100% backward compatibility when no manifest entry exists.
+* **Freemium Marketplace & Offline License Validation**: Added **🛒 Marketplace & Downloads** section to Settings (`settings-dashboard.html`), backed by `/api/hayagriva/marketplace/catalog` (scans installed `.vlt` packs and `.gguf` models) and `/api/hayagriva/license/activate`. License keys are validated 100% offline using an embedded Ed25519 public key in `lib/utils/license-validator.js`.
+* **CIRP Statutory Timeline Engine ($T_0 \rightarrow T_{330}$)**: Hybrid architecture featuring auto-generated `timeline.md` (Mermaid.js Gantt chart rendered natively in Markdown) + Frappe Gantt interactive widget (`cirp_timeline_widget.vlt`). Driven by `lib/pipeline/timeline-engine.js` and bootstrapped on case launch.
+* **iPIE Ecosystem Subagents (`@coc` & `@evaluator`)**:
+  * **`@coc-coordinator`**: Computes financial creditor voting shares ($\text{Voting Share}_i = \frac{\text{Debt}_i}{\sum \text{Unrelated Debt}} \times 100\%$), excludes related parties (Section 5(24)), and drafts meeting notices/ballots.
+  * **`@plan-evaluator`**: Audits Resolution Plans under Section 30(2) & Section 29A, compiling Regulation 39(4) **Form H Compliance Certificates** for NCLT submission.
+* **iPIE Gateway Marketing Integration**: Added a dedicated **iPIE Gateway & Workflow** section to `docs/marketing/index.html` detailing the 4-step execution flow from local private Hayagriva to the MCA Central iPIE Portal.
 

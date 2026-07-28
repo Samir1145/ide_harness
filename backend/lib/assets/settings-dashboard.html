@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hayagriva Settings</title>
+  <style>
+    :root {
+      --bg-color: #1e1e1e;
+      --text-color: #f3f3f3;
+      --border-color: #3a3a3a;
+      --accent-color: #3b82f6;
+      --accent-hover: #2563eb;
+      --card-bg: rgba(255, 255, 255, 0.02);
+      --card-bg-active: rgba(59, 130, 246, 0.08);
+      --input-bg: #2d2d2d;
+      --input-border: #444;
+      --text-muted: #888;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+    }
+
+    [data-theme="light"] {
+      --bg-color: #ffffff;
+      --text-color: #0f172a;
+      --border-color: #cbd5e1;
+      --accent-color: #2563eb;
+      --accent-hover: #1d4ed8;
+      --card-bg: #f8fafc;
+      --card-bg-active: rgba(37, 99, 235, 0.08);
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+      --text-muted: #64748b;
+      --success-color: #059669;
+      --warning-color: #d97706;
+      --danger-color: #dc2626;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      line-height: 1.5;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    h2 {
+      margin-top: 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      font-weight: 500;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .version-badge {
+      font-size: 11px;
+      background: var(--border-color);
+      color: var(--text-muted);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: normal;
+    }
+    .section {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.2s ease-in-out;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    /* Two Tile Mode Selector */
+    .mode-tiles {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .mode-tile {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mode-tile:hover {
+      border-color: var(--accent-color);
+    }
+    .mode-tile.active {
+      border-color: var(--accent-color);
+      background: var(--card-bg-active);
+      box-shadow: 0 0 0 1px var(--accent-color);
+    }
+    .mode-tile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .mode-tile-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .radio-indicator {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      display: inline-block;
+      position: relative;
+    }
+    .mode-tile.active .radio-indicator {
+      border-color: var(--accent-color);
+    }
+    .mode-tile.active .radio-indicator::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Feature List Inside Panels */
+    .feature-comparison {
+      font-size: 12px;
+      margin-top: 10px;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .feature-item.yes { color: var(--success-color); }
+    .feature-item.no { color: var(--danger-color); opacity: 0.65; }
+
+    /* Engine Status Badges */
+    .engine-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .engine-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+    }
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-text {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .engine-btn {
+      background: var(--accent-color);
+      color: #ffffff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .engine-btn:hover {
+      opacity: 0.9;
+    }
+    .engine-btn.stop-btn {
+      background: var(--danger-color);
+    }
+
+    /* Status Styles */
+    .engine-badge.active {
+      border-color: var(--success-color);
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .engine-badge.active .status-dot {
+      background-color: var(--success-color);
+      box-shadow: 0 0 8px var(--success-color);
+    }
+    .engine-badge.active .status-text {
+      color: var(--success-color);
+    }
+
+    .engine-badge.offline {
+      border-color: var(--danger-color);
+      background: rgba(239, 68, 68, 0.08);
+    }
+    .engine-badge.offline .status-dot {
+      background-color: var(--danger-color);
+      box-shadow: 0 0 8px var(--danger-color);
+    }
+    .engine-badge.offline .status-text {
+      color: var(--danger-color);
+    }
+
+    .engine-badge.probing .status-dot {
+      background-color: var(--warning-color);
+      animation: pulse 1s infinite alternate;
+    }
+    .engine-badge.probing .status-text {
+      color: var(--warning-color);
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    button[type="submit"] {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      width: 100%;
+    }
+    button[type="submit"]:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    /* Toast Notification */
+    #toast {
+      visibility: hidden;
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: var(--success-color);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 12px 16px;
+      position: fixed;
+      z-index: 1000;
+      left: 50%;
+      bottom: 30px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    #toast.show {
+      visibility: visible;
+      animation: fadein 0.3s, fadeout 0.3s 2.7s;
+    }
+    @keyframes fadein {
+      from { bottom: 0; opacity: 0; }
+      to { bottom: 30px; opacity: 1; }
+    }
+    @keyframes fadeout {
+      from { bottom: 30px; opacity: 1; }
+      to { bottom: 0; opacity: 0; }
+    }
+    /* ── Marketplace ─────────────────────────────────────────────── */
+    .mkt-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+    .mkt-tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mkt-tab-btn.active {
+      background: var(--card-bg-active);
+      color: var(--accent-color);
+    }
+    .mkt-panel { display: none; }
+    .mkt-panel.active { display: block; }
+    .mkt-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .mkt-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      transition: border-color 0.2s;
+    }
+    .mkt-card.installed { border-left: 3px solid var(--success-color); }
+    .mkt-card.locked { border-left: 3px solid var(--border-color); opacity: 0.65; }
+    .mkt-card-info { flex: 1; }
+    .mkt-card-name {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mkt-card-desc { font-size: 12px; color: var(--text-muted); }
+    .mkt-card-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .mkt-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .mkt-badge.installed { background: rgba(16,185,129,0.15); color: var(--success-color); }
+    .mkt-badge.locked { background: rgba(100,116,139,0.2); color: var(--text-muted); }
+    .mkt-badge.coming { background: rgba(245,158,11,0.15); color: var(--warning-color); }
+    .mkt-badge.starter { background: rgba(59,130,246,0.1); color: var(--accent-color); }
+    .license-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+      align-items: center;
+    }
+    .license-row input {
+      flex: 1;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      color: var(--text-color);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: monospace;
+    }
+    .license-row button {
+      background: var(--accent-color);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .license-row button:hover { background: var(--accent-hover); }
+    #licenseStatus {
+      font-size: 12px;
+      margin-top: 8px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="data:image/png;base64,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PI+Vr4fPW7169XMcxxVramqaLMsSzpw5c19PT8/78GzHcfwawuUK/kaWAIZhzHAcd8zzPLh5U7quvwgRLknSLTMzM//r9OnTMALBLbmBgQFX13WOUkrj8bjS3Nxsw8CTZXntwYMHRzOZjCNJ0hbbtl+glE5yHBejlMJOOIGw83KVApdIACRREFBZGvgIrnFL2z/77LPc0vZoh2uXeTaHytySv8mVnnst2Lp1q/3000+Pe55nSJLEiaJYUygUTuu6PsZxnFIoFGzHcZJ9fX0rNE1bMAwDtYEZqIJgnBvGxsbUioqKxD8HCos9qB4SBKECjMOy7Fxzc/PC9fQJY8IYg3FdMrYS+i5+j2tLnxF8x74bPZdeL7lGlq0RWIqA8aAS3NOnT69yXRd+PMdxXLMkSXcWi8UXZmZm9m3fvn3k0KFDO1AqxjDMi1VVVdbg4ODahoaGz0EdaJp22LbtCaSVm5ubDxJCaDAB12z8XSlecC1xBLzrlyFlFjkv5Lbp6ekdnud9en5+fm3Jd2I+n/+dmZmZ+8MsXNh+dnb2TrSfmppCEMXHwsLCvy4UCg9AOpS+bG5u7qO4HkqBwcHBLO7N5/P3BM+8boYMSrjcY8eOZViWRXhXdV0Xov6kYRgHXNdt3L59+yjaIVbgOM75TZs25evr6/V0Oh2zbRvW/15CiIrVj/BwLperOXLkiBDWGlxLP8JJ7u7uTui6/pvFYvEvdV3/04mJiduCyKVPr9HR0TaMWVVVjPv3ZmZmPggJhXeFbUZGRhrRZnp6entA4w+rqvq73d3dYintC4XCTtM0HxwbG4uX0P4jxWLx0yMjI7FroSm79HdCyGcZhvk+IeSu8Iuhao7j/tN33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333.png" style="width: 24px; height: 24px; object-fit: contain;" />
+        <span>Hayagriva Settings</span>
+      </div>
+      <span class="version-badge" id="vaultVer">Vault Status</span>
+    </h2>
+    
+    <form id="settingsForm">
+      <!-- Mode Selection Tiles -->
+      <div class="section-title">🤖 AI Processing Mode</div>
+      <div class="mode-tiles">
+        <!-- Lite Mode Tile -->
+        <div class="mode-tile" id="tileLite" onclick="selectMode('lite')">
+          <div class="mode-tile-header">
+            <span>⚡ Lite Mode (Search Only)</span>
+            <span class="radio-indicator"></span>
+          </div>
+          <div class="mode-tile-desc">
+            For 8GB-16GB RAM machines. Runs high-speed local passage search (FTS5 + ONNX), with zero local LLM memory overhead.
+          </div>
+          <div class="feature-comparison">
+            <div class="feature-item yes">✓ Local Semantic Passage Search</div>
+            <div class="feature-item yes">✓ Date & Chronology timeline extraction</div>
+            <div class="feature-item yes">✓ Dynamic Topic Overlap mapping</div>
+            <div class="feature-item yes">✓ Monaco editor, LSP, & legal vault lookups</div>
+            <div class="feature-item no">✗ AI chat assistant & legal drafting</div>
+            <div class="feature-item no">✗ Auto-extraction of KV compliance dictionary</div>
+          </div>
+        </div>
+
+        <!-- AI Mode Tile -->
+        <div class="mode-tile" id="tileLocal" onclick="selectMode('local')">
+          <div class="mode-tile-header">
+            <span>🧠 AI Mode</span>
+            <span class="radio-indicator"></span>
+          </div>
+          <div class="mode-tile-desc">
+            For 16GB-32GB+ RAM machines. Unlocks full AI-assisted legal drafting, audits, and analysis using custom runners.
+          </div>
+          <div class="feature-comparison">
+            <div class="feature-item yes">✓ Full AI Chat & Drafting Agents</div>
+            <div class="feature-item yes">✓ Automated schema-less Fact extraction</div>
+            <div class="feature-item yes">✓ Section layout profiling & summaries</div>
+            <div class="feature-item yes">✓ Background Doc2Query question indexing</div>
+            <div class="feature-item yes">✓ Avoidance and Claims Verification Audits</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info panel about Lite Mode -->
+      <div class="section" id="liteInfoPanel" style="display: none;">
+        <div class="section-title" style="color: var(--accent-color);">ℹ️ Lite Mode Active</div>
+        <p style="margin: 0 0 10px 0; font-size: 13px; opacity: 0.85;">
+          HAYAGRIVA is running in <strong>Lite Mode</strong>. Local LLM models are completely shut down to keep your processor cool and prevent memory/OOM errors. Text ingestion and offline semantic index search will continue to work perfectly.
+        </p>
+      </div>
+
+      <!-- Settings panel for AI Mode -->
+      <div class="section" id="localConfigPanel" style="display: none;">
+        <div class="section-title">🖥 AI Engine Configuration</div>
+        <p style="margin-top: 0; font-size: 13px; opacity: 0.85; line-height: 1.4;">
+          HAYAGRIVA routes LLM chat and drafting prompts locally using our pre-compiled Llamafile binaries. Please start an engine to enable AI Mode.
+        </p>
+        
+        <label style="font-size: 13px; font-weight: 600;">Local Inference Engine Status</label>
+        <div class="engine-status-list">
+          <!-- Legal Engine Badge -->
+          <div class="engine-badge probing" id="legalBadge">
+            <div>
+              <span>Legal AI Engine (Port 8090)</span>
+              <div class="status-indicator" style="margin-top: 4px;">
+                <span class="status-dot"></span>
+                <span class="status-text">Probing...</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="engine-btn" onclick="toggleEngine('legal', 'start')">Start Engine</button>
+              <button type="button" class="engine-btn stop-btn" onclick="toggleEngine('legal', 'stop')">Stop</button>
+            </div>
+          </div>
+          
+          <!-- Financial Engine Badge -->
+          <div class="engine-badge probing" id="financeBadge">
+            <div>
+              <span>Financial AI Engine (Port 8091)</span>
+              <div class="status-indicator" style="margin-top: 4px;">
+                <span class="status-dot"></span>
+                <span class="status-text">Probing...</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="engine-btn" onclick="toggleEngine('finance', 'start')">Start Engine</button>
+              <button type="button" class="engine-btn stop-btn" onclick="toggleEngine('finance', 'stop')">Stop</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Converter Configuration -->
+      <div class="section">
+        <div class="section-title">📄 Legacy Document Converter (LibreOffice)</div>
+        <div id="libreOfficeStatusBanner" style="padding: 10px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; font-weight: 500;">
+          Checking LibreOffice status...
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="remindLibreOffice" style="width: auto; margin: 0; cursor: pointer;">
+          <label for="remindLibreOffice" style="margin: 0; font-size: 13px; cursor: pointer; user-select: none;">Enable Legacy Formats Ingestion Warning Alert</label>
+        </div>
+        <div id="libreOfficeInstructions" style="display: none; font-size: 11px; opacity: 0.85; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 10px;">
+          <strong>How to install LibreOffice on your machine:</strong><br>
+          • <strong>macOS:</strong> Open your terminal and run <code>brew install --cask libreoffice</code> or download it from <a href="https://www.libreoffice.org/download/" target="_blank" style="color: var(--accent-color); text-decoration: none;">libreoffice.org</a>.<br>
+          • <strong>Windows:</strong> Download the installer from the official website and run the setup. Once installed, restart HAYAGRIVA.
+        </div>
+      </div>
+
+      <!-- ── Marketplace & Downloads ──────────────────────────────────── -->
+      <div class="section" id="marketplaceSection">
+        <div class="section-title">🛒 Marketplace &amp; Downloads</div>
+
+        <div class="mkt-tabs">
+          <button class="mkt-tab-btn active" id="mktTabAgents" onclick="switchMktTab('agents')">🤖 Agent Packs</button>
+          <button class="mkt-tab-btn" id="mktTabEngines" onclick="switchMktTab('engines')">🧠 LLM Engines</button>
+        </div>
+
+        <!-- Agent Packs Panel -->
+        <div class="mkt-panel active" id="mktPanelAgents">
+          <div class="mkt-grid" id="agentPackGrid">
+            <div style="color: var(--text-muted); font-size: 13px;">Loading catalog…</div>
+          </div>
+        </div>
+
+        <!-- LLM Engines Panel -->
+        <div class="mkt-panel" id="mktPanelEngines">
+          <div class="mkt-grid" id="llmEngineGrid">
+            <div style="color: var(--text-muted); font-size: 13px;">Loading catalog…</div>
+          </div>
+        </div>
+
+        <!-- License Key -->
+        <div class="license-row">
+          <input type="text" id="licenseKeyInput" placeholder="Paste license key to unlock Pro / Enterprise…" />
+          <button type="button" onclick="activateLicenseKey()">Activate</button>
+        </div>
+        <div id="licenseStatus">Status: <strong id="tierLabel">Starter (Free)</strong></div>
+      </div>
+
+      <!-- Engine Gating Warning Banner -->
+      <div id="engineGatingBanner" style="display: none; padding: 12px; border-radius: 6px; background: rgba(239, 68, 68, 0.12); border: 1px solid var(--danger-color); color: var(--danger-color); font-size: 13px; font-weight: 600; margin-bottom: 16px;">
+        ⚠️ To save AI Mode configuration, please click "Start Engine" to launch an AI engine first.
+      </div>
+
+      <div class="button-container">
+        <button type="submit" id="saveBtn">Save Configuration</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="toast">Settings saved successfully!</div>
+
+  <script>
+    let activeMode = 'lite'; // 'lite' or 'local'
+    const params = new URLSearchParams(window.location.search);
+    const caseName = params.get('case') || 'Case_Alpha';
+    const theme = params.get('theme') || 'dark';
+    let statusInterval = null;
+
+    let isLegalActive = false;
+    let isFinanceActive = false;
+
+    // Set Theme
+    document.documentElement.setAttribute('data-theme', theme);
+
+    function validateSubmitButton() {
+      const saveBtn = document.getElementById('saveBtn');
+      const banner = document.getElementById('engineGatingBanner');
+      const isEngineRunning = isLegalActive || isFinanceActive;
+
+      if (activeMode === 'local' && !isEngineRunning) {
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.5';
+        saveBtn.style.cursor = 'not-allowed';
+        if (banner) banner.style.display = 'block';
+      } else {
+        saveBtn.disabled = false;
+        saveBtn.style.opacity = '1';
+        saveBtn.style.cursor = 'pointer';
+        if (banner) banner.style.display = 'none';
+      }
+    }
+
+    function selectMode(mode) {
+      activeMode = mode;
+      if (mode === 'lite') {
+        document.getElementById('tileLite').classList.add('active');
+        document.getElementById('tileLocal').classList.remove('active');
+        document.getElementById('liteInfoPanel').style.display = 'block';
+        document.getElementById('localConfigPanel').style.display = 'none';
+        stopProbing();
+      } else {
+        document.getElementById('tileLite').classList.remove('active');
+        document.getElementById('tileLocal').classList.add('active');
+        document.getElementById('liteInfoPanel').style.display = 'none';
+        document.getElementById('localConfigPanel').style.display = 'block';
+        startProbing();
+      }
+      validateSubmitButton();
+    }
+
+    async function probeEngines() {
+      try {
+        const res = await fetch('/api/hayagriva/llm/engines-status');
+        if (res.ok) {
+          const status = await res.json();
+          isLegalActive = !!status.legalActive;
+          isFinanceActive = !!status.financeActive;
+          updateEngineDisplay('legalBadge', isLegalActive);
+          updateEngineDisplay('financeBadge', isFinanceActive);
+        } else {
+          isLegalActive = false;
+          isFinanceActive = false;
+          updateEngineDisplay('legalBadge', false);
+          updateEngineDisplay('financeBadge', false);
+        }
+      } catch (err) {
+        isLegalActive = false;
+        isFinanceActive = false;
+        updateEngineDisplay('legalBadge', false);
+        updateEngineDisplay('financeBadge', false);
+      }
+      validateSubmitButton();
+    }
+
+    function updateEngineDisplay(elementId, isActive) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      element.className = 'engine-badge ' + (isActive ? 'active' : 'offline');
+      element.querySelector('.status-text').innerText = isActive ? 'Active' : 'Offline';
+    }
+
+    function startProbing() {
+      probeEngines();
+      if (!statusInterval) {
+        statusInterval = setInterval(probeEngines, 3000);
+      }
+    }
+
+    function stopProbing() {
+      if (statusInterval) {
+        clearInterval(statusInterval);
+        statusInterval = null;
+      }
+    }
+
+    async function toggleEngine(engine, action) {
+      try {
+        showToast(`${action === 'start' ? 'Starting' : 'Stopping'} ${engine} engine...`);
+        const res = await fetch(`/api/hayagriva/engine/${action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ engine })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`${engine} engine ${action}ed successfully.`);
+          setTimeout(probeEngines, 1500);
+        } else {
+          showToast(data.error || `Failed to ${action} ${engine} engine.`, true);
+        }
+      } catch (err) {
+        showToast(`Error toggling ${engine} engine`, true);
+      }
+    }
+
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.innerText = message;
+      toast.style.backgroundColor = isError ? '#dc2626' : '#10b981';
+      toast.className = 'show';
+      setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    }
+
+    // Load initial settings
+    async function loadSettings() {
+      try {
+        const res = await fetch(`/api/hayagriva/settings/get?case=${encodeURIComponent(caseName)}`);
+        if (res.ok) {
+          const config = await res.json();
+          
+          const vaultBadge = document.getElementById('vaultVer');
+          const modeVal = config.activeMode || 'lite';
+          
+          if (modeVal === 'local' || modeVal === 'standard') {
+            vaultBadge.innerText = 'AI Mode';
+            vaultBadge.style.color = '#10b981';
+            selectMode('local');
+          } else {
+            vaultBadge.innerText = 'Lite Mode';
+            vaultBadge.style.color = '';
+            selectMode('lite');
+          }
+
+          document.getElementById('remindLibreOffice').checked = config.remindLibreOffice !== false;
+          
+          // Render LibreOffice status dynamically
+          const banner = document.getElementById('libreOfficeStatusBanner');
+          const instructions = document.getElementById('libreOfficeInstructions');
+          if (config.libreOfficeDetected) {
+            banner.innerText = '✓ Headless LibreOffice Converter: Active & Detected';
+            banner.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+            banner.style.border = '1px solid var(--success-color)';
+            banner.style.color = 'var(--success-color)';
+            instructions.style.display = 'none';
+          } else {
+            banner.innerText = '⚠️ Headless LibreOffice Converter: Missing / Not Detected';
+            banner.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+            banner.style.border = '1px solid var(--danger-color)';
+            banner.style.color = 'var(--danger-color)';
+            instructions.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        showToast('Failed to load settings', true);
+      }
+      validateSubmitButton();
+    }
+
+    // Save settings
+    document.getElementById('settingsForm').onsubmit = async (e) => {
+      e.preventDefault();
+
+      if (activeMode === 'local' && !isLegalActive && !isFinanceActive) {
+        showToast('To save AI Mode, please click "Start Engine" to launch an AI engine first.', true);
+        return;
+      }
+      
+      const payload = {
+        case: caseName,
+        activeMode: activeMode, // 'lite' or 'local'
+        remindLibreOffice: document.getElementById('remindLibreOffice').checked
+      };
+      
+      try {
+        const res = await fetch('/api/hayagriva/settings/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Configuration saved successfully!');
+          loadSettings();
+        } else {
+          showToast(data.error || 'Failed to save configuration', true);
+        }
+      } catch (err) {
+        showToast('Connection error: Failed to save configuration', true);
+      }
+    };
+
+    window.onload = () => { loadSettings(); loadCatalog(); };
+
+    // ── Marketplace ─────────────────────────────────────────────────────────
+    let _catalogData = null;
+
+    function switchMktTab(tab) {
+      document.querySelectorAll('.mkt-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.mkt-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`mktTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
+      document.getElementById(`mktPanel${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
+    }
+
+    function renderBadge(status, badge) {
+      if (status === 'installed') return '<span class="mkt-badge installed">✓ Installed</span>';
+      if (status === 'locked')    return `<span class="mkt-badge coming">${badge || '🔒 Locked'}</span>`;
+      return '<span class="mkt-badge starter">Available</span>';
+    }
+
+    function renderCatalog(catalog) {
+      _catalogData = catalog;
+
+      // Agent Packs
+      const agentGrid = document.getElementById('agentPackGrid');
+      if (catalog.agentPacks && catalog.agentPacks.length) {
+        agentGrid.innerHTML = catalog.agentPacks.map(p => `
+          <div class="mkt-card ${p.status}">
+            <div class="mkt-card-info">
+              <div class="mkt-card-name">${p.name} ${renderBadge(p.status, p.badge)}</div>
+              <div class="mkt-card-desc">${p.description}</div>
+            </div>
+          </div>`).join('');
+      } else {
+        agentGrid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">No agent packs found.</div>';
+      }
+
+      // LLM Engines
+      const llmGrid = document.getElementById('llmEngineGrid');
+      if (catalog.llmEngines && catalog.llmEngines.length) {
+        llmGrid.innerHTML = catalog.llmEngines.map(e => `
+          <div class="mkt-card ${e.status}">
+            <div class="mkt-card-info">
+              <div class="mkt-card-name">${e.name} ${renderBadge(e.status, e.badge)}</div>
+              <div class="mkt-card-desc">${e.description}</div>
+              <div class="mkt-card-meta">${e.context} context &nbsp;·&nbsp; ${e.sizeGb} GB</div>
+            </div>
+          </div>`).join('');
+      } else {
+        llmGrid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">No LLM engines found.</div>';
+      }
+    }
+
+    async function loadCatalog() {
+      try {
+        const res = await fetch('/api/hayagriva/marketplace/catalog');
+        if (res.ok) {
+          const catalog = await res.json();
+          renderCatalog(catalog);
+        } else {
+          console.warn('[Marketplace] Catalog fetch failed:', res.status);
+        }
+      } catch (e) {
+        console.warn('[Marketplace] Catalog unavailable:', e.message);
+      }
+    }
+
+    async function activateLicenseKey() {
+      const key = document.getElementById('licenseKeyInput').value.trim();
+      if (!key) { showToast('Please enter a license key.', true); return; }
+      try {
+        const res = await fetch('/api/hayagriva/license/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ licenseKey: key, case: caseName })
+        });
+        const data = await res.json();
+        if (data.success) {
+          const tierDisplay = { starter: 'Starter (Free)', professional: 'Professional ✓', enterprise: 'Enterprise ✓' };
+          document.getElementById('tierLabel').innerText = tierDisplay[data.tier] || data.tier;
+          document.getElementById('tierLabel').style.color = data.tier === 'starter' ? '' : 'var(--success-color)';
+          showToast(`License activated — ${data.tier} tier unlocked!`);
+          if (data.warning) setTimeout(() => showToast(data.warning, true), 3500);
+          loadCatalog(); // Refresh to reflect unlocked status
+        } else {
+          showToast(data.error || 'License activation failed.', true);
+        }
+      } catch (e) {
+        showToast('Connection error during license activation.', true);
+      }
+    }
+  </script>
+</body>
+</html>
