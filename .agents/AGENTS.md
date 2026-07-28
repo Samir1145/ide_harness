@@ -114,4 +114,7 @@ Refer to the following plans saved in the workspace:
   * **`@coc-coordinator`**: Computes financial creditor voting shares ($\text{Voting Share}_i = \frac{\text{Debt}_i}{\sum \text{Unrelated Debt}} \times 100\%$), excludes related parties (Section 5(24)), and drafts meeting notices/ballots.
   * **`@plan-evaluator`**: Audits Resolution Plans under Section 30(2) & Section 29A, compiling Regulation 39(4) **Form H Compliance Certificates** for NCLT submission.
 * **iPIE Gateway Marketing Integration**: Added a dedicated **iPIE Gateway & Workflow** section to `docs/marketing/index.html` detailing the 4-step execution flow from local private Hayagriva to the MCA Central iPIE Portal.
+* **Render Custom Domain & Cloudflare DNS Sync**: Connected custom domain `hayagriva.app` to Render web service with Cloudflare DNS set to `DNS Only` (Grey Cloud) to allow automated Let's Encrypt / Render SSL certificate issuance and 301 redirection for apex domain and `www` subdomains.
+* **Mobile Responsive Navigation & Glassmorphism Drawer**: Enhanced `docs/marketing/index.html` with an interactive hamburger toggle (`☰` / `✕`), a touch-optimized glassmorphism drawer, single-column responsive grids (< 768px), and an always-visible high-contrast cyan `↑ TOP` floating pill button.
+
 

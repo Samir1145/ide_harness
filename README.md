@@ -4,8 +4,27 @@
 
 Just as an Integrated Development Environment (IDE) synthesizes code editing, compilation, and debugging into a single application for software engineers, HAYAGRIVA unifies document ingestion, domain reference databases, Markdown authoring, live project ledgers, multi-agent AI collaboration, and compliant document compilation into a single desktop workbench.
 
-> **Current Focus & Roadmap:**  
-> **Law** is the **first reference domain** currently implemented in Hayagriva (statutory vaults, precedent search, court petition drafting, and Supreme Court layout compilation). The underlying architecture is modular and domain-agnostic, designed to expand into a **Universal IPE Framework** for Medicine, Architecture & Engineering (AEC), Financial Auditing, and Scientific Research.
+---
+
+## 📐 The 3×3 Sovereign Architecture Model
+
+For complete architectural details, see the detailed [Product Vision & 3×3 Architecture Guide](file:///Users/atulgrover/Desktop/HAYAGRIVA/docs/architecture/product_vision.md).
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      HAYAGRIVA: THE SOVEREIGN LEGAL STACK                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 📥 IN-APP WORKSPACE SECTIONS (Inside the Case Folder):                      │
+│  1. Case Data & Facts   ──► PDFs, Word, Excel, Sliced Cards, KV Dictionary  │
+│  2. Professional Audits ──► Claim Ledgers, Status Dots, Verification Sync    │
+│  3. AI Enhancements     ──► RAG Matrix, Subagents, Supreme Court Exporter    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 📦 DOWNLOADABLE PORTAL PLUG-INS (Via Licensing Portal):                    │
+│  1. Intelligence Models ──► InLegal-SBERT, Finance-Embeddings, Param-2.9B  │
+│  2. Encrypted Vaults    ──► Statutory Laws, Precedents, MCA Forms, IBC DB   │
+│  3. Specialist Agents   ──► Advisor Agent, Forms Agent, Document Agent      │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 

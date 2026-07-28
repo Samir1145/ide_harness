@@ -233,6 +233,27 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     
     // Start polling the backend proxy server's connection health
     this.startBackendMonitor();
+
+    // Listen for theme changes to dynamically sync open Settings panel iframes
+    this.themeService.onDidColorThemeChange(() => {
+      try {
+        const currentTheme = this.themeService.getCurrentTheme();
+        const isLight = currentTheme && currentTheme.id && currentTheme.id.toLowerCase().includes('light');
+        const theme = isLight ? 'light' : 'dark';
+
+        const settingsWidget = this.shell.getWidgets('main').find(w => w.id === 'hayagriva-settings-panel');
+        if (settingsWidget) {
+          const iframe = settingsWidget.node.querySelector('iframe');
+          if (iframe && iframe.src) {
+            const url = new URL(iframe.src);
+            url.searchParams.set('theme', theme);
+            iframe.src = url.toString();
+          }
+        }
+      } catch (err) {
+        console.warn('[Hayagriva] Failed to sync settings iframe theme:', err);
+      }
+    });
   }
 
   registerToolbarItems(registry: TabBarToolbarRegistry): void {
@@ -1691,13 +1712,10 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
   toggleTheme(): void {
     const current = this.themeService.getCurrentTheme();
-    if (current.id === 'dark') {
-      this.themeService.setCurrentTheme('light', true);
-      this.logger.info('[HAYAGRIVA] Switched IDE Theme to Light.');
-    } else {
-      this.themeService.setCurrentTheme('dark', true);
-      this.logger.info('[HAYAGRIVA] Switched IDE Theme to Dark.');
-    }
+    const isDark = current && current.id && current.id.toLowerCase().includes('dark');
+    const newTheme = isDark ? 'light' : 'dark';
+    this.themeService.setCurrentTheme(newTheme, true);
+    this.logger.info(`[HAYAGRIVA] Switched IDE Theme to ${newTheme}.`);
   }
 
   private triggerEditorLayout(): void {
@@ -1877,7 +1895,10 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = 'none';
-    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/settings/panel?case=${encodeURIComponent(caseName)}`;
+    const currentTheme = this.themeService.getCurrentTheme();
+    const isLight = currentTheme && currentTheme.id && currentTheme.id.toLowerCase().includes('light');
+    const theme = isLight ? 'light' : 'dark';
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/settings/panel?case=${encodeURIComponent(caseName)}&theme=${theme}`;
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });

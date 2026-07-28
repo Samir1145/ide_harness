@@ -229,28 +229,95 @@
       transform: translateY(-1px);
     }
 
+    /* ── ALWAYS VISIBLE SCROLL TO TOP BUTTON ── */
+    .scroll-top-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 0.6rem 1.1rem;
+      border-radius: 30px;
+      background: var(--color-cyan);
+      color: #000;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.5);
+      z-index: 99999;
+      opacity: 1;
+      visibility: visible;
+      transition: all 0.3s ease;
+      border: 1.5px solid rgba(255, 255, 255, 0.4);
+    }
+    .scroll-top-btn:hover {
+      background: #ffffff;
+      color: #000;
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 30px rgba(0, 212, 255, 0.8);
+    }
+
+    /* ── HERO DOWNWARD SCROLL INDICATOR ── */
+    .hero-scroll-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      color: var(--color-cyan);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid var(--border-glow);
+      transition: var(--transition-smooth);
+      animation: pulseBounce 2s infinite;
+    }
+    .hero-scroll-indicator:hover {
+      background: rgba(0, 212, 255, 0.18);
+      transform: translateY(2px);
+    }
+    @keyframes pulseBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+
     /* MOBILE HAMBURGER BUTTON & DRAWER */
     .mobile-menu-btn {
       display: none;
-      background: var(--bg-surface-glass);
+      background: rgba(0, 212, 255, 0.1);
       border: 1px solid var(--border-glow);
-      color: var(--text-main);
-      padding: 0.4rem 0.75rem;
-      border-radius: 8px;
-      font-size: 1.25rem;
+      color: var(--color-cyan);
+      padding: 0.4rem 0.8rem;
+      border-radius: 10px;
+      font-size: 1.35rem;
       cursor: pointer;
-      min-height: 40px;
+      line-height: 1;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-smooth);
+    }
+    .mobile-menu-btn:hover {
+      background: var(--color-cyan);
+      color: #000;
     }
 
     .mobile-nav-drawer {
       display: none;
       flex-direction: column;
-      background: var(--bg-surface);
+      background: var(--bg-surface-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border-glow);
-      padding: 1rem 2rem;
-      gap: 1rem;
+      padding: 1.25rem 2rem;
+      gap: 0.85rem;
       font-weight: 600;
       font-size: 1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     .mobile-nav-drawer.open {
@@ -259,8 +326,18 @@
 
     .mobile-nav-drawer a {
       color: var(--text-main);
-      padding: 0.5rem 0;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+      padding: 0.65rem 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: var(--transition-smooth);
+    }
+
+    .mobile-nav-drawer a:hover {
+      color: var(--color-cyan);
+      padding-left: 1rem;
     }
 
     .main-wrapper {
@@ -1350,23 +1427,25 @@
       </a>
 
       <nav class="nav-links">
-        <a href="#stages">How It Works</a>
-        <a href="#commands">Shortcuts</a>
-        <a href="#agents-skills">Custom Templates</a>
-        <a href="#ipie-gateway">iPIE Integration</a>
-        <a href="#simulation">Live Demo</a>
-        <a href="#dual-mode">Laptop Modes</a>
-        <a href="#privacy">Data Privacy</a>
+        <a href="#">Home</a>
+        <a href="#sovereignty">Data Sovereignty</a>
+        <a href="#zoho-suite">Zoho Integration</a>
+        <a href="#dpdp-compliance">DPDP Compliance</a>
       </nav>
 
       <div class="nav-actions">
+        <!-- PORTAL LOGIN BUTTON -->
+        <a href="login.html" style="background: var(--color-cyan); color: #000; font-weight: 700; padding: 0.45rem 1.15rem; border-radius: 20px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 0 15px rgba(0, 212, 255, 0.3); transition: var(--transition-smooth);">
+          <span>🔑</span> Client Login
+        </a>
+
         <!-- LIGHT / DARK MODE TOGGLE BUTTON -->
         <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()">
           <span id="theme-btn-icon">☀️</span> <span id="theme-btn-text">Light Mode</span>
         </button>
 
-        <!-- MOBILE HAMBURGER MENU BUTTON -->
-        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle Navigation Menu">
+        <!-- MOBILE HAMBURGER BUTTON -->
+        <button class="mobile-menu-btn" id="mobile-hamburger" onclick="toggleMobileMenu()" aria-label="Toggle navigation">
           ☰
         </button>
       </div>
@@ -1374,13 +1453,13 @@
 
     <!-- MOBILE NAVIGATION OVERLAY DRAWER -->
     <div class="mobile-nav-drawer" id="mobile-drawer">
-      <a href="#stages" onclick="toggleMobileMenu()">How It Works</a>
-      <a href="#commands" onclick="toggleMobileMenu()">Shortcuts</a>
-      <a href="#agents-skills" onclick="toggleMobileMenu()">Custom Templates</a>
-      <a href="#ipie-gateway" onclick="toggleMobileMenu()">iPIE Integration</a>
+      <a href="#" onclick="toggleMobileMenu()">Home</a>
+      <a href="#sovereignty" onclick="toggleMobileMenu()">Data Sovereignty</a>
+      <a href="#zoho-suite" onclick="toggleMobileMenu()">Zoho Integration</a>
+      <a href="#dpdp-compliance" onclick="toggleMobileMenu()">DPDP Compliance</a>
       <a href="#simulation" onclick="toggleMobileMenu()">Live Demo</a>
+      <a href="#ipie-gateway" onclick="toggleMobileMenu()">iPIE Integration</a>
       <a href="#dual-mode" onclick="toggleMobileMenu()">Laptop Modes</a>
-      <a href="#privacy" onclick="toggleMobileMenu()">Data Privacy</a>
     </div>
   </header>
 
@@ -1403,14 +1482,9 @@
         <span>Insolvency &amp; Litigation Teams</span>
       </h1>
 
-      <p>
-        Organize case files, search thousands of pages instantly, fill official compliance forms, check statutory look-back deadlines, and draft court-ready petitions — completely offline on your computer.
-      </p>
-
-      <div class="hero-ctas">
-        <button class="btn-primary" onclick="document.getElementById('stages').scrollIntoView({behavior: 'smooth'})">
-          Explore How It Works →
-        </button>
+      <div class="hero-scroll-indicator" onclick="document.getElementById('sovereignty').scrollIntoView({behavior: 'smooth'})">
+        <span>Scroll to explore</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </div>
     </section>
 
@@ -1680,132 +1754,80 @@
       </div>
     </section>
 
-    <!-- SECTION 2: EASY SHORTCUTS -->
-    <section class="section-padding" id="commands">
+    <!-- SECTION 1: DATA & MODEL SOVEREIGNTY -->
+    <section class="section-padding" id="sovereignty">
       <div class="section-header">
-        <span class="section-tag">Simple Keyboard Shortcuts</span>
-        <h2 class="section-title">Type <code>/</code> for Action or <code>@</code> for AI Assistants</h2>
-        <p class="section-subtitle">No complicated menus to learn. Just type a forward slash or mention an AI assistant to get things done instantly.</p>
+        <span class="section-tag">100% Air-Gapped Architecture</span>
+        <h2 class="section-title">Data &amp; Model Sovereignty</h2>
+        <p class="section-subtitle">Your confidential legal documents, client evidence, and court filings never leave your physical machine. 0 bytes sent to external cloud servers.</p>
       </div>
 
-      <div class="commands-container">
-        <div class="command-tabs-nav">
-          <button class="cmd-tab-btn active" id="btn-slash" onclick="switchCmdTab('slash')">⚡ Action Shortcuts ( / )</button>
-          <button class="cmd-tab-btn agent-tab" id="btn-agent" onclick="switchCmdTab('agent')">🤖 AI Assistants ( @ )</button>
+      <div class="capabilities-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-cyan);">
+          <h4>🛡️ On-Device Local Models</h4>
+          <p>Local quantized GGUF models (<code>LegalParam-2.9B</code>) execute natively on your laptop's CPU/GPU. No internet connection required for full petition drafting and legal analysis.</p>
         </div>
 
-        <!-- SLASH COMMANDS GRID -->
-        <div class="commands-grid" id="grid-slash">
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name">/export-sc</span>
-              <span class="command-category">Court Export</span>
-            </div>
-            <p class="command-desc">Exports your active document into a Supreme Court compliant Word file (A4 paper, Times New Roman 14pt, 1.5 line spacing, 4cm left/right margins).</p>
-            <div class="command-example">/export-sc filename="petition_v2.docx"</div>
-          </div>
-
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name">/ingest</span>
-              <span class="command-category">File Import</span>
-            </div>
-            <p class="command-desc">Imports new PDF files, bank statements, or contracts into your case workspace safely without freezing your app.</p>
-            <div class="command-example">/ingest file="bank_statements.pdf"</div>
-          </div>
-
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name">/audit</span>
-              <span class="command-category">Transaction Scan</span>
-            </div>
-            <p class="command-desc">Scans claims registries or avoidance ledgers to highlight transactions that fall within statutory look-back periods.</p>
-            <div class="command-example">/audit ledger="avoidance_ledger.md"</div>
-          </div>
-
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name">/matrix</span>
-              <span class="command-category">Document Select</span>
-            </div>
-            <p class="command-desc">Selects which documents the AI should read and monitors your laptop's memory usage.</p>
-            <div class="command-example">/matrix budget=2048</div>
-          </div>
-
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name">/form</span>
-              <span class="command-category">Form Tables</span>
-            </div>
-            <p class="command-desc">Inserts standardized 3-column IBBI compliance tables into your document with blank placeholders highlighted.</p>
-            <div class="command-example">/form name="Form_H_Approval"</div>
-          </div>
-
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name">/qna</span>
-              <span class="command-category">Case Wiki</span>
-            </div>
-            <p class="command-desc">Searches your case question bank and displays interactive collapsible answers right inside your editor.</p>
-            <div class="command-example">/qna query="Resolution Plan Voting"</div>
-          </div>
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-cyan);">
+          <h4>🔒 Encrypted VMS Vaults</h4>
+          <p>Encrypted local SQLite database coupled with an in-memory RAM decryption pipeline. Protects sensitive case files from unauthorized disk inspection or malware data theft.</p>
         </div>
 
-        <!-- AGENT MENTIONS GRID -->
-        <div class="commands-grid" id="grid-agent" style="display:none;">
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name agent-name">@advisor</span>
-              <span class="command-category">Legal Advisor</span>
-            </div>
-            <p class="command-desc">Ask legal questions regarding statutory provisions under the Insolvency &amp; Bankruptcy Code (IBC 2016) and Companies Act.</p>
-            <div class="command-example agent-example">@advisor What are the look-back periods under Section 43?</div>
-          </div>
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-cyan);">
+          <h4>⚡ Native ONNX Embeddings</h4>
+          <p>On-device semantic search pipelines (<code>InLegal-SBERT</code> &amp; <code>Investopedia-Finance</code>) build local vector indices instantly without third-party API dependencies.</p>
+        </div>
+      </div>
+    </section>
 
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name agent-name">@forms</span>
-              <span class="command-category">Form Filling AI</span>
-            </div>
-            <p class="command-desc">Auto-fills official IBBI or MCA compliance forms using facts and figures extracted directly from your case files.</p>
-            <div class="command-example agent-example">@forms Populate Form H using claims_registry.md</div>
-          </div>
+    <!-- SECTION 2: ZOHO ENTERPRISE SUITE INTEGRATION -->
+    <section class="section-padding" id="zoho-suite" style="background: rgba(0, 212, 255, 0.02); border-top: 1px solid var(--border-glow); border-bottom: 1px solid var(--border-glow);">
+      <div class="section-header">
+        <span class="section-tag">Seamless Ecosystem Bridge</span>
+        <h2 class="section-title">Zoho Enterprise Suite Integration</h2>
+        <p class="section-subtitle">Connect Hayagriva directly with India's premier privacy-first enterprise productivity suite for email, encrypted messaging, and office documents.</p>
+      </div>
 
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name agent-name">@document</span>
-              <span class="command-category">Petition Drafter</span>
-            </div>
-            <p class="command-desc">Drafts NCLT petitions, legal briefs, and statutory notices, and automatically double-checks them for accuracy.</p>
-            <div class="command-example agent-example">@document Draft NCLT petition for Section 7 admission</div>
-          </div>
+      <div class="capabilities-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-amber);">
+          <h4>✉️ Zoho Mail Integration</h4>
+          <p>Direct ingestion of insolvency claims, creditor emails, and court notices from Zoho Mail. Automatically parses attachments and populates claims registries.</p>
+        </div>
 
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name agent-name">@vault</span>
-              <span class="command-category">Judgment Finder</span>
-            </div>
-            <p class="command-desc">Searches your offline legal vault and case precedent database for matching Supreme Court judgments.</p>
-            <div class="command-example agent-example">@vault Find rulings on CIRP withdrawal under 12A</div>
-          </div>
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-amber);">
+          <h4>💬 Arattai Secure Messaging</h4>
+          <p>End-to-end encrypted messaging integration via Arattai. Send instant CoC meeting alerts, voting share updates, and resolution status notifications directly to stakeholders.</p>
+        </div>
 
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name agent-name">@coc</span>
-              <span class="command-category">CoC Coordinator</span>
-            </div>
-            <p class="command-desc">Calculates CoC voting share percentages, excludes related parties (0%), and drafts voting ballots &amp; notices.</p>
-            <div class="command-example agent-example">@coc Calculate voting shares from claims_registry.md</div>
-          </div>
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-amber);">
+          <h4>📝 Zoho Office Suite (Writer &amp; Sheet)</h4>
+          <p>Import and export Supreme Court compliant petitions, claims ledgers, and financial schedule spreadsheets directly to Zoho Writer and Zoho Sheet with zero format distortion.</p>
+        </div>
+      </div>
+    </section>
 
-          <div class="command-card">
-            <div class="command-header">
-              <span class="command-name agent-name">@evaluator</span>
-              <span class="command-category">Plan &amp; Form H Auditor</span>
-            </div>
-            <p class="command-desc">Audits Resolution Plans under Section 30(2) &amp; 29A and compiles Regulation 39(4) Form H certificates.</p>
-            <div class="command-example agent-example">@evaluator Audit Plan for Section 30(2) &amp; Form H</div>
-          </div>
+    <!-- SECTION 3: DPDP ACT 2023 & IT ACT COMPLIANCE -->
+    <section class="section-padding" id="dpdp-compliance">
+      <div class="section-header">
+        <span class="section-tag">Statutory Privacy Guarantee</span>
+        <h2 class="section-title">DPDP Act 2023 &amp; IT Act Compliance</h2>
+        <p class="section-subtitle">Conforms to India's Digital Personal Data Protection (DPDP) Act 2023 and Information Technology (IT) Act 2000 for client confidentiality and data minimization.</p>
+      </div>
+
+      <div class="capabilities-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-purple);">
+          <h4>📜 DPDP 2023 Data Fiduciary Protection</h4>
+          <p>Strict data minimization architecture guarantees zero third-party data processing or unauthorized telemetry, fulfilling Data Fiduciary duties under Section 8 of DPDP Act 2023.</p>
+        </div>
+
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-purple);">
+          <h4>👤 Automated PII Anonymization</h4>
+          <p>Built-in privacy redactor masks personally identifiable information (PII), bank account details, and private identifiers prior to generating public compliance filings.</p>
+        </div>
+
+        <div class="skill-item-card" style="border-top: 3px solid var(--color-purple);">
+          <h4>📋 Tamper-Proof Audit Logging</h4>
+          <p>Maintains an immutable local audit log in <code>CASE_AUDIT.md</code> tracking all document operations, user edits, and agent actions for full IT Act 2000 legal evidentiary compliance.</p>
         </div>
       </div>
     </section>
@@ -1928,42 +1950,6 @@
         </div>
       </div>
 
-      <!-- iPIE TOUCHPOINTS GRID -->
-      <div style="background: var(--bg-surface-glass); border: 1px solid var(--border-glow); border-radius: 16px; padding: 2rem; backdrop-filter: blur(16px);">
-        <h3 style="font-size: 1.2rem; margin-bottom: 1.5rem; color: var(--text-main); font-family: 'Outfit';">
-          🔌 Integrated Ecosystem Touchpoints (iPIE Pillars)
-        </h3>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
-          <div style="background: rgba(255, 255, 255, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-glow);">
-            <div style="font-weight: 700; color: var(--color-cyan); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
-              💾 NeSL Information Utility (IU)
-            </div>
-            <p style="font-size: 0.88rem; color: var(--text-muted);">Import authenticated debt &amp; Record of Default (RoD) certificates directly into <code>claims_registry.md</code>.</p>
-          </div>
-
-          <div style="background: rgba(255, 255, 255, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-glow);">
-            <div style="font-weight: 700; color: var(--color-amber); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
-              🏢 MCA-21 Portal Gateway
-            </div>
-            <p style="font-size: 0.88rem; color: var(--text-muted);">Cross-check Corporate Debtor CIN, Director DINs, active charges, and financial statements (AOC-4 / MGT-7).</p>
-          </div>
-
-          <div style="background: rgba(255, 255, 255, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-glow);">
-            <div style="font-weight: 700; color: var(--color-purple); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
-              ⚖️ NCLT / NCLAT e-Courts
-            </div>
-            <p style="font-size: 0.88rem; color: var(--text-muted);">Auto-sync daily cause lists, order sheets, and filing scrutiny notes for the active case workspace.</p>
-          </div>
-
-          <div style="background: rgba(255, 255, 255, 0.02); padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-glow);">
-            <div style="font-weight: 700; color: var(--color-green); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
-              📋 IBBI Regulatory Gateway
-            </div>
-            <p style="font-size: 0.88rem; color: var(--text-muted);">Track statutory CIRP deadlines ($T_0 \rightarrow T_{330}$) with live Mermaid Gantt charts and push Form IP-1 / progress reports.</p>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- SECTION 4: LAPTOP MODES -->
@@ -2226,9 +2212,41 @@
       renderFeatures();
     }
 
+    // Floating Scroll To Top Logic
+    const scrollTopBtn = document.getElementById('scrollTopBtn');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        scrollTopBtn.classList.add('visible');
+      } else {
+        scrollTopBtn.classList.remove('visible');
+      }
+    });
+
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Mobile Drawer Toggle Logic
+    function toggleMobileMenu() {
+      const drawer = document.getElementById('mobile-drawer');
+      const btn = document.getElementById('mobile-hamburger');
+      if (drawer) {
+        drawer.classList.toggle('open');
+        if (btn) {
+          btn.innerText = drawer.classList.contains('open') ? '✕' : '☰';
+        }
+      }
+    }
+
     // Initialize Theme and Features on Load
     initTheme();
     renderFeatures();
   </script>
+
+  <!-- ALWAYS VISIBLE FLOATING SCROLL TO TOP BUTTON -->
+  <button id="scrollTopBtn" class="scroll-top-btn" onclick="scrollToTop()" aria-label="Scroll to top" title="Scroll to top">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+    <span>TOP</span>
+  </button>
 </body>
 </html>

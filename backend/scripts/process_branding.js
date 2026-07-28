@@ -136,6 +136,8 @@ async function processBranding() {
     saveCanvas(darkBannerCanvas, path.join(repoRoot, 'frontend/theia-extensions/product/src/browser/icons/TheiaIDE-next.png'));
     saveCanvas(lightBannerCanvas, path.join(repoRoot, 'branding/resources/logo_black.png'));
     saveCanvas(darkBannerCanvas, path.join(repoRoot, 'branding/resources/logo_white.png'));
+    saveCanvas(lightBannerCanvas, path.join(repoRoot, 'docs/marketing/resources/hayagriva_logo_black.png'));
+    saveCanvas(darkBannerCanvas, path.join(repoRoot, 'docs/marketing/resources/hayagriva_logo_white.png'));
 
     // Also copy 512x512 to product icons folder
     saveCanvas(squareCanvas, path.join(repoRoot, 'frontend/theia-extensions/product/src/browser/icons/512-512.png'));
