@@ -845,8 +845,7 @@
         <li><a class="nav-link active" id="btn-home" onclick="switchTab('home')">Home</a></li>
         <li><a class="nav-link" id="btn-workbench" onclick="switchTab('workbench')">Workbench</a></li>
         <li><a class="nav-link" id="btn-marketplace" onclick="switchTab('marketplace')">Marketplace</a></li>
-        <li><a class="nav-link" id="btn-regulation" onclick="switchTab('regulation')">Regulation (iPIE)</a></li>
-        <li><a class="nav-link" id="btn-laws" onclick="switchTab('laws')">Laws</a></li>
+        <li><a class="nav-link" id="btn-laws" onclick="switchTab('laws')">Laws & Regulations</a></li>
         <li><a href="login.html" class="nav-link login-btn">Login</a></li>
       </ul>
     </div>
@@ -1165,87 +1164,95 @@
       </div>
     </section>
 
-    <!-- TAB 4: REGULATION (iPIE Gateway & Regulator API) -->
-    <section id="tab-regulation" class="tab-view">
-      <div class="hero-banner">
-        <h1 class="hero-title">Regulation & iPIE Gateway</h1>
-        <p class="hero-subtitle">
-          Integrated Platform for Insolvency Ecosystem (iPIE). Enables automated API reporting from local Workbenches to the IBBI and MCA Central Portals.
-        </p>
-      </div>
-
-      <div class="container">
-        <h2 class="section-heading">Local Workbench to MCA Central iPIE Gateway</h2>
-        
-        <div class="ipie-flow">
-          <div class="ipie-card">
-            <h4 style="color: var(--primary-color); margin-bottom: 8px;">1. Local AI Audit</h4>
-            <p style="font-size: 14px; color: var(--text-muted);">
-              `@plan-evaluator` subagent audits Resolution Plans and verifies Section 29A & Section 30(2) compliance.
-            </p>
-          </div>
-
-          <div class="ipie-card">
-            <h4 style="color: var(--primary-color); margin-bottom: 8px;">2. Form H Compilation</h4>
-            <p style="font-size: 14px; color: var(--text-muted);">
-              Compiles statutory Regulation 39(4) Form H compliance certificate with voting share ledger.
-            </p>
-          </div>
-
-          <div class="ipie-card">
-            <h4 style="color: var(--primary-color); margin-bottom: 8px;">3. Payload Encryption</h4>
-            <p style="font-size: 14px; color: var(--text-muted);">
-              Generates encrypted JSON/XBRL payload signed with the Insolvency Professional's Ed25519 key pair.
-            </p>
-          </div>
-
-          <div class="ipie-card">
-            <h4 style="color: var(--primary-color); margin-bottom: 8px;">4. MCA Portal Sync</h4>
-            <p style="font-size: 14px; color: var(--text-muted);">
-              Transmits payload directly via secure HTTPS REST API to the Central iPIE Gateway for NCLT filing.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 5: LAWS (DPDP, ITA, SC/RBI/IBBI Regulations) -->
+    <!-- TAB 4: LAWS & REGULATIONS (Expanded DPDP, ITA, SC/RBI/IBBI AI Directives) -->
     <section id="tab-laws" class="tab-view">
       <div class="hero-banner">
-        <h1 class="hero-title">Laws & Statutory AI Compliance</h1>
+        <h1 class="hero-title">Laws & Statutory AI Regulations</h1>
         <p class="hero-subtitle">
-          HAYAGRIVA adheres strictly to national data protection acts, information technology laws, and judicial AI guidelines.
+          HAYAGRIVA is architected from the ground up to comply with Indian data privacy acts, cybersecurity laws, and statutory AI directives issued by the Supreme Court, Reserve Bank of India (RBI), and IBBI.
         </p>
       </div>
 
       <div class="container">
+        <!-- 3 Core Compliance Pillars Grid (Expanded matching specification) -->
         <div class="laws-grid">
-          <!-- Law 1 -->
+          <!-- Pillar 1: Data Privacy -->
           <div class="law-card">
             <span class="law-tag">DATA PRIVACY</span>
-            <h3 style="font-family: var(--font-heading); font-size: 20px; margin-bottom: 12px;">DPDP Act 2023 Compliance</h3>
-            <p style="font-size: 14px; color: var(--text-muted); line-height: 1.7;">
-              Enforces complete data minimization and local data sovereignty. All case files and embeddings are processed on-premise without transferring data to external LLM APIs.
+            <h3 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 14px; color: var(--text-main);">DPDP Act 2023 Compliance</h3>
+            <p style="font-size: 15px; color: var(--text-muted); line-height: 1.7; margin-bottom: 16px;">
+              Enforces complete data minimization and local data sovereignty under Section 6 & Section 8 of the Digital Personal Data Protection Act 2023. All confidential case records, financial spreadsheets, and vector embeddings are stored and processed 100% on-premise without transferring data to external LLM cloud APIs.
             </p>
+            <ul style="font-size: 14px; color: var(--text-main); line-height: 1.8; padding-left: 18px; margin-top: 10px;">
+              <li><strong>Zero Cloud Data Leaks:</strong> Client documents remain strictly within local hardware boundaries.</li>
+              <li><strong>Local Anonymization Engine:</strong> Automatic PII masking before local subagent execution.</li>
+              <li><strong>Purpose Limitation:</strong> Case data is locked isolated to the active case workspace.</li>
+            </ul>
           </div>
 
-          <!-- Law 2 -->
+          <!-- Pillar 2: Cybersecurity -->
           <div class="law-card">
             <span class="law-tag">CYBERSECURITY</span>
-            <h3 style="font-family: var(--font-heading); font-size: 20px; margin-bottom: 12px;">Information Technology Act 2000</h3>
-            <p style="font-size: 14px; color: var(--text-muted); line-height: 1.7;">
-              Protects document integrity via local cryptographic hashing, Ed25519 digital signatures, and tamper-evident SQLite audit trails.
+            <h3 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 14px; color: var(--text-main);">Information Technology Act 2000</h3>
+            <p style="font-size: 15px; color: var(--text-muted); line-height: 1.7; margin-bottom: 16px;">
+              Protects document integrity and guarantees an evidentiary chain of custody under Section 43A and Section 66A of the IT Act 2000. Utilizes local cryptographic hashing, asymmetric digital signatures, and encrypted on-premise storage.
             </p>
+            <ul style="font-size: 14px; color: var(--text-main); line-height: 1.8; padding-left: 18px; margin-top: 10px;">
+              <li><strong>Cryptographic Hashing:</strong> SHA-256 document fingerprinting at ingestion.</li>
+              <li><strong>Ed25519 Digital Signatures:</strong> Cryptographically signed audit memos & Form H files.</li>
+              <li><strong>Encrypted Vaults:</strong> AES-256-GCM encrypted `.vlt` databases with tamper-evident audit trails.</li>
+            </ul>
           </div>
 
-          <!-- Law 3 -->
+          <!-- Pillar 3: Judicial Directives -->
           <div class="law-card">
             <span class="law-tag">JUDICIAL DIRECTIVES</span>
-            <h3 style="font-family: var(--font-heading); font-size: 20px; margin-bottom: 12px;">SC / RBI / IBBI AI Directives</h3>
-            <p style="font-size: 14px; color: var(--text-muted); line-height: 1.7;">
-              Preserves attorney-client privilege, mandates `verified_by_user = 1` human-in-the-loop audit flags, and enforces air-gapped port 8090 execution.
+            <h3 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 14px; color: var(--text-main);">SC / RBI / IBBI AI Directives</h3>
+            <p style="font-size: 15px; color: var(--text-muted); line-height: 1.7; margin-bottom: 16px;">
+              Strictly adheres to Supreme Court legal ethics, RBI cybersecurity frameworks, and IBBI statutory codes governing AI deployment in judicial proceedings.
             </p>
+            <ul style="font-size: 14px; color: var(--text-main); line-height: 1.8; padding-left: 18px; margin-top: 10px;">
+              <li><strong>Attorney-Client Privilege:</strong> Confidential strategy is never transmitted offsite.</li>
+              <li><strong>Human-in-the-Loop Audit:</strong> Mandates `verified_by_user = 1` verification flags on all AI drafts.</li>
+              <li><strong>Air-Gapped Local Execution:</strong> Port 8090 local GGUF server isolates processing from public networks.</li>
+            </ul>
           </div>
+        </div>
+
+        <!-- Comprehensive Statutory Matrix Table -->
+        <div style="margin-top: 56px;">
+          <h2 class="section-heading" style="text-align: center; margin-bottom: 24px;">Statutory AI Compliance Matrix</h2>
+          <table class="sample-table" style="box-shadow: var(--card-shadow); border-radius: 10px; overflow: hidden;">
+            <thead>
+              <tr style="background-color: var(--primary-color); color: #FFFFFF;">
+                <th style="padding: 14px 18px; font-size: 14px;">Regulatory Act / Directive</th>
+                <th style="padding: 14px 18px; font-size: 14px;">Statutory Mandate</th>
+                <th style="padding: 14px 18px; font-size: 14px;">HAYAGRIVA Technical Guarantee</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600;">DPDP Act 2023 (Sec 6 & 8)</td>
+                <td>Local data minimization & data fiduciary accountability</td>
+                <td><span style="color: #10B981; font-weight: 600;">✓ 100% On-Premise Execution</span> (Zero external API transmission)</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Information Technology Act 2000 (Sec 43A)</td>
+                <td>Cryptographic data security & tamper-proof audit trails</td>
+                <td><span style="color: #10B981; font-weight: 600;">✓ Ed25519 Payload Signing</span> & SHA-256 integrity chains</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Supreme Court Judicial AI Code</td>
+                <td>Preservation of attorney-client privilege & confidentiality</td>
+                <td><span style="color: #10B981; font-weight: 600;">✓ Air-Gapped Local Models</span> (LegalParam-2.9B offline engine)</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">IBBI Statutory Insolvency Regulations</td>
+                <td>Verified Form H compliance & Sec 29A due-diligence audit</td>
+                <td><span style="color: #10B981; font-weight: 600;">✓ Human-in-the-Loop Protocol</span> (`verified_by_user = 1` flag)</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
