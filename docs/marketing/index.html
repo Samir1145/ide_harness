@@ -1475,7 +1475,7 @@
       }
     };
 
-    // Google Form Contact Handler
+    // Direct Gmail Contact Handler (FormSubmit Endpoint)
     function handleFormSubmit(event) {
       event.preventDefault();
       
@@ -1484,29 +1484,41 @@
       const phone = document.getElementById('inputPhone').value;
       const message = document.getElementById('inputMessage').value;
 
-      // Post to Google Form endpoint asynchronously in background
-      const googleFormUrl = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSceH6U-Qp8NHN2Dyv50g8jPQ0RKlfDBrQUV/formResponse";
+      // Post directly to FormSubmit endpoint (delivers formatted email to resolutionbazaar@gmail.com)
+      const formSubmitUrl = "https://formsubmit.co/ajax/resolutionbazaar@gmail.com";
       
-      fetch(googleFormUrl, {
+      fetch(formSubmitUrl, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          "entry.1000000": name,
-          "entry.1000001": email,
-          "entry.1000002": phone,
-          "entry.1000003": message
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          _subject: "New HAYAGRIVA Portal Inquiry from " + name,
+          Name: name,
+          Email: email,
+          Phone: phone,
+          Message: message
         })
-      }).catch(err => console.log("Form submit handled: ", err));
-
-      // Display clean success notice
-      const notice = document.getElementById('formNotice');
-      notice.style.display = 'block';
-      document.getElementById('contactForm').reset();
-
-      setTimeout(() => {
-        notice.style.display = 'none';
-      }, 5000);
+      })
+      .then(res => res.json())
+      .then(data => {
+        const notice = document.getElementById('formNotice');
+        notice.style.display = 'block';
+        document.getElementById('contactForm').reset();
+        setTimeout(() => {
+          notice.style.display = 'none';
+        }, 6000);
+      })
+      .catch(err => {
+        console.error("Form submit error: ", err);
+        const notice = document.getElementById('formNotice');
+        notice.style.display = 'block';
+        document.getElementById('contactForm').reset();
+        setTimeout(() => {
+          notice.style.display = 'none';
+        }, 6000);
+      });
     }
   </script>
 </body>
