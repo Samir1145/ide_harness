@@ -6,6 +6,7 @@ const { vaultLookup, formatVaultBlock } = require('../../../../../lib/agents/ski
 const { buildTimeline, formatTimelineBlock } = require('../../../../../lib/agents/skills/timeline-build');
 const { loadSkeleton, fillPlaceholders } = require('../../../../../lib/agents/skills/skeleton-load');
 const { readAllKV } = require('../../../../../lib/agents/skills/kv-write');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 const REPO_ROOT = path.join(__dirname, '..', '..', '..', '..');
 
@@ -90,7 +91,17 @@ class NcltDrafterAgent {
             content: `[Context Information]\n${contextParts.join('\n\n')}\n\n[User Message]\n${userMessage}`
         });
 
-        return await getChatResponse(messages, { caseDir });
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'NCLT Petition Drafter', agentIcon: '🏛️',
+                    userMessage, contexts: contexts || [], writeBack: true
+                });
+            }
+            throw e;
+        }
     }
 }
 

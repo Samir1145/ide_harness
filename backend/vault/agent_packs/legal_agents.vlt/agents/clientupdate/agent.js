@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { loadSkeleton, fillPlaceholders } = require('../../../../../lib/agents/skills/skeleton-load');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class ClientUpdateAgent {
     constructor() {

@@ -17,12 +17,24 @@ async function ingestDocx(caseDir, filePath) {
     // Auto-clean the Pandoc layout using the hybrid clean pass
     const cleanedMd = await cleanMarkdown(rawMd, caseDir);
 
-    const destDir = path.dirname(filePath);
+    const subfolder = path.dirname(relative);
+    const conversionsDir = path.join(caseDir, 'conversions');
+    const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
     fs.mkdirSync(destDir, { recursive: true });
     const companionPath = path.join(destDir, `${basename}.md`);
+    const rootCompanionPath = path.join(path.dirname(filePath), `${basename}.md`);
 
     fs.writeFileSync(companionPath, cleanedMd, 'utf8');
-    console.log(`[Docx Ingestion] Created companion Markdown (layout cleaned): ${companionPath}`);
+    
+    // Clean up stale duplicate companion .md in root if it exists
+    if (fs.existsSync(rootCompanionPath) && path.resolve(rootCompanionPath) !== path.resolve(companionPath)) {
+        try {
+            fs.unlinkSync(rootCompanionPath);
+            console.log(`[Docx Ingestion] Removed stale root duplicate: ${rootCompanionPath}`);
+        } catch (_) {}
+    }
+
+    console.log(`[Docx Ingestion] Created companion Markdown: ${companionPath}`);
 
     return {
         sections: 0,

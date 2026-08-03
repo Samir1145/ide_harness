@@ -3,6 +3,7 @@ const path = require('path');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { ragRetrieve, formatContextBlock } = require('../../../../../lib/agents/skills/rag-retrieve');
 const { crossReferenceCheck } = require('../../../../../lib/agents/skills/cross-ref-check');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class CounterAgent {
     constructor() {
@@ -40,7 +41,17 @@ Analyse the petitioner's argument and provide:
             content: `${contextBlock}${contradictBlock}\n\n[Petitioner's Argument to Challenge]\n${userMessage}`
         });
 
-        return await getChatResponse(messages, { caseDir });
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'Counter Arguments', agentIcon: '⚔️',
+                    userMessage, contexts: contexts || [], writeBack: true
+                });
+            }
+            throw e;
+        }
     }
 }
 

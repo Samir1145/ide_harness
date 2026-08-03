@@ -4,6 +4,7 @@ const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { fillForm, listForms, formatFormBlock } = require('../../../../../lib/agents/skills/form-fill');
 const { validateForm } = require('../../../../../lib/agents/skills/form-validate');
 const { appendToMarkdown } = require('../../../../../lib/agents/skills/md-append');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 // Detect form ID from user message
 function detectFormId(userMessage) {
@@ -84,7 +85,15 @@ class FormsAgent {
         history.forEach(h => messages.push({ role: h.role, content: h.content }));
         messages.push({ role: 'user', content: `${context}\n\n[User Command]\n${userMessage}` });
 
-        return await getChatResponse(messages, { caseDir });
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                // Forms pre-filled skeleton is complete — return it directly with a lite notice
+                return `> ℹ️ **Lite Mode** — LLM narrative unavailable. Pre-filled form skeleton below.\n\n${context}`;
+            }
+            throw e;
+        }
     }
 
     /**
@@ -118,6 +127,10 @@ ${draftText.substring(0, 1500)}
             const jsonMatch = raw.match(/\{[\s\S]*\}/);
             if (jsonMatch) return JSON.parse(jsonMatch[0]);
         } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                // Return neutral audit result so DocumentAgent's delegation loop doesn't stall
+                return { passed: true, issues: ['[Lite Mode] LLM critique unavailable — start the engine in Settings for full audit.'] };
+            }
             console.error(`[Forms Agent] Critique failed:`, e.message);
         }
         return { passed: true, issues: [] };

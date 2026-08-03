@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { query } = require('../../../../../lib/core/rag');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class ImCompilerAgent {
     constructor() {
@@ -53,7 +54,17 @@ class ImCompilerAgent {
         }
         messages.push({ role: 'user', content });
 
-        return await getChatResponse(messages, { caseDir });
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'Insolvency Manager', agentIcon: '🏛️',
+                    userMessage, contexts: contexts || [], writeBack: true
+                });
+            }
+            throw e;
+        }
     }
 }
 

@@ -90,20 +90,31 @@ Prompt: "${message}"`;
         agentLogger.log(reqId, 'AgentCoordinator', 'INIT', `Received query: "${userMessage}"`);
 
         let result = '';
-        if (target && agentMap[target]) {
-            agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Direct routing → agent: "${target}"`);
-            result = await agentMap[target].run(caseDir, userMessage, history, { requestId: reqId });
-        } else {
-            if (target && !agentMap[target]) {
-                agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Unknown agent "${target}", falling back to intent classification.`);
-            }
-            const intent = await this.classifyIntent(caseDir, userMessage);
-            agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Classified intent: "${intent}"`);
-            const matchedAgent = agentMap[intent] || agentMap['advisor'];
-            if (matchedAgent) {
-                result = await matchedAgent.run(caseDir, userMessage, history, { requestId: reqId });
+        try {
+            if (target && agentMap[target]) {
+                agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Direct routing → agent: "${target}"`);
+                result = await agentMap[target].run(caseDir, userMessage, history, { requestId: reqId });
             } else {
-                result = `Agent @${intent} is currently unavailable. Installed Vault agents: ${Object.keys(agentMap).map(k => '@' + k).join(', ')}`;
+                if (target && !agentMap[target]) {
+                    agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Unknown agent "${target}", falling back to intent classification.`);
+                }
+                const intent = await this.classifyIntent(caseDir, userMessage);
+                agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Classified intent: "${intent}"`);
+                const matchedAgent = agentMap[intent] || agentMap['advisor'];
+                if (matchedAgent) {
+                    result = await matchedAgent.run(caseDir, userMessage, history, { requestId: reqId });
+                } else {
+                    result = `Agent @${intent} is currently unavailable. Installed Vault agents: ${Object.keys(agentMap).map(k => '@' + k).join(', ')}`;
+                }
+            }
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                // Last-resort safety net: agent forgot to handle LITE_MODE internally
+                agentLogger.log(reqId, 'AgentCoordinator', 'LITE_FALLBACK', `Coordinator caught unhandled ${e.code} from agent`);
+                result = `> ℹ️ **Lite Mode** — ${e.message}\n\n*Start the LLM engine in **Settings → Mode & Engine** to enable full AI generation.*`;
+            } else {
+                agentLogger.log(reqId, 'AgentCoordinator', 'ERROR', `Agent threw: ${e.message}`);
+                throw e;  // Real errors still propagate
             }
         }
 
@@ -118,3 +129,4 @@ Prompt: "${message}"`;
 }
 
 module.exports = new AgentCoordinator();
+

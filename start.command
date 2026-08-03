@@ -107,6 +107,22 @@ else
     done
 fi
 
+# Auto-Healing Watchdog: Continuously pings backend health on port 3210 and auto-restarts if offline
+monitor_backend_health() {
+    while true; do
+        sleep 4
+        if ! lsof -Pi :3210 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [Watchdog] Backend server offline detected on port 3210! Auto-restarting..." >> "$LOGFILE"
+            cd "$HAYAGRIVA_DIR"
+            nohup node cli.js --watch-all >> "$LOGFILE" 2>&1 &
+            sleep 2
+        fi
+    done
+}
+monitor_backend_health &
+WATCHDOG_PID=$!
+log "Auto-healing backend watchdog active (PID: $WATCHDOG_PID)"
+
 log "App started in Lite Mode. LLM engines (Port 8090/8091) remain offline until manually started in Settings."
 
 # Calculate hashes representing dependency locks and extensions for change detection

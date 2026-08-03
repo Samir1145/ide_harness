@@ -4,6 +4,7 @@ const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { loadSkeleton, fillPlaceholders } = require('../../../../../lib/agents/skills/skeleton-load');
 const { appendToMarkdown } = require('../../../../../lib/agents/skills/md-append');
 const { readAllKV } = require('../../../../../lib/agents/skills/kv-write');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class WitnessAgent {
     constructor() {

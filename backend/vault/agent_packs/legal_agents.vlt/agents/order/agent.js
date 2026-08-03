@@ -5,6 +5,7 @@ const { ragRetrieve, formatContextBlock } = require('../../../../../lib/agents/s
 const { extractDates } = require('../../../../../lib/agents/skills/entity-extract');
 const { writeCaseKV } = require('../../../../../lib/agents/skills/kv-write');
 const { appendTableRow, appendToMarkdown } = require('../../../../../lib/agents/skills/md-append');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class OrderAnalyserAgent {
     constructor() {
@@ -68,7 +69,10 @@ ${orderText.substring(0, 2000)}
             const jsonMatch = raw.match(/\{[\s\S]*\}/);
             if (jsonMatch) orderData = JSON.parse(jsonMatch[0]);
         } catch (e) {
-            console.error(`[Order Analyser] LLM extraction failed:`, e.message);
+            if (e.code !== 'LITE_MODE' && e.code !== 'CONTEXT_EXCEEDED') {
+                console.error(`[Order Analyser] LLM extraction failed:`, e.message);
+            }
+            // In Lite mode: orderData stays as empty defaults — RAG text will still be returned below
         }
 
         // 3. Write compliance items to litigation_tracker.md
@@ -121,7 +125,19 @@ Summarise: (1) the key findings and what they mean for the case, (2) every direc
             content: `${summaryBlock}\n\n${formatContextBlock(orderChunks.slice(0, 2), 'Order Document Excerpts')}\n\n[User Message]\n${userMessage}`
         });
 
-        return await getChatResponse(messages, { caseDir });
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'Order Analyst', agentIcon: '📜',
+                    userMessage, contexts: orderChunks.slice(0, 3),
+                    preBlock: `#### 📜 Decoded Order Summary\n\n\`\`\`\n${summaryBlock}\n\`\`\``,
+                    writeBack: true
+                });
+            }
+            throw e;
+        }
     }
 }
 

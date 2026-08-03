@@ -28,7 +28,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
   ) {}
 
   private getRelativePath(uri: URI): string {
-    const filePath = uri.path.toString();
+    const filePath = decodeURIComponent(uri.path.toString());
     try {
       const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (wsRoot) {
@@ -170,13 +170,40 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const lowerPath = originalPath.toLowerCase();
           if (!lowerPath.endsWith('.docx') && !lowerPath.endsWith('.doc') &&
               !lowerPath.endsWith('.xlsx') && !lowerPath.endsWith('.xls') &&
-              !lowerPath.endsWith('.pdf')) {
-            this.logger.warn('[HAYAGRIVA] Open Companion Side-by-Side only supported for DOCX, XLSX, and PDF');
+              !lowerPath.endsWith('.pdf') && !lowerPath.endsWith('.wiki.html')) {
+            this.logger.warn('[HAYAGRIVA] Open Companion Side-by-Side only supported for DOCX, XLSX, PDF, and Wiki');
             return;
           }
 
-          const companionPath = originalPath.replace(/\.[a-zA-Z0-9]+$/, '.md');
+          const caseDir = this.getCasePath();
+          const rel = this.getRelativePath(resourceUri);
+          const status = this.treeDecorator.statusCache[rel];
+          const subfolder = rel.includes('/') || rel.includes('\\') ? rel.substring(0, Math.max(rel.lastIndexOf('/'), rel.lastIndexOf('\\'))) : '';
+          const basename = getBasename(originalPath).replace(/\.[a-zA-Z0-9]+$/, '');
+          const conversionsSub = subfolder ? `conversions/${subfolder}` : 'conversions';
+          let companionPath = status?.files?.companion?.path ? `${caseDir}/${status.files.companion.path}` : `${caseDir}/${conversionsSub}/${basename}.md`;
           const companionUri = resourceUri.withPath(companionPath);
+          const caseName = this.getCasePath();
+          const apiPort = this.contribution.getApiPort();
+
+          // Self-Healing check: If companion .md is missing, trigger Phase 1 conversion automatically!
+          try {
+            const hasCompanion = status?.files?.companion?.exists === true || status?.dot1 === 'companion_ready';
+            if (!hasCompanion) {
+              this.logger.info(`[HAYAGRIVA] Companion .md missing for ${getBasename(originalPath)}. Triggering Phase 1 conversion...`);
+              const convertRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/convert-to-md`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ case: caseName, file: originalPath })
+              });
+              const convertResult = await convertRes.json();
+              if (convertResult.success) {
+                await this.treeDecorator.refreshStatuses();
+              }
+            }
+          } catch (e: any) {
+            console.warn('[HAYAGRIVA] Companion self-healing check failed:', e.message);
+          }
 
           // Open original file/preview first
           await this.contribution.open(resourceUri);
@@ -185,24 +212,44 @@ export class HayagrivaCommandContribution implements CommandContribution {
         },
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
-          if (!resolved) {
-            console.log('[HAYAGRIVA-CMD] openCompanionSideBySide isEnabled: resolved URI is empty -> false');
-            return false;
-          }
+          if (!resolved) return false;
           const lower = resolved.path.toString().toLowerCase();
-          if (lower.endsWith('.wiki.html')) {
-            console.log('[HAYAGRIVA-CMD] openCompanionSideBySide isEnabled for wiki.html -> true (pre-converted)');
-            return true;
+          const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.wiki.html'];
+          return validExts.some(ext => lower.endsWith(ext));
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:exportChunksToTiddlyWiki`, label: 'Export Document Chunks to TiddlyWiki' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) return;
+          const filePath = resourceUri.path.toString();
+          const casePath = this.getCasePath();
+          const apiPort = this.contribution.getApiPort();
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/tiddlywiki/export-chunks`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ caseName: casePath, docFilename: filePath })
+            });
+            const data = await res.json();
+            if (data.success && data.viewUrl) {
+              window.open(`http://127.0.0.1:${apiPort}` + data.viewUrl, '_blank');
+            } else {
+              alert('Export failed: ' + (data.error || 'Unknown error'));
+            }
+          } catch(e: any) {
+            alert('Export error: ' + e.message);
           }
-          if (!lower.endsWith('.pdf') && !lower.endsWith('.docx') && !lower.endsWith('.doc') && !lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
-            console.log('[HAYAGRIVA-CMD] openCompanionSideBySide isEnabled for unsupported file extension:', lower, '-> false');
-            return false;
-          }
-          const rel = this.getRelativePath(resolved);
-          const status = this.treeDecorator.statusCache[rel];
-          const hasCompanion = !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
-          console.log('[HAYAGRIVA-CMD] openCompanionSideBySide isEnabled:', rel, 'statusCache dot1:', status ? status.dot1 : 'undefined', '->', hasCompanion);
-          return hasCompanion;
+        },
+        isEnabled: (uri?: any) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.txt') || lower.endsWith('.md');
         }
       }
     );
@@ -446,6 +493,8 @@ export class HayagrivaCommandContribution implements CommandContribution {
       }}
     );
 
+    // D7: convertToMd is now AUTOMATIC on file drop.
+    // Keeping command registration as a disabled no-op so existing keybindings / state don't break.
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:convertToMd`, label: '1. Convert to Markdown' },
       {
@@ -457,16 +506,17 @@ export class HayagrivaCommandContribution implements CommandContribution {
           }
           const filePath = resourceUri.path.toString();
           const caseName = this.getCasePath();
+
           try {
             const apiPort = this.contribution.getApiPort();
             const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/convert-to-md`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ case: caseName, file: filePath, force: true })
+              body: JSON.stringify({ case: caseName, file: filePath })
             });
             const result = await res.json();
             if (result.success) {
-              this.logger.info(`[HAYAGRIVA] Started conversion of ${getBasename(filePath)}`);
+              this.logger.info(`[HAYAGRIVA] Markdown extraction started for ${getBasename(filePath)}`);
               await this.treeDecorator.refreshStatuses();
             } else {
               alert(result.error || 'Conversion failed');
@@ -477,14 +527,10 @@ export class HayagrivaCommandContribution implements CommandContribution {
         },
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
-          if (!resolved) {
-            console.log('[HAYAGRIVA-CMD] convertToMd isEnabled: resolved URI is empty -> false');
-            return false;
-          }
+          if (!resolved) return false;
           const lower = resolved.path.toString().toLowerCase();
-          const matches = lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.xlsx') || lower.endsWith('.xls');
-          console.log('[HAYAGRIVA-CMD] convertToMd isEnabled for', lower, '->', matches);
-          return matches;
+          const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx'];
+          return validExts.some(ext => lower.endsWith(ext));
         },
         isVisible: () => true
       }
@@ -523,9 +569,9 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return false;
-          const rel = this.getRelativePath(resolved);
-          const status = this.treeDecorator.statusCache[rel];
-          return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+          const lower = resolved.path.toString().toLowerCase();
+          const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx', '.md', '.txt'];
+          return validExts.some(ext => lower.endsWith(ext));
         },
         isVisible: () => true
       }
@@ -576,9 +622,9 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return false;
-          const rel = this.getRelativePath(resolved);
-          const status = this.treeDecorator.statusCache[rel];
-          return !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+          const lower = resolved.path.toString().toLowerCase();
+          const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx', '.md', '.txt'];
+          return validExts.some(ext => lower.endsWith(ext));
         },
         isVisible: () => true
       }
@@ -617,15 +663,58 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: URI) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return false;
-          const rel = this.getRelativePath(resolved);
-          const status = this.treeDecorator.statusCache[rel];
-          return !!status && (status.dot2 === 'indexed');
+          const lower = resolved.path.toString().toLowerCase();
+          const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx', '.md', '.txt'];
+          return validExts.some(ext => lower.endsWith(ext));
         },
         isVisible: () => true
       }
     );
 
-    // ── Pipeline Audit ────────────────────────────────────────────────────────
+    // D8: Delete File — soft-delete to .trash/ (7-day retention)
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:deleteFile`, label: '🗑 Delete File (move to trash)' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) return;
+          const filePath = resourceUri.path.toString();
+          const fileName = filePath.split('/').pop() || filePath;
+          const confirmed = window.confirm(
+            `Move "${fileName}" and all its extracted content (companion Markdown, AI index) to .trash/?\n\nFiles are automatically deleted after 7 days.`
+          );
+          if (!confirmed) return;
+          try {
+            const caseName = this.getCasePath();
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/delete-file`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ file: filePath, case: caseName })
+            });
+            const result = await res.json();
+            if (result.success) {
+              this.logger.info(`[HAYAGRIVA] 🗑 ${fileName} moved to .trash/ (auto-deletes in 7 days)`);
+              await this.treeDecorator.refreshStatuses();
+            } else {
+              alert(result.error || 'Delete failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Delete failed: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc')
+              || lower.endsWith('.xlsx') || lower.endsWith('.xls');
+        },
+        isVisible: () => true
+      }
+    );
+
+    // ── Pipeline Audit ───────────────────────────────────────────────────────────
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:showPipelineAudit`, label: 'Show Pipeline Audit' },
       {
@@ -647,7 +736,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
               return;
             }
             const f = entry.files || {};
-            const dot = (d: string) => d === 'companion_ready' || d === 'reviewed' || d === 'indexed' || d === 'green' ? '✅' : d === 'blue' ? '⏳' : d === 'red' ? '❌' : '⚪';
+            const dot = (d: string) => (d === 'green' || d === 'companion_ready' || d === 'reviewed' || d === 'indexed') ? '✅' : d === 'blue' ? '⏳' : d === 'red' ? '❌' : '⚪';
             const exists = (v: boolean) => v ? '✓ exists' : '✗ missing';
 
             const lines: string[] = [

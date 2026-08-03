@@ -7,6 +7,7 @@ const { vaultLookup, formatVaultBlock } = require('../../../../../lib/agents/ski
 const { extractEntities } = require('../../../../../lib/agents/skills/entity-extract');
 const { writeMultiKV } = require('../../../../../lib/agents/skills/kv-write');
 const { appendToMarkdown } = require('../../../../../lib/agents/skills/md-append');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class AdvisorAgent {
     constructor() {
@@ -77,11 +78,22 @@ class AdvisorAgent {
         }
         messages.push({ role: 'user', content });
 
-        // 5. Call LLM
-        const answer = await getChatResponse(messages, { caseDir });
+        // 5. Call LLM (with Lite Mode fallback — write-back fires from buildLiteFallback in that path)
+        let answer;
+        try {
+            answer = await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'Advisor', agentIcon: '⚖️',
+                    userMessage, contexts, vaultText: vaultContext, writeBack: true
+                });
+            }
+            throw e;
+        }
         const final = replaceCitations(answer, contexts);
 
-        // 6. Write-back: append Q&A finding to case_facts.md
+        // 6. Write-back: append Q&A finding to case_facts.md (Standard mode path)
         try {
             const shortQ = userMessage.length > 80 ? userMessage.substring(0, 80) + '...' : userMessage;
             const shortA = final.length > 200 ? final.substring(0, 200) + '...' : final;

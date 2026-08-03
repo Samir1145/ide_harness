@@ -5,6 +5,7 @@ const { ragRetrieve } = require('../../../../../lib/agents/skills/rag-retrieve')
 const { extractEntities } = require('../../../../../lib/agents/skills/entity-extract');
 const { readAllKV } = require('../../../../../lib/agents/skills/kv-write');
 const { appendToMarkdown } = require('../../../../../lib/agents/skills/md-append');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class EntityGraphAgent {
     constructor() {
@@ -111,8 +112,23 @@ Summarise: (1) the key entities and their roles, (2) any significant relationshi
             content: `[Entity Graph Built]\n- Nodes: ${graphData.nodes.length}\n- Edges: ${edges.length}\n- Saved: concepts/entity_graph.json\n\nTop entities:\n${Array.from(nodes.values()).sort((a,b) => b.count-a.count).slice(0,10).map(n => `- ${n.label} (${n.type})`).join('\n')}\n\n[User Message]\n${userMessage}`
         });
 
-        const summary = await getChatResponse(messages, { caseDir });
-        return `${summary}\n\n---\n🗺️ **entity_graph.json** saved to case folder (${graphData.nodes.length} nodes, ${edges.length} edges). Open the D3.js Case Graph Viewer to visualise.`;
+        try {
+            const summary = await getChatResponse(messages, { caseDir });
+            return `${summary}\n\n---\n🗺️ **entity_graph.json** saved to case folder (${graphData.nodes.length} nodes, ${edges.length} edges). Open the D3.js Case Graph Viewer to visualise.`;
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                const topNodes = Array.from(nodes.values())
+                    .sort((a, b) => b.count - a.count).slice(0, 15)
+                    .map(n => `- **${n.label}** *(${n.type})*`)
+                    .join('\n');
+                return `> ℹ️ **Lite Mode** — LLM narrative unavailable. Raw entity graph below.\n\n` +
+                       `#### 🕸️ Entity Graph — ${graphData.nodes.length} Nodes, ${edges.length} Edges\n\n` +
+                       `**Top Entities:**\n${topNodes}\n\n` +
+                       `---\n🗺️ **entity_graph.json** saved to case folder. Open the D3.js Case Graph Viewer to visualise.`;
+            }
+            throw e;
+        }
+
     }
 }
 

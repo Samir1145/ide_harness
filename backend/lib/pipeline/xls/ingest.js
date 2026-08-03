@@ -13,7 +13,9 @@ async function ingestXlsx(caseDir, filePath) {
     console.log(`[Excel Ingestion] Converting ${relative} to separate sheet companions...`);
     const sheets = convertXlsxSheets(filePath);
 
-    const destDir = path.dirname(filePath);
+    const subfolder = path.dirname(relative);
+    const conversionsDir = path.join(caseDir, 'conversions');
+    const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
     fs.mkdirSync(destDir, { recursive: true });
 
     const companionPaths = [];

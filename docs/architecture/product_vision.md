@@ -76,3 +76,48 @@ While Legal Counsel and Insolvency Practice are the initial reference domains, H
 | 🩺 **Clinical & Medical** | Patient Records, Lab Results | Diagnosis Verification, Medication Audit | Clinical Summary, Exporter | Clinical Practice Vault, Contraindication Agents |
 | 🏗️ **Architecture & AEC** | Specs, Blueprints, BOQs | Building Code Audit, Cost Matrix | Permit Applications | Municipal Bylaws Vault, Costing Agents |
 | 📊 **Financial Audit** | Financials, Tax Returns, Invoices | Reconciliation Ledger, Risk Matrix | Statutory Audit Reports | Tax Code Vault, Audit RAG Engines |
+
+---
+
+## 🎯 Targeted Product Offerings: Legal vs. Finance Editions
+
+Hayagriva is structured into two specialized desktop offerings tailored to the distinct needs of legal practitioners versus financial/insolvency professionals:
+
+```
+                          ┌─────────────────────────────────────────┐
+                          │          HAYAGRIVA ECOSYSTEM            │
+                          └────────────────────┬────────────────────┘
+                                               │
+             ┌─────────────────────────────────┴─────────────────────────────────┐
+             ▼                                                                   ▼
+┌────────────────────────────────────────┐                       ┌────────────────────────────────────────┐
+│ 🏛️ HAYA_LEGAL (Legal Edition)          │                       │ 📊 HAYA_FINANCE (Finance & CIRP)       │
+├────────────────────────────────────────┤                       ├────────────────────────────────────────┤
+│ Target: Advocates, Counsel & Law Firms │                       │ Target: CAs, RPs, Auditors & Valuers   │
+├────────────────────────────────────────┤                       ├────────────────────────────────────────┤
+│ Models (2 Total):                      │                       │ Models (3 Total):                      │
+│  • InLegal-SBERT (768-dim Vector)      │                       │  • InLegal-SBERT (Vault Search)        │
+│  • LegalParam-2.9B.gguf (LLM Engine)   │                       │  • Finance-Embeddings (Excel Ledgers)  │
+│                                        │                       │  • FinanceParam-2.9B.gguf (LLM Engine) │
+├────────────────────────────────────────┤                       ├────────────────────────────────────────┤
+│ Vaults: All 14 Encrypted Vaults        │                       │ Vaults: Forms, IBC Docs, Corporate,    │
+│ Subagents: @advisor, @document, @nclt, │                       │         Tax & CUAD Benchmarks          │
+│            @precedent, @litigation     │                       │ Subagents: @coc, @evaluator, @claims,  │
+│ Workflow: Petition Drafting, Precedents│                       │            @timeline, @avoidance       │
+│           & Supreme Court /export-sc   │                       │ Workflow: Voting Shares, Form H Audit, │
+└────────────────────────────────────────┘                       │           PUFE & Ledger Reconciliation │
+                                                                 └────────────────────────────────────────┘
+```
+
+### 🏛️ 1. Haya_Legal (For Advocates & Law Firms)
+* **Model Footprint (2 Models)**: `InLegal-SBERT` (768-dim Vector Embedder) + `LegalParam-2.9B.gguf` (2.9B LLM).
+* **Vault Suite**: `laws`, `cases`, `ibc`, `general`, `acord_clauses` (126k clauses), `rera`, `debt_recovery`, `documents_pleadings`.
+* **Subagent Suite**: `@advisor`, `@document`, `@nclt`, `@precedent`, `@counter`, `@litigation`, `@strength`, `@witness`.
+* **Core Value**: Zero-setup legal research, automated petition drafting, precedent matching, and one-click Supreme Court DOCX formatting (`/export-sc`).
+
+### 📊 2. Haya_Finance (For CAs, Insolvency Professionals & Forensic Auditors)
+* **Model Footprint (3 Models)**: `InLegal-SBERT` (for Data Vault lookups) + `Finance-Embeddings` (for Excel spreadsheets & trial balances) + `FinanceParam-2.9B.gguf` (for financial audit reasoning).
+* **Vault Suite**: `forms`, `documents_ibc`, `documents_corporate`, `documents_tax_conveyancing`, `cuad_benchmark`.
+* **Subagent Suite**: `@coc` (Creditor Voting Share & Meeting Coordinator), `@evaluator` (Resolution Plan & Form H Auditor), `@claims` (Claim Verification), `@timeline` ($T_0 \rightarrow T_{330}$ Manager), `@avoidance` (Sections 43, 45, 50, 66 PUFE Auditor).
+* **Core Value**: Bank statement reconciliation, financial claim admission, creditor voting share math, PUFE forensic audit, and Form H compliance certificates.
+

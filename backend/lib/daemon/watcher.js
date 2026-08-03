@@ -653,13 +653,13 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
             };
         }
 
-        // ── Binary files: PDF, DOCX, XLSX ────────────────────────────────────
+        // ── Binary files: PDF, DOCX, DOC, XLSX ───────────────────────────────────
         let result;
         let fileType = ext.replace('.', '');
         if (ext === '.pdf') {
             result = await ingestPdf(caseDir, filePath, { multimodal: opts.multimodal === true });
             fileType = 'pdf';
-        } else if (ext === '.docx') {
+        } else if (ext === '.docx' || ext === '.doc') {
             result = await ingestDocx(caseDir, filePath);
             fileType = 'docx';
         } else if (ext === '.xlsx' || ext === '.xls') {
@@ -687,7 +687,7 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
 
         // Phase 1 (conversionOnly): write statuses.json index, skip index.json
         if (conversionOnly) {
-            const targetStatus = (ext === '.pdf' && result.isPartial) ? 'processing' : 'companion_ready';
+            const targetStatus = 'companion_ready';
             updateStatus(caseDir, relative, targetStatus);
             console.log(`[Watcher] Phase 1 complete — status: ${targetStatus} for ${basename}`);
             return { sections: 0, companionPath: result.companionPath, status: targetStatus };
@@ -1306,6 +1306,11 @@ function generateCaseAudit(caseDir) {
 
 function ensureAuditDocs(caseDir) {
     try {
+        if (!caseDir) return;
+        const resolved = path.resolve(caseDir);
+        const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
+        if (resolved === docsRoot) return;
+
         const conversionsDir = path.join(caseDir, 'conversions');
         const conceptsDir = path.join(caseDir, 'concepts');
         const wikiDir = path.join(caseDir, 'wiki');

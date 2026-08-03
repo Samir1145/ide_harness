@@ -19,6 +19,8 @@
     "setup:llamafile": "node scripts/prepare-llamafile.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1098.0",
+    "@aws-sdk/s3-request-presigner": "^3.1098.0",
     "@xenova/transformers": "^2.17.2",
     "chokidar": "^3.6.0",
     "detect-libc": "^2.1.2",

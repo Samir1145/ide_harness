@@ -33,6 +33,58 @@ export const hayagrivaPreferenceSchema: PreferenceSchema = {
       type: 'number',
       description: 'Top N limit for RAG hover completions.',
       default: 1
+    },
+    'files.exclude': {
+      type: 'object',
+      description: 'Configure glob patterns for excluding files and folders in File Explorer.',
+      default: {
+        '**/.*': true,
+        '**/.*/**': true,
+        '.*': true,
+        '.*/**': true,
+        '**/.prompts': true,
+        '**/.prompts/**': true,
+        '**/.localized': true,
+        '**/.trash': true,
+        '**/.trash/**': true,
+        '**/concepts': true,
+        '**/conversions': true,
+        '**/drafts': true,
+        '**/exports': true,
+        '**/summaries': true,
+        '**/reviews': true,
+        'concepts': true,
+        'conversions': true,
+        'drafts': true,
+        'exports': true,
+        'summaries': true,
+        'reviews': true,
+        '**/concepts/**': true,
+        '**/conversions/**': true,
+        '**/drafts/**': true,
+        '**/exports/**': true,
+        '**/summaries/**': true,
+        '**/reviews/**': true,
+        'concepts/': true,
+        'conversions/': true,
+        'drafts/': true,
+        'exports/': true,
+        'summaries/': true,
+        'reviews/': true,
+        '**/*.status': true,
+        '**/*.error': true,
+        '**/*.footer': true,
+        '**/*.cache': true,
+        '**/index.json': true,
+        '**/index.sqlite': true,
+        '**/sqlite.db': true,
+        '**/case_manifest.json': true,
+        '**/case_kv_dictionary.json': true,
+        '**/CASE_AUDIT.md': true,
+        '**/hayagriva_settings.json': true,
+        '**/index.md': true,
+        '**/.last-launch-build-checksum': true
+      }
     }
   }
 };
@@ -110,7 +162,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     }
     if (filePath.endsWith('.docx') ||
         filePath.endsWith('.xlsx') || filePath.endsWith('.xls') ||
-        filePath.endsWith('.wiki.html') || filePath.endsWith('.pdf')) {
+        filePath.endsWith('.wiki.html') || filePath.endsWith('.html') || filePath.endsWith('.pdf')) {
       return 600;
     }
     return 0;
@@ -138,8 +190,23 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     }
 
     const lowerPath = filePath.toLowerCase();
-    if (lowerPath.endsWith('.wiki.html')) {
-      return await this.openWikiHtmlViewer(filePath, caseName);
+    if (lowerPath.endsWith('.wiki.html') || lowerPath.endsWith('.html')) {
+      const wikiId = `hayagriva-wiki-viewer-${encodeURIComponent(filePath)}`;
+      const wikiAlreadyOpen = !!this.shell.getWidgets('main').find(w => w.id === wikiId);
+
+      const wikiWidget = await this.openWikiHtmlViewer(filePath, caseName);
+      
+      if (!wikiAlreadyOpen) {
+        // Auto split-open the first extracted Markdown card to the side if it exists
+        try {
+          const caseDir = filePath.substring(0, filePath.lastIndexOf('/'));
+          const wikiCardUri = uri.withPath(`${caseDir}/wiki/00_Workflow_Architecture.md`);
+          // If 00_Workflow_Architecture.md doesn't exist, try TableOfContents.md or index card
+          await this.editorManager.openToSide(wikiCardUri);
+        } catch (_) {}
+      }
+
+      return wikiWidget;
     }
     if (lowerPath.endsWith('.docx') || lowerPath.endsWith('.doc') ||
         lowerPath.endsWith('.xlsx') || lowerPath.endsWith('.xls') ||
@@ -147,13 +214,26 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       
       const rel = this.getRelativePath(uri);
       const status = this.treeDecorator.statusCache[rel];
-      const hasCompanion = !!status && (status.dot1 === 'companion_ready' || status.dot1 === 'reviewed');
+      // D2/D6: Companion exists when the backend reports files.companion.exists === true (dot1 === 'green')
+      const hasCompanion = status?.files?.companion?.exists === true;
+
       
       const previewWidget = await this.openOfficePreview(filePath, caseName);
       
       if (hasCompanion) {
-        const companionPath = filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
-        const companionUri = uri.withPath(companionPath);
+        // status.files.companion.path is a relative path from the case dir root
+        // (e.g. "conversions/ipie.md"). uri.withPath() expects an absolute path,
+        // so we must join it with the case directory first.
+        let companionUri: URI;
+        const relCompanion = status?.files?.companion?.path;
+        if (relCompanion) {
+          const caseDir = this.getCaseName(filePath);
+          const absCompanionPath = `${caseDir}/${relCompanion}`;
+          companionUri = uri.withPath(absCompanionPath);
+        } else {
+          // Fallback: same folder, same stem, .md extension (absolute)
+          companionUri = uri.withPath(filePath.replace(/\.[a-zA-Z0-9]+$/, '.md'));
+        }
         // Split open the companion MD to the side of the preview widget
         await this.editorManager.openToSide(companionUri);
       }
@@ -306,12 +386,14 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
   }
 
   private getRelativePath(uri: URI): string {
-    const filePath = uri.path.toString();
+    const filePath = decodeURIComponent(uri.path.toString());
     try {
       const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (wsRoot) {
         const rootPath = decodeURIComponent(wsRoot.path.toString());
-        if (filePath.startsWith(rootPath)) {
+        const fileLower = filePath.toLowerCase();
+        const rootLower = rootPath.toLowerCase();
+        if (fileLower.startsWith(rootLower)) {
           return filePath.substring(rootPath.length).replace(/^[\/\\]/, '');
         }
       }
@@ -519,6 +601,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
             const conceptsIframe = this.conceptsWidget.node.querySelector('iframe');
             conceptsIframe?.contentWindow?.postMessage({ type: 'refresh-wiki-explorer', caseName: event.data.caseName }, '*');
           }
+        } else if (event.data.type === 'close-all-editors') {
+          await this.commandRegistry.executeCommand('workbench.action.closeAllEditors');
         } else if (event.data.type === 'close-upload-modal') {
           if (this.uploadModalElement) {
             document.body.removeChild(this.uploadModalElement);
@@ -1727,6 +1811,17 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     }, 50);
   }
 
+  private closeOtherDocumentViewers(newWidgetId: string): void {
+    for (const w of this.shell.getWidgets('main')) {
+      if (
+        (w.id.startsWith('hayagriva-office-preview-') || w.id.startsWith('hayagriva-wiki-viewer-')) &&
+        w.id !== newWidgetId
+      ) {
+        w.close();
+      }
+    }
+  }
+
   async openWikiHtmlViewer(filePath: string, caseName: string): Promise<Widget> {
     const id = `hayagriva-wiki-viewer-${encodeURIComponent(filePath)}`;
     let widget = this.shell.getWidgets('main').find(w => w.id === id);
@@ -1735,6 +1830,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       this.shell.activateWidget(widget.id);
       return widget;
     }
+
+    this.closeOtherDocumentViewers(id);
 
     widget = new Widget();
     widget.id = id;
@@ -1764,6 +1861,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
       this.shell.activateWidget(widget.id);
       return widget;
     }
+
+    this.closeOtherDocumentViewers(id);
 
     widget = new Widget();
     widget.id = id;

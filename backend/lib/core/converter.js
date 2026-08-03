@@ -14,7 +14,7 @@ async function convertToMarkdown(inputPath, options = {}) {
     }
 
     const ext = path.extname(inputPath).toLowerCase();
-    if (ext === '.docx') {
+    if (ext === '.docx' || ext === '.doc') {
         return convertDocx(inputPath);
     } else if (ext === '.xlsx' || ext === '.xls') {
         return convertXlsx(inputPath);

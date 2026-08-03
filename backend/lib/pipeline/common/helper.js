@@ -105,9 +105,29 @@ function cleanBm25Index(bm25Index, basename) {
     }
 }
 
+/**
+ * Detects if a file is a TiddlyWiki HTML file (.wiki.html or .html with TW markers).
+ */
+function isTiddlyWikiHtml(filePath) {
+    if (!filePath) return false;
+    const lower = filePath.toLowerCase();
+    if (lower.endsWith('.wiki.html')) return true;
+    if (lower.endsWith('.html') || lower.endsWith('.htm')) {
+        try {
+            const head = fs.readFileSync(filePath, { encoding: 'utf8', flag: 'r' }).slice(0, 15000);
+            return head.includes('tiddlywiki-tiddler-store') || 
+                   head.includes('storeArea') || 
+                   head.includes('tiddlywiki') ||
+                   head.includes('TiddlyWiki');
+        } catch (_) {}
+    }
+    return false;
+}
+
 module.exports = {
     getSafeFilename,
     probeLayoutProfile,
     setupConceptsDir,
-    cleanBm25Index
+    cleanBm25Index,
+    isTiddlyWikiHtml
 };

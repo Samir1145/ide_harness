@@ -5,6 +5,7 @@ const { ragRetrieve, formatContextBlock } = require('../../../../../lib/agents/s
 const { extractEntities, extractAmounts } = require('../../../../../lib/agents/skills/entity-extract');
 const { writeCaseKV, readAllKV } = require('../../../../../lib/agents/skills/kv-write');
 const { appendTableRow } = require('../../../../../lib/agents/skills/md-append');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class ClaimsVerificationAgent {
     constructor() {
@@ -96,18 +97,35 @@ class ClaimsVerificationAgent {
 
         // 5. Build LLM context for summary response
         const contextBlock = formatContextBlock(allChunks.slice(0, 4), 'Retrieved Claim Documents');
-        const summaryBlock = `[Claims Verification Summary]
-- Chunks analysed: ${allChunks.length}
-- Claims verified: ${verifiedClaims.length}
-- Discrepancies flagged: ${discrepancies.length}
-${discrepancies.length > 0 ? '\n[Discrepancies]\n' + discrepancies.map(d => `- ${d.creditor}: ${d.amount} (${d.source})`).join('\n') : ''}
-${registryData ? '\n[Existing Claims Registry]\n' + registryData.substring(0, 400) : ''}`;
+        const summaryBlock = `[Claims Verification Summary]\n- Chunks analysed: ${allChunks.length}\n- Claims verified: ${verifiedClaims.length}\n- Discrepancies flagged: ${discrepancies.length}\n${discrepancies.length > 0 ? '\n[Discrepancies]\n' + discrepancies.map(d => `- ${d.creditor}: ${d.amount} (${d.source})`).join('\n') : ''}\n${registryData ? '\n[Existing Claims Registry]\n' + registryData.substring(0, 400) : ''}`;
+
+        // Pre-block for Lite Mode: fully computed verification table
+        const claimsTable = (verifiedClaims.length > 0 || discrepancies.length > 0)
+            ? `#### 📊 Claims Verification Results\n\n` +
+              `| Creditor | Amount | Source | Status |\n|---|---|---|---|\n` +
+              [...verifiedClaims, ...discrepancies].slice(0, 10).map(c =>
+                  `| ${c.creditor} | ${c.amount} | ${c.source} | ${c.flag} |`
+              ).join('\n') +
+              `\n\n- ✅ Verified: ${verifiedClaims.length}  ⚠️ Discrepancies: ${discrepancies.length}` +
+              `\n> Full registry written to \`claims_registry.md\``
+            : `> No claim amounts detected in the ${allChunks.length} document chunks scanned.`;
 
         const messages = [{ role: 'system', content: this.instructions }];
         history.forEach(h => messages.push({ role: h.role, content: h.content }));
         messages.push({ role: 'user', content: `${summaryBlock}\n\n${contextBlock}\n\n[User Message]\n${userMessage}` });
 
-        return await getChatResponse(messages, { caseDir });
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'Claims Verification', agentIcon: '📊',
+                    userMessage, contexts: allChunks.slice(0, 3),
+                    preBlock: claimsTable, writeBack: true
+                });
+            }
+            throw e;
+        }
     }
 }
 

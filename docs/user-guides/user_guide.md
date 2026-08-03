@@ -24,8 +24,93 @@ When you upload documents into a Case Workspace, they progress through three seq
 ## 1.5. Product Mode Feature Matrix: Lite vs. Standard
 
 HAYAGRIVA supports two processing modes to accommodate different hardware specifications and privacy constraints:
-*   **Lite Mode (default):** Designed for 8GB–16GB RAM devices. Operates offline, skipping LLM generations to prevent OOM errors, while providing local indexing, timeline chronology extraction, topic overlap maps, and local ONNX-powered semantic search.
-*   **Standard Mode:** Designed for 16GB–32GB+ RAM or cloud API configurations. Enables the complete suite of AI-assisted drafting, facts extraction, and evaluation agents.
+*   **Lite Mode (default):** Designed for 8GB–16GB RAM devices. Operates 100% offline without requiring local or cloud LLM engines. When local embedding models (`InLegal-SBERT`, `Finance-Embeddings`), encrypted Law/Case Vaults, and agent packs are installed, Lite Mode delivers complete RAG search, statutory lookup, structured form filling, ledger management, chronology extraction, and court-compliant document compilation.
+*   **Standard Mode:** Designed for 16GB–32GB+ RAM or cloud API configurations. Enables the complete suite of AI-assisted drafting, generative reasoning, facts extraction, and multi-agent critique loops.
+
+### 💡 What Can You Do in Lite Mode? (Sovereign Offline Execution)
+
+Even with **zero LLM engines running** (Port 8090 offline), HAYAGRIVA operates as a fully functional, highly capable legal workspace. Below is an exact breakdown of what is active and available in Lite Mode:
+
+#### 1. Ingestion & Document Processing
+*   **Multi-format Extraction:** Converts PDFs, Word (`.docx`), Excel (`.xlsx`), and TiddlyWiki files into clean Markdown (`.md`) companion files instantly on drop.
+*   **Local Vector Indexing:** Computes 768-dimensional neural embeddings locally in RAM using ONNX Runtime (`InLegal-SBERT` for legal files, `Finance-Embeddings` for sheets).
+*   **Hybrid Search (FTS5 + Cosine Reranking):** Combined SQLite full-text search (BM25) with vector similarity reranking in pure JavaScript (<1ms latency).
+*   **Scanned PDF Self-Healing:** Detects flat/scanned PDFs and accepts companion `.md` drops to unlock vector search without external OCR dependencies.
+
+#### 2. Specialized Subagents (@legal-advisor, @contract-risk, @deal-audit, @form-fill, etc.)
+All 19 subagents remain fully operational in Lite Mode by leveraging local RAG retrieval, vault lookups, and KV dictionary extraction:
+
+##### 📚 Simple English Subagent Task Dictionary
+
+| Subagent Tag (New & Legacy) | Product Name | Task Description | Prompt Command Examples | Deliverables / Files Created |
+|---|---|---|---|---|
+| **`@legal-advisor`** *(or `@advisor`)* | **Legal Advisor** | **Case RAG & Statutory Search**<br>Retrieves relevant document passages across indexed files & cross-references IBC/MCA statutory sections in the Law Vault. | `@legal-advisor how is iPIE defined`<br>`@legal-advisor find default date in loan agreement`<br>`@legal-advisor IBC section 7 admission requirements` | • Formatted Case File Findings Card<br>• `case_facts.md` write-back |
+| **`@form-fill`** *(or `@forms`)* | **Form Auto-Fill** | **Statutory e-Form Auto-Fill & Audit**<br>Extracts case facts to auto-fill IBBI/MCA statutory forms, runs math/date validation checks, and exports MCA-compliant JSON schemas. | `@form-fill Form A`<br>`@form-fill Form B for operational creditor`<br>`@form-fill AOC-4` | • Pre-filled Form Skeleton<br>• `exports/<form_id>_<timestamp>.json`<br>• `case_facts.md` audit log |
+| **`@avoidance-audit`** *(or `@avoidance`)* | **Avoidance Audit** | **Avoidance Transaction Scan**<br>Scans financial transactions against statutory lookback periods (Preferential Sec 43, Undervalued Sec 45/46, Extortionate Sec 49, Fraudulent Sec 66). | `@avoidance-audit scan transactions`<br>`@avoidance-audit check director payments`<br>`@avoidance-audit lookback review` | • `concepts/avoidance_transactions.json`<br>• `avoidance_ledger.md` table<br>• `case_kv_dictionary.json` flag count |
+| **`@claims-audit`** *(or `@claims`)* | **Claims Audit** | **Claims Verification & Discrepancy Audit**<br>Cross-references claimed principal/interest against loan agreements, invoices, and bank statements to flag discrepancies. | `@claims-audit verify claims`<br>`@claims-audit audit financial creditor debt`<br>`@claims-audit check claim amount mismatches` | • `claims_registry.md`<br>• Discrepancy Report Table<br>• `case_kv_dictionary.json` claim metrics |
+| **`@argument-score`** *(or `@strength`)* | **Argument Scorer** | **Petition Ground Scoring**<br>Evaluates legal grounds in drafts against statutory sections and retrieved case evidence, scoring argument strength. | `@argument-score evaluate petition grounds`<br>`@argument-score check argument strength`<br>`@argument-score score grounds` | • Scored Grounds Matrix (`🟢 STRONG`, `🟡 MODERATE`, `🔴 WEAK`, `🟠 CONTESTED`) |
+| **`@timeline-build`** *(or `@timeline`)* | **Timeline Builder** | **Case Chronology Reconstruction**<br>Extracts all legal dates across case documents, builds a chronological event sequence, and updates key statutory milestone dates. | `@timeline-build build chronology`<br>`@timeline-build reconstruct case dates`<br>`@timeline-build generate timeline` | • `timeline.md` (with Gantt chart)<br>• `case_kv_dictionary.json` milestone dates |
+| **`@precedent-find`** *(or `@precedent`)* | **Precedent Finder** | **Case Law & Precedent Research**<br>Searches the local encrypted Case Vault (17,000+ judgments) for Supreme Court and NCLAT rulings matching legal issues. | `@precedent-find find rulings on CIRP withdrawal Sec 12A`<br>`@precedent-find Supreme Court precedent on related party voting` | • Precedent Rulings List<br>• Court Holdings & Citations |
+| **`@order-decode`** *(or `@order`)* | **Order Decoder** | **Tribunal Direction & Compliance Audit**<br>Extracts operative directions, compliance deadlines, and next hearing dates from court/NCLT orders. | `@order-decode decode order directions`<br>`@order-decode audit compliance deadlines`<br>`@order-decode extract next hearing date` | • `litigation_tracker.md`<br>• `case_kv_dictionary.json` (`next_hearing_date`, `last_order_date`) |
+| **`@coc-calc`** *(or `@coc-coordinator`)* | **CoC Voting Calc** | **CoC Voting Share & Governance Audit**<br>Calculates financial creditor voting shares ($V_i = \frac{Debt_i}{\sum Debt} \times 100\%$), excludes related parties (Sec 5(24)), and formats meeting notices. | `@coc-calc calculate voting shares`<br>`@coc-calc audit related party exclusion`<br>`@coc-calc generate meeting notice` | • Voting Share Table<br>• Statutory Notice & Ballot Template<br>• `drafts/coc_governance_summary.md` |
+| **`@plan-audit`** *(or `@plan-evaluator`)* | **Resolution Plan Auditor** | **Resolution Plan Compliance Audit**<br>Audits Resolution Plans against mandatory Section 30(2) requirements and Section 29A disqualifications, preparing Form H compliance fields. | `@plan-audit audit resolution plan`<br>`@plan-audit check Section 29A eligibility`<br>`@plan-audit prepare Form H details` | • Section 30(2) Compliance Checklist<br>• `drafts/form_h_compliance_audit.md` |
+| **`@contract-risk`** *(or `@cuad`)* | **Contract Risk Scanner** | **Commercial Contract Risk Scan**<br>Scans commercial contracts for 41 key legal risk categories (limitation of liability, indemnity caps, termination for convenience). | `@contract-risk scan commercial contract`<br>`@contract-risk check liability caps` | • `contract_risk_ledger.md`<br>• 41-Category Risk Matrix |
+| **`@deal-audit`** *(or `@maud`)* | **M&A Deal Auditor** | **M&A Due Diligence Audit**<br>Audits Merger Agreements, SPAs, and Joint Ventures against 92 deal points (MAE exclusions, fiduciary outs, breakup fees). | `@deal-audit review merger agreement`<br>`@deal-audit check MAE exclusions` | • `maud_deal_audit.md`<br>• 92 Deal Point Checklist |
+| **`@clause-find`** *(or `@acord`)* | **Clause Finder** | **Attorney-Rated Clause Retrieval**<br>Surfaces 126,662 expert-rated clause precedents across 9 commercial clause categories. | `@clause-find find 5-star indemnity clause`<br>`@clause-find arbitration clause` | • 5-Star Rated Clause Snippets |
+| **`@entitygraph`** | **Entity Graph** | **3D Entity Relationship Graph Extraction**<br>Extracts parties, corporate entities, directors, dates, and transaction amounts to build a 3D network graph. | `@entitygraph build relationship graph`<br>`@entitygraph extract entity network` | • `concepts/entity_graph.json`<br>• Interactive D3.js 3D Graph Render |
+| **`@affidavit-build`** *(or `@deposition`)* | **Affidavit Builder** | **Sworn Affidavit Skeleton Generation**<br>Fills case facts into standardized court affidavit skeletons (`affidavit-template.md`) and flags missing fields. | `@affidavit-build draft affidavit`<br>`@affidavit-build prepare sworn statement` | • `drafts/affidavit_draft_<timestamp>.md`<br>• Unfilled Field Gap Report |
+| **`@evidence-matrix`** *(or `@witness`)* | **Evidence Matrix** | **Proof-to-Fact Evidence Matrix**<br>Maps factual claims and witness testimony points directly to underlying documentary evidence and exhibits. | `@evidence-matrix build evidence matrix`<br>`@evidence-matrix map proof to facts` | • `evidence_matrix.md`<br>• `case_facts.md` audit log |
+| **`@client-update`** *(or `@clientupdate`)* | **Client Update Brief** | **Client Briefing Report**<br>Populates executive status reports from key case dictionary facts and current litigation status. | `@client-update prepare status report`<br>`@client-update generate client brief` | • `drafts/client_update_<timestamp>.md` |
+
+#### 3. Workspace & Editor Features (Monaco Legal LSP)
+The Monaco editor in HAYAGRIVA features a dedicated Language Server Protocol (LSP) provider that works **100% locally in both Lite and Standard modes**.
+
+##### ⚡ Monaco LSP & Slash Command Dictionary
+
+###### A. Statutory & Law Search Commands (`/` & `@` triggers)
+
+| Slash Command / Trigger | Action Description | Sample Input | What Gets Inserted into Monaco Editor |
+|---|---|---|---|
+| **`/law-search`** *(or `/law`)* | Searches encrypted Statutory Law Vault for sections across IBC, MCA, IT Act, Banking laws. | `/law-search CIRP commencement` | Inserts the full section text snippet with interactive `${1:field}` tab-stops. |
+| **`/ibc`** | Searches Section titles and full statutory text of the Insolvency & Bankruptcy Code 2016. | `/ibc section 7` | Inserts IBC statutory provision snippet directly into the document. |
+| **`/mca`** | Searches Companies Act 2013 sections, rules, and statutory schedules. | `/mca section 185` | Inserts Companies Act section text & compliance rules. |
+| **`/sec`** | Quick statutory section lookup across all installed law vaults. | `/sec 43` | Inserts Section 43 (Preferential Transactions) text. |
+| **`@@`** or **`@`** | Direct inline statutory trigger popup (types `@` anywhere on a blank or space character). | `@@ibc/` or `@sec 7` | Opens statutory completion dropdown inline as you type. |
+
+###### B. Document & Case Linking Commands
+
+| Slash Command | Action Description | Sample Input | What Gets Inserted into Monaco Editor |
+|---|---|---|---|
+| **`/precedent-search`** *(or `/case`)* | Searches 581 local case law summaries for precedents, court rulings, and NCLAT orders. | `/precedent-search related party voting` | Inserts precedent markdown summary link or full holding:<br>`[Supreme Court on Sec 21(2)](concepts/learning_curve_12.md)` |
+| **`/fact-link`** *(or `/concept`)* | Searches & links local case concept nodes created in your workspace. | `/fact-link claim dispute` | Inserts concept link markdown:<br>`[Claim Dispute](concepts/claim_dispute.md)` |
+| **`/qa`** | Searches & links Q&A wiki cards generated in `wiki/` directory. | `/qa CIRP timeline` | Inserts Q&A card link:<br>`[CIRP Timeline](wiki/cirp_timeline.wiki.html)` |
+
+###### C. Drafting & Boilerplate Commands (`/clause-insert` or `/clause`)
+
+| Command | Clause Type | Sample Input | Inserted Boilerplate Code Sample |
+|---|---|---|---|
+| **`/clause-insert arbitration`** | Arbitration Clause | `/clause-insert arbitration` | `Any dispute, controversy, or claim arising out of or relating to this contract, including its formation, breach, termination, or invalidity, shall be referred to and finally resolved by arbitration under the Arbitration and Conciliation Act, 1996. The tribunal shall consist of ${1:one} arbitrator(s). The venue/seat of arbitration shall be ${2:New Delhi}, and the language of the proceedings shall be English.` |
+| **`/clause-insert governing_law`** | Governing Law & Jurisdiction | `/clause-insert law` | `This Agreement shall be governed by, construed, and enforced in accordance with the laws of India. The parties agree that the courts located in ${1:New Delhi} shall have exclusive jurisdiction to settle any disputes arising under this Agreement.` |
+| **`/clause-insert indemnity`** | Indemnification Clause | `/clause-insert indemnity` | `The ${1:Indemnifying Party} shall defend, indemnify, and hold harmless the ${2:Indemnified Party} from and against any and all claims, losses, damages, liabilities, and expenses (including reasonable legal fees) arising from any breach of this Agreement or negligent acts.` |
+| **`/clause-insert confidentiality`** | Confidentiality Clause | `/clause-insert confidentiality` | `Each party agrees to hold in strict confidence all confidential information disclosed by the other party. Neither party shall disclose such information to any third party without the prior written consent of the disclosing party, except as required by law. This obligation survives for ${1:3} year(s) post-termination.` |
+| **`/clause-insert force_majeure`** | Force Majeure Clause | `/clause-insert force` | `Neither party shall be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, war, riot, fire, flood, labor dispute, or government actions, provided prompt notice is given.` |
+
+###### D. Court Publishing Commands
+
+| Slash Command | Action Description | Sample Input | Output / Result |
+|---|---|---|---|
+| **`/court-export`** *(or `/export-sc`)* | Triggers Supreme Court & NCLAT layout compiler for the active Markdown file. | `/court-export` | Compiles the current `.md` document into a court-compliant A4 Word file (`.docx`) conforming to SC rules (14pt Times New Roman, 1.5 line spacing, 4cm left/right margins). |
+
+
+###### E. Monaco LSP Capabilities Summary
+
+*   **👻 Ghost Text (Inline Completions):** Typing `/clause`, `/law`, `/concept`, or `/qa` on any line renders a grey ghost text preview ahead of the cursor. Pressing **`Tab`** accepts the preview instantly.
+*   **🔍 Statutory Hover Cards (`@@` references):** Hovering your cursor over section references (e.g. `@@ibc/sec7`, `@@mca/sec185`, `Section 43`) displays an interactive popup card with full statutory text, sub-sections, and tribunal holdings.
+*   **🔄 Bi-directional Monaco-SQLite Sync:** Editing tables or key-value lists in `case_facts.md`, `claims_registry.md`, or `avoidance_ledger.md` directly updates SQLite database records upon save (`Cmd+S` / `Ctrl+S`), marking user-edited values as `verified_by_user = 1`.
+*   **Active-Context Control Matrix:** Filter RAG candidate document subsets dynamically using sidebar selection checkboxes.
+*   **CIRP Statutory Timeline Widget:** Render Frappe Gantt interactive timelines and Mermaid.js charts derived from `timeline.md`.
+
+
 
 ### Step 1 — Ingestion Pipeline
 

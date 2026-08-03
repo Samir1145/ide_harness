@@ -32,9 +32,63 @@ const DEFAULT_SETTINGS = {
     remindLibreOffice: true
 };
 
+let activeEngineDomain = 'legal';
+
+function killProcessOnPort(port) {
+    try {
+        const { execSync } = require('child_process');
+        const output = execSync(`lsof -t -i:${port}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+        if (!output) return;
+        
+        const pids = output.split('\n').map(p => parseInt(p.trim(), 10)).filter(Boolean);
+        for (const pid of pids) {
+            if (pid > 0 && pid !== process.pid) {
+                try {
+                    process.kill(pid, 'SIGKILL');
+                    console.log(`[Engine Lifecycle] Safely terminated process PID ${pid} on port ${port}`);
+                } catch (_) {}
+            }
+        }
+    } catch (_) {
+        // Expected when no process is listening on port (lsof exit code 1)
+    }
+}
+
+// D8: Sweep .trash/ items older than 7 days at bootstrap
+function sweepTrash(caseDir) {
+    try {
+        const trashDir = path.join(caseDir, '.trash');
+        const expiryFile = path.join(trashDir, '.expiry.json');
+        if (!fs.existsSync(expiryFile)) return;
+        const expiry = JSON.parse(fs.readFileSync(expiryFile, 'utf8'));
+        const now = Date.now();
+        let changed = false;
+        for (const [key, ts] of Object.entries(expiry)) {
+            if (now > ts) {
+                const p = path.join(trashDir, key);
+                try { fs.rmSync(p, { recursive: true, force: true }); } catch (_) {}
+                delete expiry[key];
+                changed = true;
+                console.log(`[Trash Sweep] Permanently deleted expired item: ${key}`);
+            }
+        }
+        if (changed) {
+            fs.writeFileSync(expiryFile, JSON.stringify(expiry, null, 2), 'utf8');
+        }
+    } catch (e) {
+        console.warn('[Trash Sweep] Error:', e.message);
+    }
+}
+
 
 function ensureCaseSettings(caseDir) {
+
     try {
+        if (!caseDir) return;
+        const resolved = path.resolve(caseDir);
+        const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
+        if (resolved === docsRoot) return;
+
         const configDirs = ['.theia', '.vscode'];
         for (const dirName of configDirs) {
             const dirPath = path.join(caseDir, dirName);
@@ -53,21 +107,52 @@ function ensureCaseSettings(caseDir) {
             }
             let changed = false;
             const excludeRules = {
-                '**/wiki': true,
+                '**/.*': true,
+                '**/.*/**': true,
+                '.*': true,
+                '.*/**': true,
+                '**/.prompts': true,
+                '**/.prompts/**': true,
+                '**/.localized': true,
+                '**/.trash': true,
+                '**/.trash/**': true,
                 '**/concepts': true,
                 '**/conversions': true,
-                'wiki': true,
+                '**/drafts': true,
+                '**/exports': true,
+                '**/summaries': true,
+                '**/reviews': true,
                 'concepts': true,
                 'conversions': true,
-                '**/wiki/**': true,
+                'drafts': true,
+                'exports': true,
+                'summaries': true,
+                'reviews': true,
                 '**/concepts/**': true,
                 '**/conversions/**': true,
-                'wiki/': true,
+                '**/drafts/**': true,
+                '**/exports/**': true,
+                '**/summaries/**': true,
+                '**/reviews/**': true,
                 'concepts/': true,
                 'conversions/': true,
+                'drafts/': true,
+                'exports/': true,
+                'summaries/': true,
+                'reviews/': true,
                 '**/*.status': true,
+                '**/*.error': true,
                 '**/*.footer': true,
-                '**/*.cache': true
+                '**/*.cache': true,
+                '**/index.json': true,
+                '**/index.sqlite': true,
+                '**/sqlite.db': true,
+                '**/case_manifest.json': true,
+                '**/case_kv_dictionary.json': true,
+                '**/CASE_AUDIT.md': true,
+                '**/hayagriva_settings.json': true,
+                '**/index.md': true,
+                '**/.last-launch-build-checksum': true
             };
             for (const [key, val] of Object.entries(excludeRules)) {
                 if (settings['files.exclude'][key] !== val) {
@@ -75,12 +160,31 @@ function ensureCaseSettings(caseDir) {
                     changed = true;
                 }
             }
-            if (settings['files.exclude']['**/*.md'] !== undefined) {
-                delete settings['files.exclude']['**/*.md'];
-                changed = true;
-            }
+            // Never globally exclude *.md — companion .md files are shown via caption suffix on parent PDF
+            ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md'].forEach(wikiKey => {
+                if (settings['files.exclude'][wikiKey] !== undefined) {
+                    delete settings['files.exclude'][wikiKey];
+                    changed = true;
+                }
+            });
             if (settings['explorer.openEditors.visible'] !== 0) {
                 settings['explorer.openEditors.visible'] = 0;
+                changed = true;
+            }
+            if (settings['workbench.editor.enablePreview'] !== true) {
+                settings['workbench.editor.enablePreview'] = true;
+                changed = true;
+            }
+            if (settings['workbench.editor.limit.enabled'] !== true) {
+                settings['workbench.editor.limit.enabled'] = true;
+                changed = true;
+            }
+            if (settings['workbench.editor.limit.value'] !== 2) {
+                settings['workbench.editor.limit.value'] = 2;
+                changed = true;
+            }
+            if (settings['workbench.editor.closeOnFileDelete'] !== true) {
+                settings['workbench.editor.closeOnFileDelete'] = true;
                 changed = true;
             }
             if (changed) {
@@ -92,6 +196,100 @@ function ensureCaseSettings(caseDir) {
         console.warn(`[API Server] Failed to enforce case settings for ${caseDir}:`, e.message);
     }
 }
+
+function ensureGlobalUserSettings() {
+    try {
+        const homeDir = process.env.HOME || process.env.USERPROFILE;
+        if (!homeDir) return;
+        const globalTheiaDir = path.join(homeDir, '.theia');
+        if (!fs.existsSync(globalTheiaDir)) {
+            fs.mkdirSync(globalTheiaDir, { recursive: true });
+        }
+        const settingsPath = path.join(globalTheiaDir, 'settings.json');
+        let settings = {};
+        if (fs.existsSync(settingsPath)) {
+            try {
+                settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            } catch (_) {}
+        }
+        if (!settings['files.exclude']) {
+            settings['files.exclude'] = {};
+        }
+        let changed = false;
+        const excludeRules = {
+            '**/.*': true,
+            '**/.*/**': true,
+            '.*': true,
+            '.*/**': true,
+            '**/.prompts': true,
+            '**/.prompts/**': true,
+            '**/.localized': true,
+            '**/.trash': true,
+            '**/.trash/**': true,
+            '**/concepts': true,
+            '**/conversions': true,
+            '**/drafts': true,
+            '**/exports': true,
+            '**/summaries': true,
+            '**/reviews': true,
+            'concepts': true,
+            'conversions': true,
+            'drafts': true,
+            'exports': true,
+            'summaries': true,
+            'reviews': true,
+            '**/concepts/**': true,
+            '**/conversions/**': true,
+            '**/drafts/**': true,
+            '**/exports/**': true,
+            '**/summaries/**': true,
+            '**/reviews/**': true,
+            'concepts/': true,
+            'conversions/': true,
+            'drafts/': true,
+            'exports/': true,
+            'summaries/': true,
+            'reviews/': true,
+            '**/*.status': true,
+            '**/*.error': true,
+            '**/*.footer': true,
+            '**/*.cache': true,
+            '**/index.json': true,
+            '**/index.sqlite': true,
+            '**/sqlite.db': true,
+            '**/case_manifest.json': true,
+            '**/case_kv_dictionary.json': true,
+            '**/CASE_AUDIT.md': true,
+            '**/hayagriva_settings.json': true,
+            '**/index.md': true
+        };
+        for (const [key, val] of Object.entries(excludeRules)) {
+            if (settings['files.exclude'][key] !== val) {
+                settings['files.exclude'][key] = val;
+                changed = true;
+            }
+        }
+        ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md'].forEach(wikiKey => {
+            if (settings['files.exclude'][wikiKey] !== undefined) {
+                delete settings['files.exclude'][wikiKey];
+                changed = true;
+            }
+        });
+        if (settings['explorer.openEditors.visible'] !== 0) {
+            settings['explorer.openEditors.visible'] = 0;
+            changed = true;
+        }
+        if (changed) {
+            fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+            console.log(`[API Server] Global user settings updated at: ${settingsPath}`);
+        }
+    } catch (e) {
+        console.warn('[API Server] Failed to update global user settings:', e.message);
+    }
+}
+
+// Automatically enforce global user settings on server load
+ensureGlobalUserSettings();
 
 /**
  * Creates a case_manifest.json in caseDir if one does not already exist.
@@ -109,6 +307,11 @@ function ensureCaseSettings(caseDir) {
  */
 function ensureCaseManifest(caseDir) {
     try {
+        if (!caseDir) return;
+        const resolved = path.resolve(caseDir);
+        const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
+        if (resolved === docsRoot) return;
+
         const manifestPath = path.join(caseDir, 'case_manifest.json');
         if (fs.existsSync(manifestPath)) {
             // Validate & fill any missing fields from a prior schema version
@@ -145,17 +348,14 @@ function ensureCaseManifest(caseDir) {
     } catch (e) {
         console.error('[API Server] ensureCaseManifest error:', e.message);
     }
-    try {
-        const { updateWorkspaceTimeline } = require('./pipeline/timeline-engine');
-        updateWorkspaceTimeline(caseDir);
-    } catch (_) {}
 }
 
 function getDefaultCaseName(docsRoot) {
     try {
+        const SYSTEM_DIRS = ['concepts', 'conversions', 'wiki', 'drafts', 'exports', 'reviews', 'node_modules'];
         const dirs = fs.readdirSync(docsRoot).filter(f => {
             const p = path.join(docsRoot, f);
-            return fs.statSync(p).isDirectory() && !f.startsWith('.');
+            return fs.statSync(p).isDirectory() && !f.startsWith('.') && !SYSTEM_DIRS.includes(f.toLowerCase());
         });
         if (dirs.length > 0) {
             return dirs[0];
@@ -167,9 +367,10 @@ function getDefaultCaseName(docsRoot) {
 module.exports = {
     GET: {
         '/api/hayagriva/cases': (req, res, parsedUrl, docsRoot) => {
+            const SYSTEM_DIRS = ['concepts', 'conversions', 'wiki', 'drafts', 'exports', 'reviews', 'node_modules'];
             const dirs = fs.readdirSync(docsRoot).filter(f => {
                 const p = path.join(docsRoot, f);
-                return fs.statSync(p).isDirectory() && !f.startsWith('.');
+                return fs.statSync(p).isDirectory() && !f.startsWith('.') && !SYSTEM_DIRS.includes(f.toLowerCase());
             });
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ cases: dirs }));
@@ -183,6 +384,12 @@ module.exports = {
         '/api/hayagriva/documents': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
+            const isDocsRoot = caseDir && path.resolve(caseDir) === path.resolve(docsRoot);
+            if (isDocsRoot || !caseName) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ documents: [], shadowDocuments: [] }));
+                return;
+            }
             const documents = [];
 
             // 1. Collect indexed docs from index.json
@@ -477,6 +684,12 @@ module.exports = {
         '/api/hayagriva/file-statuses': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
+            const isDocsRoot = caseDir && path.resolve(caseDir) === path.resolve(docsRoot);
+            if (isDocsRoot || !caseName) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ statuses: {} }));
+                return;
+            }
             
             if (fs.existsSync(caseDir)) {
                 ensureCaseSettings(caseDir);
@@ -497,7 +710,8 @@ module.exports = {
                     console.warn('[API Server] Failed to query file statuses from SQLite:', e.message);
                 }
 
-                const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.wiki.html', '.md'];
+                const { isTiddlyWikiHtml } = require('./pipeline/common/helper');
+                const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.wiki.html', '.html', '.md'];
                 const scan = (dir) => {
                     const files = fs.readdirSync(dir);
                     for (const file of files) {
@@ -524,10 +738,16 @@ module.exports = {
                                 scan(filePath);
                             }
                         } else {
-                            const isWikiHtml = file.endsWith('.wiki.html');
-                            const ext = isWikiHtml ? '.wiki.html' : path.extname(file).toLowerCase();
+                            const isWikiHtml = file.endsWith('.wiki.html') || (file.endsWith('.html') && isTiddlyWikiHtml(filePath));
+                            const ext = isWikiHtml ? (file.endsWith('.wiki.html') ? '.wiki.html' : '.html') : path.extname(file).toLowerCase();
                             if (docExts.includes(ext)) {
+                                if (ext === '.html' && !isWikiHtml) {
+                                    continue; // Skip non-tiddlywiki HTML files
+                                }
                                 if (ext === '.md') {
+                                    if (file === 'CASE_AUDIT.md' || file === 'case_facts.md' || file === 'index.md') {
+                                        continue;
+                                    }
                                     const hasParent = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'].some(parentExt => {
                                         const parentFile = filePath.replace(/\.md$/, parentExt);
                                         return fs.existsSync(parentFile);
@@ -537,20 +757,36 @@ module.exports = {
                                     }
                                 }
 
+                                const cleanBase = isWikiHtml 
+                                    ? (file.endsWith('.wiki.html') ? path.basename(file, '.wiki.html') : path.basename(file, '.html')) 
+                                    : path.basename(file, ext);
                                 const relative = path.relative(caseDir, filePath);
                                 let docStatus = dbStatusesMap[relative] || 'unprocessed';
-                                const cleanBase = ext === '.wiki.html' ? path.basename(file, '.wiki.html') : path.basename(file, ext);
                                 const subfolder = path.dirname(relative);
 
                                 // ── Computed disk paths ────────────────────────────────────────────
-                                const companionPath = isWikiHtml ? filePath : (ext === '.md' ? filePath : filePath.replace(/\.[a-zA-Z0-9]+$/, '.md'));
+                                const conversionsDir = subfolder === '.' ?
+                                    path.join(caseDir, 'conversions') :
+                                    path.join(caseDir, 'conversions', subfolder);
+                                const conversionCompanionPath = path.join(conversionsDir, `${cleanBase}.md`);
+                                const rootCompanionPath = filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
+
+                                const companionPath = isWikiHtml ? filePath : (ext === '.md' ? filePath : conversionCompanionPath);
                                 const conceptsDir = subfolder === '.' ?
                                     path.join(caseDir, 'concepts', cleanBase) :
                                     path.join(caseDir, 'concepts', subfolder, cleanBase);
                                 const treePath = path.join(conceptsDir, 'pageindex_tree.json');
                                 const bm25IndexPath = path.join(caseDir, 'concepts', 'bm25_index.json');
 
-                                const companionExists = !isWikiHtml && fs.existsSync(companionPath);
+                                const companionExists = !isWikiHtml && (ext === '.md' || fs.existsSync(conversionCompanionPath));
+                                
+                                // Auto-clean stale duplicate companion .md in root folder if conversion companion exists
+                                if (ext !== '.md' && fs.existsSync(conversionCompanionPath) && fs.existsSync(rootCompanionPath)) {
+                                    try {
+                                        fs.unlinkSync(rootCompanionPath);
+                                        console.log(`[File Statuses API] Cleaned up stale root companion duplicate: ${rootCompanionPath}`);
+                                    } catch (_) {}
+                                }
                                 const treeExists = fs.existsSync(treePath);
                                 const bm25Exists = fs.existsSync(bm25IndexPath);
 
@@ -577,7 +813,7 @@ module.exports = {
                                              db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('reviewed', relative);
                                          }
                                      } catch (_) {}
-                                 } else if (docStatus === 'unprocessed' && companionExists) {
+                                 } else if ((docStatus === 'unprocessed' || docStatus === 'processing') && companionExists) {
                                      docStatus = 'companion_ready';
                                      try {
                                          const { getDb } = require('./core/sqlite-store');
@@ -588,6 +824,27 @@ module.exports = {
                                          } else {
                                              db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('companion_ready', relative);
                                          }
+                                     } catch (_) {}
+                                 } else if (docStatus === 'failed_convert' && companionExists) {
+                                     // Scanned/rejected PDF where the user manually placed a companion .md:
+                                     // advance to companion_ready so Enhance Markdown & Generate Vectors unlock.
+                                     docStatus = 'companion_ready';
+                                     try {
+                                         const { getDb } = require('./core/sqlite-store');
+                                         const db = getDb(caseDir);
+                                         const existing = db.prepare('SELECT status FROM documents WHERE filename = ?').get(relative);
+                                         if (!existing) {
+                                             db.prepare('INSERT INTO documents (filename, status) VALUES (?, ?)').run(relative, 'companion_ready');
+                                         } else {
+                                             db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('companion_ready', relative);
+                                         }
+                                     } catch (_) {}
+                                 } else if (!companionExists && !isWikiHtml && ext !== '.md' && (docStatus === 'companion_ready' || docStatus === 'indexed' || docStatus === 'enriched')) {
+                                     docStatus = 'unprocessed';
+                                     try {
+                                         const { getDb } = require('./core/sqlite-store');
+                                         const db = getDb(caseDir);
+                                         db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('unprocessed', relative);
                                      } catch (_) {}
                                  }
 
@@ -649,31 +906,30 @@ module.exports = {
                                 }
 
                                 // ── Resolve dot colors ─────────────────────────────────────────────
-                                // Dot 1 (Companion)
+                                // D6: Dot 1 = text extracted (companion .md exists)
                                 let dot1 = 'grey';
-                                if (isWikiHtml) {
-                                    dot1 = 'reviewed';
-                                } else {
-                                    if (['companion_ready', 'reviewed', 'ingesting', 'indexed', 'failed_ingest', 'enriching', 'enriched', 'failed_enrich'].includes(docStatus)) {
-                                        dot1 = 'companion_ready';
-                                    } else if (docStatus === 'converting' || docStatus === 'processing') {
-                                        dot1 = 'blue';
-                                    } else if (docStatus === 'failed_convert') {
-                                        dot1 = 'red';
-                                    }
+                                if (isWikiHtml || ext === '.md') {
+                                    dot1 = 'green';  // wiki/standalone — always ready
+                                } else if (docStatus === 'converting' || docStatus === 'processing') {
+                                    dot1 = 'blue';   // extraction in progress
+                                } else if (docStatus === 'failed_convert') {
+                                    dot1 = 'red';    // extraction failed
+                                } else if (companionExists) {
+                                    dot1 = 'green';  // companion .md exists on disk
                                 }
+                                // else: grey — file just dropped, extraction not yet started
 
-                                // Dot 2 (Index)
+                                // D6: Dot 2 = indexed into AI memory (pageindex_tree exists)
                                 let dot2 = 'grey';
                                 if (['indexed', 'enriching', 'enriched', 'failed_enrich'].includes(docStatus)) {
-                                    dot2 = 'indexed';
+                                    dot2 = 'green';
                                 } else if (docStatus === 'ingesting') {
                                     dot2 = 'blue';
                                 } else if (docStatus === 'failed_ingest') {
                                     dot2 = 'red';
                                 }
 
-                                // Dot 3 (AI Enrichment)
+                                // D6: Dot 3 = AI enrichment complete
                                 let dot3 = 'grey';
                                 if (docStatus === 'enriched') {
                                     dot3 = 'green';
@@ -699,7 +955,7 @@ module.exports = {
                                 // ── Files audit sub-object ─────────────────────────────────────────
                                 const filesAudit = {
                                     companion: {
-                                        path: isWikiHtml ? relative : relative.replace(/\.[a-zA-Z0-9]+$/, '.md'),
+                                        path: path.relative(caseDir, companionPath),
                                         exists: isWikiHtml ? true : companionExists
                                     },
                                     conceptsDir: {
@@ -840,6 +1096,146 @@ module.exports = {
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ cards }));
+        },
+
+        '/api/hayagriva/tiddlywiki/create': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.caseName || '';
+                    let wikiTitle = (data.wikiTitle || 'Case Notes').trim();
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const wikiDir = path.join(caseDir, 'wiki');
+                    fs.mkdirSync(wikiDir, { recursive: true });
+
+                    const safeFilename = wikiTitle.toLowerCase().replace(/[^a-z0-9_-]/g, '_') + '.wiki.html';
+                    const targetPath = path.join(wikiDir, safeFilename);
+
+                    const { generateTiddlyWikiHtml } = require('./pipeline/wiki/tiddlywiki-template');
+                    const htmlContent = generateTiddlyWikiHtml(wikiTitle, [], 3210, caseName, safeFilename);
+
+                    fs.writeFileSync(targetPath, htmlContent, 'utf8');
+
+                    // Trigger auto-ingestion for the newly created wiki
+                    try {
+                        const { ingestWiki } = require('./pipeline/wiki/ingest');
+                        const bm25 = require('./core/bm25');
+                        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+                        const bm25Index = bm25.loadIndex(bm25IndexFile);
+                        await ingestWiki(caseDir, targetPath, bm25Index, bm25IndexFile);
+                    } catch (ingestErr) {
+                        console.warn('[TiddlyWiki API] Auto-ingestion note:', ingestErr.message);
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                    res.end(JSON.stringify({ success: true, caseName, filename: safeFilename, filePath: targetPath, viewUrl: `/api/hayagriva/tiddlywiki/view?case=${encodeURIComponent(caseName)}&file=${encodeURIComponent(safeFilename)}` }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/tiddlywiki/export-chunks': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.caseName || '';
+                    const docFilename = data.docFilename || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const wikiDir = path.join(caseDir, 'wiki');
+                    fs.mkdirSync(wikiDir, { recursive: true });
+
+                    const docBase = path.basename(docFilename, path.extname(docFilename));
+                    const wikiTitle = (data.wikiTitle || `${docBase} Wiki`).trim();
+                    const safeFilename = docBase.toLowerCase().replace(/[^a-z0-9_-]/g, '_') + '_wiki.wiki.html';
+                    const targetPath = path.join(wikiDir, safeFilename);
+
+                    const { getDb } = require('./core/sqlite-store');
+                    const db = getDb(caseDir);
+
+                    const relativeDoc = path.relative(caseDir, path.isAbsolute(docFilename) ? docFilename : path.join(caseDir, docFilename)).replace(/\\/g, '/');
+                    const chunks = db.prepare("SELECT section_title, page_number, content FROM fts_chunks WHERE filename = ? ORDER BY page_number ASC, chunk_index ASC").all(relativeDoc);
+
+                    const { generateTiddlyWikiHtml, buildTiddlersFromChunks } = require('./pipeline/wiki/tiddlywiki-template');
+                    const tiddlers = buildTiddlersFromChunks(chunks, docBase);
+                    const htmlContent = generateTiddlyWikiHtml(wikiTitle, tiddlers, 3210, caseName, safeFilename);
+
+                    fs.writeFileSync(targetPath, htmlContent, 'utf8');
+
+                    // Trigger auto-ingestion for generated wiki
+                    try {
+                        const { ingestWiki } = require('./pipeline/wiki/ingest');
+                        const bm25 = require('./core/bm25');
+                        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+                        const bm25Index = bm25.loadIndex(bm25IndexFile);
+                        await ingestWiki(caseDir, targetPath, bm25Index, bm25IndexFile);
+                    } catch (ingestErr) {
+                        console.warn('[TiddlyWiki Export] Auto-ingestion note:', ingestErr.message);
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                    res.end(JSON.stringify({ success: true, caseName, filename: safeFilename, filePath: targetPath, viewUrl: `/api/hayagriva/tiddlywiki/view?case=${encodeURIComponent(caseName)}&file=${encodeURIComponent(safeFilename)}` }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/tiddlywiki/view': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || '';
+            const fileName = parsedUrl.query.file || '';
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            const targetPath = path.join(caseDir, 'wiki', fileName);
+
+            if (!fs.existsSync(targetPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('TiddlyWiki file not found in case directory.');
+                return;
+            }
+
+            const htmlContent = fs.readFileSync(targetPath, 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+            res.end(htmlContent);
+        },
+
+        '/api/hayagriva/tiddlywiki/save': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const caseName = parsedUrl.query.case || '';
+                    const fileName = parsedUrl.query.file || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const targetPath = path.join(caseDir, 'wiki', fileName);
+
+                    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+                    fs.writeFileSync(targetPath, body, 'utf8');
+
+                    // Auto-ingest updated tiddlers into SQLite FTS and BM25 indices
+                    try {
+                        const { ingestWiki } = require('./pipeline/wiki/ingest');
+                        const bm25 = require('./core/bm25');
+                        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+                        const bm25Index = bm25.loadIndex(bm25IndexFile);
+                        await ingestWiki(caseDir, targetPath, bm25Index, bm25IndexFile);
+                        console.log(`[TiddlyWiki API] Saved and re-indexed: ${fileName}`);
+                    } catch (e) {
+                        console.error('[TiddlyWiki API] Failed to re-index saved wiki:', e.message);
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                    res.end(JSON.stringify({ success: true, savedPath: targetPath }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
         },
         '/api/hayagriva/case-graph': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
@@ -1126,8 +1522,20 @@ module.exports = {
                 res.end(JSON.stringify({ error: 'File not found' }));
                 return;
             }
-            const content = fs.readFileSync(absolutePath, 'utf8');
-            res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+            const ext = path.extname(absolutePath).toLowerCase();
+            let contentType = 'text/plain; charset=utf-8';
+            if (ext === '.html' || ext === '.htm') {
+                contentType = 'text/html; charset=utf-8';
+            } else if (ext === '.json') {
+                contentType = 'application/json; charset=utf-8';
+            } else if (ext === '.pdf') {
+                contentType = 'application/pdf';
+            } else if (ext === '.svg') {
+                contentType = 'image/svg+xml';
+            }
+
+            const content = fs.readFileSync(absolutePath);
+            res.writeHead(200, { 'Content-Type': contentType });
             res.end(content);
         },
 
@@ -1238,6 +1646,48 @@ module.exports = {
             res.end(JSON.stringify({ success: true, topics }));
         },
 
+        '/api/hayagriva/system/telemetry': (req, res, parsedUrl, docsRoot) => {
+            const os = require('os');
+            const totalMemBytes = os.totalmem();
+            let freeMemBytes = os.freemem();
+            
+            // On macOS (darwin), os.freemem() only counts completely zeroed pages.
+            // macOS uses 8-10GB of RAM for file system cache. Use vm_stat to get real available RAM.
+            if (process.platform === 'darwin') {
+                try {
+                    const { execSync } = require('child_process');
+                    const vmStat = execSync('vm_stat', { encoding: 'utf8' });
+                    const getPages = (key) => {
+                        const m = vmStat.match(new RegExp(`${key}:\\s+(\\d+)`));
+                        return m ? parseInt(m[1], 10) : 0;
+                    };
+                    const pageSize = 4096;
+                    const pagesFree = getPages('Pages free');
+                    const pagesInactive = getPages('Pages inactive');
+                    const pagesPurgeable = getPages('Pages purgeable');
+                    const realFreeBytes = (pagesFree + pagesInactive + pagesPurgeable) * pageSize;
+                    if (realFreeBytes > 0) freeMemBytes = realFreeBytes;
+                } catch (_) {}
+            }
+
+            const totalMemGb = parseFloat((totalMemBytes / (1024 * 1024 * 1024)).toFixed(1));
+            const freeMemGb = parseFloat((freeMemBytes / (1024 * 1024 * 1024)).toFixed(1));
+            const usedMemGb = parseFloat((Math.max(0, totalMemBytes - freeMemBytes) / (1024 * 1024 * 1024)).toFixed(1));
+            const usedPercent = Math.min(100, Math.round(((totalMemBytes - freeMemBytes) / totalMemBytes) * 100));
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                success: true,
+                totalMemGb,
+                freeMemGb,
+                usedMemGb,
+                usedPercent,
+                cpuCores: os.cpus().length,
+                platform: os.platform(),
+                recommendedMode: totalMemGb >= 14 ? 'local' : 'lite'
+            }));
+        },
+
         '/api/hayagriva/settings/get': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
@@ -1311,8 +1761,142 @@ module.exports = {
         '/api/hayagriva/llm/engines-status': async (req, res) => {
             const { checkLlamafileHealth } = require('./core/llm-client');
             const isEngineRunning = await checkLlamafileHealth('http://127.0.0.1:8090');
+            const legalActive = isEngineRunning && activeEngineDomain !== 'finance';
+            const financeActive = isEngineRunning && activeEngineDomain === 'finance';
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ legalActive: isEngineRunning, financeActive: isEngineRunning, engineActive: isEngineRunning }));
+            res.end(JSON.stringify({ legalActive, financeActive, engineActive: isEngineRunning, activeDomain: activeEngineDomain }));
+        },
+
+        // ─── Marketplace: Catalog ──────────────────────────────────────────────
+        '/api/hayagriva/marketplace/catalog': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const vaultPacksDir = path.join(__dirname, '..', '..', 'vault', 'agent_packs');
+                const dataVaultsDir = path.join(__dirname, '..', '..', 'vault', 'data_vaults');
+                const modelsDir = path.join(__dirname, '..', '..', 'models', 'llm', 'llamafile');
+                const { getCatalogStatus } = require('./pipeline/vault-importer');
+                const catalogStatus = getCatalogStatus();
+
+                const installedPacks = fs.existsSync(vaultPacksDir)
+                    ? fs.readdirSync(vaultPacksDir).filter(d =>
+                        d.endsWith('.vlt') && fs.statSync(path.join(vaultPacksDir, d)).isDirectory()
+                      )
+                    : [];
+
+                const installedModels = fs.existsSync(modelsDir)
+                    ? fs.readdirSync(modelsDir, { recursive: true })
+                        .filter(f => typeof f === 'string' && f.endsWith('.gguf'))
+                        .map(f => path.basename(f).toLowerCase())
+                    : [];
+
+                const getStatus = (itemId, isInstalled) => {
+                    const statusObj = catalogStatus[itemId];
+                    if (statusObj && statusObj.status !== 'available') return statusObj.status;
+                    return isInstalled ? 'installed' : 'available';
+                };
+
+                const catalog = {
+                    agentPacks: [
+                        {
+                            id: 'legal_agents.vlt',
+                            name: 'Legal Agents',
+                            description: '19 subagents — @advisor, @avoidance, @nclt, @claims, and more.',
+                            tier: 'starter',
+                            status: getStatus('legal_agents.vlt', installedPacks.includes('legal_agents.vlt')),
+                            progressPct: catalogStatus['legal_agents.vlt']?.progressPct || 0
+                        },
+                        {
+                            id: 'finance_agents.vlt',
+                            name: 'Finance Agents',
+                            description: '2 subagents — @forensic, @tax for financial analysis.',
+                            tier: 'starter',
+                            status: getStatus('finance_agents.vlt', installedPacks.includes('finance_agents.vlt')),
+                            progressPct: catalogStatus['finance_agents.vlt']?.progressPct || 0
+                        },
+                        {
+                            id: 'coding_agents.vlt',
+                            name: 'Coding Agents',
+                            description: '4 subagents — @architecture, @debugger, @codewriter.',
+                            tier: 'starter',
+                            status: getStatus('coding_agents.vlt', installedPacks.includes('coding_agents.vlt')),
+                            progressPct: catalogStatus['coding_agents.vlt']?.progressPct || 0
+                        }
+                    ],
+                    dataVaults: [
+                        {
+                            id: 'laws_vault',
+                            name: 'Laws & Acts Vault',
+                            description: 'Comprehensive Indian statutory acts and rules database.',
+                            sizeMb: 33.6,
+                            status: getStatus('laws_vault', fs.existsSync(path.join(dataVaultsDir, 'laws'))),
+                            progressPct: catalogStatus['laws_vault']?.progressPct || 0
+                        },
+                        {
+                            id: 'cases_vault',
+                            name: 'Judgments & Case Law Vault',
+                            description: 'Supreme Court & NCLAT landmark case precedent indices.',
+                            sizeMb: 132.8,
+                            status: getStatus('cases_vault', fs.existsSync(path.join(dataVaultsDir, 'cases'))),
+                            progressPct: catalogStatus['cases_vault']?.progressPct || 0
+                        },
+                        {
+                            id: 'documents_vault',
+                            name: 'Legal Templates Vault',
+                            description: 'Standard pleadings, notices, agreements, and forms.',
+                            sizeMb: 28.7,
+                            status: getStatus('documents_vault', fs.existsSync(path.join(dataVaultsDir, 'documents'))),
+                            progressPct: catalogStatus['documents_vault']?.progressPct || 0
+                        }
+                    ],
+                    llmEngines: [
+                        {
+                            id: 'legalparam-2.9b',
+                            name: 'LegalParam 2.9B',
+                            description: 'Bundled starter LLM — Indian legal domain, 2K context.',
+                            tier: 'starter',
+                            sizeGb: 1.7,
+                            context: '2K tokens',
+                            status: getStatus('legalparam-2.9b', installedModels.some(m => m.includes('legalparam'))),
+                            progressPct: catalogStatus['legalparam-2.9b']?.progressPct || 0
+                        },
+                        {
+                            id: 'financeparam-2.9b',
+                            name: 'FinanceParam 2.9B',
+                            description: 'Bundled starter LLM — Indian financial domain, 2K context.',
+                            tier: 'starter',
+                            sizeGb: 1.7,
+                            context: '2K tokens',
+                            status: getStatus('financeparam-2.9b', installedModels.some(m => m.includes('financeparam'))),
+                            progressPct: catalogStatus['financeparam-2.9b']?.progressPct || 0
+                        },
+                        {
+                            id: 'hayaparam-7b',
+                            name: 'HayaParam 7B',
+                            badge: 'PRO — Coming Soon',
+                            description: 'Fine-tuned on Indian legal + financial corpus. 24K context.',
+                            tier: 'professional',
+                            sizeGb: 4.7,
+                            context: '24K tokens',
+                            status: 'locked'
+                        },
+                        {
+                            id: 'hayaparam-14b',
+                            name: 'HayaParam 14B',
+                            badge: 'ENTERPRISE — Coming Soon',
+                            description: 'Full document analysis — 64K context for complete resolution plans.',
+                            tier: 'enterprise',
+                            sizeGb: 8.5,
+                            context: '64K tokens',
+                            status: 'locked'
+                        }
+                    ]
+                };
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(catalog));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: e.message }));
+            }
         }
     },
 
@@ -1320,16 +1904,18 @@ module.exports = {
         '/api/hayagriva/engine/start': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            req.on('end', async () => {
                 try {
                     const data = JSON.parse(body || '{}');
                     const engine = data.engine === 'finance' ? 'finance' : 'legal';
-                    const { execSync, spawn } = require('child_process');
+                    activeEngineDomain = engine;
+                    const { spawn } = require('child_process');
                     
-                    // Terminate existing process on port 8090 for clean hot-swapping
-                    try {
-                        execSync('lsof -t -i:8090 | xargs kill -9', { stdio: 'ignore' });
-                    } catch (_) {}
+                    // Safely unbind port 8090 without shell pipe risks
+                    killProcessOnPort(8090);
+
+                    // 1,500ms grace period to allow macOS kernel to fully unbind port 8090
+                    await new Promise(resolve => setTimeout(resolve, 1500));
 
                     const scriptPath = path.join(__dirname, '..', 'scripts', 'run-llama-server.sh');
                     const child = spawn('bash', [scriptPath, engine], {
@@ -1337,6 +1923,17 @@ module.exports = {
                         stdio: 'ignore'
                     });
                     child.unref();
+
+                    // Wait and verify server health
+                    const { checkLlamafileHealth } = require('./core/llm-client');
+                    let isHealthy = false;
+                    for (let i = 0; i < 5; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        if (await checkLlamafileHealth('http://127.0.0.1:8090')) {
+                            isHealthy = true;
+                            break;
+                        }
+                    }
 
                     // Update active case settings to activeMode: 'standard'
                     const caseName = data.case || '';
@@ -1352,7 +1949,12 @@ module.exports = {
                     }
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, message: `${engine} engine started on port 8090. Mode set to Standard.`, activeMode: 'standard' }));
+                    res.end(JSON.stringify({
+                        success: true,
+                        healthy: isHealthy,
+                        message: `${engine} engine started on port 8090. Mode set to Standard.`,
+                        activeMode: 'standard'
+                    }));
                 } catch (err) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: false, error: err.message }));
@@ -1366,10 +1968,9 @@ module.exports = {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body || '{}');
-                    const { execSync } = require('child_process');
-                    try {
-                        execSync('lsof -t -i:8090 | xargs kill -9', { stdio: 'ignore' });
-                    } catch (_) {}
+                    
+                    // Safely unbind port 8090 without shell pipe risks
+                    killProcessOnPort(8090);
 
                     // Revert case settings to activeMode: 'lite'
                     const caseName = data.case || '';
@@ -1403,12 +2004,15 @@ module.exports = {
                     const data = JSON.parse(body || '{}');
                     const caseName = data.case || '';
                     const caseDir = resolveCaseDir(docsRoot, caseName);
-                    if (caseDir && fs.existsSync(caseDir)) {
+                    const isRoot = caseDir && path.resolve(caseDir) === path.resolve(docsRoot);
+                    if (caseDir && fs.existsSync(caseDir) && !isRoot) {
                         ensureCaseSettings(caseDir);
                         ensureAuditDocs(caseDir);
                         ensureCaseManifest(caseDir);
 
-                        
+                        // D8: Sweep expired .trash items (7-day retention)
+                        sweepTrash(caseDir);
+
                         // Asynchronously pre-warm ONNX embedding model during grace period
                         const { warmupEmbeddingPipeline } = require('./core/llm-client');
                         warmupEmbeddingPipeline('legal').catch(() => {});
@@ -1426,6 +2030,97 @@ module.exports = {
                 }
             });
         },
+
+        // D8: Soft-delete — move PDF + companion + concepts to .trash/ (7-day retention)
+        '/api/hayagriva/delete-file': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const { file, case: caseName } = JSON.parse(body || '{}');
+                    if (!file) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Missing file parameter' }));
+                        return;
+                    }
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    if (!caseDir || !fs.existsSync(caseDir)) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Case directory not found' }));
+                        return;
+                    }
+
+                    const trashDir = path.join(caseDir, '.trash');
+                    fs.mkdirSync(trashDir, { recursive: true });
+                    const expiryFile = path.join(trashDir, '.expiry.json');
+                    let expiry = {};
+                    try { expiry = JSON.parse(fs.readFileSync(expiryFile, 'utf8')); } catch (_) {}
+
+                    const filePath = file; // absolute path sent from frontend
+                    const ext = path.extname(filePath).toLowerCase();
+                    const basename = path.basename(filePath, ext);
+                    const relative = path.relative(caseDir, filePath).replace(/\\/g, '/');
+                    const expireAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+
+                    // 1. Move original file to .trash/
+                    if (fs.existsSync(filePath)) {
+                        const trashFilePath = path.join(trashDir, path.basename(filePath));
+                        fs.renameSync(filePath, trashFilePath);
+                        expiry[path.basename(filePath)] = expireAt;
+                        console.log(`[Trash] Moved ${path.basename(filePath)} to .trash/`);
+                    }
+
+                    // 2. Move companion .md from conversions/
+                    const companionPath = path.join(caseDir, 'conversions', `${basename}.md`);
+                    if (fs.existsSync(companionPath)) {
+                        const trashCompDir = path.join(trashDir, 'conversions');
+                        fs.mkdirSync(trashCompDir, { recursive: true });
+                        fs.renameSync(companionPath, path.join(trashCompDir, `${basename}.md`));
+                        expiry[`conversions/${basename}.md`] = expireAt;
+                        console.log(`[Trash] Moved conversions/${basename}.md to .trash/conversions/`);
+                    }
+
+                    // Also remove .status sidecar
+                    const statusPath = path.join(caseDir, 'conversions', `${basename}.status`);
+                    if (fs.existsSync(statusPath)) { try { fs.unlinkSync(statusPath); } catch (_) {} }
+
+                    // 3. Move concepts folder
+                    const conceptsPath = path.join(caseDir, 'concepts', basename);
+                    if (fs.existsSync(conceptsPath)) {
+                        const trashConceptDir = path.join(trashDir, 'concepts', basename);
+                        fs.mkdirSync(path.join(trashDir, 'concepts'), { recursive: true });
+                        fs.renameSync(conceptsPath, trashConceptDir);
+                        expiry[`concepts/${basename}`] = expireAt;
+                        console.log(`[Trash] Moved concepts/${basename}/ to .trash/concepts/`);
+                    }
+
+                    // 4. Remove from SQLite
+                    try {
+                        const { getDb } = require('./core/sqlite-store');
+                        const db = getDb(caseDir);
+                        db.prepare('DELETE FROM documents WHERE filename = ?').run(relative);
+                        db.prepare('DELETE FROM document_sections WHERE filename = ?').run(relative);
+                        db.prepare('DELETE FROM document_vectors WHERE filename = ?').run(relative);
+                        db.prepare('DELETE FROM fts_chunks WHERE filename = ?').run(relative);
+                        console.log(`[Trash] Removed ${relative} from SQLite`);
+                    } catch (e) {
+                        console.warn('[Trash] SQLite cleanup failed:', e.message);
+                    }
+
+                    // 5. Save expiry map
+                    fs.writeFileSync(expiryFile, JSON.stringify(expiry, null, 2), 'utf8');
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, message: `Moved to .trash/ (expires in 7 days)` }));
+                } catch (e) {
+                    console.error('[Trash] delete-file error:', e.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+
 
         '/api/hayagriva/archive-case': (req, res, parsedUrl, docsRoot) => {
             let body = '';
@@ -1496,24 +2191,37 @@ module.exports = {
                     }
 
                     const settingsPath = path.join(caseDir, 'hayagriva_settings.json');
+                    let existing = { ...DEFAULT_SETTINGS };
+                    if (fs.existsSync(settingsPath)) {
+                        try { existing = { ...existing, ...JSON.parse(fs.readFileSync(settingsPath, 'utf8')) }; } catch (_) {}
+                    }
                     
-                    // Filter and save standard settings
-                    const activeMode = data.activeMode || 'lite';
+                    const activeMode = data.activeMode !== undefined ? data.activeMode : existing.activeMode;
+                    const remindLibreOffice = data.remindLibreOffice !== undefined ? (data.remindLibreOffice !== false) : existing.remindLibreOffice;
+
                     const savedConfig = {
+                        ...existing,
                         processingProfile: activeMode === 'lite' ? 'lite' : 'standard',
                         activeMode: activeMode,
-                        remindLibreOffice: data.remindLibreOffice !== false
+                        remindLibreOffice: remindLibreOffice
                     };
 
                     fs.writeFileSync(settingsPath, JSON.stringify(savedConfig, null, 2), 'utf8');
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true }));
+                    res.end(JSON.stringify({ success: true, settings: savedConfig }));
                 } catch (err) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: err.message }));
                 }
             });
+        },
+
+        '/api/hayagriva/settings': (req, res, parsedUrl, docsRoot) => {
+            if (req.method === 'POST') {
+                return routes['/api/hayagriva/settings/save'](req, res, parsedUrl, docsRoot);
+            }
+            return routes['/api/hayagriva/settings/get'](req, res, parsedUrl, docsRoot);
         },
 
         '/api/hayagriva/switch-context': (req, res, parsedUrl, docsRoot) => {
@@ -1760,7 +2468,12 @@ module.exports = {
                     const caseDir = resolveCaseDir(docsRoot, caseName);
                     
                     const isWikiHtml = file.endsWith('.wiki.html');
-                    const companionPath = isWikiHtml ? file : file.replace(/\.[a-zA-Z0-9]+$/, '.md');
+                    const mdBaseName = path.basename(file).replace(/\.[a-zA-Z0-9]+$/, '.md');
+                    const rootCompanionPath = path.join(path.dirname(file), mdBaseName);
+                    const conversionsCompanionPath = path.join(path.dirname(file), 'conversions', mdBaseName);
+                    const companionPath = isWikiHtml
+                        ? file
+                        : (fs.existsSync(conversionsCompanionPath) ? conversionsCompanionPath : rootCompanionPath);
                     
                     if (!fs.existsSync(companionPath)) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1850,15 +2563,23 @@ module.exports = {
                 const caseDir = resolveCaseDir(docsRoot, caseName);
                 ensureCaseSettings(caseDir);
                 const relative = path.relative(caseDir, file);
-                const isWikiHtml = file.endsWith('.wiki.html');
-                const ext = isWikiHtml ? '.wiki.html' : path.extname(file).toLowerCase();
-                const basename = isWikiHtml ? path.basename(file, '.wiki.html') : path.basename(file, ext);
+                const isWikiHtml = (file.endsWith('.wiki.html') || file.endsWith('.html'));
+                const ext = path.extname(file).toLowerCase();
+                const basename = isWikiHtml 
+                    ? (file.endsWith('.wiki.html') ? path.basename(file, '.wiki.html') : path.basename(file, '.html')) 
+                    : path.basename(file, ext);
                 const subfolder = path.dirname(relative);
 
                 // Phase 1: Set status to ingesting
                 updateStatus(caseDir, relative, 'ingesting');
 
-                const companionPath = isWikiHtml ? file : file.replace(/\.[a-zA-Z0-9]+$/, '.md');                 ingestFile(caseDir, companionPath, { 
+                const conversionsPath = subfolder === '.' ?
+                    path.join(caseDir, 'conversions', `${basename}.md`) :
+                    path.join(caseDir, 'conversions', subfolder, `${basename}.md`);
+                const rootPath = file.replace(/\.[a-zA-Z0-9]+$/, '.md');
+                const companionPath = isWikiHtml ? file : (fs.existsSync(conversionsPath) ? conversionsPath : rootPath);
+
+                ingestFile(caseDir, companionPath, { 
                     conversionOnly: false,
                     disableDoc2Query: true 
                 }).then(result => {
@@ -2336,11 +3057,14 @@ module.exports = {
 
         // ─── Marketplace: Catalog ──────────────────────────────────────────────
         // Returns the full catalog of agent packs, vault packs, and LLM engines
-        // with their installation status ('installed' | 'locked' | 'available').
+        // with their installation status ('installed' | 'downloading' | 'available' | 'locked').
         '/api/hayagriva/marketplace/catalog': (req, res, parsedUrl, docsRoot) => {
             try {
                 const vaultPacksDir = path.join(__dirname, '..', '..', 'vault', 'agent_packs');
+                const dataVaultsDir = path.join(__dirname, '..', '..', 'vault', 'data_vaults');
                 const modelsDir = path.join(__dirname, '..', '..', 'models', 'llm', 'llamafile');
+                const { getCatalogStatus } = require('./pipeline/vault-importer');
+                const catalogStatus = getCatalogStatus();
 
                 // Discover installed agent packs from filesystem
                 const installedPacks = fs.existsSync(vaultPacksDir)
@@ -2356,6 +3080,12 @@ module.exports = {
                         .map(f => path.basename(f).toLowerCase())
                     : [];
 
+                const getStatus = (itemId, isInstalled) => {
+                    const statusObj = catalogStatus[itemId];
+                    if (statusObj && statusObj.status !== 'available') return statusObj.status;
+                    return isInstalled ? 'installed' : 'available';
+                };
+
                 const catalog = {
                     agentPacks: [
                         {
@@ -2363,21 +3093,50 @@ module.exports = {
                             name: 'Legal Agents',
                             description: '19 subagents — @advisor, @avoidance, @nclt, @claims, and more.',
                             tier: 'starter',
-                            status: installedPacks.includes('legal_agents.vlt') ? 'installed' : 'available'
+                            status: getStatus('legal_agents.vlt', installedPacks.includes('legal_agents.vlt')),
+                            progressPct: catalogStatus['legal_agents.vlt']?.progressPct || 0
                         },
                         {
                             id: 'finance_agents.vlt',
                             name: 'Finance Agents',
                             description: '2 subagents — @forensic, @tax for financial analysis.',
                             tier: 'starter',
-                            status: installedPacks.includes('finance_agents.vlt') ? 'installed' : 'available'
+                            status: getStatus('finance_agents.vlt', installedPacks.includes('finance_agents.vlt')),
+                            progressPct: catalogStatus['finance_agents.vlt']?.progressPct || 0
                         },
                         {
                             id: 'coding_agents.vlt',
                             name: 'Coding Agents',
                             description: '4 subagents — @architecture, @debugger, @codewriter.',
                             tier: 'starter',
-                            status: installedPacks.includes('coding_agents.vlt') ? 'installed' : 'available'
+                            status: getStatus('coding_agents.vlt', installedPacks.includes('coding_agents.vlt')),
+                            progressPct: catalogStatus['coding_agents.vlt']?.progressPct || 0
+                        }
+                    ],
+                    dataVaults: [
+                        {
+                            id: 'laws_vault',
+                            name: 'Laws & Acts Vault',
+                            description: 'Comprehensive Indian statutory acts and rules database.',
+                            sizeMb: 33.6,
+                            status: getStatus('laws_vault', fs.existsSync(path.join(dataVaultsDir, 'laws'))),
+                            progressPct: catalogStatus['laws_vault']?.progressPct || 0
+                        },
+                        {
+                            id: 'cases_vault',
+                            name: 'Judgments & Case Law Vault',
+                            description: 'Supreme Court & NCLAT landmark case precedent indices.',
+                            sizeMb: 132.8,
+                            status: getStatus('cases_vault', fs.existsSync(path.join(dataVaultsDir, 'cases'))),
+                            progressPct: catalogStatus['cases_vault']?.progressPct || 0
+                        },
+                        {
+                            id: 'documents_vault',
+                            name: 'Legal Templates Vault',
+                            description: 'Standard pleadings, notices, agreements, and forms.',
+                            sizeMb: 28.7,
+                            status: getStatus('documents_vault', fs.existsSync(path.join(dataVaultsDir, 'documents'))),
+                            progressPct: catalogStatus['documents_vault']?.progressPct || 0
                         }
                     ],
                     llmEngines: [
@@ -2388,7 +3147,8 @@ module.exports = {
                             tier: 'starter',
                             sizeGb: 1.7,
                             context: '2K tokens',
-                            status: installedModels.some(m => m.includes('legalparam')) ? 'installed' : 'available'
+                            status: getStatus('legalparam-2.9b', installedModels.some(m => m.includes('legalparam'))),
+                            progressPct: catalogStatus['legalparam-2.9b']?.progressPct || 0
                         },
                         {
                             id: 'financeparam-2.9b',
@@ -2397,7 +3157,8 @@ module.exports = {
                             tier: 'starter',
                             sizeGb: 1.7,
                             context: '2K tokens',
-                            status: installedModels.some(m => m.includes('financeparam')) ? 'installed' : 'available'
+                            status: getStatus('financeparam-2.9b', installedModels.some(m => m.includes('financeparam'))),
+                            progressPct: catalogStatus['financeparam-2.9b']?.progressPct || 0
                         },
                         {
                             id: 'hayaparam-7b',
@@ -2428,6 +3189,56 @@ module.exports = {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: e.message }));
             }
+        },
+
+        // ─── Marketplace: 1-Click R2 Download & Install ───────────────────────
+        '/api/hayagriva/marketplace/download': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const { itemId } = JSON.parse(body || '{}');
+                    if (!itemId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Missing required field "itemId"' }));
+                        return;
+                    }
+
+                    const { downloadAndInstall } = require('./pipeline/vault-importer');
+                    const result = await downloadAndInstall(itemId);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+        },
+
+        // ─── Marketplace: Local Offline Import ────────────────────────────────
+        '/api/hayagriva/marketplace/import-local': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const { sourcePath, itemId } = JSON.parse(body || '{}');
+                    if (!sourcePath) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Missing required field "sourcePath"' }));
+                        return;
+                    }
+
+                    const { installFromLocalPath } = require('./pipeline/vault-importer');
+                    const result = installFromLocalPath(sourcePath, itemId);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
         },
 
         // ─── Marketplace: License Activation ──────────────────────────────────

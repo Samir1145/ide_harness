@@ -2,11 +2,13 @@
 
 const path = require('path');
 const fs = require('fs');
-const { createWatcher, ingestFile, registerUnprocessedFile } = require('./lib/daemon/watcher');
+const { createWatcher, ingestFile, registerUnprocessedFile, updateStatus } = require('./lib/daemon/watcher');
 const { readIndex } = require('./lib/core/indexer');
 const { query } = require('./lib/core/rag');
 const { loadVault } = require('./lib/utils/vault-loader');
 const { loadCasesVault } = require('./lib/utils/cases-vault-loader');
+
+const BINARY_EXTS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'];
 
 const HELP = `Usage: hayagriva <case-path>
 
@@ -20,6 +22,11 @@ Options:
 `;
 
 async function bootstrapCase(caseDir) {
+    if (!caseDir) return;
+    const resolved = path.resolve(caseDir);
+    const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
+    if (resolved === docsRoot) return;
+
     // Dynamically write/update .theia/settings.json and .vscode/settings.json to hide 'wiki' and 'concepts' database folders from File Explorer
     const configDirs = ['.theia', '.vscode'];
     for (const dirName of configDirs) {
@@ -38,22 +45,33 @@ async function bootstrapCase(caseDir) {
             if (!settings['files.exclude']) {
                 settings['files.exclude'] = {};
             }
-            settings['files.exclude']['**/wiki'] = true;
+            settings['files.exclude']['**/.*'] = true;
+            settings['files.exclude']['**/.*/**'] = true;
+            settings['files.exclude']['.*'] = true;
+            settings['files.exclude']['.*/**'] = true;
+            settings['files.exclude']['**/.prompts'] = true;
+            settings['files.exclude']['**/.prompts/**'] = true;
+            settings['files.exclude']['**/.localized'] = true;
             settings['files.exclude']['**/concepts'] = true;
             settings['files.exclude']['**/conversions'] = true;
-            settings['files.exclude']['wiki'] = true;
             settings['files.exclude']['concepts'] = true;
             settings['files.exclude']['conversions'] = true;
-            settings['files.exclude']['**/wiki/**'] = true;
             settings['files.exclude']['**/concepts/**'] = true;
             settings['files.exclude']['**/conversions/**'] = true;
-            settings['files.exclude']['wiki/'] = true;
             settings['files.exclude']['concepts/'] = true;
             settings['files.exclude']['conversions/'] = true;
-            settings['files.exclude']['**/*.md'] = true;
+            // Never globally exclude *.md — companion .md files are shown inline as caption suffix on parent PDF row
+            ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md'].forEach(wKey => {
+                delete settings['files.exclude'][wKey];
+            });
+            settings['files.exclude']['**/.trash'] = true;
+            settings['files.exclude']['**/.trash/**'] = true;
             settings['files.exclude']['**/*.status'] = true;
             settings['files.exclude']['**/*.footer'] = true;
             settings['files.exclude']['**/*.cache'] = true;
+            settings['files.exclude']['**/CASE_AUDIT.md'] = true;
+            settings['files.exclude']['**/hayagriva_settings.json'] = true;
+            settings['files.exclude']['**/index.md'] = true;
             settings['explorer.openEditors.visible'] = 0;
             fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
         } catch (e) {
@@ -223,9 +241,10 @@ async function main() {
 
     if (command === 'list') {
         const parent = caseArg || path.join(process.env.HOME || '', 'Documents');
+        const SYSTEM_DIRS = ['concepts', 'conversions', 'wiki', 'drafts', 'exports', 'reviews', 'node_modules'];
         const dirs = fs.readdirSync(parent).filter(f => {
             const p = path.join(parent, f);
-            return fs.statSync(p).isDirectory() && !f.startsWith('.');
+            return fs.statSync(p).isDirectory() && !f.startsWith('.') && !SYSTEM_DIRS.includes(f.toLowerCase());
         });
         console.log(dirs.join('\n'));
         process.exit(0);
@@ -280,9 +299,21 @@ function isProjectRepoRoot(dir) {
 
     const watcher = createWatcher(caseDir, {
         async onFileChange(filePath) {
-            registerUnprocessedFile(caseDir, filePath).catch(err => {
-                console.error('[Watcher Queue] Failed to register unprocessed file:', err.message);
-            });
+            const ext = path.extname(filePath).toLowerCase();
+            const relative = path.relative(caseDir, filePath);
+            if (BINARY_EXTS.includes(ext)) {
+                // Set status dot 1 to 'processing' (blue dot) immediately on drop
+                updateStatus(caseDir, relative, 'processing');
+                // D1: Auto-extract Phase 1 immediately on file drop (no user action needed)
+                ingestFile(caseDir, filePath, { conversionOnly: true }).catch(err => {
+                    console.error('[Auto-Extract] Phase 1 failed:', err.message);
+                });
+            } else {
+                // .md / .txt / .wiki.html: register as unprocessed
+                registerUnprocessedFile(caseDir, filePath).catch(err => {
+                    console.error('[Watcher Queue] Failed to register unprocessed file:', err.message);
+                });
+            }
         }
     });
 
@@ -310,9 +341,10 @@ function isProjectRepoRoot(dir) {
 async function runWatchAll(docsRoot) {
     console.log(`[hayagriva] watch-all mode: ${docsRoot}`);
 
+    const SYSTEM_DIRS = ['concepts', 'conversions', 'wiki', 'drafts', 'exports', 'reviews', 'node_modules'];
     const caseDirs = fs.readdirSync(docsRoot).filter(f => {
         const p = path.join(docsRoot, f);
-        return fs.statSync(p).isDirectory() && !f.startsWith('.');
+        return fs.statSync(p).isDirectory() && !f.startsWith('.') && !SYSTEM_DIRS.includes(f.toLowerCase());
     });
 
     console.log(`[hayagriva] found cases: ${caseDirs.join(', ')}`);
@@ -323,16 +355,15 @@ async function runWatchAll(docsRoot) {
     const port = parseInt(process.env.HAYAGRIVA_API_PORT || '3210', 10);
     const apiServer = startApiServer(docsRoot, port);
 
-    // Bootstrap scan for each case asynchronously
+    // Bootstrap scan for existing active cases asynchronously
     (async () => {
         for (const caseName of caseDirs) {
             const caseDir = path.join(docsRoot, caseName);
-            if (!fs.existsSync(path.join(caseDir, 'concepts'))) {
-                fs.mkdirSync(path.join(caseDir, 'concepts'), { recursive: true });
+            if (fs.existsSync(path.join(caseDir, 'case_manifest.json')) || fs.existsSync(path.join(caseDir, 'concepts'))) {
+                await bootstrapCase(caseDir);
             }
-            await bootstrapCase(caseDir);
         }
-        console.log('[hayagriva] All cases bootstrapped.');
+        console.log('[hayagriva] Active cases bootstrapped.');
     })().catch(err => {
         console.error('[hayagriva] watch-all bootstrap failed:', err.message);
     });
@@ -342,9 +373,20 @@ async function runWatchAll(docsRoot) {
         const caseDir = path.join(docsRoot, caseName);
         const watcher = createWatcher(caseDir, {
             async onFileChange(filePath) {
-                registerUnprocessedFile(caseDir, filePath).catch(err => {
-                    console.error('[Watcher Queue] Failed to register unprocessed file:', err.message);
-                });
+                const ext = path.extname(filePath).toLowerCase();
+                const relative = path.relative(caseDir, filePath);
+                if (BINARY_EXTS.includes(ext)) {
+                    // Set status dot 1 to 'processing' (blue dot) immediately on drop
+                    updateStatus(caseDir, relative, 'processing');
+                    // D1: Auto-extract Phase 1 immediately on file drop
+                    ingestFile(caseDir, filePath, { conversionOnly: true }).catch(err => {
+                        console.error('[Auto-Extract] Phase 1 failed:', err.message);
+                    });
+                } else {
+                    registerUnprocessedFile(caseDir, filePath).catch(err => {
+                        console.error('[Watcher Queue] Failed to register unprocessed file:', err.message);
+                    });
+                }
             }
         });
         watchers.set(caseName, watcher);

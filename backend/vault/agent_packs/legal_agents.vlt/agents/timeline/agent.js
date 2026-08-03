@@ -3,6 +3,7 @@ const path = require('path');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { buildTimeline, writeTimelineMarkdown, formatTimelineBlock } = require('../../../../../lib/agents/skills/timeline-build');
 const { writeCaseKV } = require('../../../../../lib/agents/skills/kv-write');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class TimelineAgent {
     constructor() {
@@ -58,9 +59,19 @@ Highlight: date of default, CIRP commencement, key milestones, and any unusual g
             content: `[Reconstructed Timeline — ${events.length} events found]\n${timelineBlock}\n\n[Key Dates Written to Case Dictionary: ${kvWritten}]\n\n[User Message]\n${userMessage}`
         });
 
-        const summary = await getChatResponse(messages, { caseDir });
+        try {
+            const summary = await getChatResponse(messages, { caseDir });
+            return `${summary}\n\n---\n📄 **timeline.md** written to case folder (${events.length} events). ${kvWritten} key dates saved to case dictionary.`;
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return `> ℹ️ **Lite Mode** — LLM narrative unavailable. Raw reconstructed timeline below.\n\n` +
+                       `**${events.length} events reconstructed. ${kvWritten} key dates saved to case dictionary.**\n\n` +
+                       timelineBlock +
+                       `\n\n---\n📄 **timeline.md** written to case folder.`;
+            }
+            throw e;
+        }
 
-        return `${summary}\n\n---\n📄 **timeline.md** written to case folder (${events.length} events). ${kvWritten} key dates saved to case dictionary.`;
     }
 }
 

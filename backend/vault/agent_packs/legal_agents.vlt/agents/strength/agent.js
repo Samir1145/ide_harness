@@ -4,6 +4,7 @@ const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { ragRetrieve, formatContextBlock } = require('../../../../../lib/agents/skills/rag-retrieve');
 const { crossReferenceCheck } = require('../../../../../lib/agents/skills/cross-ref-check');
 const { readAllKV } = require('../../../../../lib/agents/skills/kv-write');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class StrengthAgent {
     constructor() {
@@ -90,7 +91,28 @@ Provide: (1) an overall case strength assessment, (2) specific advice to strengt
             content: `[Argument Strength Analysis]\n${draftAvailable}\n\n${groundsReport}\n\n${contextBlock}\n\n[User Message]\n${userMessage}`
         });
 
-        return await getChatResponse(messages, { caseDir });
+        // Pre-block for Lite Mode: fully scored grounds table
+        const scorePreBlock = scoredGrounds.length > 0
+            ? `#### 📋 Argument Strength Analysis (${scoredGrounds.length} grounds)\n\n` +
+              scoredGrounds.map((g, i) =>
+                  `**${i + 1}. [${g.score}]** ${g.text}…\n` +
+                  `   Evidence: ${g.hasEvidence ? '✅' : '❌'} | Statute: ${g.hasStatute ? '✅' : '❌'} | Conflicts: ${g.hasConflict ? '⚠️ YES' : 'None'}\n` +
+                  `   Sources: ${g.supportingDocs.join(', ') || 'None found'}`
+              ).join('\n\n')
+            : `> No grounds found in the current draft. No draft detected in \`drafts/\`.`;
+
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'Strength Analyser', agentIcon: '📋',
+                    userMessage, contexts: [],
+                    preBlock: scorePreBlock, writeBack: true
+                });
+            }
+            throw e;
+        }
     }
 }
 

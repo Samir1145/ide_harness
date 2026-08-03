@@ -6,6 +6,7 @@ const { extractEntities, extractDates } = require('../../../../../lib/agents/ski
 const { writeCaseKV } = require('../../../../../lib/agents/skills/kv-write');
 const { appendTableRow } = require('../../../../../lib/agents/skills/md-append');
 const { vaultLookup } = require('../../../../../lib/agents/skills/vault-lookup');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 // IBC lookback windows (in months from insolvency commencement date)
 const IBC_LOOKBACK = {
@@ -150,6 +151,16 @@ ${flagged.length > 5 ? `\n... and ${flagged.length - 5} more. See avoidance_ledg
 
         const contextBlock = formatContextBlock(allChunks.slice(0, 3), 'Financial Transaction Documents');
 
+        // Build lite-mode pre-block from the fully computed flagged[] table
+        const flaggedTable = flagged.length > 0
+            ? `#### 🔍 Avoidance Scan Results — ${flagged.length} Transaction(s) Flagged\n\n` +
+              `| Date | Amount | Parties | Months Pre-CIRP | Sections | Severity |\n|---|---|---|---|---|---|\n` +
+              flagged.slice(0, 8).map(f =>
+                  `| ${f.date} | ${f.amounts} | ${f.parties || '—'} | ${f.months_before_cirp} | ${f.applicable_sections.join(', ')} | ${f.severity} |`
+              ).join('\n') +
+              `\n\n> Full ledger written to \`avoidance_ledger.md\``
+            : `> No avoidance transactions flagged in ${allChunks.length} document chunks scanned.`;
+
         const messages = [{ role: 'system', content: this.instructions }];
         history.forEach(h => messages.push({ role: h.role, content: h.content }));
         messages.push({
@@ -157,7 +168,19 @@ ${flagged.length > 5 ? `\n... and ${flagged.length - 5} more. See avoidance_ledg
             content: `${scanSummary}\n\n${lawContext ? 'Relevant IBC Provisions:\n' + lawContext + '\n\n' : ''}${contextBlock}\n\n[User Message]\n${userMessage}`
         });
 
-        return await getChatResponse(messages, { caseDir });
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'Avoidance Scanner', agentIcon: '🔍',
+                    userMessage, contexts: allChunks.slice(0, 3),
+                    vaultText: ibcLaws.map(l => `**${l.title}:** ${(l.text || '').substring(0, 200)}`).join('\n\n'),
+                    preBlock: flaggedTable, writeBack: true
+                });
+            }
+            throw e;
+        }
     }
 }
 

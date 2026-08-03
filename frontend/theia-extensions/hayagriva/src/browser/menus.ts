@@ -71,40 +71,40 @@ export class HayagrivaMenuContribution implements MenuContribution {
     const ARCHIVE_SUBMENU = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_archive_submenu'];
     registry.registerSubmenu(ARCHIVE_SUBMENU, 'Hayagriva (Archive)', { sortString: 'a_hayagriva_2' });
 
-    // Pipeline Submenu actions
+    // D7: Pipeline Submenu — Step 1 (Convert to Markdown) removed; now auto-starts on drop
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:convertToMd`,
-      label: '1. Convert to Markdown',
+      commandId: `${HAYAGRIVA_NS}:enhanceMarkdown`,
+      label: '1. Review / Edit Companion Markdown',
       order: '1'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:enhanceMarkdown`,
-      label: '2. Enhance Markdown',
+      commandId: `${HAYAGRIVA_NS}:ingestToAi`,
+      label: '2. Index into AI Memory',
       order: '2'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:ingestToAi`,
-      label: '3. Generate Search Vectors',
+      commandId: `${HAYAGRIVA_NS}:enrichToAi`,
+      label: '3. Run AI Enrichment',
       order: '3'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:enrichToAi`,
-      label: '4. Run AI Enrichment',
+      commandId: `${HAYAGRIVA_NS}:openCaseVault`,
+      label: '4. Open Database Viewer',
       order: '4'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:openCaseVault`,
-      label: '5. Open Database Viewer',
+      commandId: `${HAYAGRIVA_NS}:exportScDocx`,
+      label: '5. Export to SC DOCX',
       order: '5'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:exportScDocx`,
-      label: '6. Export to SC DOCX',
+      commandId: `${HAYAGRIVA_NS}:exportChunksToTiddlyWiki`,
+      label: '6. Export Chunks to TiddlyWiki',
       order: '6'
     });
 
@@ -127,9 +127,18 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '3'
     });
 
+    // D8: Delete File (soft-delete to .trash/) — in its own group below pipeline
+    const DELETE_GROUP = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_delete_group'];
+    registry.registerMenuAction(DELETE_GROUP, {
+      commandId: `${HAYAGRIVA_NS}:deleteFile`,
+      label: '🗑 Delete File (move to trash)',
+      order: '1'
+    });
+
     // Outline panel context menu node actions
     registry.registerMenuAction(['outline.context'], { commandId: `${HAYAGRIVA_NS}:outlineAskRag`, label: 'Ask about this section', order: '1' });
     registry.registerMenuAction(['outline.context'], { commandId: `${HAYAGRIVA_NS}:outlineFindRelated`, label: 'Find related pages', order: '2' });
     registry.registerMenuAction(['outline.context'], { commandId: `${HAYAGRIVA_NS}:outlineAddToWiki`, label: 'Add to Wiki', order: '3' });
   }
 }
+

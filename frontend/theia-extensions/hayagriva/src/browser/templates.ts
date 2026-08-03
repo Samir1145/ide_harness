@@ -487,10 +487,48 @@ export function wikiExplorerHtml(caseName: string, apiPort: number = 3210): stri
 </style>
 </head>
 <body>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--theia-border-color, #ccc);">
+    <span style="font-weight:bold;font-size:12px;color:var(--theia-brand-color1, #0ea5e9);">Case Wiki & Knowledge</span>
+    <div style="display:flex;gap:6px;">
+      <button id="close-all-editors-btn" title="Close All Open Editors in Workspace" style="background:var(--theia-button-background, #3b82f6);color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;gap:4px;">
+        🧹 Close All Tabs
+      </button>
+      <button id="add-wiki-btn" title="Create New Standalone TiddlyWiki" style="background:var(--theia-brand-color1, #0ea5e9);color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;gap:4px;">
+        ➕ New Wiki
+      </button>
+    </div>
+  </div>
   <div id="cards-container">Loading Q&A cards...</div>
 
   <script>
     let currentCase = '${caseName}';
+
+    document.getElementById('close-all-editors-btn').onclick = () => {
+      if (window.parent) {
+        window.parent.postMessage({ type: 'close-all-editors' }, '*');
+      }
+    };
+
+    document.getElementById('add-wiki-btn').onclick = async () => {
+      const wikiTitle = prompt('Enter name for the new TiddlyWiki:', 'Case_Notes');
+      if (!wikiTitle) return;
+      try {
+        const res = await fetch('http://127.0.0.1:${apiPort}/api/hayagriva/tiddlywiki/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ caseName: currentCase, wikiTitle })
+        });
+        const data = await res.json();
+        if (data.success && data.viewUrl) {
+          window.open('http://127.0.0.1:${apiPort}' + data.viewUrl, '_blank');
+          loadCards();
+        } else {
+          alert('Failed to create TiddlyWiki: ' + (data.error || 'Unknown error'));
+        }
+      } catch(e) {
+        alert('Error creating wiki: ' + e.message);
+      }
+    };
     
     function syncTheme() {
       if (window.parent) {

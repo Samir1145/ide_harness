@@ -4,6 +4,7 @@ const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { ragRetrieve, formatContextBlock } = require('../../../../../lib/agents/skills/rag-retrieve');
 const { vaultLookup, formatVaultBlock } = require('../../../../../lib/agents/skills/vault-lookup');
 const { readAllKV } = require('../../../../../lib/agents/skills/kv-write');
+const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
 class ComplianceAgent {
     constructor() {
@@ -56,7 +57,17 @@ Provide a structured compliance matrix:
             content: `${vaultBlock}\n\n${formatContextBlock(planChunks.slice(0, 4), 'Resolution Plan Excerpts')}\n\n${kvBlock}\n\n[User Instruction]\n${userMessage}`
         });
 
-        return await getChatResponse(messages, { caseDir });
+        try {
+            return await getChatResponse(messages, { caseDir });
+        } catch (e) {
+            if (e.code === 'LITE_MODE' || e.code === 'CONTEXT_EXCEEDED') {
+                return buildLiteFallback({
+                    caseDir, agentName: 'Compliance Checker', agentIcon: '📋',
+                    userMessage, contexts: contexts || [], writeBack: true
+                });
+            }
+            throw e;
+        }
     }
 }
 

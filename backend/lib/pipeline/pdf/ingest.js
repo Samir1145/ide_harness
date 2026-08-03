@@ -23,12 +23,24 @@ async function ingestPdf(caseDir, filePath, options = {}) {
         structuredMd = String(rawMd);
     }
 
-    const destDir = path.dirname(filePath);
+    const subfolder = path.dirname(relative);
+    const conversionsDir = path.join(caseDir, 'conversions');
+    const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
     fs.mkdirSync(destDir, { recursive: true });
     const companionPath = path.join(destDir, `${basename}.md`);
+    const rootCompanionPath = path.join(path.dirname(filePath), `${basename}.md`);
 
     fs.writeFileSync(companionPath, structuredMd, 'utf8');
-    console.log(`[PDF Ingestion] Created structured companion Markdown: ${companionPath}`);
+    
+    // Clean up stale duplicate companion .md in root if it exists
+    if (fs.existsSync(rootCompanionPath) && path.resolve(rootCompanionPath) !== path.resolve(companionPath)) {
+        try {
+            fs.unlinkSync(rootCompanionPath);
+            console.log(`[PDF Ingestion] Removed stale root duplicate: ${rootCompanionPath}`);
+        } catch (_) {}
+    }
+
+    console.log(`[PDF Ingestion] Created companion Markdown: ${companionPath}`);
 
     return {
         sections: 0,

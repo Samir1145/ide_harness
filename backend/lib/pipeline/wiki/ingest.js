@@ -4,16 +4,18 @@ const bm25 = require('../../core/bm25');
 const { parseWikiHtml, parseTags, extractWikiLinks } = require('./upload');
 const { splitWiki } = require('./split');
 const { formatMarkdownWithFrontmatter, parseMarkdownWithFrontmatter } = require('../../utils/okf');
-const { getSafeFilename, cleanBm25Index } = require('../common/helper');
+const { getSafeFilename, cleanBm25Index, isTiddlyWikiHtml } = require('../common/helper');
 
 /**
- * Handles TiddlyWiki (.wiki.html) file ingestion, parsing individual cards out of the store block.
+ * Handles TiddlyWiki (.wiki.html / .html) file ingestion, parsing individual cards out of the store block.
  */
 async function ingestWiki(caseDir, filePath, bm25Index, bm25IndexFile) {
-    const isWikiHtml = filePath.toLowerCase().endsWith('.wiki.html');
-    const ext = isWikiHtml ? '.wiki.html' : path.extname(filePath).toLowerCase();
+    const isWiki = isTiddlyWikiHtml(filePath);
+    const ext = path.extname(filePath).toLowerCase();
     const relative = path.relative(caseDir, filePath);
-    const basename = isWikiHtml ? path.basename(filePath, '.wiki.html') : path.basename(filePath, ext);
+    const basename = filePath.toLowerCase().endsWith('.wiki.html') 
+        ? path.basename(filePath, '.wiki.html') 
+        : path.basename(filePath, ext);
     const subfolder = path.dirname(relative);
     const safeSubfolder = subfolder === '.' ? '' : subfolder;
 
@@ -88,11 +90,10 @@ async function ingestWikiCard(caseDir, filePath, bm25Index, bm25IndexFile) {
  * Syncs modifications from wiki/*.md files back to the single-file TiddlyWiki (.wiki.html).
  */
 async function syncMarkdownToWiki(caseDir, filePath) {
-    const isWikiHtml = (f) => f.toLowerCase().endsWith('.wiki.html');
     const files = fs.readdirSync(caseDir);
-    const wikiFile = files.find(isWikiHtml);
+    const wikiFile = files.find(f => isTiddlyWikiHtml(path.join(caseDir, f)));
     if (!wikiFile) {
-        console.warn(`[Wiki Sync] No .wiki.html file found in case directory ${caseDir} to write back to.`);
+        console.warn(`[Wiki Sync] No TiddlyWiki file found in case directory ${caseDir} to write back to.`);
         return;
     }
     const wikiPath = path.join(caseDir, wikiFile);
@@ -106,16 +107,19 @@ async function syncMarkdownToWiki(caseDir, filePath) {
     const cardTitle = frontmatter.title || basename;
 
     let htmlContent = fs.readFileSync(wikiPath, 'utf8');
-    const startTag = '<script class="tiddlywiki-tiddler-store" type="application/json">';
-    const startIdx = htmlContent.indexOf(startTag);
-    const endIdx = htmlContent.indexOf('</script>', startIdx);
 
-    if (startIdx === -1 || endIdx === -1) {
+    // Match TW5 script store tag (flexible regex)
+    const scriptRegex = /<script\b[^>]*class=["']tiddlywiki-tiddler-store["'][^>]*>([\s\S]*?)<\/script>/i;
+    const match = scriptRegex.exec(htmlContent);
+
+    if (!match) {
         console.warn(`[Wiki Sync] No tiddler store script tag found in ${wikiPath}`);
         return;
     }
 
-    const jsonText = htmlContent.substring(startIdx + startTag.length, endIdx);
+    const startIdx = match.index;
+    const fullMatchStr = match[0];
+    const jsonText = match[1];
     let tiddlers = [];
     try {
         tiddlers = JSON.parse(jsonText);
@@ -147,7 +151,8 @@ async function syncMarkdownToWiki(caseDir, filePath) {
     }
 
     const newJsonText = JSON.stringify(tiddlers).replace(/</g, '\\u003c');
-    const updatedHtml = htmlContent.substring(0, startIdx + startTag.length) + newJsonText + htmlContent.substring(endIdx);
+    const newScriptTag = `<script class="tiddlywiki-tiddler-store" type="application/json">${newJsonText}</script>`;
+    const updatedHtml = htmlContent.replace(fullMatchStr, newScriptTag);
     fs.writeFileSync(wikiPath, updatedHtml, 'utf8');
     console.log(`[Wiki Sync] Successfully wrote card "${cardTitle}" back to ${wikiFile}`);
 }

@@ -31,6 +31,10 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
   private bootstrapCaseSettings(): void {
     try {
       const caseName = this.resolveCaseName();
+      if (!caseName) {
+        console.log('[Hayagriva] No active case folder open. Skipping automatic bootstrap.');
+        return;
+      }
       const port = this.preferenceService.get<number>('hayagriva.apiPort', 3210);
       fetch(`http://127.0.0.1:${port}/api/hayagriva/bootstrap-case`, {
         method: 'POST',
@@ -55,7 +59,12 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
     try {
       const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (workspaceRoot) {
-        return decodeURIComponent(workspaceRoot.path.toString());
+        const pathStr = decodeURIComponent(workspaceRoot.path.toString());
+        const normalized = pathStr.replace(/\/$/, '');
+        if (normalized.endsWith('/Documents') || normalized.endsWith('/Documents/')) {
+          return '';
+        }
+        return pathStr;
       }
     } catch (_) {}
     return '';
@@ -125,13 +134,13 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
               // Dot 1: Companion MD extraction
               if (oldVal.dot1 !== 'red' && newVal.dot1 === 'red') {
                 this.messageService.error(`Extraction failed for ${baseName}: ${newVal.error || 'Unknown error'}`);
-              } else if (oldVal.dot1 === 'blue' && newVal.dot1 === 'companion_ready') {
+              } else if (oldVal.dot1 === 'blue' && (newVal.dot1 === 'green')) {
                 this.messageService.info(`✓ Text extraction complete for ${baseName}`);
               }
               // Dot 2: AI Memory Indexing
               if (oldVal.dot2 !== 'red' && newVal.dot2 === 'red') {
                 this.messageService.error(`Failed to index ${baseName} into AI Memory: ${newVal.error || 'Unknown error'}`);
-              } else if (oldVal.dot2 === 'blue' && newVal.dot2 === 'indexed') {
+              } else if (oldVal.dot2 === 'blue' && newVal.dot2 === 'green') {
                 this.messageService.info(`✓ ${baseName} successfully indexed into AI Memory`);
               }
               // Dot 3: AI Enrichment
@@ -179,7 +188,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
     if (!tree.root) { console.log('[Hayagriva] buildDecorations: no tree root'); return result; }
     console.log('[Hayagriva] buildDecorations called, cache size:', Object.keys(this.statusCache).length);
 
-    const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv'];
+    const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.wiki.html', '.html'];
 
     for (const node of new TopDownTreeIterator(tree.root)) {
       const uri = this.getUri(node);
@@ -226,61 +235,63 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
       const { dot1, dot2, dot3 } = statusObj;
       const files: any = statusObj.files || {};
 
+      // D6: Updated color map — 'green' is canonical, legacy aliases map to same colour
       const colorMap: { [key: string]: string } = {
         grey: '#6b7280',
-        amber: '#f59e0b',
+        blue: '#3b82f6',
         green: '#10b981',
+        red: '#ef4444',
+        // Legacy aliases (backward compat during transition)
+        amber: '#f59e0b',
         companion_ready: '#10b981',
         reviewed: '#10b981',
         indexed: '#10b981',
         outline_approved: '#10b981',
-        blue: '#3b82f6',
-        red: '#ef4444'
       };
       const dot1Color = colorMap[dot1] || '#6b7280';
       const dot2Color = colorMap[dot2] || '#6b7280';
       const dot3Color = colorMap[dot3] || '#6b7280';
 
-      // ── Dot 1 tooltip — Companion .md ─────────────────────────────────────
-      const companionPath = files.companion?.path || '—';
+      // ── Dot 1 tooltip — Text Extraction (D6) ────────────────────────────────
+      const companionRelPath = files.companion?.path || '';
       const companionExists = files.companion?.exists === true;
+      const companionBasename = companionRelPath ? companionRelPath.split('/').pop() : '—';
       let tooltip1: string;
-      if (dot1 === 'companion_ready' || dot1 === 'reviewed') {
-        tooltip1 = `● Step 1 ✓  Companion Markdown ready\n   📄 ${companionPath}`;
+      if (dot1 === 'green' || dot1 === 'companion_ready' || dot1 === 'reviewed') {
+        tooltip1 = `● Step 1 ✓  Text extracted\n   📝 ${companionRelPath || '—'}  (click file to edit)`;
       } else if (dot1 === 'blue') {
-        tooltip1 = `● Step 1 ⏳  Converting to Markdown…\n   📄 ${companionPath} (writing…)`;
+        tooltip1 = `● Step 1 ⏳  Extracting text to Markdown… (auto-started on drop)`;
       } else if (dot1 === 'red') {
-        tooltip1 = `● Step 1 ✗  Conversion failed\n   📄 ${companionPath}`;
+        tooltip1 = `● Step 1 ✗  Extraction failed — drop a companion .md to self-heal`;
       } else {
-        tooltip1 = `● Step 1 ○  Not started — right-click › 1. Convert to Markdown\n   📄 ${companionPath} ${companionExists ? '(file found — restart to heal)' : '(file missing)'}`;
+        tooltip1 = `● Step 1 ○  Extracting… (started automatically)`;
       }
 
-      // ── Dot 2 tooltip — Search Vectors / pageindex_tree ───────────────────
+      // ── Dot 2 tooltip — Index into AI Memory (D6) ────────────────────────────
       const treePath = files.pageindexTree?.path || '—';
-      const treeExists = files.pageindexTree?.exists === true;
       const totalCards = files.sectionCards?.total ?? 0;
       let tooltip2: string;
-      if (dot2 === 'indexed') {
-        tooltip2 = `● Step 3 ✓  Search vectors built (${totalCards} sections)\n   🗂 ${treePath}`;
+      if (dot2 === 'green' || dot2 === 'indexed') {
+        tooltip2 = `● Step 2 ✓  Indexed into AI Memory (${totalCards} sections)\n   🗂 ${treePath}`;
       } else if (dot2 === 'blue') {
-        tooltip2 = `● Step 3 ⏳  Building search vectors…\n   🗂 ${treePath} (writing…)`;
+        tooltip2 = `● Step 2 ⏳  Indexing into AI Memory…`;
       } else if (dot2 === 'red') {
-        tooltip2 = `● Step 3 ✗  Indexing failed\n   🗂 ${treePath}`;
+        tooltip2 = `● Step 2 ✗  Indexing failed\n   🗂 ${treePath}`;
       } else {
-        tooltip2 = `● Step 3 ○  Not started — right-click › 3. Generate Search Vectors\n   🗂 ${treePath} ${treeExists ? '(file found — restart to heal)' : '(file missing)'}`;
+        tooltip2 = `● Step 2 ○  Not indexed — right-click › 2. Index into AI Memory`;
       }
 
-      // ── Dot 3 tooltip — AI Enrichment ─────────────────────────────────────
+      // ── Dot 3 tooltip — AI Enrichment (D6) ───────────────────────────────────
       const enrichedCards = files.sectionCards?.enriched ?? 0;
       let tooltip3: string;
       if (dot3 === 'green') {
-        tooltip3 = `● Step 4 ✓  AI Enrichment complete (${totalCards}/${totalCards} sections enriched)`;
+        tooltip3 = `● Step 3 ✓  AI Enrichment complete (${totalCards} sections enriched)`;
       } else if (dot3 === 'blue') {
-        tooltip3 = `● Step 4 ⏳  AI Enrichment running… (${enrichedCards}/${totalCards} sections done)`;
+        tooltip3 = `● Step 3 ⏳  AI Enrichment running… (${enrichedCards}/${totalCards} sections done)`;
       } else if (dot3 === 'red') {
-        tooltip3 = `● Step 4 ✗  AI Enrichment failed`;
+        tooltip3 = `● Step 3 ✗  AI Enrichment failed`;
       } else {
-        tooltip3 = `● Step 4 ○  Not started — right-click › 4. Run AI Enrichment`;
+        tooltip3 = `● Step 3 ○  Not enriched — right-click › 3. Run AI Enrichment`;
       }
 
       let errorSuffix = '';
@@ -288,14 +299,27 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
         errorSuffix = `\n⚠ Error: ${statusObj.error}`;
       }
 
-      result.set(node.id, {
+      // D3: Companion .md caption suffix — shows "  📝 ipie.md" inline after filename
+      const captionSuffixes: TreeDecoration.CaptionAffix[] = [];
+      if (companionExists && companionRelPath) {
+        captionSuffixes.push({
+          data: `  📝 ${companionBasename}`,
+          fontData: { color: '#6b7280' }  // subtle grey
+        });
+      }
+
+      const decoration: TreeDecoration.Data = {
         captionPrefixes: [
           { data: '●', fontData: { color: dot1Color } },
           { data: '●', fontData: { color: dot2Color } },
           { data: '● ', fontData: { color: dot3Color } }
         ],
         tooltip: `${tooltip1}\n${tooltip2}\n${tooltip3}${errorSuffix}`
-      });
+      };
+      if (captionSuffixes.length > 0) {
+        (decoration as any).captionSuffixes = captionSuffixes;
+      }
+      result.set(node.id, decoration);
     }
 
     return result;

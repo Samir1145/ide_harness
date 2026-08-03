@@ -1,5 +1,6 @@
 {
   "files.exclude": {
+    "**/.*": true,
     "**/wiki": true,
     "**/concepts": true,
     "**/conversions": true,
