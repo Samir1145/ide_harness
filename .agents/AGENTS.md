@@ -141,5 +141,11 @@ Refer to the following plans saved in the workspace:
 * **Pre-Flight User Q&A Alignment Protocol**:
   * BEFORE writing or modifying any feature, workflow, or pipeline code, the AI assistant MUST perform deep-dive static analysis and present explicit clarifying questions to the user regarding edge cases, expected behaviors, and architectural side effects.
   * No code mutations or file edits are permitted until the user explicitly reviews, clarifies, and approves the proposal.
-
-
+* **Canonical Storage Location & System Infrastructure Relocation**:
+  * System infrastructure and metadata files (`case_manifest.json`, `CASE_AUDIT.md`, `index.md`, `*.footer`) are stored inside the case conversion directory (`<casename>_conversions_haya/`).
+  * On case launch, `migrateRootInfrastructureToConversions()` automatically moves any legacy root infrastructure files into the conversions directory, ensuring the root case folder in Finder displays **only** primary source files.
+* **Case-Prefixed System Subfolders (`<casename>_<type>_haya`) & IDE Exclusion**:
+  * System subfolders are dynamically named using the parent case folder basename: `<casename>_conversions_haya`, `<casename>_concepts_haya`, and `<casename>_wiki_haya`.
+  * **Finder Visibility & Protection**: Visible in macOS Finder so users recognize which case they belong to and know not to delete/modify them directly.
+  * **IDE Explorer Exclusion**: Automatically hidden from the IDE File Explorer sidebar tree via wildcard patterns (`**/*_conversions_haya`, `**/*_concepts_haya`, `**/*_wiki_haya`) in `files.exclude`.
+  * **Dynamic Resolvers**: `getConversionsDir(caseDir)`, `getConceptsDir(caseDir)`, and `getWikiDir(caseDir)` in `backend/lib/pipeline/common/helper.js` resolve paths dynamically and auto-sync subfolder names if the parent case directory is renamed in Finder.
