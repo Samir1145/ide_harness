@@ -39,8 +39,15 @@ function writeIndexMd(caseDir, index) {
             }
             md += `\n`;
         }
+    const conversionsDir = path.join(caseDir, 'conversions');
+    fs.mkdirSync(conversionsDir, { recursive: true });
+    const targetIndexMd = path.join(conversionsDir, 'index.md');
+    fs.writeFileSync(targetIndexMd, md, 'utf8');
+
+    const legacyIndexMd = path.join(caseDir, 'index.md');
+    if (fs.existsSync(legacyIndexMd) && path.resolve(legacyIndexMd) !== path.resolve(targetIndexMd)) {
+        try { fs.unlinkSync(legacyIndexMd); } catch (_) {}
     }
-    fs.writeFileSync(path.join(caseDir, 'index.md'), md, 'utf8');
 }
 
 function writeIndex(caseDir, index) {

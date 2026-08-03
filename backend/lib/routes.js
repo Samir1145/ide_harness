@@ -305,6 +305,58 @@ ensureGlobalUserSettings();
  *   fileDomains       - Per-file explicit domain tag, e.g. { "balance_sheet.pdf": "finance" }
  *                       Populated at ingestion; overrides extension heuristic in detectDocumentVectorType.
  */
+function migrateRootInfrastructureToConversions(caseDir) {
+    try {
+        if (!caseDir) return;
+        const resolved = path.resolve(caseDir);
+        const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
+        if (resolved === docsRoot) return;
+
+        const conversionsDir = path.join(caseDir, 'conversions');
+        fs.mkdirSync(conversionsDir, { recursive: true });
+
+        const filesToMigrate = ['case_manifest.json', 'CASE_AUDIT.md', 'index.md'];
+        for (const fname of filesToMigrate) {
+            const rootFile = path.join(caseDir, fname);
+            const targetFile = path.join(conversionsDir, fname);
+            if (fs.existsSync(rootFile)) {
+                try {
+                    if (fs.existsSync(targetFile) && path.resolve(rootFile) !== path.resolve(targetFile)) {
+                        fs.unlinkSync(rootFile);
+                    } else if (!fs.existsSync(targetFile)) {
+                        fs.renameSync(rootFile, targetFile);
+                    }
+                    console.log(`[Infrastructure Migration] Relocated ${fname} to conversions/`);
+                } catch (_) {}
+            }
+        }
+
+        // Migrate any root .footer files
+        const rootEntries = fs.readdirSync(caseDir);
+        for (const entry of rootEntries) {
+            if (entry.toLowerCase().endsWith('.footer')) {
+                const rootFooter = path.join(caseDir, entry);
+                const targetFooter = path.join(conversionsDir, entry);
+                try {
+                    if (fs.existsSync(targetFooter) && path.resolve(rootFooter) !== path.resolve(targetFooter)) {
+                        fs.unlinkSync(rootFooter);
+                    } else if (!fs.existsSync(targetFooter)) {
+                        fs.renameSync(rootFooter, targetFooter);
+                    }
+                    console.log(`[Infrastructure Migration] Relocated ${entry} to conversions/`);
+                } catch (_) {}
+            }
+        }
+    } catch (e) {
+        console.warn('[Infrastructure Migration] Error:', e.message);
+    }
+}
+
+/**
+ * Creates a case_manifest.json inside conversions/ if one does not already exist.
+ * This is the workspace domain profile used by llm-client.js to determine
+ * which embedding model to use per document (legal vs finance).
+ */
 function ensureCaseManifest(caseDir) {
     try {
         if (!caseDir) return;
@@ -312,7 +364,12 @@ function ensureCaseManifest(caseDir) {
         const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
         if (resolved === docsRoot) return;
 
-        const manifestPath = path.join(caseDir, 'case_manifest.json');
+        migrateRootInfrastructureToConversions(caseDir);
+
+        const conversionsDir = path.join(caseDir, 'conversions');
+        fs.mkdirSync(conversionsDir, { recursive: true });
+        const manifestPath = path.join(conversionsDir, 'case_manifest.json');
+
         if (fs.existsSync(manifestPath)) {
             // Validate & fill any missing fields from a prior schema version
             let existing = {};
@@ -328,11 +385,11 @@ function ensureCaseManifest(caseDir) {
             if (existing.vectorMigrationCheckpoint === undefined) { existing.vectorMigrationCheckpoint = null; changed = true; }
             if (changed) {
                 fs.writeFileSync(manifestPath, JSON.stringify(existing, null, 2), 'utf8');
-                console.log(`[API Server] case_manifest.json migrated to latest schema: ${manifestPath}`);
+                console.log(`[API Server] case_manifest.json updated: ${manifestPath}`);
             }
             return;
         }
-        // Create fresh manifest with starter defaults
+        // Create fresh manifest with starter defaults inside conversions/
         const manifest = {
             caseId: crypto.randomUUID(),
             domains: ['legal', 'finance'],

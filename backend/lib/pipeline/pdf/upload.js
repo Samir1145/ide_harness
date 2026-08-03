@@ -344,10 +344,21 @@ async function convertPdf(filePath, options = {}) {
 
         const footerLines = detectRepeatingLines(rawPageTexts);
 
-        // Write .footer sidecar for daemon batches to use
+        // Write .footer sidecar for daemon batches to use inside conversions/ directory
         try {
-            const footerSidecar = filePath.replace(/\.pdf$/i, '.footer');
+            const ext = path.extname(filePath);
+            const basename = path.basename(filePath, ext);
+            const dir = path.dirname(filePath);
+            const conversionsDir = path.join(dir, 'conversions');
+            fs.mkdirSync(conversionsDir, { recursive: true });
+            const footerSidecar = path.join(conversionsDir, `${basename}.footer`);
             fs.writeFileSync(footerSidecar, JSON.stringify(footerLines, null, 2), 'utf8');
+
+            // Unlink legacy root sidecar if it exists
+            const legacySidecar = filePath.replace(/\.pdf$/i, '.footer');
+            if (fs.existsSync(legacySidecar) && path.resolve(legacySidecar) !== path.resolve(footerSidecar)) {
+                try { fs.unlinkSync(legacySidecar); } catch (_) {}
+            }
         } catch (e) {
             console.warn('[PDF Footer] Could not write .footer sidecar:', e.message);
         }
@@ -390,9 +401,16 @@ async function convertPdfBlock(filePath, startPage, endPage) {
     // Load footer fingerprint from sidecar (written during initial convertPdf call)
     let footerLines = [];
     try {
-        const footerSidecar = filePath.replace(/\.pdf$/i, '.footer');
-        if (fs.existsSync(footerSidecar)) {
-            footerLines = JSON.parse(fs.readFileSync(footerSidecar, 'utf8'));
+        const ext = path.extname(filePath);
+        const basename = path.basename(filePath, ext);
+        const dir = path.dirname(filePath);
+        const conversionsDir = path.join(dir, 'conversions');
+        const footerSidecar = path.join(conversionsDir, `${basename}.footer`);
+        const legacySidecar = filePath.replace(/\.pdf$/i, '.footer');
+
+        const targetSidecar = fs.existsSync(footerSidecar) ? footerSidecar : (fs.existsSync(legacySidecar) ? legacySidecar : null);
+        if (targetSidecar) {
+            footerLines = JSON.parse(fs.readFileSync(targetSidecar, 'utf8'));
             if (footerLines.length > 0) {
                 console.log(`[PDF Footer] Loaded ${footerLines.length} footer line(s) from sidecar for stripping.`);
             }

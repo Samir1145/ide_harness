@@ -1319,10 +1319,16 @@ function generateCaseAudit(caseDir) {
             }
         }
 
-        md += `\n---\n*Last updated: ${new Date().toLocaleString()}*\n`;
+        const conversionsDir = path.join(caseDir, 'conversions');
+        fs.mkdirSync(conversionsDir, { recursive: true });
+        const auditPath = path.join(conversionsDir, 'CASE_AUDIT.md');
+        fs.writeFileSync(auditPath, md, 'utf8');
 
-        fs.writeFileSync(path.join(caseDir, 'CASE_AUDIT.md'), md, 'utf8');
-        console.log(`[Audit Index] Updated CASE_AUDIT.md for ${caseDir}`);
+        const legacyAuditPath = path.join(caseDir, 'CASE_AUDIT.md');
+        if (fs.existsSync(legacyAuditPath) && path.resolve(legacyAuditPath) !== path.resolve(auditPath)) {
+            try { fs.unlinkSync(legacyAuditPath); } catch (_) {}
+        }
+        console.log(`[Audit Index] Updated CASE_AUDIT.md: ${auditPath}`);
     } catch (e) {
         console.error('[Audit Index] Failed to generate case audit:', e.message);
     }

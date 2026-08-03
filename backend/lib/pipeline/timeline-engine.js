@@ -114,7 +114,8 @@ function generateMermaidTimeline(t0DateStr, caseId = 'CIRP Case') {
  */
 function updateWorkspaceTimeline(caseDir, t0DateStr = null) {
     try {
-        const manifestPath = path.join(caseDir, 'case_manifest.json');
+        const conversionManifest = path.join(caseDir, 'conversions', 'case_manifest.json');
+        const manifestPath = fs.existsSync(conversionManifest) ? conversionManifest : path.join(caseDir, 'case_manifest.json');
         let caseId = path.basename(caseDir);
         let t0 = t0DateStr || formatDate(new Date());
 

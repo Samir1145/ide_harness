@@ -77,8 +77,9 @@ function writeLicenseToSettings(caseDir, tier, payload) {
         settings.allowedDomains = payload.allowedDomains || ['legal', 'finance'];
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
 
-        // Mirror tier into case_manifest.json
-        const manifestPath = path.join(caseDir, 'case_manifest.json');
+        // Mirror tier into case_manifest.json inside conversions/
+        const conversionManifest = path.join(caseDir, 'conversions', 'case_manifest.json');
+        const manifestPath = fs.existsSync(conversionManifest) ? conversionManifest : path.join(caseDir, 'case_manifest.json');
         if (fs.existsSync(manifestPath)) {
             let manifest = {};
             try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch (_) {}

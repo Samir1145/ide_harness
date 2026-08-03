@@ -359,7 +359,7 @@ async function runWatchAll(docsRoot) {
     (async () => {
         for (const caseName of caseDirs) {
             const caseDir = path.join(docsRoot, caseName);
-            if (fs.existsSync(path.join(caseDir, 'case_manifest.json')) || fs.existsSync(path.join(caseDir, 'concepts'))) {
+            if (fs.existsSync(path.join(caseDir, 'conversions', 'case_manifest.json')) || fs.existsSync(path.join(caseDir, 'case_manifest.json')) || fs.existsSync(path.join(caseDir, 'concepts'))) {
                 await bootstrapCase(caseDir);
             }
         }
