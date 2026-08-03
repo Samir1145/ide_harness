@@ -7,6 +7,7 @@ const bm25 = require('../core/bm25');
 const { getChatResponse } = require('../core/llm-client');
 const { ingestWiki, ingestWikiCard, ingestPdf, ingestDocx, ingestXlsx, ingestText } = require('../pipeline');
 const { extractFileKV } = require('../pipeline/common/extract');
+const { getConversionsDir, getConceptsDir, getWikiDir } = require('../pipeline/common/helper');
 
 const DOC_EXTENSIONS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.md', '.txt'];
 const { pendingPdfQueue, completedPdfSet, queuePdfTask, startPdfIngestionDaemon } = require('./lazy_pdf_worker');
@@ -1341,9 +1342,9 @@ function ensureAuditDocs(caseDir) {
         const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
         if (resolved === docsRoot) return;
 
-        const conversionsDir = path.join(caseDir, 'conversions');
-        const conceptsDir = path.join(caseDir, 'concepts');
-        const wikiDir = path.join(caseDir, 'wiki');
+        const conversionsDir = getConversionsDir(caseDir);
+        const conceptsDir = getConceptsDir(caseDir);
+        const wikiDir = getWikiDir(caseDir);
 
         fs.mkdirSync(conversionsDir, { recursive: true });
         fs.mkdirSync(conceptsDir, { recursive: true });

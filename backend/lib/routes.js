@@ -9,6 +9,7 @@ const { streamChat } = require('./core/llm-client');
 const { resolveTrigger, searchLaws, getVaultVersion, isVaultReady } = require('./utils/vault-loader');
 const { searchCases, isCasesVaultReady, getCasesVaultVersion } = require('./utils/cases-vault-loader');
 const { getVaultStatus, downloadAndInstallVault, activateLicense, onProgress, onStatus } = require('./utils/vault-manager');
+const { getConversionsDir, getConceptsDir, getWikiDir } = require('./pipeline/common/helper');
 const crypto = require('crypto');
 
 function resolveCaseDir(docsRoot, caseParam) {
@@ -122,6 +123,15 @@ function ensureCaseSettings(caseDir) {
                 '**/exports': true,
                 '**/summaries': true,
                 '**/reviews': true,
+                '**/*_conversions_haya': true,
+                '**/*_concepts_haya': true,
+                '**/*_wiki_haya': true,
+                '**/*_conversions_haya/**': true,
+                '**/*_concepts_haya/**': true,
+                '**/*_wiki_haya/**': true,
+                '*_conversions_haya': true,
+                '*_concepts_haya': true,
+                '*_wiki_haya': true,
                 'concepts': true,
                 'conversions': true,
                 'drafts': true,
@@ -312,7 +322,7 @@ function migrateRootInfrastructureToConversions(caseDir) {
         const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
         if (resolved === docsRoot) return;
 
-        const conversionsDir = path.join(caseDir, 'conversions');
+        const conversionsDir = getConversionsDir(caseDir);
         fs.mkdirSync(conversionsDir, { recursive: true });
 
         const filesToMigrate = ['case_manifest.json', 'CASE_AUDIT.md', 'index.md'];
@@ -326,7 +336,7 @@ function migrateRootInfrastructureToConversions(caseDir) {
                     } else if (!fs.existsSync(targetFile)) {
                         fs.renameSync(rootFile, targetFile);
                     }
-                    console.log(`[Infrastructure Migration] Relocated ${fname} to conversions/`);
+                    console.log(`[Infrastructure Migration] Relocated ${fname} to ${path.basename(conversionsDir)}/`);
                 } catch (_) {}
             }
         }
@@ -343,7 +353,7 @@ function migrateRootInfrastructureToConversions(caseDir) {
                     } else if (!fs.existsSync(targetFooter)) {
                         fs.renameSync(rootFooter, targetFooter);
                     }
-                    console.log(`[Infrastructure Migration] Relocated ${entry} to conversions/`);
+                    console.log(`[Infrastructure Migration] Relocated ${entry} to ${path.basename(conversionsDir)}/`);
                 } catch (_) {}
             }
         }
@@ -366,8 +376,7 @@ function ensureCaseManifest(caseDir) {
 
         migrateRootInfrastructureToConversions(caseDir);
 
-        const conversionsDir = path.join(caseDir, 'conversions');
-        fs.mkdirSync(conversionsDir, { recursive: true });
+        const conversionsDir = getConversionsDir(caseDir);
         const manifestPath = path.join(conversionsDir, 'case_manifest.json');
 
         if (fs.existsSync(manifestPath)) {

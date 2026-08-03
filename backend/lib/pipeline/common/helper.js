@@ -121,7 +121,92 @@ function isTiddlyWikiHtml(filePath) {
                    head.includes('TiddlyWiki');
         } catch (_) {}
     }
-    return false;
+}
+
+/**
+ * Dynamic Directory Resolvers for Case Subfolders:
+ * Target format: <case_name>_<type>_haya (e.g., ipie_conversions_haya)
+ * Auto-syncs subfolder prefixes if parent case directory is renamed.
+ */
+function getConversionsDir(caseDir) {
+    if (!caseDir) return '';
+    const caseName = path.basename(caseDir);
+    const targetDir = path.join(caseDir, `${caseName}_conversions_haya`);
+    if (fs.existsSync(targetDir)) return targetDir;
+
+    if (fs.existsSync(caseDir)) {
+        try {
+            const entries = fs.readdirSync(caseDir);
+            const match = entries.find(e => e === 'conversions' || e.endsWith('_conversions_haya'));
+            if (match) {
+                const oldPath = path.join(caseDir, match);
+                if (path.resolve(oldPath) !== path.resolve(targetDir)) {
+                    try {
+                        fs.renameSync(oldPath, targetDir);
+                        console.log(`[Directory Resolver] Auto-synced conversions dir: ${match} -> ${path.basename(targetDir)}`);
+                        return targetDir;
+                    } catch (_) {}
+                }
+            }
+        } catch (_) {}
+    }
+
+    fs.mkdirSync(targetDir, { recursive: true });
+    return targetDir;
+}
+
+function getConceptsDir(caseDir) {
+    if (!caseDir) return '';
+    const caseName = path.basename(caseDir);
+    const targetDir = path.join(caseDir, `${caseName}_concepts_haya`);
+    if (fs.existsSync(targetDir)) return targetDir;
+
+    if (fs.existsSync(caseDir)) {
+        try {
+            const entries = fs.readdirSync(caseDir);
+            const match = entries.find(e => e === 'concepts' || e.endsWith('_concepts_haya'));
+            if (match) {
+                const oldPath = path.join(caseDir, match);
+                if (path.resolve(oldPath) !== path.resolve(targetDir)) {
+                    try {
+                        fs.renameSync(oldPath, targetDir);
+                        console.log(`[Directory Resolver] Auto-synced concepts dir: ${match} -> ${path.basename(targetDir)}`);
+                        return targetDir;
+                    } catch (_) {}
+                }
+            }
+        } catch (_) {}
+    }
+
+    fs.mkdirSync(targetDir, { recursive: true });
+    return targetDir;
+}
+
+function getWikiDir(caseDir) {
+    if (!caseDir) return '';
+    const caseName = path.basename(caseDir);
+    const targetDir = path.join(caseDir, `${caseName}_wiki_haya`);
+    if (fs.existsSync(targetDir)) return targetDir;
+
+    if (fs.existsSync(caseDir)) {
+        try {
+            const entries = fs.readdirSync(caseDir);
+            const match = entries.find(e => e === 'wiki' || e.endsWith('_wiki_haya'));
+            if (match) {
+                const oldPath = path.join(caseDir, match);
+                if (path.resolve(oldPath) !== path.resolve(targetDir)) {
+                    try {
+                        fs.renameSync(oldPath, targetDir);
+                        console.log(`[Directory Resolver] Auto-synced wiki dir: ${match} -> ${path.basename(targetDir)}`);
+                        return targetDir;
+                    } catch (_) {}
+                }
+            }
+        } catch (_) {}
+    }
+
+    fs.mkdirSync(targetDir, { recursive: true });
+    return targetDir;
 }
 
 module.exports = {
@@ -129,5 +214,8 @@ module.exports = {
     probeLayoutProfile,
     setupConceptsDir,
     cleanBm25Index,
-    isTiddlyWikiHtml
+    isTiddlyWikiHtml,
+    getConversionsDir,
+    getConceptsDir,
+    getWikiDir
 };
