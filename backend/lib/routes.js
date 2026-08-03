@@ -778,15 +778,21 @@ module.exports = {
                                 const treePath = path.join(conceptsDir, 'pageindex_tree.json');
                                 const bm25IndexPath = path.join(caseDir, 'concepts', 'bm25_index.json');
 
-                                const companionExists = !isWikiHtml && (ext === '.md' || fs.existsSync(conversionCompanionPath));
-                                
-                                // Auto-clean stale duplicate companion .md in root folder if conversion companion exists
-                                if (ext !== '.md' && fs.existsSync(conversionCompanionPath) && fs.existsSync(rootCompanionPath)) {
+                                // Auto-relocate root companion .md to conversions/ folder if it exists
+                                if (ext !== '.md' && fs.existsSync(rootCompanionPath)) {
                                     try {
-                                        fs.unlinkSync(rootCompanionPath);
-                                        console.log(`[File Statuses API] Cleaned up stale root companion duplicate: ${rootCompanionPath}`);
+                                        fs.mkdirSync(conversionsDir, { recursive: true });
+                                        if (!fs.existsSync(conversionCompanionPath)) {
+                                            fs.renameSync(rootCompanionPath, conversionCompanionPath);
+                                            console.log(`[File Statuses API] Relocated root companion .md to conversions/: ${conversionCompanionPath}`);
+                                        } else if (path.resolve(rootCompanionPath) !== path.resolve(conversionCompanionPath)) {
+                                            fs.unlinkSync(rootCompanionPath);
+                                            console.log(`[File Statuses API] Cleaned up stale duplicate root companion: ${rootCompanionPath}`);
+                                        }
                                     } catch (_) {}
                                 }
+
+                                const companionExists = !isWikiHtml && (ext === '.md' || fs.existsSync(conversionCompanionPath));
                                 const treeExists = fs.existsSync(treePath);
                                 const bm25Exists = fs.existsSync(bm25IndexPath);
 

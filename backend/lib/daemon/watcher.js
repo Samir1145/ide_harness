@@ -577,6 +577,30 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
         }
 
         if (ext === '.md' || ext === '.txt') {
+            // Check if this .md file is a companion for a parent binary document (.pdf, .docx, .xlsx)
+            const parentExt = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'].find(pExt => fs.existsSync(filePath.replace(/\.md$/, pExt)));
+            if (parentExt) {
+                const subfolder = path.dirname(relative);
+                const conversionsDir = subfolder === '.' ? path.join(caseDir, 'conversions') : path.join(caseDir, 'conversions', subfolder);
+                fs.mkdirSync(conversionsDir, { recursive: true });
+                const destCompanionPath = path.join(conversionsDir, path.basename(filePath));
+                if (path.resolve(filePath) !== path.resolve(destCompanionPath)) {
+                    try {
+                        if (fs.existsSync(destCompanionPath)) {
+                            fs.unlinkSync(filePath);
+                        } else {
+                            fs.renameSync(filePath, destCompanionPath);
+                        }
+                        console.log(`[Watcher] Auto-relocated companion ${path.basename(filePath)} to ${destCompanionPath}`);
+                    } catch (err) {
+                        console.error(`[Watcher] Failed to relocate companion .md:`, err.message);
+                    }
+                }
+                const binaryRelative = relative.replace(/\.md$/, parentExt);
+                updateStatus(caseDir, binaryRelative, 'companion_ready');
+                return null;
+            }
+
             // Phase 1: companion .md files modified by the daemon are skipped entirely.
             // The daemon calls with conversionOnly:true — nothing touches BM25 or index.json.
             if (conversionOnly) {
