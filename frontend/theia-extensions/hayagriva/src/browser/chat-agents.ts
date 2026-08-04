@@ -118,7 +118,7 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
 export class AdvisorChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'Advisor';
   readonly name = 'Advisor';
-  readonly description = 'Consult legal statutes, IBC codes, regulations, and case precedents.';
+  readonly description = 'Legal research & precedents. Commands: /strength (score grounds), /analyse-order (decode orders)';
   readonly iconClass = 'codicon codicon-law';
 }
 
@@ -126,7 +126,7 @@ export class AdvisorChatAgent extends BaseHayagrivaChatAgent {
 export class FormsChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'Forms';
   readonly name = 'Forms';
-  readonly description = 'Audit legal and financial forms, run math logic, and check timelines.';
+  readonly description = 'Audit & fill statutory forms. Commands: /fill ibbi-form-a, /fill ibbi-form-b, /fill ibbi-h, /fill aoc-4';
   readonly iconClass = 'codicon codicon-checklist';
 }
 
@@ -134,7 +134,7 @@ export class FormsChatAgent extends BaseHayagrivaChatAgent {
 export class DocumentChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'Document';
   readonly name = 'Document';
-  readonly description = 'Draft documents, resolutions, and compile narrative sections.';
+  readonly description = 'Draft court petitions & filings. Commands: /draft sec7-petition, /draft sec9-petition, /draft slp-sc, /draft ibc-sec61-appeal';
   readonly iconClass = 'codicon codicon-diff-added';
 }
 
@@ -142,7 +142,7 @@ export class DocumentChatAgent extends BaseHayagrivaChatAgent {
 export class ClaimsVerificationChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'Claims';
   readonly name = 'Claims';
-  readonly description = 'Audit creditor claims, calculate interest rates, and verify balances.';
+  readonly description = 'Audit creditor claims & debt voting shares. Commands: /claims-check';
   readonly iconClass = 'codicon codicon-briefcase';
   override readonly requiresLargeModel = true;
 }
@@ -151,7 +151,7 @@ export class ClaimsVerificationChatAgent extends BaseHayagrivaChatAgent {
 export class ImCompilerChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'IM';
   readonly name = 'IM';
-  readonly description = 'Compile the Information Memorandum (IM) under Regulation 36 of CIRP.';
+  readonly description = 'Compile Reg 36 Information Memorandum. Commands: /im-build';
   readonly iconClass = 'codicon codicon-book';
   override readonly requiresLargeModel = true;
 }
@@ -160,7 +160,7 @@ export class ImCompilerChatAgent extends BaseHayagrivaChatAgent {
 export class ResolutionPlanEvaluatorChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'Plan';
   readonly name = 'Plan';
-  readonly description = 'Audit submitted resolution plans against Section 30(2) parameters.';
+  readonly description = 'Audit Sec 30(2) & Reg 39(4) Resolution Plans. Commands: /plan-audit';
   readonly iconClass = 'codicon codicon-compass';
   override readonly requiresLargeModel = true;
 }
@@ -169,7 +169,7 @@ export class ResolutionPlanEvaluatorChatAgent extends BaseHayagrivaChatAgent {
 export class AvoidanceScannerChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'Avoidance';
   readonly name = 'Avoidance';
-  readonly description = 'Scan financial ledgers and party relationships for avoidance transactions.';
+  readonly description = 'Audit Sec 43/45/49/50 avoidance transactions. Commands: /avoidance-scan';
   readonly iconClass = 'codicon codicon-search';
   override readonly requiresLargeModel = true;
 }
@@ -178,6 +178,6 @@ export class AvoidanceScannerChatAgent extends BaseHayagrivaChatAgent {
 export class LitigationTrackerChatAgent extends BaseHayagrivaChatAgent {
   readonly id = 'Litigation';
   readonly name = 'Litigation';
-  readonly description = 'Track active court disputes and query case law precedents.';
+  readonly description = 'NCLT bench briefs & counter-arguments. Commands: /brief, /counter, /timeline';
   readonly iconClass = 'codicon codicon-issue-opened';
 }

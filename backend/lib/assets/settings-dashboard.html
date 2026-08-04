@@ -640,6 +640,54 @@
 
         </div>
       </div>
+
+      <!-- Section B: AI Subagent Chat Workflows -->
+      <div class="section-card" style="margin-top: 20px;">
+        <div class="section-header">🤖 AI Chat Panel Subagent Workflows</div>
+        <p style="margin-top: 0; color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">
+          Type <code>@agent /command</code> or select the agent in the AI Chat Panel sidebar.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">📝 Document Drafting</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Target Agent: <code>@document</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Generates full court petitions, revision replies, and appellate skeletons.</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              @document /draft sec7-petition<br>@document /draft sec9-petition<br>@document /draft slp-sc
+            </div>
+          </div>
+
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">📑 Statutory Form Fill</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Target Agent: <code>@forms</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Hydrates official IBBI &amp; MCA statutory templates from case facts.</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              @forms /fill ibbi-form-a<br>@forms /fill ibbi-h<br>@forms /fill aoc-4
+            </div>
+          </div>
+
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">🔍 Forensic Audit &amp; Timeline</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Agents: <code>@avoidance</code>, <code>@timeline</code>, <code>@coc</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Audits Sec 43/45 avoidance ledgers, debt voting shares, &amp; CIRP Gantt timeline.</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              @timeline /timeline<br>@avoidance /avoidance-scan<br>@coc /claims-check
+            </div>
+          </div>
+
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">⚖️ Tribunal Strategy &amp; Briefs</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Agents: <code>@nclt</code>, <code>@advisor</code>, <code>@litigation</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Builds NCLT Bench synopses, scores ground strength (1-10), &amp; decodes orders.</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              @nclt /brief<br>@advisor /strength<br>@advisor /analyse-order
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
 
   </div>
