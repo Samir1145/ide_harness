@@ -84,7 +84,7 @@ function updateStatus(caseDir, relativePath, status, errorMsg = '') {
         // Sync with conversions/*.status sidecar file
         const base = statusKey.replace(/\.[a-zA-Z0-9]+$/, '');
         const subfolder = path.dirname(statusKey);
-        const conversionsDir = path.join(caseDir, 'conversions');
+        const conversionsDir = getConversionsDir(caseDir);
         const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
         fs.mkdirSync(destDir, { recursive: true });
         const sidecarPath = path.join(destDir, `${path.basename(base)}.status`);
@@ -206,7 +206,7 @@ function runSelfHealingCleanup(caseDir, filePath, relative, ext) {
     const basename = isWikiHtml ? path.basename(filePath, '.wiki.html') : path.basename(filePath, ext);
     
     // 1. Wipe concepts directory
-    const conceptsDir = path.join(caseDir, 'concepts', basename);
+    const conceptsDir = path.join(getConceptsDir(caseDir), basename);
     if (fs.existsSync(conceptsDir)) {
         try {
             fs.rmSync(conceptsDir, { recursive: true, force: true });
@@ -218,7 +218,7 @@ function runSelfHealingCleanup(caseDir, filePath, relative, ext) {
 
     // 2. Remove from BM25 index
     try {
-        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+        const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
         const bm25Index = bm25.loadIndex(bm25IndexFile);
         let changed = false;
         for (const id in bm25Index.docLengths) {
@@ -312,8 +312,8 @@ function renameDocumentInDb(caseDir, oldRelative, newRelative) {
     }
 
     // 2. Rename concepts directory on disk if it exists
-    const oldConceptsDir = path.join(caseDir, 'concepts', oldBasename);
-    const newConceptsDir = path.join(caseDir, 'concepts', newBasename);
+    const oldConceptsDir = path.join(getConceptsDir(caseDir), oldBasename);
+    const newConceptsDir = path.join(getConceptsDir(caseDir), newBasename);
     if (fs.existsSync(oldConceptsDir)) {
         try {
             fs.renameSync(oldConceptsDir, newConceptsDir);
@@ -325,7 +325,7 @@ function renameDocumentInDb(caseDir, oldRelative, newRelative) {
 
     // 3. Rename keys in BM25 index JSON
     try {
-        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+        const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
         if (fs.existsSync(bm25IndexFile)) {
             const bm25Index = bm25.loadIndex(bm25IndexFile);
             let changed = false;
@@ -518,7 +518,7 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
         if (isWiki) {
             // Wiki cards are always Phase 2 — skip in conversion-only mode
             if (conversionOnly) return null;
-            const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+            const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
             const bm25Index = bm25.loadIndex(bm25IndexFile);
             const res = await ingestWikiCard(caseDir, filePath, bm25Index, bm25IndexFile);
             try {
@@ -555,7 +555,7 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
 
         if (isWikiHtml) {
             if (conversionOnly) return null;
-            const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+            const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
             const bm25Index = bm25.loadIndex(bm25IndexFile);
             const result = await ingestWiki(caseDir, filePath, bm25Index, bm25IndexFile);
             const index = readIndex(caseDir);
@@ -582,7 +582,7 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
             const parentExt = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'].find(pExt => fs.existsSync(filePath.replace(/\.md$/, pExt)));
             if (parentExt) {
                 const subfolder = path.dirname(relative);
-                const conversionsDir = subfolder === '.' ? path.join(caseDir, 'conversions') : path.join(caseDir, 'conversions', subfolder);
+                const conversionsDir = subfolder === '.' ? getConversionsDir(caseDir) : path.join(getConversionsDir(caseDir), subfolder);
                 fs.mkdirSync(conversionsDir, { recursive: true });
                 const destCompanionPath = path.join(conversionsDir, path.basename(filePath));
                 if (path.resolve(filePath) !== path.resolve(destCompanionPath)) {
@@ -611,7 +611,7 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
 
             // Phase 2: full pipeline — reads the (user-edited) .md from disk
             console.log(`[Watcher] Phase 2 ingestion: BM25 + concepts + wiki for ${path.basename(filePath)}`);
-            const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+            const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
             const bm25Index = bm25.loadIndex(bm25IndexFile);
             const result = await ingestText(caseDir, filePath, bm25Index, bm25IndexFile);
 
@@ -745,7 +745,7 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
             const isWikiHtml = relative.endsWith('.wiki.html');
             const basename = isWikiHtml ? path.basename(relative, '.wiki.html') : path.basename(relative, ext);
             const subfolder = path.dirname(relative);
-            const conversionsDir = path.join(caseDir, 'conversions');
+            const conversionsDir = getConversionsDir(caseDir);
             const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
             fs.mkdirSync(destDir, { recursive: true });
             const errorPath = path.join(destDir, `${basename}.error`);
@@ -888,7 +888,7 @@ async function startLazyWorker() {
     while (lazyQueue.length > 0) {
         const item = lazyQueue[0];
         const { caseDir, basename } = item;
-        const conceptsDir = path.join(caseDir, 'concepts', basename);
+        const conceptsDir = path.join(getConceptsDir(caseDir), basename);
         const treePath = path.join(conceptsDir, 'pageindex_tree.json');
 
         if (!fs.existsSync(treePath)) {
@@ -1027,7 +1027,7 @@ ${targetNode.content}`;
 
                 // 5. Update BM25 Search Index
                 console.log(`[Lazy Worker] [Step 5] Adding to BM25 search index...`);
-                const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+                const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
                 if (fs.existsSync(bm25IndexFile)) {
                     const bm25Index = bm25.loadIndex(bm25IndexFile);
                     bm25.addDocument(bm25Index, {
@@ -1043,7 +1043,7 @@ ${targetNode.content}`;
 
             // 6. Write Q&A Wiki Cards
             console.log(`[Lazy Worker] [Step 6] Writing Q&A wiki cards...`);
-            const qnaDir = path.join(caseDir, 'wiki', 'qna');
+            const qnaDir = path.join(getWikiDir(caseDir), 'qna');
             if (!fs.existsSync(qnaDir)) {
                 fs.mkdirSync(qnaDir, { recursive: true });
             }
@@ -1164,7 +1164,7 @@ function generateCaseAudit(caseDir) {
         for (const doc of docFiles) {
             const relative = doc.relative;
             const subfolder = path.dirname(relative);
-            const conversionsDir = path.join(caseDir, 'conversions');
+            const conversionsDir = getConversionsDir(caseDir);
             const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
             const statusPath = path.join(destDir, `${doc.basename}.status`);
             
@@ -1187,7 +1187,7 @@ function generateCaseAudit(caseDir) {
 
             // Search Index status
             let indexCol = '❌ Not Indexed';
-            const pageIndexTreePath = path.join(caseDir, 'concepts', subfolder, doc.basename, 'pageindex_tree.json');
+            const pageIndexTreePath = path.join(getConceptsDir(caseDir), subfolder, doc.basename, 'pageindex_tree.json');
             let hasIndex = fs.existsSync(pageIndexTreePath);
             if (hasIndex) {
                 indexCol = '✓ Ready (Indexed)';
@@ -1197,7 +1197,7 @@ function generateCaseAudit(caseDir) {
 
             // AI Q&A Card folder link
             let qnaCol = '❌ Not Generated';
-            const qnaRelPath = path.join('wiki', 'qna').replace(/\\/g, '/');
+            const qnaRelPath = path.relative(caseDir, path.join(getWikiDir(caseDir), 'qna')).replace(/\\/g, '/');
             const qnaPath = path.join(caseDir, qnaRelPath);
             if (fs.existsSync(qnaPath) && hasIndex) {
                 qnaCol = `[View Q&A Cards](${encodeURI(qnaRelPath)})`;
@@ -1207,7 +1207,7 @@ function generateCaseAudit(caseDir) {
 
             // AI alerts folder link
             let alertsCol = '❌ Not Generated';
-            const alertsRelPath = path.join('wiki', 'alerts').replace(/\\/g, '/');
+            const alertsRelPath = path.relative(caseDir, path.join(getWikiDir(caseDir), 'alerts')).replace(/\\/g, '/');
             const alertsPath = path.join(caseDir, alertsRelPath);
             if (fs.existsSync(alertsPath) && hasIndex) {
                 alertsCol = `[View Alerts](${encodeURI(alertsRelPath)})`;
@@ -1222,7 +1222,7 @@ function generateCaseAudit(caseDir) {
         md += `\n## 2. Case Relationship Graph & Connection Audit\n\n`;
         md += `This section monitors the logical links and hierarchies of the case concepts and wiki pages. Correct relationships ensure that background AI agents can navigate the case context files accurately.\n\n`;
 
-        const conceptsDir = path.join(caseDir, 'concepts');
+        const conceptsDir = getConceptsDir(caseDir);
         const activeTitles = new Set();
         const filesToAudit = [];
         const { parseMarkdownWithFrontmatter } = require('../utils/okf');
@@ -1241,7 +1241,7 @@ function generateCaseAudit(caseDir) {
                         const content = fs.readFileSync(filePath, 'utf8');
                         const { frontmatter } = parseMarkdownWithFrontmatter(content);
                         const title = frontmatter.title || f.replace('.md', '');
-                        const relPath = `concepts/${doc}/${f}`.replace(/\\/g, '/');
+                        const relPath = path.relative(caseDir, filePath).replace(/\\/g, '/');
                         activeTitles.add(title.toLowerCase().trim());
                         filesToAudit.push({ 
                             type: 'concept',
@@ -1257,7 +1257,7 @@ function generateCaseAudit(caseDir) {
         }
 
         // 2. Scan wiki directory for wiki cards
-        const wikiDir = path.join(caseDir, 'wiki');
+        const wikiDir = getWikiDir(caseDir);
         if (fs.existsSync(wikiDir)) {
             const files = fs.readdirSync(wikiDir).filter(f => f.endsWith('.md'));
             for (const f of files) {
@@ -1320,7 +1320,7 @@ function generateCaseAudit(caseDir) {
             }
         }
 
-        const conversionsDir = path.join(caseDir, 'conversions');
+        const conversionsDir = getConversionsDir(caseDir);
         fs.mkdirSync(conversionsDir, { recursive: true });
         const auditPath = path.join(conversionsDir, 'CASE_AUDIT.md');
         fs.writeFileSync(auditPath, md, 'utf8');

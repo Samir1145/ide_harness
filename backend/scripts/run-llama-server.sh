@@ -9,6 +9,9 @@ PORT="8090"
 if [ "$ENGINE" = "finance" ]; then
     MODEL_FILE="$(dirname "$0")/../models/llm/llamafile/financeparam/financeparam-2.9b.gguf"
     MODEL_NAME="FinanceParam 2.9B"
+elif [ "$ENGINE" = "saul" ]; then
+    MODEL_FILE="$(dirname "$0")/../models/llm/saul/Saul-Instruct-v1.Q4_K_M.gguf"
+    MODEL_NAME="SaulLM 7B Instruct"
 else
     MODEL_FILE="$(dirname "$0")/../models/llm/llamafile/legalparam/legalparam-2.9b.gguf"
     MODEL_NAME="LegalParam 2.9B"

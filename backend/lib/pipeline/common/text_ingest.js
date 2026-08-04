@@ -4,7 +4,7 @@ const matter = require('gray-matter');
 const bm25 = require('../../core/bm25');
 const { splitDocument, extractKeyTopics } = require('../../core/splitter');
 const { formatMarkdownWithFrontmatter } = require('../../utils/okf');
-const { getSafeFilename, setupConceptsDir, cleanBm25Index, probeLayoutProfile } = require('./helper');
+const { getSafeFilename, setupConceptsDir, cleanBm25Index, probeLayoutProfile, getConceptsDir } = require('./helper');
 const { getChatResponse } = require('../../core/llm-client');
 
 /**
@@ -12,7 +12,7 @@ const { getChatResponse } = require('../../core/llm-client');
  * excluding the current document folder.
  */
 function getExistingTopics(caseDir, currentBasename) {
-    const conceptsRoot = path.join(caseDir, 'concepts');
+    const conceptsRoot = getConceptsDir(caseDir);
     const topics = [];
     if (!fs.existsSync(conceptsRoot)) return topics;
 

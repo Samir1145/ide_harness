@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { convertDocx } = require('./upload');
 const { cleanMarkdown } = require('../../core/markdown-cleaner');
+const { getConversionsDir } = require('../common/helper');
 
 /**
  * Ingests a Word (.docx) document by converting it to a Markdown companion file.
@@ -18,7 +19,7 @@ async function ingestDocx(caseDir, filePath) {
     const cleanedMd = await cleanMarkdown(rawMd, caseDir);
 
     const subfolder = path.dirname(relative);
-    const conversionsDir = path.join(caseDir, 'conversions');
+    const conversionsDir = getConversionsDir(caseDir);
     const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
     fs.mkdirSync(destDir, { recursive: true });
     const companionPath = path.join(destDir, `${basename}.md`);

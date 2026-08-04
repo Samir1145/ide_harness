@@ -7,6 +7,7 @@ const { readIndex } = require('./lib/core/indexer');
 const { query } = require('./lib/core/rag');
 const { loadVault } = require('./lib/utils/vault-loader');
 const { loadCasesVault } = require('./lib/utils/cases-vault-loader');
+const { getConceptsDir, getConversionsDir, getWikiDir } = require('./lib/pipeline/common/helper');
 
 const BINARY_EXTS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'];
 
@@ -99,6 +100,9 @@ async function bootstrapCase(caseDir) {
                     lower !== 'concepts' && 
                     lower !== 'wiki' && 
                     lower !== 'conversions' && 
+                    !lower.endsWith('_concepts_haya') &&
+                    !lower.endsWith('_conversions_haya') &&
+                    !lower.endsWith('_wiki_haya') &&
                     lower !== 'reviews' && 
                     lower !== 'drafts' && 
                     lower !== 'exports') {
@@ -137,7 +141,7 @@ async function bootstrapCase(caseDir) {
             const ext = path.extname(file.filePath).toLowerCase();
             const basename = path.basename(file.filePath, ext);
             // Check if companion exists (e.g. from previous run)
-            const conversionsDir = path.join(caseDir, 'conversions');
+            const conversionsDir = getConversionsDir(caseDir);
             const subfolder = path.dirname(file.relative);
             const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
             const statusPath = path.join(destDir, `${basename}.status`);
@@ -151,7 +155,7 @@ async function bootstrapCase(caseDir) {
             upsertDocument(index, {
                 title: basename,
                 filename: file.relative,
-                conceptsDir: path.join('concepts', basename),
+                conceptsDir: path.relative(caseDir, path.join(getConceptsDir(caseDir), basename)),
                 type: ext.replace('.', ''),
                 sections: 0,
                 sectionTitles: [],
@@ -274,8 +278,8 @@ function isProjectRepoRoot(dir) {
 
     // Single case mode
     const caseDir = fs.realpathSync(caseArg || process.cwd());
-    if (!isProjectRepoRoot(caseDir) && !fs.existsSync(path.join(caseDir, 'concepts'))) {
-        fs.mkdirSync(path.join(caseDir, 'concepts'), { recursive: true });
+    if (!isProjectRepoRoot(caseDir)) {
+        getConceptsDir(caseDir);
     }
 
     if (command === 'ingest' && commandArg) {
@@ -359,7 +363,7 @@ async function runWatchAll(docsRoot) {
     (async () => {
         for (const caseName of caseDirs) {
             const caseDir = path.join(docsRoot, caseName);
-            if (fs.existsSync(path.join(caseDir, 'conversions', 'case_manifest.json')) || fs.existsSync(path.join(caseDir, 'case_manifest.json')) || fs.existsSync(path.join(caseDir, 'concepts'))) {
+            if (fs.existsSync(path.join(getConversionsDir(caseDir), 'case_manifest.json')) || fs.existsSync(path.join(caseDir, 'case_manifest.json')) || fs.existsSync(getConceptsDir(caseDir))) {
                 await bootstrapCase(caseDir);
             }
         }

@@ -22,16 +22,8 @@
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const { getConversionsDir } = require('../pipeline/common/helper');
 
-// ---------------------------------------------------------------------------
-// HAYAGRIVA PUBLIC KEY (Ed25519)
-// Replace placeholder with real production key before shipping.
-// Generate pair:
-//   node -e "const c=require('crypto');
-//   const {publicKey,privateKey}=c.generateKeyPairSync('ed25519');
-//   console.log(publicKey.export({type:'spki',format:'pem'}));
-//   console.log(privateKey.export({type:'pkcs8',format:'pem'}))"
-// ---------------------------------------------------------------------------
 const HAYAGRIVA_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEA__REPLACE_WITH_REAL_PUBLIC_KEY_BASE64_HERE_________=
 -----END PUBLIC KEY-----`;
@@ -72,13 +64,13 @@ function writeLicenseToSettings(caseDir, tier, payload) {
             try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch (_) {}
         }
         settings.subscriptionTier = tier;
-        settings.licensedTo = payload.sub || null;
-        settings.licenseExpiresAt = payload.expiresAt || null;
-        settings.allowedDomains = payload.allowedDomains || ['legal', 'finance'];
+        settings.licensedTo = (payload && payload.sub) || null;
+        settings.licenseExpiresAt = (payload && payload.expiresAt) || null;
+        settings.allowedDomains = (payload && payload.allowedDomains) || ['legal', 'finance'];
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
 
         // Mirror tier into case_manifest.json inside conversions/
-        const conversionManifest = path.join(caseDir, 'conversions', 'case_manifest.json');
+        const conversionManifest = path.join(getConversionsDir(caseDir), 'case_manifest.json');
         const manifestPath = fs.existsSync(conversionManifest) ? conversionManifest : path.join(caseDir, 'case_manifest.json');
         if (fs.existsSync(manifestPath)) {
             let manifest = {};

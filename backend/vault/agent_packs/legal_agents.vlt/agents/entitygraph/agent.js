@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getConceptsDir } = require('../../../../../lib/pipeline/common/helper');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { ragRetrieve } = require('../../../../../lib/agents/skills/rag-retrieve');
 const { extractEntities } = require('../../../../../lib/agents/skills/entity-extract');
@@ -86,7 +87,7 @@ class EntityGraphAgent {
         };
 
         // 3. Save entity_graph.json to case concepts folder
-        const graphPath = path.join(caseDir, 'concepts', 'entity_graph.json');
+        const graphPath = path.join(getConceptsDir(caseDir), 'entity_graph.json');
         fs.mkdirSync(path.dirname(graphPath), { recursive: true });
         fs.writeFileSync(graphPath, JSON.stringify(graphData, null, 2), 'utf8');
 

@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const { parseMarkdownWithFrontmatter } = require('./okf');
+const { getConceptsDir } = require('../pipeline/common/helper');
 
 function buildTopicOverlap(caseDir) {
-    const conceptsRoot = path.join(caseDir, 'concepts');
+    const conceptsRoot = getConceptsDir(caseDir);
     const topicMap = new Map(); // cleanTitle -> { title, docs: Set }
 
     if (!fs.existsSync(conceptsRoot)) {

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { convertPdf } = require('./upload');
+const { getConversionsDir } = require('../common/helper');
 
 /**
  * Ingests a PDF file by converting its first few pages to a Markdown companion file.
@@ -24,7 +25,7 @@ async function ingestPdf(caseDir, filePath, options = {}) {
     }
 
     const subfolder = path.dirname(relative);
-    const conversionsDir = path.join(caseDir, 'conversions');
+    const conversionsDir = getConversionsDir(caseDir);
     const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
     fs.mkdirSync(destDir, { recursive: true });
     const companionPath = path.join(destDir, `${basename}.md`);

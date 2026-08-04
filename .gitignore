@@ -47,3 +47,9 @@ hayagriva/bin/
 case_facts.md
 concepts/
 drafts/
+
+# Models & Binary Weights
+*.gguf
+**/*.gguf
+backend/models/
+

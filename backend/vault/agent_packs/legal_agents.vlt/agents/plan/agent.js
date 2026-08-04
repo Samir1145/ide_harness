@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getConceptsDir } = require('../../../../../lib/pipeline/common/helper');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { query } = require('../../../../../lib/core/rag');
 const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
@@ -31,7 +32,7 @@ class ResolutionPlanEvaluatorAgent {
         // Load asset liquidation values and claims registry
         let valuationData = '';
         try {
-            const registryPath = path.join(caseDir, 'concepts', 'claims_registry.json');
+            const registryPath = path.join(getConceptsDir(caseDir), 'claims_registry.json');
             if (fs.existsSync(registryPath)) {
                 valuationData = `\nAdmitted Claims Reference:\n${fs.readFileSync(registryPath, 'utf8')}\n`;
             }

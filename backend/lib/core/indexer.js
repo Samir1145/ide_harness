@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const { getConceptsDir, getConversionsDir } = require('../pipeline/common/helper');
 
 function indexPath(caseDir) {
-    return path.join(caseDir, 'concepts', 'index.json');
+    return path.join(getConceptsDir(caseDir), 'index.json');
 }
 
 function readIndex(caseDir) {
@@ -39,8 +40,8 @@ function writeIndexMd(caseDir, index) {
             }
             md += `\n`;
         }
-    const conversionsDir = path.join(caseDir, 'conversions');
-    fs.mkdirSync(conversionsDir, { recursive: true });
+    }
+    const conversionsDir = getConversionsDir(caseDir);
     const targetIndexMd = path.join(conversionsDir, 'index.md');
     fs.writeFileSync(targetIndexMd, md, 'utf8');
 

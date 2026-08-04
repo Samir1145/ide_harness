@@ -487,11 +487,24 @@
               <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
                 <span class="engine-status-dot"></span>
                 <span>FinanceParam-2.9B Engine</span>
-                <span style="font-size: 10px; opacity: 0.6; font-weight: normal;">(Port 8091)</span>
+                <span style="font-size: 10px; opacity: 0.6; font-weight: normal;">(Port 8090)</span>
               </div>
               <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="statusTextFinance">Status: Offline</div>
             </div>
             <button type="button" class="btn-action" id="btnFinance" onclick="toggleEngine('finance')">Start Engine</button>
+          </div>
+
+          <!-- SaulLM-7B Engine Card -->
+          <div class="engine-item" id="cardSaul">
+            <div>
+              <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <span class="engine-status-dot"></span>
+                <span>SaulLM-7B Instruct (Pro Engine)</span>
+                <span style="font-size: 10px; opacity: 0.6; font-weight: normal;">(Port 8090)</span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="statusTextSaul">Status: Offline</div>
+            </div>
+            <button type="button" class="btn-action" id="btnSaul" onclick="toggleEngine('saul')">Start Engine</button>
           </div>
         </div>
       </div>
@@ -641,10 +654,13 @@
     }
 
     // ── LLM Engine Controls ──────────────────────────────────────────────
+    let isSaulRunning = false;
+
     async function toggleEngine(engineType) {
-      const isRunning = engineType === 'legal' ? isLegalRunning : isFinanceRunning;
+      const isRunning = engineType === 'legal' ? isLegalRunning : (engineType === 'finance' ? isFinanceRunning : isSaulRunning);
       const endpoint = isRunning ? '/api/hayagriva/engine/stop' : '/api/hayagriva/engine/start';
-      const btn = document.getElementById(engineType === 'legal' ? 'btnLegal' : 'btnFinance');
+      const btnId = engineType === 'legal' ? 'btnLegal' : (engineType === 'finance' ? 'btnFinance' : 'btnSaul');
+      const btn = document.getElementById(btnId);
       
       btn.disabled = true;
       showToast(`${isRunning ? 'Stopping' : 'Starting'} ${engineType} engine…`);
@@ -679,9 +695,11 @@
           const data = await res.json();
           isLegalRunning = !!data.legalActive;
           isFinanceRunning = !!data.financeActive;
+          isSaulRunning = !!data.saulActive;
 
           updateEngineCard('cardLegal', 'btnLegal', 'statusTextLegal', isLegalRunning, 'LegalParam-2.9B');
           updateEngineCard('cardFinance', 'btnFinance', 'statusTextFinance', isFinanceRunning, 'FinanceParam-2.9B');
+          updateEngineCard('cardSaul', 'btnSaul', 'statusTextSaul', isSaulRunning, 'SaulLM-7B');
         }
       } catch (_) {}
     }

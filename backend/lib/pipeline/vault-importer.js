@@ -22,7 +22,7 @@ const s3 = new S3Client({
 const ROOT_DIR = path.join(__dirname, '..', '..');
 const AGENT_PACKS_DIR = path.join(ROOT_DIR, 'vault', 'agent_packs');
 const DATA_VAULTS_DIR = path.join(ROOT_DIR, 'vault', 'data_vaults');
-const MODELS_DIR = path.join(ROOT_DIR, 'models', 'llm', 'llamafile');
+const MODELS_DIR = path.join(ROOT_DIR, 'models', 'llm');
 
 // In-memory download progress tracker: { [itemId]: { progressPct: 0, status: 'downloading'|'extracting'|'completed'|'error', error: null } }
 const activeJobs = new Map();
@@ -62,13 +62,19 @@ const CATALOG_MANIFEST = {
     'legalparam-2.9b': {
         type: 'model',
         r2Key: 'models/legalparam-2.9b.gguf',
-        targetFilePath: path.join(MODELS_DIR, 'legalparam', 'legalparam-2.9b.gguf'),
+        targetFilePath: path.join(MODELS_DIR, 'llamafile', 'legalparam', 'legalparam-2.9b.gguf'),
         isZip: false
     },
     'financeparam-2.9b': {
         type: 'model',
         r2Key: 'models/financeparam-2.9b.gguf',
-        targetFilePath: path.join(MODELS_DIR, 'financeparam', 'financeparam-2.9b.gguf'),
+        targetFilePath: path.join(MODELS_DIR, 'llamafile', 'financeparam', 'financeparam-2.9b.gguf'),
+        isZip: false
+    },
+    'saullm-7b': {
+        type: 'model',
+        r2Key: 'models/saullm-7b.gguf',
+        targetFilePath: path.join(MODELS_DIR, 'saul', 'Saul-Instruct-v1.Q4_K_M.gguf'),
         isZip: false
     },
     // Domain Data Vaults

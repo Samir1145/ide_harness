@@ -459,7 +459,7 @@ module.exports = {
             const documents = [];
 
             // 1. Collect indexed docs from index.json
-            const indexPath = path.join(caseDir, 'concepts', 'index.json');
+            const indexPath = path.join(getConceptsDir(caseDir), 'index.json');
             let indexedBasenames = new Set();
             if (fs.existsSync(indexPath)) {
                 try {
@@ -472,7 +472,7 @@ module.exports = {
             }
 
             // 2. Scan for statuses in concepts/statuses.json
-            const statusesJsonPath = path.join(caseDir, 'concepts', 'statuses.json');
+            const statusesJsonPath = path.join(getConceptsDir(caseDir), 'statuses.json');
             let persistentStatuses = {};
             if (fs.existsSync(statusesJsonPath)) {
                 try {
@@ -507,7 +507,7 @@ module.exports = {
             if (req.method === 'GET') {
                 const caseName = parsedUrl.query.case || '';
                 const caseDir = resolveCaseDir(docsRoot, caseName);
-                const activeDocsPath = path.join(caseDir, 'concepts', 'active_rag_docs.json');
+                const activeDocsPath = path.join(getConceptsDir(caseDir), 'active_rag_docs.json');
                 
                 let activeFiles = null;
                 if (fs.existsSync(activeDocsPath)) {
@@ -529,9 +529,7 @@ module.exports = {
                         const data = JSON.parse(body);
                         const caseName = data.case || '';
                         const caseDir = resolveCaseDir(docsRoot, caseName);
-                        const conceptsDir = path.join(caseDir, 'concepts');
-                        fs.mkdirSync(conceptsDir, { recursive: true });
-                        const activeDocsPath = path.join(conceptsDir, 'active_rag_docs.json');
+                        const activeDocsPath = path.join(getConceptsDir(caseDir), 'active_rag_docs.json');
                         
                         fs.writeFileSync(activeDocsPath, JSON.stringify({ activeFiles: data.activeFiles }, null, 2), 'utf8');
                         
@@ -832,17 +830,17 @@ module.exports = {
 
                                 // ── Computed disk paths ────────────────────────────────────────────
                                 const conversionsDir = subfolder === '.' ?
-                                    path.join(caseDir, 'conversions') :
-                                    path.join(caseDir, 'conversions', subfolder);
+                                    getConversionsDir(caseDir) :
+                                    path.join(getConversionsDir(caseDir), subfolder);
                                 const conversionCompanionPath = path.join(conversionsDir, `${cleanBase}.md`);
                                 const rootCompanionPath = filePath.replace(/\.[a-zA-Z0-9]+$/, '.md');
 
                                 const companionPath = isWikiHtml ? filePath : (ext === '.md' ? filePath : conversionCompanionPath);
                                 const conceptsDir = subfolder === '.' ?
-                                    path.join(caseDir, 'concepts', cleanBase) :
-                                    path.join(caseDir, 'concepts', subfolder, cleanBase);
+                                    path.join(getConceptsDir(caseDir), cleanBase) :
+                                    path.join(getConceptsDir(caseDir), subfolder, cleanBase);
                                 const treePath = path.join(conceptsDir, 'pageindex_tree.json');
-                                const bm25IndexPath = path.join(caseDir, 'concepts', 'bm25_index.json');
+                                const bm25IndexPath = path.join(getConceptsDir(caseDir), 'bm25_index.json');
 
                                 // Auto-relocate root companion .md to conversions/ folder if it exists
                                 if (ext !== '.md' && fs.existsSync(rootCompanionPath)) {
@@ -1016,8 +1014,8 @@ module.exports = {
                                 if (docStatus.startsWith('failed_')) {
                                     try {
                                         const errorPath = subfolder === '.' ?
-                                            path.join(caseDir, 'conversions', `${cleanBase}.error`) :
-                                            path.join(caseDir, 'conversions', subfolder, `${cleanBase}.error`);
+                                            path.join(getConversionsDir(caseDir), `${cleanBase}.error`) :
+                                            path.join(getConversionsDir(caseDir), subfolder, `${cleanBase}.error`);
                                         if (fs.existsSync(errorPath)) {
                                             errorMsg = fs.readFileSync(errorPath, 'utf8').trim();
                                         }
@@ -1106,7 +1104,7 @@ module.exports = {
         '/api/hayagriva/wiki-cards': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
             const caseDir = resolveCaseDir(docsRoot, caseName);
-            const wikiDir = path.join(caseDir, 'wiki');
+            const wikiDir = getWikiDir(caseDir);
             
             const { parseMarkdownWithFrontmatter } = require('./utils/okf');
             
@@ -1179,7 +1177,7 @@ module.exports = {
                     const caseName = data.caseName || '';
                     let wikiTitle = (data.wikiTitle || 'Case Notes').trim();
                     const caseDir = resolveCaseDir(docsRoot, caseName);
-                    const wikiDir = path.join(caseDir, 'wiki');
+                    const wikiDir = getWikiDir(caseDir);
                     fs.mkdirSync(wikiDir, { recursive: true });
 
                     const safeFilename = wikiTitle.toLowerCase().replace(/[^a-z0-9_-]/g, '_') + '.wiki.html';
@@ -1194,7 +1192,7 @@ module.exports = {
                     try {
                         const { ingestWiki } = require('./pipeline/wiki/ingest');
                         const bm25 = require('./core/bm25');
-                        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+                        const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
                         const bm25Index = bm25.loadIndex(bm25IndexFile);
                         await ingestWiki(caseDir, targetPath, bm25Index, bm25IndexFile);
                     } catch (ingestErr) {
@@ -1219,7 +1217,7 @@ module.exports = {
                     const caseName = data.caseName || '';
                     const docFilename = data.docFilename || '';
                     const caseDir = resolveCaseDir(docsRoot, caseName);
-                    const wikiDir = path.join(caseDir, 'wiki');
+                    const wikiDir = getWikiDir(caseDir);
                     fs.mkdirSync(wikiDir, { recursive: true });
 
                     const docBase = path.basename(docFilename, path.extname(docFilename));
@@ -1243,7 +1241,7 @@ module.exports = {
                     try {
                         const { ingestWiki } = require('./pipeline/wiki/ingest');
                         const bm25 = require('./core/bm25');
-                        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+                        const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
                         const bm25Index = bm25.loadIndex(bm25IndexFile);
                         await ingestWiki(caseDir, targetPath, bm25Index, bm25IndexFile);
                     } catch (ingestErr) {
@@ -1263,7 +1261,7 @@ module.exports = {
             const caseName = parsedUrl.query.case || '';
             const fileName = parsedUrl.query.file || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
-            const targetPath = path.join(caseDir, 'wiki', fileName);
+            const targetPath = path.join(getWikiDir(caseDir), fileName);
 
             if (!fs.existsSync(targetPath)) {
                 res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -1284,7 +1282,7 @@ module.exports = {
                     const caseName = parsedUrl.query.case || '';
                     const fileName = parsedUrl.query.file || '';
                     const caseDir = resolveCaseDir(docsRoot, caseName);
-                    const targetPath = path.join(caseDir, 'wiki', fileName);
+                    const targetPath = path.join(getWikiDir(caseDir), fileName);
 
                     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
                     fs.writeFileSync(targetPath, body, 'utf8');
@@ -1293,7 +1291,7 @@ module.exports = {
                     try {
                         const { ingestWiki } = require('./pipeline/wiki/ingest');
                         const bm25 = require('./core/bm25');
-                        const bm25IndexFile = path.join(caseDir, 'concepts', 'bm25_index.json');
+                        const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
                         const bm25Index = bm25.loadIndex(bm25IndexFile);
                         await ingestWiki(caseDir, targetPath, bm25Index, bm25IndexFile);
                         console.log(`[TiddlyWiki API] Saved and re-indexed: ${fileName}`);
@@ -1312,8 +1310,8 @@ module.exports = {
         '/api/hayagriva/case-graph': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
             const caseDir = resolveCaseDir(docsRoot, caseName);
-            const conceptsDir = path.join(caseDir, 'concepts');
-            const wikiDir = path.join(caseDir, 'wiki');
+            const conceptsDir = getConceptsDir(caseDir);
+            const wikiDir = getWikiDir(caseDir);
             
             const nodes = [];
             const links = [];
@@ -1400,7 +1398,7 @@ module.exports = {
         '/api/hayagriva/concepts': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
             const caseDir = resolveCaseDir(docsRoot, caseName);
-            const conceptsDir = path.join(caseDir, 'concepts');
+            const conceptsDir = getConceptsDir(caseDir);
             const list = [];
             
             if (fs.existsSync(conceptsDir)) {
@@ -1806,7 +1804,7 @@ module.exports = {
             
             let vertical = 'legal';
             if (caseDir) {
-                const caseConfigPath = path.join(caseDir, 'concepts', 'case_metadata.json');
+                const caseConfigPath = path.join(getConceptsDir(caseDir), 'case_metadata.json');
                 if (fs.existsSync(caseConfigPath)) {
                     try {
                         const caseMeta = JSON.parse(fs.readFileSync(caseConfigPath, 'utf8'));
@@ -1833,10 +1831,11 @@ module.exports = {
         '/api/hayagriva/llm/engines-status': async (req, res) => {
             const { checkLlamafileHealth } = require('./core/llm-client');
             const isEngineRunning = await checkLlamafileHealth('http://127.0.0.1:8090');
-            const legalActive = isEngineRunning && activeEngineDomain !== 'finance';
+            const legalActive = isEngineRunning && (activeEngineDomain === 'legal' || !activeEngineDomain);
             const financeActive = isEngineRunning && activeEngineDomain === 'finance';
+            const saulActive = isEngineRunning && activeEngineDomain === 'saul';
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ legalActive, financeActive, engineActive: isEngineRunning, activeDomain: activeEngineDomain }));
+            res.end(JSON.stringify({ legalActive, financeActive, saulActive, engineActive: isEngineRunning, activeDomain: activeEngineDomain }));
         },
 
         // ─── Marketplace: Catalog ──────────────────────────────────────────────
@@ -1844,7 +1843,7 @@ module.exports = {
             try {
                 const vaultPacksDir = path.join(__dirname, '..', '..', 'vault', 'agent_packs');
                 const dataVaultsDir = path.join(__dirname, '..', '..', 'vault', 'data_vaults');
-                const modelsDir = path.join(__dirname, '..', '..', 'models', 'llm', 'llamafile');
+                const modelsDir = path.join(__dirname, '..', '..', 'models', 'llm');
                 const { getCatalogStatus } = require('./pipeline/vault-importer');
                 const catalogStatus = getCatalogStatus();
 
@@ -1941,6 +1940,17 @@ module.exports = {
                             progressPct: catalogStatus['financeparam-2.9b']?.progressPct || 0
                         },
                         {
+                            id: 'saullm-7b',
+                            name: 'SaulLM 7B Instruct',
+                            badge: 'PRO — Available',
+                            description: 'Specialized 7B Legal LLM pre-trained on 30B+ legal tokens. 2K context.',
+                            tier: 'professional',
+                            sizeGb: 4.37,
+                            context: '2K tokens',
+                            status: getStatus('saullm-7b', installedModels.some(m => m.toLowerCase().includes('saul'))),
+                            progressPct: catalogStatus['saullm-7b']?.progressPct || 0
+                        },
+                        {
                             id: 'hayaparam-7b',
                             name: 'HayaParam 7B',
                             badge: 'PRO — Coming Soon',
@@ -1979,7 +1989,7 @@ module.exports = {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body || '{}');
-                    const engine = data.engine === 'finance' ? 'finance' : 'legal';
+                    const engine = data.engine === 'finance' ? 'finance' : (data.engine === 'saul' ? 'saul' : 'legal');
                     activeEngineDomain = engine;
                     const { spawn } = require('child_process');
                     
@@ -2143,7 +2153,7 @@ module.exports = {
                     }
 
                     // 2. Move companion .md from conversions/
-                    const companionPath = path.join(caseDir, 'conversions', `${basename}.md`);
+                    const companionPath = path.join(getConversionsDir(caseDir), `${basename}.md`);
                     if (fs.existsSync(companionPath)) {
                         const trashCompDir = path.join(trashDir, 'conversions');
                         fs.mkdirSync(trashCompDir, { recursive: true });
@@ -2153,11 +2163,11 @@ module.exports = {
                     }
 
                     // Also remove .status sidecar
-                    const statusPath = path.join(caseDir, 'conversions', `${basename}.status`);
+                    const statusPath = path.join(getConversionsDir(caseDir), `${basename}.status`);
                     if (fs.existsSync(statusPath)) { try { fs.unlinkSync(statusPath); } catch (_) {} }
 
                     // 3. Move concepts folder
-                    const conceptsPath = path.join(caseDir, 'concepts', basename);
+                    const conceptsPath = path.join(getConceptsDir(caseDir), basename);
                     if (fs.existsSync(conceptsPath)) {
                         const trashConceptDir = path.join(trashDir, 'concepts', basename);
                         fs.mkdirSync(path.join(trashDir, 'concepts'), { recursive: true });
@@ -2424,7 +2434,7 @@ module.exports = {
                     const statusPath1 = companionPath.replace(/\.md$/, '.status');
                     
                     const subfolder = path.dirname(relative);
-                    const conversionsDir = path.join(caseDir, 'conversions');
+                    const conversionsDir = getConversionsDir(caseDir);
                     const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
                     const statusPath2 = path.join(destDir, `${basename}.status`);
                     
@@ -2646,8 +2656,8 @@ module.exports = {
                 updateStatus(caseDir, relative, 'ingesting');
 
                 const conversionsPath = subfolder === '.' ?
-                    path.join(caseDir, 'conversions', `${basename}.md`) :
-                    path.join(caseDir, 'conversions', subfolder, `${basename}.md`);
+                    path.join(getConversionsDir(caseDir), `${basename}.md`) :
+                    path.join(getConversionsDir(caseDir), subfolder, `${basename}.md`);
                 const rootPath = file.replace(/\.[a-zA-Z0-9]+$/, '.md');
                 const companionPath = isWikiHtml ? file : (fs.existsSync(conversionsPath) ? conversionsPath : rootPath);
 
@@ -2661,7 +2671,7 @@ module.exports = {
 
                         if (data.enrich !== false) {
                             console.log(`[API Server] Auto-starting AI enrichment for ${basename}...`);
-                            const pageIndexTreePath = path.join(caseDir, 'concepts', subfolder, basename, 'pageindex_tree.json');
+                            const pageIndexTreePath = path.join(getConceptsDir(caseDir), subfolder, basename, 'pageindex_tree.json');
                             if (fs.existsSync(pageIndexTreePath)) {
                                 let treeData;
                                 try {
@@ -2723,7 +2733,7 @@ module.exports = {
                 const basename = isWikiHtml ? path.basename(file, '.wiki.html') : path.basename(file, ext);
                 const subfolder = path.dirname(relative);
 
-                const pageIndexTreePath = path.join(caseDir, 'concepts', subfolder, basename, 'pageindex_tree.json');
+                const pageIndexTreePath = path.join(getConceptsDir(caseDir), subfolder, basename, 'pageindex_tree.json');
                 if (fs.existsSync(pageIndexTreePath)) {
                     let treeData;
                     try {
@@ -2829,7 +2839,7 @@ module.exports = {
                 const basename = isWikiHtml ? path.basename(file, '.wiki.html') : path.basename(file, ext);
                 const subfolder = path.dirname(relative);
 
-                const pageIndexTreePath = path.join(caseDir, 'concepts', subfolder, basename, 'pageindex_tree.json');
+                const pageIndexTreePath = path.join(getConceptsDir(caseDir), subfolder, basename, 'pageindex_tree.json');
                 if (!fs.existsSync(pageIndexTreePath)) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: 'PageIndex tree not found. Ingest to context first.' }));
@@ -3114,8 +3124,8 @@ module.exports = {
 
                 if (!fs.existsSync(caseDir)) {
                     fs.mkdirSync(caseDir, { recursive: true });
-                    fs.mkdirSync(path.join(caseDir, 'concepts'), { recursive: true });
                 }
+                getConceptsDir(caseDir);
                 ensureCaseSettings(caseDir);
                 const filePath = path.join(caseDir, data.filename);
                 const buffer = Buffer.from(data.content, 'base64');
@@ -3134,7 +3144,7 @@ module.exports = {
             try {
                 const vaultPacksDir = path.join(__dirname, '..', '..', 'vault', 'agent_packs');
                 const dataVaultsDir = path.join(__dirname, '..', '..', 'vault', 'data_vaults');
-                const modelsDir = path.join(__dirname, '..', '..', 'models', 'llm', 'llamafile');
+                const modelsDir = path.join(__dirname, '..', '..', 'models', 'llm');
                 const { getCatalogStatus } = require('./pipeline/vault-importer');
                 const catalogStatus = getCatalogStatus();
 
@@ -3231,6 +3241,17 @@ module.exports = {
                             context: '2K tokens',
                             status: getStatus('financeparam-2.9b', installedModels.some(m => m.includes('financeparam'))),
                             progressPct: catalogStatus['financeparam-2.9b']?.progressPct || 0
+                        },
+                        {
+                            id: 'saullm-7b',
+                            name: 'SaulLM 7B Instruct',
+                            badge: 'PRO — Available',
+                            description: 'Specialized 7B Legal LLM pre-trained on 30B+ legal tokens. 2K context.',
+                            tier: 'professional',
+                            sizeGb: 4.37,
+                            context: '2K tokens',
+                            status: getStatus('saullm-7b', installedModels.some(m => m.toLowerCase().includes('saul'))),
+                            progressPct: catalogStatus['saullm-7b']?.progressPct || 0
                         },
                         {
                             id: 'hayaparam-7b',

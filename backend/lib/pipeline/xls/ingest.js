@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { convertXlsxSheets } = require('./upload');
+const { getConversionsDir } = require('../common/helper');
 
 /**
  * Ingests an Excel (.xlsx/.xls) workbook by converting each sheet tab into a separate companion Markdown file.
@@ -14,7 +15,7 @@ async function ingestXlsx(caseDir, filePath) {
     const sheets = convertXlsxSheets(filePath);
 
     const subfolder = path.dirname(relative);
-    const conversionsDir = path.join(caseDir, 'conversions');
+    const conversionsDir = getConversionsDir(caseDir);
     const destDir = subfolder === '.' ? conversionsDir : path.join(conversionsDir, subfolder);
     fs.mkdirSync(destDir, { recursive: true });
 

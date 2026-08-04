@@ -2,6 +2,8 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
+const { getConceptsDir } = require('../pipeline/common/helper');
+
 const connections = new Map();
 const repoRoot = path.resolve(__dirname, '../..');
 
@@ -27,8 +29,7 @@ function getDb(caseDir) {
     if (isProjectRepoRoot(caseDir)) {
         dbPath = ':memory:';
     } else {
-        const dbDir = path.join(caseDir, 'concepts');
-        fs.mkdirSync(dbDir, { recursive: true });
+        const dbDir = getConceptsDir(caseDir);
         dbPath = path.join(dbDir, 'case_vault.db');
     }
     

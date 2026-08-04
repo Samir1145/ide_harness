@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getConversionsDir, getConceptsDir } = require('../pipeline/common/helper');
 
 // Regex patterns to match dates
 const DATE_PATTERNS = [
@@ -102,7 +103,7 @@ function extractSentenceAround(text, index, dateLen) {
 }
 
 function extractChronology(caseDir) {
-    const conversionsDir = path.join(caseDir, 'conversions');
+    const conversionsDir = getConversionsDir(caseDir);
     const events = [];
     
     if (!fs.existsSync(conversionsDir)) {
@@ -110,7 +111,7 @@ function extractChronology(caseDir) {
     }
 
     // Build filename map from index.json
-    const indexPath = path.join(caseDir, 'concepts', 'index.json');
+    const indexPath = path.join(getConceptsDir(caseDir), 'index.json');
     const docMap = new Map(); // title (basename) -> original filename
     if (fs.existsSync(indexPath)) {
         try {

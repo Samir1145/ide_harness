@@ -4,7 +4,7 @@ const bm25 = require('../../core/bm25');
 const { parseWikiHtml, parseTags, extractWikiLinks } = require('./upload');
 const { splitWiki } = require('./split');
 const { formatMarkdownWithFrontmatter, parseMarkdownWithFrontmatter } = require('../../utils/okf');
-const { getSafeFilename, cleanBm25Index, isTiddlyWikiHtml } = require('../common/helper');
+const { getSafeFilename, cleanBm25Index, isTiddlyWikiHtml, getWikiDir } = require('../common/helper');
 
 /**
  * Handles TiddlyWiki (.wiki.html / .html) file ingestion, parsing individual cards out of the store block.
@@ -22,7 +22,7 @@ async function ingestWiki(caseDir, filePath, bm25Index, bm25IndexFile) {
     console.log(`[Wiki Ingestion] Starting TiddlyWiki HTML ingestion: ${relative}`);
 
     // Setup folder structures - wiki cards are written to caseDir/wiki
-    const wikiDir = path.join(caseDir, 'wiki');
+    const wikiDir = getWikiDir(caseDir);
     fs.mkdirSync(wikiDir, { recursive: true });
     cleanBm25Index(bm25Index, basename);
 

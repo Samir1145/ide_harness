@@ -4,6 +4,7 @@ const { readIndex } = require('./indexer');
 const { parseMarkdownWithFrontmatter } = require('../utils/okf');
 const bm25 = require('./bm25');
 const { streamChat, getChatResponse } = require('./llm-client');
+const { getConceptsDir } = require('../pipeline/common/helper');
 
 function cosineSimilarity(vecA, vecB) {
     if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
@@ -74,7 +75,7 @@ function preprocessQuery(queryText) {
 function expandContextUsingTree(caseDir, docName, title, matchedContent) {
     if (docName === 'Wiki') return matchedContent;
     
-    const treePath = path.join(caseDir, 'concepts', docName, 'pageindex_tree.json');
+    const treePath = path.join(getConceptsDir(caseDir), docName, 'pageindex_tree.json');
     if (!fs.existsSync(treePath)) return matchedContent;
     
     try {
@@ -163,7 +164,7 @@ Answer:`;
 
 async function retrieveContexts(caseDir, queryText) {
     let activeFiles = null;
-    const activeDocsPath = path.join(caseDir, 'concepts', 'active_rag_docs.json');
+    const activeDocsPath = path.join(getConceptsDir(caseDir), 'active_rag_docs.json');
     if (fs.existsSync(activeDocsPath)) {
         try {
             const data = JSON.parse(fs.readFileSync(activeDocsPath, 'utf8'));

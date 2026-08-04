@@ -148,4 +148,13 @@ Refer to the following plans saved in the workspace:
   * System subfolders are dynamically named using the parent case folder basename: `<casename>_conversions_haya`, `<casename>_concepts_haya`, and `<casename>_wiki_haya`.
   * **Finder Visibility & Protection**: Visible in macOS Finder so users recognize which case they belong to and know not to delete/modify them directly.
   * **IDE Explorer Exclusion**: Automatically hidden from the IDE File Explorer sidebar tree via wildcard patterns (`**/*_conversions_haya`, `**/*_concepts_haya`, `**/*_wiki_haya`) in `files.exclude`.
-  * **Dynamic Resolvers**: `getConversionsDir(caseDir)`, `getConceptsDir(caseDir)`, and `getWikiDir(caseDir)` in `backend/lib/pipeline/common/helper.js` resolve paths dynamically and auto-sync subfolder names if the parent case directory is renamed in Finder.
+  * **Universal Case-Prefixed Directory Resolvers & Auto-Merge**:
+  * `getConceptsDir`, `getConversionsDir`, and `getWikiDir` in `helper.js` dynamically resolve `<case_name>_concepts_haya`, `<case_name>_conversions_haya`, and `<case_name>_wiki_haya`.
+  * Invoking any resolver automatically detects legacy un-suffixed directories (`concepts`, `conversions`, `wiki`), recursively merges their contents into the case-prefixed directory (`mergeAndCleanDir`), and deletes empty legacy folders.
+* **SaulLM-7B GGUF Integration & Cloudflare R2 Sync**:
+  * Added **SaulLM-7B Instruct (`saullm-7b`, 4.16 GB)** to Cloudflare R2 bucket `hayagriva` under `models/saullm-7b.gguf`.
+  * Registered `saullm-7b` in `CATALOG_MANIFEST` (`vault-importer.js`) and `/api/hayagriva/marketplace/catalog` (`routes.js`) for 1-Click portal downloading.
+  * Added single-engine hot-swapping support for `saul` on port 8090 via `run-llama-server.sh saul` and `/api/hayagriva/engine/start`.
+* **macOS QLMarkdown & LaunchServices UTI Binding**:
+  * Resolved macOS Finder "dog-eared page" preview fallback caused by uninstalled `com.crocopliers.mdviewer` assigning `com.unknown.md` UTIs.
+  * Rebound `.md` and `net.daringfireball.markdown` to `org.sbarex.QLMarkdown` using `duti -s org.sbarex.QLMarkdown .md all` and refreshed `quicklookd` cache (`qlmanage -r && qlmanage -r cache`).

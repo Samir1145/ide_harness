@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getConceptsDir } = require('../../../../../lib/pipeline/common/helper');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { query } = require('../../../../../lib/core/rag');
 const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
@@ -31,7 +32,7 @@ class LitigationTrackerAgent {
         // Load litigation checklist logs if available
         let litigationLogs = '';
         try {
-            const listPath = path.join(caseDir, 'concepts', 'litigation_tracker.json');
+            const listPath = path.join(getConceptsDir(caseDir), 'litigation_tracker.json');
             if (fs.existsSync(listPath)) {
                 litigationLogs = `\nActive Litigation Registry:\n${fs.readFileSync(listPath, 'utf8')}\n`;
             }

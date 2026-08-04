@@ -83,10 +83,45 @@ Do not write any explanation or extra text.`;
 }
 
 /**
+ * Helper to recursively merge files from source directory to target directory, then remove source.
+ */
+function mergeAndCleanDir(srcDir, destDir) {
+    if (!fs.existsSync(srcDir) || path.resolve(srcDir) === path.resolve(destDir)) return;
+    fs.mkdirSync(destDir, { recursive: true });
+    try {
+        const entries = fs.readdirSync(srcDir, { withFileTypes: true });
+        for (const entry of entries) {
+            const srcPath = path.join(srcDir, entry.name);
+            const destPath = path.join(destDir, entry.name);
+            if (entry.isDirectory()) {
+                mergeAndCleanDir(srcPath, destPath);
+            } else {
+                if (!fs.existsSync(destPath)) {
+                    try {
+                        fs.renameSync(srcPath, destPath);
+                    } catch (_) {
+                        try {
+                            fs.copyFileSync(srcPath, destPath);
+                            fs.unlinkSync(srcPath);
+                        } catch (_) {}
+                    }
+                } else {
+                    try { fs.unlinkSync(srcPath); } catch (_) {}
+                }
+            }
+        }
+        try { fs.rmSync(srcDir, { recursive: true, force: true }); } catch (_) {}
+    } catch (e) {
+        console.warn(`[Directory Resolver] Failed to clean ${srcDir}:`, e.message);
+    }
+}
+
+/**
  * Initializes and resets the concepts subfolder inside case workspace.
  */
 function setupConceptsDir(caseDir, basename) {
-    const conceptsDir = path.join(caseDir, 'concepts', basename);
+    const parentConcepts = getConceptsDir(caseDir);
+    const conceptsDir = path.join(parentConcepts, basename);
     if (fs.existsSync(conceptsDir)) {
         fs.rmSync(conceptsDir, { recursive: true, force: true });
     }
@@ -132,26 +167,19 @@ function getConversionsDir(caseDir) {
     if (!caseDir) return '';
     const caseName = path.basename(caseDir);
     const targetDir = path.join(caseDir, `${caseName}_conversions_haya`);
-    if (fs.existsSync(targetDir)) return targetDir;
+    fs.mkdirSync(targetDir, { recursive: true });
 
     if (fs.existsSync(caseDir)) {
         try {
             const entries = fs.readdirSync(caseDir);
-            const match = entries.find(e => e === 'conversions' || e.endsWith('_conversions_haya'));
-            if (match) {
-                const oldPath = path.join(caseDir, match);
-                if (path.resolve(oldPath) !== path.resolve(targetDir)) {
-                    try {
-                        fs.renameSync(oldPath, targetDir);
-                        console.log(`[Directory Resolver] Auto-synced conversions dir: ${match} -> ${path.basename(targetDir)}`);
-                        return targetDir;
-                    } catch (_) {}
+            for (const entry of entries) {
+                if (entry === 'conversions' || (entry.endsWith('_conversions_haya') && entry !== `${caseName}_conversions_haya`)) {
+                    const legacyPath = path.join(caseDir, entry);
+                    mergeAndCleanDir(legacyPath, targetDir);
                 }
             }
         } catch (_) {}
     }
-
-    fs.mkdirSync(targetDir, { recursive: true });
     return targetDir;
 }
 
@@ -159,26 +187,19 @@ function getConceptsDir(caseDir) {
     if (!caseDir) return '';
     const caseName = path.basename(caseDir);
     const targetDir = path.join(caseDir, `${caseName}_concepts_haya`);
-    if (fs.existsSync(targetDir)) return targetDir;
+    fs.mkdirSync(targetDir, { recursive: true });
 
     if (fs.existsSync(caseDir)) {
         try {
             const entries = fs.readdirSync(caseDir);
-            const match = entries.find(e => e === 'concepts' || e.endsWith('_concepts_haya'));
-            if (match) {
-                const oldPath = path.join(caseDir, match);
-                if (path.resolve(oldPath) !== path.resolve(targetDir)) {
-                    try {
-                        fs.renameSync(oldPath, targetDir);
-                        console.log(`[Directory Resolver] Auto-synced concepts dir: ${match} -> ${path.basename(targetDir)}`);
-                        return targetDir;
-                    } catch (_) {}
+            for (const entry of entries) {
+                if (entry === 'concepts' || (entry.endsWith('_concepts_haya') && entry !== `${caseName}_concepts_haya`)) {
+                    const legacyPath = path.join(caseDir, entry);
+                    mergeAndCleanDir(legacyPath, targetDir);
                 }
             }
         } catch (_) {}
     }
-
-    fs.mkdirSync(targetDir, { recursive: true });
     return targetDir;
 }
 
@@ -186,26 +207,19 @@ function getWikiDir(caseDir) {
     if (!caseDir) return '';
     const caseName = path.basename(caseDir);
     const targetDir = path.join(caseDir, `${caseName}_wiki_haya`);
-    if (fs.existsSync(targetDir)) return targetDir;
+    fs.mkdirSync(targetDir, { recursive: true });
 
     if (fs.existsSync(caseDir)) {
         try {
             const entries = fs.readdirSync(caseDir);
-            const match = entries.find(e => e === 'wiki' || e.endsWith('_wiki_haya'));
-            if (match) {
-                const oldPath = path.join(caseDir, match);
-                if (path.resolve(oldPath) !== path.resolve(targetDir)) {
-                    try {
-                        fs.renameSync(oldPath, targetDir);
-                        console.log(`[Directory Resolver] Auto-synced wiki dir: ${match} -> ${path.basename(targetDir)}`);
-                        return targetDir;
-                    } catch (_) {}
+            for (const entry of entries) {
+                if (entry === 'wiki' || (entry.endsWith('_wiki_haya') && entry !== `${caseName}_wiki_haya`)) {
+                    const legacyPath = path.join(caseDir, entry);
+                    mergeAndCleanDir(legacyPath, targetDir);
                 }
             }
         } catch (_) {}
     }
-
-    fs.mkdirSync(targetDir, { recursive: true });
     return targetDir;
 }
 

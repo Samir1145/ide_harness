@@ -9,6 +9,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { getConversionsDir } = require('./common/helper');
 
 const STATUTORY_MILESTONES = [
     { key: 't0_admission', day: 0, title: 'Admission Date (T0)', section: 'Pre-CoC' },
@@ -114,7 +115,7 @@ function generateMermaidTimeline(t0DateStr, caseId = 'CIRP Case') {
  */
 function updateWorkspaceTimeline(caseDir, t0DateStr = null) {
     try {
-        const conversionManifest = path.join(caseDir, 'conversions', 'case_manifest.json');
+        const conversionManifest = path.join(getConversionsDir(caseDir), 'case_manifest.json');
         const manifestPath = fs.existsSync(conversionManifest) ? conversionManifest : path.join(caseDir, 'case_manifest.json');
         let caseId = path.basename(caseDir);
         let t0 = t0DateStr || formatDate(new Date());

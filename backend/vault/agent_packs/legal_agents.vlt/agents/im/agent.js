@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getConceptsDir } = require('../../../../../lib/pipeline/common/helper');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { query } = require('../../../../../lib/core/rag');
 const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
@@ -31,7 +32,7 @@ class ImCompilerAgent {
         // Load case variables dictionary
         let dictData = '';
         try {
-            const dictPath = path.join(caseDir, 'concepts', 'case_kv_dictionary.json');
+            const dictPath = path.join(getConceptsDir(caseDir), 'case_kv_dictionary.json');
             if (fs.existsSync(dictPath)) {
                 dictData = `\nCase Variables Registry:\n${fs.readFileSync(dictPath, 'utf8')}\n`;
             }

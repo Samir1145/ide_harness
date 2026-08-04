@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { getConceptsDir } = require('../../pipeline/common/helper');
 
 const KV_FILENAME = 'case_kv_dictionary.json';
 
@@ -15,7 +16,7 @@ const KV_FILENAME = 'case_kv_dictionary.json';
  * @returns {Object}
  */
 function readKV(caseDir) {
-    const kvPath = path.join(caseDir, 'concepts', KV_FILENAME);
+    const kvPath = path.join(getConceptsDir(caseDir), KV_FILENAME);
     if (!fs.existsSync(kvPath)) return {};
     try {
         return JSON.parse(fs.readFileSync(kvPath, 'utf8'));
@@ -40,7 +41,7 @@ function readKV(caseDir) {
 function writeCaseKV(caseDir, key, value, source, agentName = 'agent') {
     if (!caseDir || !key || value === undefined || value === null) return false;
 
-    const kvPath = path.join(caseDir, 'concepts', KV_FILENAME);
+    const kvPath = path.join(getConceptsDir(caseDir), KV_FILENAME);
     const kv = readKV(caseDir);
 
     // Protect user-verified values

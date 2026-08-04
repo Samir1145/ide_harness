@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getConceptsDir } = require('../../../../../lib/pipeline/common/helper');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const { ragRetrieve, formatContextBlock } = require('../../../../../lib/agents/skills/rag-retrieve');
 const { extractEntities, extractDates } = require('../../../../../lib/agents/skills/entity-extract');
@@ -40,7 +41,7 @@ class AvoidanceScannerAgent {
 
         // Load CIRP commencement date from KV (needed for lookback calculations)
         let cirpDate = null;
-        const kvPath = path.join(caseDir, 'concepts', 'case_kv_dictionary.json');
+        const kvPath = path.join(getConceptsDir(caseDir), 'case_kv_dictionary.json');
         if (fs.existsSync(kvPath)) {
             try {
                 const kv = JSON.parse(fs.readFileSync(kvPath, 'utf8'));
@@ -76,7 +77,7 @@ class AvoidanceScannerAgent {
 
         // 2. Load existing avoidance ledger
         let existingLedger = '';
-        const ledgerPath = path.join(caseDir, 'concepts', 'avoidance_transactions.json');
+        const ledgerPath = path.join(getConceptsDir(caseDir), 'avoidance_transactions.json');
         if (fs.existsSync(ledgerPath)) {
             existingLedger = fs.readFileSync(ledgerPath, 'utf8');
         }
