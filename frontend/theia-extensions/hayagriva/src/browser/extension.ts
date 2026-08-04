@@ -1143,66 +1143,37 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                   !rawSlash.startsWith('ibc') &&
                   !rawSlash.startsWith('mca') &&
                   !rawSlash.startsWith('sec') &&
+                  !rawSlash.startsWith('precedent') &&
+                  !rawSlash.startsWith('fact') &&
                   !rawSlash.startsWith('concept') &&
                   !rawSlash.startsWith('qa') &&
                   !rawSlash.startsWith('clause') &&
-                  !rawSlash.startsWith('case')) {
+                  !rawSlash.startsWith('case') &&
+                  !rawSlash.startsWith('export')) {
                 const commandSuggestions = [
                   {
-                    label: '/law - Search Statutory Laws',
+                    label: '/law - Search Statutory Laws & Sections',
                     filterText: '/law',
                     kind: monaco.languages.CompletionItemKind.Keyword,
                     insertText: 'law ',
                     range: replaceRange,
-                    detail: 'AES Encrypted Law Vault',
+                    detail: 'AES Encrypted Law Vault (Statutes, Sections, Rules)',
                   },
                   {
-                    label: '/ibc - Insolvency & Bankruptcy Code',
-                    filterText: '/ibc',
+                    label: '/precedent - Search Court Precedents & Judgments',
+                    filterText: '/precedent',
                     kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'ibc ',
+                    insertText: 'precedent ',
                     range: replaceRange,
-                    detail: 'IBC 2016 Rules & Regulations',
+                    detail: 'Supreme Court & NCLAT Case Rulings',
                   },
                   {
-                    label: '/mca - Companies Act & Rules',
-                    filterText: '/mca',
+                    label: '/fact - Link Case Facts & Q&A Cards',
+                    filterText: '/fact',
                     kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'mca ',
+                    insertText: 'fact ',
                     range: replaceRange,
-                    detail: 'Companies Act 2013',
-                  },
-                  {
-                    label: '/sec - Statutory Section Lookup',
-                    filterText: '/sec',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'sec ',
-                    range: replaceRange,
-                    detail: 'Section Search',
-                  },
-                  {
-                    label: '/concept - Link Case Facts',
-                    filterText: '/concept',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'concept ',
-                    range: replaceRange,
-                    detail: 'Workspace Concept Nodes',
-                  },
-                  {
-                    label: '/qa - Link Case Q&A cards',
-                    filterText: '/qa',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'qa ',
-                    range: replaceRange,
-                    detail: 'Generated Case Q&As',
-                  },
-                  {
-                    label: '/case - Link Case Law Summaries',
-                    filterText: '/case',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'case ',
-                    range: replaceRange,
-                    detail: '581 Case Law Summaries',
+                    detail: 'Workspace Fact Dictionary & Q&A Nodes',
                   },
                   {
                     label: '/clause - Insert Drafting Boilerplate',
@@ -1210,15 +1181,15 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                     kind: monaco.languages.CompletionItemKind.Keyword,
                     insertText: 'clause ',
                     range: replaceRange,
-                    detail: 'Interactive Templates',
+                    detail: 'Interactive Legal Clause Templates',
                   },
                   {
-                    label: '/export-sc - Export to Supreme Court DOCX',
-                    filterText: '/export-sc',
+                    label: '/export - Export to Supreme Court / NCLAT DOCX',
+                    filterText: '/export',
                     kind: monaco.languages.CompletionItemKind.Keyword,
                     insertText: '',
                     range: replaceRange,
-                    detail: 'Supreme Court Formatted Exporter',
+                    detail: 'Court Layout Formatted DOCX Compiler',
                     command: {
                       id: `${HAYAGRIVA_NS}:exportScDocx`,
                       arguments: [model.uri]
@@ -1260,9 +1231,10 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                 return { suggestions };
               }
 
-              // C. Level 2: Command matches "/concept <query>"
-              if (rawSlashLower.startsWith('concept')) {
-                const query = rawSlash.substring(7).trim().toLowerCase();
+              // C. Level 2: Command matches "/fact <query>" or "/concept <query>"
+              if (rawSlashLower.startsWith('fact') || rawSlashLower.startsWith('concept')) {
+                const prefixLength = rawSlashLower.startsWith('fact') ? 4 : 7;
+                const query = rawSlash.substring(prefixLength).trim().toLowerCase();
                 try {
                   const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/concepts?case=${encodeURIComponent(currentCase)}`);
                   if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
@@ -1271,8 +1243,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                   
                   const filtered = list.filter((c: any) => c.title.toLowerCase().includes(query));
                   const suggestions = filtered.map((c: any) => ({
-                    label: `/concept → ${c.title}`,
-                    filterText: `/concept ${query}`,
+                    label: `/fact → ${c.title}`,
+                    filterText: `/fact ${query}`,
                     kind: monaco.languages.CompletionItemKind.Reference,
                     insertText: `[${c.title}](${c.relativePath})`,
                     range: replaceRange,
@@ -1332,9 +1304,10 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                 return { suggestions };
               }
 
-              // F. Level 2: Command matches "/case <query>"
-              if (rawSlashLower.startsWith('case')) {
-                const query = rawSlash.substring(4).trim().toLowerCase();
+              // F. Level 2: Command matches "/precedent <query>" or "/case <query>"
+              if (rawSlashLower.startsWith('precedent') || rawSlashLower.startsWith('case')) {
+                const prefixLength = rawSlashLower.startsWith('precedent') ? 9 : 4;
+                const query = rawSlash.substring(prefixLength).trim().toLowerCase();
                 try {
                   const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/learning-curves?case=${encodeURIComponent(currentCase)}&query=${encodeURIComponent(query)}`);
                   if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
@@ -1342,8 +1315,8 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
                   const list = data.learningCurves || [];
                   
                   const suggestions = list.map((c: any) => ({
-                    label: `/case → ${c.case_title}`,
-                    filterText: `/case ${query}`,
+                    label: `/precedent → ${c.case_title}`,
+                    filterText: `/precedent ${query}`,
                     kind: monaco.languages.CompletionItemKind.Reference,
                     insertText: c.content || `[${c.case_title}](${c.relativePath})`,
                     range: replaceRange,
