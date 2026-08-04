@@ -52,50 +52,18 @@ Type `@` followed by the agent name, then your question or instruction.
 
 ---
 
-## 3. The `/command` System — Creating Work Product from the Editor
+## 3. Two Command Systems: Editor Canvas (`/`) vs. AI Chat Panel (`@`)
 
-Type `/` at the start of a line in the **Theia text editor** (not the chat panel). A command palette appears. Select the command or keep typing to filter.
+Hayagriva cleanly separates inline document drafting from AI agent delegation:
 
-```
-/draft [template]
-/fill [form-name]
-/timeline
-/strength
-/brief
-/avoidance-scan
-/claims-check
-/analyse-order
-/entity-graph
-/export-sc
-```
+1. **Monaco Editor Canvas (`/` commands)**: Typed directly inside your document canvas for instant text insertion, law section lookups, clause drafting, and SC export.
+2. **AI Chat Panel (`@` subagent commands)**: Typed in the AI Chat Panel or sidebar to delegate full legal analysis tasks to background subagents.
 
-### `/draft` — Draft a legal document
+---
 
-Type `/draft` followed by the document type:
+### A. Monaco Editor Canvas (`/` 5-Command Suite)
 
-| What you type | What it drafts |
-|---|---|
-| `/draft sec7-petition` | Section 7 petition (Financial Creditor) |
-| `/draft sec9-petition` | Section 9 petition (Operational Creditor) |
-| `/draft sec10-petition` | Section 10 petition (Corporate Debtor) |
-| `/draft reply-revision-petition` | Reply to revision petition |
-| `/draft slp-sc` | Special Leave Petition (Supreme Court) |
-| `/draft ibc-sec61-appeal` | NCLAT appeal under Sec 61 |
-| `/draft extension-application` | CIRP time extension application |
-| `/draft liquidation-report` | Liquidation report |
-| `/draft directors-report` | Directors' / Board report |
-
-### `/fill` — Fill an IBBI/MCA form
-
-| What you type | What it fills |
-|---|---|
-| `/fill ibbi-form-a` | Form A — Financial Creditor claim |
-| `/fill ibbi-form-b` | Form B — Operational Creditor claim |
-| `/fill ibbi-form-f` | Form F — Employee/Workman claim |
-| `/fill ibbi-h` | Form H — Resolution Plan compliance |
-| `/fill aoc-4` | AOC-4 Annual Return |
-
-### Editor `/` Slash Commands (5-Command Suite)
+Type `/` anywhere in the Monaco editor canvas to open the inline autocomplete palette:
 
 | Primary Command | Category | What it does | Examples |
 |---|---|---|---|
@@ -105,17 +73,22 @@ Type `/draft` followed by the document type:
 | **`/clause`** | **Drafting Boilerplate** | Inserts standard legal clauses (Indemnity, Termination, Arbitration) | `/clause arbitration`, `/clause indemnity` |
 | **`/export`** | **Judicial Exporter** | Compiles active document into Supreme Court / NCLAT DOCX | `/export`, `/export-sc` |
 
-### Special Workflow `/` Slash Commands
+---
 
-| Command | What it does |
-|---|---|
-| `/timeline` | Reconstruct the full case chronology |
-| `/brief` | Draft an NCLT petition synopsis |
-| `/strength` | Score each ground in your latest draft |
-| `/avoidance-scan` | Scan all documents for avoidance transactions |
-| `/claims-check` | Verify all claim amounts in the case |
-| `/analyse-order` | Decode the latest tribunal order |
-| `/entity-graph` | Build the entity relationship map |
+### B. AI Chat Panel & Subagent Delegations (`@` & Slash Workflows)
+
+Typed in the **AI Chat Sidebar** or triggered via Explorer right-click menus to invoke specialized subagents:
+
+| Workflow Command | Target Subagent | Action Description |
+|---|---|---|
+| **`@timeline`** (or `/timeline`) | `@timeline` Subagent | Reconstructs full CIRP chronology & Frappe Gantt chart |
+| **`@nclt /brief`** | `@nclt` Subagent | Drafts NCLT petition synopsis & grounds summary |
+| **`@advisor /strength`** | `@advisor` Subagent | Scores legal strength of arguments in active draft |
+| **`@avoidance /avoidance-scan`** | `@avoidance` Subagent | Audits case files for Sec 43/45/49/50 transactions |
+| **`@coc /claims-check`** | `@coc-coordinator` Subagent | Computes debt voting shares & audits claims registry |
+| **`@order /analyse-order`** | `@advisor` Subagent | Decodes latest tribunal order & compliance deadlines |
+| **`@document /draft`** | `@document` Subagent | Generates petition skeletons (`/draft sec7-petition`, `/draft slp-sc`) |
+| **`@forms /fill`** | `@forms` Subagent | Hydrates official IBBI/MCA form templates (`/fill ibbi-h`, `/fill aoc-4`) |
 
 ---
 
