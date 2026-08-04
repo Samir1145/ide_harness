@@ -420,6 +420,7 @@
       <button type="button" class="nav-tab-btn" onclick="switchNavTab('marketplace')">🛒 Marketplace</button>
       <button type="button" class="nav-tab-btn" onclick="switchNavTab('pipeline')">🛠️ Pipeline</button>
       <button type="button" class="nav-tab-btn" onclick="switchNavTab('license')">🔑 License</button>
+      <button type="button" class="nav-tab-btn" onclick="switchNavTab('slash')">📖 Slash Commands</button>
     </div>
 
     <!-- ── TAB 1: Mode & Engine Control Center ──────────────────────────── -->
@@ -577,6 +578,67 @@
           <button type="button" class="btn-action" onclick="activateLicense()">Activate Key</button>
         </div>
         <div style="font-size: 12px; color: var(--text-muted);">Current Active Tier: <strong id="tierBadge" style="color: var(--accent-color);">Starter (Free)</strong></div>
+    <!-- ── TAB 5: Slash Commands Cheat Sheet ────────────────────────────── -->
+    <div class="tab-content" id="tabSlash">
+      <div class="section-card">
+        <div class="section-header">⚡ Monaco Slash Commands Cheat Sheet</div>
+        <p style="margin-top: 0; color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">
+          Type <code>/</code> inside any document editor canvas to open the inline autocomplete menu.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+          
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/law</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Statutory Law &amp; Section Lookup</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Searches encrypted Law Vaults across all Acts, Sections, &amp; Rules (IBC, MCA, Banking).</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              /law sec 30(2)<br>/law ibc 14<br>/law mca 185
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Aliases: <code>/sec</code>, <code>/ibc</code>, <code>/mca</code></div>
+          </div>
+
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/precedent</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Court Precedents &amp; Judgments</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Searches 581 precedent court rulings, Supreme Court judgments, &amp; NCLAT orders.</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              /precedent related party voting<br>/precedent CIRP timeline
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Alias: <code>/case</code></div>
+          </div>
+
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/fact</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Workspace Facts &amp; Q&amp;A Nodes</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Links defined terms, case facts, and Q&amp;A cards from workspace case subfolders.</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              /fact claim dispute<br>/fact insolvency date
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Aliases: <code>/concept</code>, <code>/qa</code></div>
+          </div>
+
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/clause</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Drafting Contract Clauses</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Inserts legal clauses with interactive Tab-stop placeholders from the Atticus dealpoint library.</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              /clause arbitration<br>/clause indemnity<br>/clause governing_law
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Alias: <code>/clause</code></div>
+          </div>
+
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px; grid-column: 1 / -1;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/export</div>
+            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Supreme Court &amp; NCLAT DOCX Exporter</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Compiles active Markdown document into a court-compliant Word file (.docx) conforming to Supreme Court rules (14pt Times New Roman, 1.5 line spacing, 4cm left/right margins).</div>
+            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+              /export<br>/export-sc
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Aliases: <code>/export-sc</code>, <code>/court-export</code></div>
+          </div>
+
+        </div>
       </div>
     </div>
 

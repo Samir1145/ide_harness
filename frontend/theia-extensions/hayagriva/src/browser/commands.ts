@@ -1078,5 +1078,14 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isVisible: () => true
       }
     );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:viewSlashCommandsCheatSheet`, label: 'Hayagriva: View Slash Commands Reference' },
+      {
+        execute: async () => {
+          await this.contribution.openSettingsPanel();
+        }
+      }
+    );
   }
 }
