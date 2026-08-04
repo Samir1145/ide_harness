@@ -28,27 +28,31 @@ Type `@` followed by the agent name, then your question or instruction.
 @timeline  your instruction here
 ```
 
-### Which `@agent` do I call?
+### Which `@agent` do I call? (21 Specialized Legal Subagents)
 
-| You want to... | Call this agent |
-|---|---|
-| Ask a legal question about your case | `@advisor` |
-| Find SC / NCLAT / NCLT precedents & case law | `@precedent` |
-| Fill an IBBI form (48 forms: Form A, B, F, H, etc.) | `@forms` |
-| Draft a petition, application, or report | `@document` |
-| Build a Section 7/9/10 NCLT petition synopsis | `@nclt` |
-| Reconstruct the full case timeline | `@timeline` |
-| Score the strength of your legal arguments | `@strength` |
-| Anticipate opposing counsel defenses & rebuttals | `@counter` |
-| Audit Resolution Plan against Sec 30(2) & Sec 29A | `@compliance` |
-| Build proof-to-fact witness & evidence matrix | `@witness` |
-| Draft court-ready sworn affidavits | `@deposition` |
-| Scan for avoidance transactions (Sec 43/45/49/66) | `@avoidance` |
-| Verify creditor claim amounts | `@claims` |
-| Build executive client briefing status reports | `@client-update` |
-| Map all entities in the case (3D D3.js Graph) | `@entity-graph` |
-| Decode a tribunal order & compliance deadlines | `@order` |
-
+| Specialized Agent | `@agent` Tag | Primary Responsibility | Example Chat Input / Command |
+|---|---|---|---|
+| **Document Agent** | `@document` | Drafts petitions, applications, appeals, & filings | `@document /draft sec7-petition`, `@document /draft slp-sc` |
+| **Forms Agent** | `@forms` | Audits & hydrates IBBI/MCA statutory forms | `@forms /fill ibbi-h`, `@forms /fill aoc-4` |
+| **Legal Advisor** | `@advisor` | Legal research, IBC statutes, & ground scoring | `@advisor What is the date of default?`, `@advisor /strength` |
+| **Precedent Search** | `@precedent` | Finds SC / NCLAT / NCLT precedent rulings | `@precedent /precedent-find related party voting` |
+| **NCLT Bench Agent** | `@nclt` | Drafts 2-page Bench synopses & hearing briefs | `@nclt /brief` |
+| **Timeline Engine** | `@timeline` | Reconstructs CIRP chronology & Gantt chart | `@timeline /timeline` |
+| **Avoidance Scanner** | `@avoidance` | Scans for Sec 43/45/49/50 avoidance transactions | `@avoidance /avoidance-scan` |
+| **CoC Coordinator** | `@coc` | Computes debt voting shares & audits claims | `@coc /claims-check` |
+| **Claims Verification** | `@claims` | Verifies creditor claim submissions & interest | `@claims Audit financial creditor claims` |
+| **Plan Evaluator** | `@plan` | Audits Sec 30(2) & Reg 39(4) Resolution Plans | `@plan /plan-audit` |
+| **IM Compiler** | `@im` | Compiles Reg 36 Information Memorandum | `@im /im-build` |
+| **Argument Scorer** | `@strength` | Scores legal ground strength (1–10) | `@strength /strength` |
+| **Order Decoder** | `@order` | Decodes orders & compliance deadlines | `@order /analyse-order` |
+| **Counter-Argument** | `@counter` | Formulates rebuttals against opposing counsel | `@counter /counter` |
+| **Litigation Tracker** | `@litigation` | Tracks active court disputes & tribunal dates | `@litigation Check upcoming hearing dates` |
+| **Entity Graph** | `@entitygraph` | Maps directors & related parties in 3D D3.js web | `@entitygraph /entity-graph` |
+| **Client Update** | `@clientupdate` | Drafts executive client updates & summaries | `@clientupdate /client-update` |
+| **Compliance Agent** | `@compliance` | Audits mandatory CIRP statutory deadlines | `@compliance Audit CIRP timeline compliance` |
+| **Deposition Agent** | `@deposition` | Prepares cross-examination questions & affidavits | `@deposition Draft cross-exam questions` |
+| **Witness Statement** | `@witness` | Audits witness statements & testimony | `@witness Check witness affidavit consistency` |
+| **Governance Agent** | `@governance` | Audits board minutes & secretarial standards | `@governance Audit board meeting compliance` |
 
 ---
 
@@ -57,7 +61,7 @@ Type `@` followed by the agent name, then your question or instruction.
 Hayagriva cleanly separates inline document drafting from AI agent delegation:
 
 1. **Monaco Editor Canvas (`/` commands)**: Typed directly inside your document canvas for instant text insertion, law section lookups, clause drafting, and SC export.
-2. **AI Chat Panel (`@` subagent commands)**: Typed in the AI Chat Panel or sidebar to delegate full legal analysis tasks to background subagents.
+2. **AI Chat Panel (`@agent /command` workflows)**: Typed in the AI Chat Panel or sidebar to delegate full legal analysis tasks to background subagents.
 
 ---
 
@@ -75,20 +79,20 @@ Type `/` anywhere in the Monaco editor canvas to open the inline autocomplete pa
 
 ---
 
-### B. AI Chat Panel & Subagent Delegations (`@` & Slash Workflows)
+### B. AI Chat Panel & Subagent Workflows (`@agent /command`)
 
 Typed in the **AI Chat Sidebar** or triggered via Explorer right-click menus to invoke specialized subagents:
 
-| Workflow Command | Target Subagent | Action Description |
-|---|---|---|
-| **`@timeline`** (or `/timeline`) | `@timeline` Subagent | Reconstructs full CIRP chronology & Frappe Gantt chart |
-| **`@nclt /brief`** | `@nclt` Subagent | Drafts NCLT petition synopsis & grounds summary |
-| **`@advisor /strength`** | `@advisor` Subagent | Scores legal strength of arguments in active draft |
-| **`@avoidance /avoidance-scan`** | `@avoidance` Subagent | Audits case files for Sec 43/45/49/50 transactions |
-| **`@coc /claims-check`** | `@coc-coordinator` Subagent | Computes debt voting shares & audits claims registry |
-| **`@order /analyse-order`** | `@advisor` Subagent | Decodes latest tribunal order & compliance deadlines |
-| **`@document /draft`** | `@document` Subagent | Generates petition skeletons (`/draft sec7-petition`, `/draft slp-sc`) |
-| **`@forms /fill`** | `@forms` Subagent | Hydrates official IBBI/MCA form templates (`/fill ibbi-h`, `/fill aoc-4`) |
+| Workflow Command | Target Subagent | Action Description | Example Chat Input |
+|---|---|---|---|
+| **`@document /draft`** | `@document` Subagent | Generates petition skeletons & court filings | `@document /draft sec7-petition`, `@document /draft slp-sc` |
+| **`@forms /fill`** | `@forms` Subagent | Hydrates official IBBI/MCA form templates | `@forms /fill ibbi-h`, `@forms /fill aoc-4` |
+| **`@timeline`** (or `/timeline`) | `@timeline` Subagent | Reconstructs full CIRP chronology & Frappe Gantt chart | `@timeline /timeline` |
+| **`@avoidance /avoidance-scan`** | `@avoidance` Subagent | Audits case files for Sec 43/45/49/50 transactions | `@avoidance /avoidance-scan` |
+| **`@coc /claims-check`** | `@coc-coordinator` Subagent | Computes debt voting shares & audits claims registry | `@coc /claims-check` |
+| **`@nclt /brief`** | `@nclt` Subagent | Drafts NCLT petition synopsis & grounds summary | `@nclt /brief` |
+| **`@advisor /strength`** | `@advisor` Subagent | Scores legal strength of arguments in active draft | `@advisor /strength` |
+| **`@order /analyse-order`** | `@advisor` Subagent | Decodes latest tribunal order & compliance deadlines | `@order /analyse-order` |
 
 ---
 
