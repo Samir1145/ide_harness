@@ -67,44 +67,33 @@ The Monaco editor in HAYAGRIVA features a dedicated Language Server Protocol (LS
 
 ##### ⚡ Monaco LSP & Slash Command Dictionary
 
-###### A. Statutory & Law Search Commands (`/` & `@` triggers)
+##### 3. Rationalized 5-Command Suite (`/` triggers)
 
-| Slash Command / Trigger | Action Description | Sample Input | What Gets Inserted into Monaco Editor |
-|---|---|---|---|
-| **`/law-search`** *(or `/law`)* | Searches encrypted Statutory Law Vault for sections across IBC, MCA, IT Act, Banking laws. | `/law-search CIRP commencement` | Inserts the full section text snippet with interactive `${1:field}` tab-stops. |
-| **`/ibc`** | Searches Section titles and full statutory text of the Insolvency & Bankruptcy Code 2016. | `/ibc section 7` | Inserts IBC statutory provision snippet directly into the document. |
-| **`/mca`** | Searches Companies Act 2013 sections, rules, and statutory schedules. | `/mca section 185` | Inserts Companies Act section text & compliance rules. |
-| **`/sec`** | Quick statutory section lookup across all installed law vaults. | `/sec 43` | Inserts Section 43 (Preferential Transactions) text. |
-| **`@@`** or **`@`** | Direct inline statutory trigger popup (types `@` anywhere on a blank or space character). | `@@ibc/` or `@sec 7` | Opens statutory completion dropdown inline as you type. |
+Hayagriva rationalizes all Monaco editor slash actions into **5 primary commands**, with backward-compatible aliases for legacy triggers:
 
-###### B. Document & Case Linking Commands
+###### A. Clean 5-Command Suite Overview
 
-| Slash Command | Action Description | Sample Input | What Gets Inserted into Monaco Editor |
-|---|---|---|---|
-| **`/precedent-search`** *(or `/case`)* | Searches 581 local case law summaries for precedents, court rulings, and NCLAT orders. | `/precedent-search related party voting` | Inserts precedent markdown summary link or full holding:<br>`[Supreme Court on Sec 21(2)](concepts/learning_curve_12.md)` |
-| **`/fact-link`** *(or `/concept`)* | Searches & links local case concept nodes created in your workspace. | `/fact-link claim dispute` | Inserts concept link markdown:<br>`[Claim Dispute](concepts/claim_dispute.md)` |
-| **`/qa`** | Searches & links Q&A wiki cards generated in `wiki/` directory. | `/qa CIRP timeline` | Inserts Q&A card link:<br>`[CIRP Timeline](wiki/cirp_timeline.wiki.html)` |
+| Primary Command | Category | Action Description | Sample Input & Examples | Output / Inserted Content | Legacy Aliases |
+|---|---|---|---|---|---|
+| **`/law`** | **Statutory Search** | Searches encrypted Law Vault (`vault-laws.vlt`) across all Acts, Sections, & Rules. | `/law sec 30(2)`<br>`/law ibc 14`<br>`/law mca 185` | Inserts exact statutory section snippet with interactive `${1:field}` tab-stops. | `/sec`, `/ibc`, `/mca` |
+| **`/precedent`** | **Court Judgments** | Searches 581 precedent rulings & court orders (`vault-cases.vlt`). | `/precedent related party voting`<br>`/precedent CIRP timeline` | Inserts markdown citation link or full holding snippet:<br>`[Supreme Court on Sec 21(2)](<case_name>_concepts_haya/lc_12.md)` | `/case` |
+| **`/fact`** | **Workspace Knowledge** | Links defined terms, case facts, & Q&A cards from workspace subfolders. | `/fact claim dispute`<br>`/fact insolvency date` | Inserts concept link or wiki card link:<br>`[Claim Dispute](<case_name>_concepts_haya/claim_dispute.md)` | `/concept`, `/qa` |
+| **`/clause`** | **Drafting Boilerplate** | Inserts standard legal contract clauses from the 75,000+ Atticus library. | `/clause arbitration`<br>`/clause indemnity`<br>`/clause governing_law` | Inserts structured clause text with `${1:placeholders}` for tab navigation. | `/clause` |
+| **`/export`** | **Court Publishing** | Compiles active Markdown file into a Supreme Court/NCLAT compliant DOCX. | `/export`<br>`/export-sc` | Generates court-compliant A4 Word file (`.docx`) with SC formatting (14pt Times New Roman, 1.5 line spacing, 4cm left/right margins). | `/export-sc`, `/court-export` |
 
-###### C. Drafting & Boilerplate Commands (`/clause-insert` or `/clause`)
+###### B. Detailed Clause Examples (`/clause <type>`)
 
 | Command | Clause Type | Sample Input | Inserted Boilerplate Code Sample |
 |---|---|---|---|
-| **`/clause-insert arbitration`** | Arbitration Clause | `/clause-insert arbitration` | `Any dispute, controversy, or claim arising out of or relating to this contract, including its formation, breach, termination, or invalidity, shall be referred to and finally resolved by arbitration under the Arbitration and Conciliation Act, 1996. The tribunal shall consist of ${1:one} arbitrator(s). The venue/seat of arbitration shall be ${2:New Delhi}, and the language of the proceedings shall be English.` |
-| **`/clause-insert governing_law`** | Governing Law & Jurisdiction | `/clause-insert law` | `This Agreement shall be governed by, construed, and enforced in accordance with the laws of India. The parties agree that the courts located in ${1:New Delhi} shall have exclusive jurisdiction to settle any disputes arising under this Agreement.` |
-| **`/clause-insert indemnity`** | Indemnification Clause | `/clause-insert indemnity` | `The ${1:Indemnifying Party} shall defend, indemnify, and hold harmless the ${2:Indemnified Party} from and against any and all claims, losses, damages, liabilities, and expenses (including reasonable legal fees) arising from any breach of this Agreement or negligent acts.` |
-| **`/clause-insert confidentiality`** | Confidentiality Clause | `/clause-insert confidentiality` | `Each party agrees to hold in strict confidence all confidential information disclosed by the other party. Neither party shall disclose such information to any third party without the prior written consent of the disclosing party, except as required by law. This obligation survives for ${1:3} year(s) post-termination.` |
-| **`/clause-insert force_majeure`** | Force Majeure Clause | `/clause-insert force` | `Neither party shall be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, war, riot, fire, flood, labor dispute, or government actions, provided prompt notice is given.` |
+| **`/clause arbitration`** | Arbitration Clause | `/clause arbitration` | `Any dispute, controversy, or claim arising out of or relating to this contract, including its formation, breach, termination, or invalidity, shall be referred to and finally resolved by arbitration under the Arbitration and Conciliation Act, 1996. The tribunal shall consist of ${1:one} arbitrator(s). The venue/seat of arbitration shall be ${2:New Delhi}, and the language of the proceedings shall be English.` |
+| **`/clause governing_law`** | Governing Law & Jurisdiction | `/clause law` | `This Agreement shall be governed by, construed, and enforced in accordance with the laws of India. The parties agree that the courts located in ${1:New Delhi} shall have exclusive jurisdiction to settle any disputes arising under this Agreement.` |
+| **`/clause indemnity`** | Indemnification Clause | `/clause indemnity` | `The ${1:Indemnifying Party} shall defend, indemnify, and hold harmless the ${2:Indemnified Party} from and against any and all claims, losses, damages, liabilities, and expenses (including reasonable legal fees) arising from any breach of this Agreement or negligent acts.` |
+| **`/clause confidentiality`** | Confidentiality Clause | `/clause confidentiality` | `Each party agrees to hold in strict confidence all confidential information disclosed by the other party. Neither party shall disclose such information to any third party without the prior written consent of the disclosing party, except as required by law. This obligation survives for ${1:3} year(s) post-termination.` |
+| **`/clause force_majeure`** | Force Majeure Clause | `/clause force` | `Neither party shall be liable for any failure or delay in performance under this Agreement due to circumstances beyond its reasonable control, including but not limited to acts of God, war, riot, fire, flood, labor dispute, or government actions, provided prompt notice is given.` |
 
-###### D. Court Publishing Commands
+###### C. Monaco LSP Capabilities Summary
 
-| Slash Command | Action Description | Sample Input | Output / Result |
-|---|---|---|---|
-| **`/court-export`** *(or `/export-sc`)* | Triggers Supreme Court & NCLAT layout compiler for the active Markdown file. | `/court-export` | Compiles the current `.md` document into a court-compliant A4 Word file (`.docx`) conforming to SC rules (14pt Times New Roman, 1.5 line spacing, 4cm left/right margins). |
-
-
-###### E. Monaco LSP Capabilities Summary
-
-*   **👻 Ghost Text (Inline Completions):** Typing `/clause`, `/law`, `/concept`, or `/qa` on any line renders a grey ghost text preview ahead of the cursor. Pressing **`Tab`** accepts the preview instantly.
+*   **👻 Ghost Text (Inline Completions):** Typing `/law`, `/precedent`, `/fact`, `/clause`, or `/export` on any line renders a grey ghost text preview ahead of the cursor. Pressing **`Tab`** accepts the preview instantly.
 *   **🔍 Statutory Hover Cards (`@@` references):** Hovering your cursor over section references (e.g. `@@ibc/sec7`, `@@mca/sec185`, `Section 43`) displays an interactive popup card with full statutory text, sub-sections, and tribunal holdings.
 *   **🔄 Bi-directional Monaco-SQLite Sync:** Editing tables or key-value lists in `case_facts.md`, `claims_registry.md`, or `avoidance_ledger.md` directly updates SQLite database records upon save (`Cmd+S` / `Ctrl+S`), marking user-edited values as `verified_by_user = 1`.
 *   **Active-Context Control Matrix:** Filter RAG candidate document subsets dynamically using sidebar selection checkboxes.

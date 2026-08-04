@@ -116,11 +116,12 @@ This subsystem integrates offline legal reference lookups directly into the edit
 ### Monaco Completion & Hover Providers
 Monaco registers dynamic UI listeners inside `extension.ts`:
 * **Autocomplete Triggers & Interactive Snippets (`@@`):** Typing `@@` lists domains (e.g. `@@IBC`). Typing `@@ibc/` lists sub-processes (e.g. `@@ibc/cirp`). Typing a full reference executes a local fetch. If the matching law or custom template contains fillable placeholders (e.g. `[date]`, `[amount]`, `[name]`) or underscores `_____`, the completion helper compiles them into Monaco tab-stops (e.g. `${1:date}`) and registers `InsertAsSnippet` insert rules. Users can press `Tab` to cycle and fill out values interactively.
-* **Notion-Style Slash Commands (`/`):** Typing `/` (at the start of a line or after a space) triggers a Cursor/Notion-style block command menu. The menu provides options:
-  - `/law <query>`: Dynamic local law vault query.
-  - `/concept <query>`: Autocompletes references to split fact cards using `/api/hayagriva/concepts` directory-scanning. Inserts markdown links.
-  - `/qa <query>`: Autocompletes references to wiki notes and Q&A files.
+* **Notion-Style Slash Commands (`/`):** Typing `/` (at the start of a line or after a space) triggers a Cursor/Notion-style block command menu based on a rationalized 5-Command suite:
+  - `/law <query>`: Unified statutory search across Law Vaults (IBC, MCA, IT Act, Sections, Rules). (Aliases: `/sec`, `/ibc`, `/mca`).
+  - `/precedent <query>`: Precedent rulings and court order search across 581 case law summaries. (Alias: `/case`).
+  - `/fact <query>`: Workspace defined terms, case facts, and Q&A cards from case subfolders. (Aliases: `/concept`, `/qa`).
   - `/clause <query>`: Inserts boilerplate legal templates (Arbitration, Governing Law, Indemnity, Force Majeure) with tabstop placeholders for interactive parameter filling.
+  - `/export`: 1-Click DOCX compiler for Supreme Court & NCLAT layout rules. (Alias: `/export-sc`).
 * **Hover Previews (Look Up Without Inserting):** Hovering your cursor over a citation token (e.g. `@@ibc/cirp/s7`) triggers `monaco.languages.registerHoverProvider`. The provider executes a local request, decrypts the text block in RAM, and displays it in a scrollable, styled markdown popup card.
 
 ### Vault Decryption Pipeline

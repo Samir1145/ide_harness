@@ -95,7 +95,17 @@ Type `/draft` followed by the document type:
 | `/fill ibbi-h` | Form H — Resolution Plan compliance |
 | `/fill aoc-4` | AOC-4 Annual Return |
 
-### Other `/` commands
+### Editor `/` Slash Commands (5-Command Suite)
+
+| Primary Command | Category | What it does | Examples |
+|---|---|---|---|
+| **`/law`** | **Statute Search** | Searches statutory Law Vault across all Acts, Sections, & Rules | `/law sec 30(2)`, `/law ibc 14`, `/law mca 185` |
+| **`/precedent`** | **Court Rulings** | Searches 581 precedent rulings & tribunal orders | `/precedent related party voting` |
+| **`/fact`** | **Workspace Knowledge** | Links defined terms, case facts, and Q&A cards | `/fact claim dispute` |
+| **`/clause`** | **Drafting Boilerplate** | Inserts standard legal clauses (Indemnity, Termination, Arbitration) | `/clause arbitration`, `/clause indemnity` |
+| **`/export`** | **Judicial Exporter** | Compiles active document into Supreme Court / NCLAT DOCX | `/export`, `/export-sc` |
+
+### Special Workflow `/` Slash Commands
 
 | Command | What it does |
 |---|---|
@@ -106,7 +116,6 @@ Type `/draft` followed by the document type:
 | `/claims-check` | Verify all claim amounts in the case |
 | `/analyse-order` | Decode the latest tribunal order |
 | `/entity-graph` | Build the entity relationship map |
-| `/export-sc` | Export current document to Supreme Court DOCX format |
 
 ---
 
