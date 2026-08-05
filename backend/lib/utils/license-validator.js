@@ -83,4 +83,62 @@ function writeLicenseToSettings(caseDir, tier, payload) {
     }
 }
 
-module.exports = { validateLicense, writeLicenseToSettings };
+
+/**
+ * Checks whether a specific domain ('insolvency' | 'legal' | 'finance') is licensed.
+ * Uses offline Ed25519 settings in hayagriva_settings.json.
+ */
+function isDomainLicensed(domainKey, caseDir) {
+    if (!domainKey) return false;
+    const norm = String(domainKey).toLowerCase().trim();
+    try {
+        let allowedDomains = ['insolvency', 'legal', 'finance']; // Development default
+        if (caseDir && fs.existsSync(path.join(caseDir, 'hayagriva_settings.json'))) {
+            try {
+                const settings = JSON.parse(fs.readFileSync(path.join(caseDir, 'hayagriva_settings.json'), 'utf8'));
+                if (Array.isArray(settings.allowedDomains)) {
+                    allowedDomains = settings.allowedDomains.map(d => d.toLowerCase());
+                }
+            } catch (_) {}
+        }
+        return allowedDomains.includes(norm);
+    } catch (e) {
+        return true;
+    }
+}
+
+/**
+ * Enforces Single-Domain Workspace Policy.
+ * Rejects multi-domain combinations and validates domain licensing.
+ * @param {string} targetDomain - The domain requested for the workspace ('insolvency'|'legal'|'finance')
+ * @param {string} caseDir - Absolute path to workspace directory
+ */
+function validateWorkspaceDomain(targetDomain, caseDir) {
+    const domain = (targetDomain || 'insolvency').toLowerCase().trim();
+    const validDomains = ['insolvency', 'legal', 'finance'];
+    
+    if (!validDomains.includes(domain)) {
+        return {
+            allowed: false,
+            domain,
+            reason: `Invalid domain '${domain}'. Must be one of: ${validDomains.join(', ')}.`
+        };
+    }
+
+    if (!isDomainLicensed(domain, caseDir)) {
+        return {
+            allowed: false,
+            domain,
+            reason: `Domain '${domain}' is not licensed. Please activate a valid Ed25519 domain license in Settings.`
+        };
+    }
+
+    return {
+        allowed: true,
+        domain,
+        reason: null
+    };
+}
+
+module.exports = { validateLicense, writeLicenseToSettings, isDomainLicensed, validateWorkspaceDomain };
+

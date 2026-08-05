@@ -83,7 +83,8 @@ Prompt: "${message}"`;
             ...this.vaultAgents
         };
 
-        const target = (targetAgentName || '').trim().toLowerCase();
+        const { orchestratorRegistry } = require('./orchestrator-coordinator');
+        const target = (targetAgentName || '').trim().toLowerCase().replace(/^@/, '');
         const reqId = (options && options.requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         
         agentLogger.startContext(reqId);
@@ -91,7 +92,13 @@ Prompt: "${message}"`;
 
         let result = '';
         try {
-            if (target && agentMap[target]) {
+            // Level 1 Domain Manager Check
+            const domainManager = orchestratorRegistry.getManager(target);
+            if (domainManager) {
+                agentLogger.log(reqId, 'AgentCoordinator', 'ORCHESTRATE', `Routing to Level 1 Domain Manager: "@${target}"`);
+                const pipelineRes = await domainManager.runPipeline(caseDir, userMessage, { requestId: reqId });
+                result = `### 🏛️ [Domain Manager] @${target}\n\n**Module:** ${domainManager.alignedModule}\n**Pipeline Status:** \`${pipelineRes.pipelineState}\`\n\n${pipelineRes.summary}\n\n- **Left Pane (Workspace Explorer):** ${pipelineRes.details.leftPane}\n- **Middle Pane (Monaco Editor):** ${pipelineRes.details.middlePane}`;
+            } else if (target && agentMap[target]) {
                 agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Direct routing → agent: "${target}"`);
                 result = await agentMap[target].run(caseDir, userMessage, history, { requestId: reqId });
             } else {

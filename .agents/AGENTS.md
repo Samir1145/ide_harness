@@ -158,3 +158,15 @@ Refer to the following plans saved in the workspace:
 * **macOS QLMarkdown & LaunchServices UTI Binding**:
   * Resolved macOS Finder "dog-eared page" preview fallback caused by uninstalled `com.crocopliers.mdviewer` assigning `com.unknown.md` UTIs.
   * Rebound `.md` and `net.daringfireball.markdown` to `org.sbarex.QLMarkdown` using `duti -s org.sbarex.QLMarkdown .md all` and refreshed `quicklookd` cache (`qlmanage -r && qlmanage -r cache`).
+* **Unconfigured Workspace Onboarding & Case Command Center**:
+  * Opening a brand new blank case folder initializes `domain: 'unconfigured'` in `case_manifest.json`, deferring folder creation until explicit user selection.
+  * Automatically launches the **Hayagriva Settings & Setup** dashboard in the center editor view with a practice edition setup wizard banner.
+* **Automated Empty Obsolete Taxonomy Folder Pruning**:
+  * `bootstrapDomainTaxonomy` in `domain-registry.js` checks all domain taxonomy folders upon workspace load or domain selection.
+  * Any obsolete taxonomy folder belonging to a non-active domain that is 100% empty (contains 0 user files) is automatically pruned (`fs.rmdirSync`), eliminating multi-domain sidebar clutter.
+* **Party-Structured Legal Domain Taxonomy**:
+  * Configured `Haya Legal (Advocate & Law Firm Edition)` with party-oriented subfolders: `00_inbox`, `01_petitioner_plaintiff`, `02_respondent_defendant`, `03_evidence_exhibits`, `04_orders_judgments`, `05_statutes_precedents`.
+  * Enables legal subagents (`@advisor`, `@docket_mgr`, `@pleading_mgr`) to immediately distinguish petitioner allegations from respondent counter-arguments during context retrieval.
+* **Single-Domain Locking & 0-Document Hot-Swapping**:
+  * **0-Document Workspace (`documentCount === 0`)**: Domain switching is 100% unlocked; switching domains cleanly prunes old empty taxonomy folders and provisions the new domain's folders.
+  * **Active Workspace (`documentCount > 0`)**: Domain switching is strictly locked (`🔒 Domain Locked`) to preserve vector index integrity (`InLegal-SBERT` vs `Finance-Embeddings`) and prevent cross-domain chunk corruption.

@@ -30,6 +30,7 @@ function resolveCaseDir(docsRoot, caseParam) {
 const DEFAULT_SETTINGS = {
     processingProfile: 'lite',
     activeMode: 'lite',
+    activeDomain: 'insolvency',
     remindLibreOffice: true
 };
 
@@ -378,6 +379,7 @@ function ensureCaseManifest(caseDir) {
 
         const conversionsDir = getConversionsDir(caseDir);
         const manifestPath = path.join(conversionsDir, 'case_manifest.json');
+        const { isDomainLicensed } = require('./utils/license-validator');
 
         if (fs.existsSync(manifestPath)) {
             // Validate & fill any missing fields from a prior schema version
@@ -385,32 +387,45 @@ function ensureCaseManifest(caseDir) {
             try { existing = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch (_) {}
             let changed = false;
             if (!existing.caseId) { existing.caseId = crypto.randomUUID(); changed = true; }
-            if (!existing.domains) { existing.domains = ['legal', 'finance']; changed = true; }
+            if (!existing.domain) {
+                existing.domain = Array.isArray(existing.domains) ? existing.domains[0] : 'unconfigured';
+                delete existing.domains; // Enforce single domain per workspace (No multi-domain combining)
+                changed = true;
+            }
             if (!existing.activeLlmEngine) { existing.activeLlmEngine = 'legalparam-2.9b.gguf'; changed = true; }
             if (!existing.subscriptionTier) { existing.subscriptionTier = 'starter'; changed = true; }
-            if (!Array.isArray(existing.mountedVaultPacks)) { existing.mountedVaultPacks = ['legal_agents.vlt', 'finance_agents.vlt']; changed = true; }
+            if (!Array.isArray(existing.mountedVaultPacks)) { existing.mountedVaultPacks = ['legal_agents.vlt']; changed = true; }
             if (!existing.fileDomains) { existing.fileDomains = {}; changed = true; }
             if (existing.vectorMigrationStatus === undefined) { existing.vectorMigrationStatus = 'complete'; changed = true; }
             if (existing.vectorMigrationCheckpoint === undefined) { existing.vectorMigrationCheckpoint = null; changed = true; }
+            
+            // Check domain license validity
+            if (!isDomainLicensed(existing.domain, caseDir)) {
+                console.warn(`[API Server] Warning: Workspace domain '${existing.domain}' is not active under Ed25519 license.`);
+            }
+
             if (changed) {
                 fs.writeFileSync(manifestPath, JSON.stringify(existing, null, 2), 'utf8');
-                console.log(`[API Server] case_manifest.json updated: ${manifestPath}`);
+                console.log(`[API Server] case_manifest.json updated (Single Domain Mode): ${manifestPath}`);
             }
             return;
         }
-        // Create fresh manifest with starter defaults inside conversions/
+        // Create fresh manifest with single domain enforcement inside conversions/
+        const initialDomain = 'unconfigured';
+        const isLicensed = isDomainLicensed(initialDomain, caseDir);
         const manifest = {
             caseId: crypto.randomUUID(),
-            domains: ['legal', 'finance'],
+            domain: initialDomain, // Enforce single domain per workspace
+            isDomainLicensed: isLicensed,
             activeLlmEngine: 'legalparam-2.9b.gguf',
             subscriptionTier: 'starter',
-            mountedVaultPacks: ['legal_agents.vlt', 'finance_agents.vlt'],
+            mountedVaultPacks: ['legal_agents.vlt'],
             fileDomains: {},
             vectorMigrationStatus: 'complete',
             vectorMigrationCheckpoint: null
         };
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
-        console.log(`[API Server] case_manifest.json created: ${manifestPath}`);
+        console.log(`[API Server] case_manifest.json created (Unconfigured Domain Mode): ${manifestPath}`);
     } catch (e) {
         console.error('[API Server] ensureCaseManifest error:', e.message);
     }
@@ -1792,8 +1807,28 @@ module.exports = {
                 }
             } catch (_) {}
 
+            let documentCount = 0;
+            try {
+                const { getDb } = require('./core/sqlite-store');
+                const db = getDb(caseDir);
+                const row = db.prepare('SELECT COUNT(*) as count FROM documents').get();
+                documentCount = row ? (row.count || 0) : 0;
+            } catch (_) {}
+
+            const conversionsDir = getConversionsDir(caseDir);
+            const manifestPath = path.join(conversionsDir, 'case_manifest.json');
+            let manifestDomain = null;
+            if (fs.existsSync(manifestPath)) {
+                try {
+                    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                    manifestDomain = manifest.domain;
+                } catch (_) {}
+            }
+            const activeDom = config.activeDomain || manifestDomain;
+            const isDomainConfigured = !!activeDom && activeDom.toLowerCase() !== 'unconfigured';
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ...config, libreOfficeDetected }));
+            res.end(JSON.stringify({ ...config, libreOfficeDetected, documentCount, isDomainConfigured }));
         },
 
         '/api/hayagriva/llm/model-info': (req, res, parsedUrl, docsRoot) => {
@@ -2092,6 +2127,10 @@ module.exports = {
                         ensureAuditDocs(caseDir);
                         ensureCaseManifest(caseDir);
 
+                        // Bootstrap domain-specific folder taxonomy subdirectories (00_inbox, 01_commencement, etc.)
+                        const { bootstrapDomainTaxonomy } = require('./core/domain-registry');
+                        bootstrapDomainTaxonomy(caseDir);
+
                         // D8: Sweep expired .trash items (7-day retention)
                         sweepTrash(caseDir);
 
@@ -2278,17 +2317,65 @@ module.exports = {
                         try { existing = { ...existing, ...JSON.parse(fs.readFileSync(settingsPath, 'utf8')) }; } catch (_) {}
                     }
                     
+                    const { validateWorkspaceDomain } = require('./utils/license-validator');
+                    const { bootstrapDomainTaxonomy } = require('./core/domain-registry');
+
                     const activeMode = data.activeMode !== undefined ? data.activeMode : existing.activeMode;
                     const remindLibreOffice = data.remindLibreOffice !== undefined ? (data.remindLibreOffice !== false) : existing.remindLibreOffice;
+                    
+                    let activeDomain = existing.activeDomain || 'insolvency';
+                    if (data.activeDomain) {
+                        const targetDomain = String(data.activeDomain).toLowerCase().trim();
+                        // Enforce Workspace Domain Locking Policy:
+                        // If case workspace already contains ingested documents, block mid-case domain switching
+                        let documentCount = 0;
+                        try {
+                            const { getDb } = require('./core/sqlite-store');
+                            const db = getDb(caseDir);
+                            const row = db.prepare('SELECT COUNT(*) as count FROM documents').get();
+                            documentCount = row ? (row.count || 0) : 0;
+                        } catch (_) {}
+
+                        if (documentCount > 0 && targetDomain !== activeDomain.toLowerCase()) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({
+                                success: false,
+                                error: `Workspace domain is locked to '${activeDomain}' because ${documentCount} document(s) have already been ingested into this workspace. To work on '${targetDomain}' tasks, please create or open a dedicated workspace for that domain.`
+                            }));
+                            return;
+                        }
+
+                        const domainValidation = validateWorkspaceDomain(targetDomain, caseDir);
+                        if (domainValidation.allowed) {
+                            activeDomain = domainValidation.domain;
+                        } else {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ success: false, error: domainValidation.reason }));
+                            return;
+                        }
+                    }
 
                     const savedConfig = {
                         ...existing,
                         processingProfile: activeMode === 'lite' ? 'lite' : 'standard',
                         activeMode: activeMode,
+                        activeDomain: activeDomain,
                         remindLibreOffice: remindLibreOffice
                     };
 
                     fs.writeFileSync(settingsPath, JSON.stringify(savedConfig, null, 2), 'utf8');
+
+                    // Mirror activeDomain into case_manifest.json and bootstrap domain folder taxonomy
+                    const conversionsDir = getConversionsDir(caseDir);
+                    const manifestPath = path.join(conversionsDir, 'case_manifest.json');
+                    if (fs.existsSync(manifestPath)) {
+                        try {
+                            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                            manifest.domain = activeDomain;
+                            fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+                        } catch (_) {}
+                    }
+                    bootstrapDomainTaxonomy(caseDir);
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, settings: savedConfig }));

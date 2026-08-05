@@ -425,6 +425,15 @@
 
     <!-- ── TAB 1: Mode & Engine Control Center ──────────────────────────── -->
     <div class="tab-content active" id="tabMode">
+      <div id="domainOnboardingBanner" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent-color); border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;">
+        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">
+          ✨ Welcome to Hayagriva Case Command Center
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          This workspace is currently uninitialized. Please select your <strong>Practice Edition &amp; Active Domain Profile</strong> below to provision the appropriate case folder taxonomy and AI compliance tools.
+        </div>
+      </div>
+
       <div class="section-card">
         <div class="section-header">🤖 Select Processing Mode</div>
         <div class="mode-grid">
@@ -457,6 +466,40 @@
               <div class="feature-item yes">✓ Document Audit &amp; Form H</div>
               <div class="feature-item yes">✓ Neural Code &amp; Doc Drafting</div>
             </div>
+      </div>
+
+      <!-- 🏛️ Active Domain Profile Card -->
+      <div class="section-card">
+        <div class="section-header">🏛️ Workspace Active Domain Profile</div>
+        <p style="margin-top: 0; color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">
+          Select the active domain profile for this workspace. Enforces single-domain workspace isolation and provisions domain folder taxonomy.
+        </p>
+        <div class="mode-grid">
+          <!-- Insolvency Profile Tile -->
+          <div class="mode-tile" id="tileDomainInsolvency" onclick="setWorkspaceDomain('insolvency')">
+            <div class="mode-tile-title">
+              <span>🏛️ Haya Insolvency (IP)</span>
+              <span id="radioDomainInsolvency" style="color: var(--accent-color);">✓</span>
+            </div>
+            <div class="mode-tile-desc">Insolvency Professional &amp; IPE workflow. 10 iPIE Folders, CoC Voting Engine &amp; @claims_mgr.</div>
+          </div>
+
+          <!-- Legal Advocate Profile Tile -->
+          <div class="mode-tile" id="tileDomainLegal" onclick="setWorkspaceDomain('legal')">
+            <div class="mode-tile-title">
+              <span>⚖️ Haya Legal (Advocate)</span>
+              <span id="radioDomainLegal" style="display: none; color: var(--accent-color);">✓</span>
+            </div>
+            <div class="mode-tile-desc">Advocate &amp; Law Firm litigation workflow. 5 Legal Folders, Court Dockets &amp; @docket_mgr.</div>
+          </div>
+
+          <!-- Finance CA Profile Tile -->
+          <div class="mode-tile" id="tileDomainFinance" onclick="setWorkspaceDomain('finance')">
+            <div class="mode-tile-title">
+              <span>📊 Haya Finance (CA)</span>
+              <span id="radioDomainFinance" style="display: none; color: var(--accent-color);">✓</span>
+            </div>
+            <div class="mode-tile-desc">CA &amp; Forensic Audit workflow. 5 Finance Folders, Ledger Audits &amp; @audit_mgr.</div>
           </div>
         </div>
       </div>
@@ -745,18 +788,62 @@
       autoSaveSettings();
     }
 
+    // ── Workspace Domain Selection & Reactive Auto-Save ─────────────────
+    let activeDomain = 'unconfigured';
+    let workspaceDocumentCount = 0;
+
+    function setWorkspaceDomain(domainKey) {
+      if (workspaceDocumentCount > 0 && activeDomain !== 'unconfigured' && domainKey !== activeDomain) {
+        showToast(`🔒 Domain Locked: This workspace has ${workspaceDocumentCount} ingested document(s). Domain switching is disabled to prevent vector index corruption. Create a new workspace for ${domainKey.toUpperCase()}.`, true);
+        return;
+      }
+
+      activeDomain = domainKey;
+      renderDomainTiles();
+      autoSaveSettings();
+    }
+
+    function renderDomainTiles() {
+      const domains = ['Insolvency', 'Legal', 'Finance'];
+      domains.forEach(d => {
+        const key = d.toLowerCase();
+        const tile = document.getElementById(`tileDomain${d}`);
+        const radio = document.getElementById(`radioDomain${d}`);
+        const isCurrent = key === activeDomain;
+
+        if (tile && radio) {
+          tile.classList.toggle('active', isCurrent);
+          if (workspaceDocumentCount > 0 && !isCurrent) {
+            tile.style.opacity = '0.5';
+            tile.style.cursor = 'not-allowed';
+            radio.innerHTML = '🔒 Locked';
+            radio.style.display = 'inline';
+            radio.style.color = 'var(--text-muted)';
+          } else {
+            tile.style.opacity = '1.0';
+            tile.style.cursor = 'pointer';
+            radio.innerHTML = isCurrent ? (workspaceDocumentCount > 0 ? '🔒 Active' : '✓') : '';
+            radio.style.display = isCurrent ? 'inline' : 'none';
+            radio.style.color = isCurrent ? 'var(--accent-color)' : 'var(--text-muted)';
+          }
+        }
+      });
+    }
+
     async function autoSaveSettings() {
       try {
         const remindLibreOffice = document.getElementById('chkLibreOfficeWarning').checked;
         const res = await fetch('/api/hayagriva/settings/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ activeMode, remindLibreOffice, case: caseName })
+          body: JSON.stringify({ activeMode, activeDomain, remindLibreOffice, case: caseName })
         });
         const data = await res.json();
         if (data.success) {
-          showToast(`✓ Switched to ${activeMode === 'lite' ? 'Lite' : 'AI'} Mode`);
+          showToast(`✓ Settings updated (${activeDomain.toUpperCase()} domain, ${activeMode === 'lite' ? 'Lite' : 'AI'} Mode)`);
           fetchTelemetry();
+        } else {
+          showToast(data.error || 'Failed to save settings', true);
         }
       } catch (err) {
         showToast('Failed to save settings', true);
@@ -948,8 +1035,16 @@
         if (res.ok) {
           const config = await res.json();
           activeMode = config.activeMode || 'lite';
+          activeDomain = config.activeDomain || (config.isDomainConfigured ? 'insolvency' : 'unconfigured');
+          workspaceDocumentCount = config.documentCount || 0;
           setMode(activeMode);
+          renderDomainTiles();
           document.getElementById('chkLibreOfficeWarning').checked = config.remindLibreOffice !== false;
+
+          const onboardingBanner = document.getElementById('domainOnboardingBanner');
+          if (onboardingBanner) {
+            onboardingBanner.style.display = (!config.isDomainConfigured || activeDomain === 'unconfigured') ? 'block' : 'none';
+          }
 
           const banner = document.getElementById('libreOfficeBanner');
           const guide = document.getElementById('libreOfficeInstallGuide');

@@ -130,6 +130,7 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
 
   isBackendOnline: boolean = true;
   private showOfflineWarning: boolean = true;
+  private hasSmartLaunchedSettings: boolean = false;
 
   constructor(
     @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
@@ -710,11 +711,13 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
     });
 
     this.workspaceService.onWorkspaceLocationChanged((wsStat) => {
+      this.hasSmartLaunchedSettings = false;
       const ws = wsStat ? wsStat.resource : this.workspaceService.getWorkspaceRootUri(undefined);
       if (ws) {
         const caseName = this.getCaseName(ws.path.toString());
         this.updateSidebarCase(caseName);
       }
+      this.checkBackendHealth();
     });
   }
 
@@ -2133,6 +2136,17 @@ export class HayagrivaFrontendContribution implements FrontendApplicationContrib
             const settings = await settingsRes.json();
             activeMode = settings.activeMode || 'lite';
             cloudProvider = settings.cloudProvider || '';
+
+            // Option C: Smart Conditional Launching Architecture
+            // Auto-open Settings panel for brand new / empty or unconfigured workspaces
+            const documentCount = settings.documentCount !== undefined ? settings.documentCount : 1;
+            const isDomainConfigured = settings.isDomainConfigured !== undefined ? settings.isDomainConfigured : true;
+            if ((documentCount === 0 || !isDomainConfigured) && !this.hasSmartLaunchedSettings) {
+              this.hasSmartLaunchedSettings = true;
+              setTimeout(() => {
+                this.openSettingsPanel().catch(err => console.warn('[Hayagriva] Smart-launch settings failed:', err));
+              }, 400);
+            }
           }
         } catch (_) {}
 
