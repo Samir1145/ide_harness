@@ -56,6 +56,7 @@ class CustomWorkspace {
     }
 
     setupWatcher() {
+        if (this._watcherActive) return;
         try {
             this.watcher = fs.watch(this.caseDir, { recursive: true }, (eventType, filename) => {
                 if (filename && (filename.endsWith('.md') || filename.endsWith('.markdown'))) {
@@ -74,8 +75,18 @@ class CustomWorkspace {
                     }
                 }
             });
+            this._watcherActive = true;
         } catch (err) {
             console.error(`[LSP Workspace] Failed to setup fs.watch for ${this.caseDir}:`, err.message);
+        }
+    }
+
+    closeWatcher() {
+        if (this.watcher) {
+            try { this.watcher.close(); } catch (_) {}
+            this.watcher = null;
+            this._watcherActive = false;
+            console.log(`[LSP Workspace] fs.watch closed for ${this.caseDir}`);
         }
     }
 
@@ -83,14 +94,14 @@ class CustomWorkspace {
         return this.folders;
     }
 
-    get onDidChangeMarkdownDocument() {
-        return { event: (listener) => {} };
+    onDidChangeMarkdownDocument(listener) {
+        return { dispose: () => {} };
     }
-    get onDidCreateMarkdownDocument() {
-        return { event: (listener) => {} };
+    onDidCreateMarkdownDocument(listener) {
+        return { dispose: () => {} };
     }
-    get onDidDeleteMarkdownDocument() {
-        return { event: (listener) => {} };
+    onDidDeleteMarkdownDocument(listener) {
+        return { dispose: () => {} };
     }
 
     async getAllMarkdownDocuments() {
@@ -164,10 +175,28 @@ class CustomWorkspace {
 }
 
 const servicesMap = new Map();
+const workspacesMap = new Map();
 
-function getLspService(caseDir) {
+const NO_CANCEL_TOKEN = {
+    isCancellationRequested: false,
+    onCancellationRequested: () => ({ dispose: () => {} })
+};
+
+// Ensure all fs.watch handles are cleanly released on process shutdown
+['exit', 'SIGINT', 'SIGTERM'].forEach(signal => {
+    process.on(signal, () => {
+        for (const [, ws] of workspacesMap) {
+            try { ws?.closeWatcher?.(); } catch (_) {}
+        }
+    });
+});
+
+function getLspContext(caseDir) {
     if (servicesMap.has(caseDir)) {
-        return servicesMap.get(caseDir);
+        return {
+            service: servicesMap.get(caseDir),
+            workspace: workspacesMap.get(caseDir)
+        };
     }
     const workspace = new CustomWorkspace(caseDir);
     const parser = new CustomParser();
@@ -182,172 +211,177 @@ function getLspService(caseDir) {
         logger
     });
     servicesMap.set(caseDir, service);
-    return service;
+    workspacesMap.set(caseDir, workspace);
+    return { service, workspace };
 }
 
 async function getDiagnostics(caseDir, docUri, docContent) {
-    // ── Table Sync: Parse and synchronise claims or avoidance tables from Markdown to SQLite ──
-    try {
-        const isClaims = docUri.endsWith('claims_registry.md') || docUri.endsWith('claims_registry.markdown');
-        const isAvoidance = docUri.endsWith('avoidance_ledger.md') || docUri.endsWith('avoidance_ledger.markdown');
+    // ── Table Sync: Deferred — yields to event loop before writing to SQLite ──────────────────
+    // This entire block runs AFTER the diagnostics response is sent to the HTTP client.
+    setImmediate(() => {
+        try {
+            const isClaims = docUri.endsWith('claims_registry.md') || docUri.endsWith('claims_registry.markdown');
+            const isAvoidance = docUri.endsWith('avoidance_ledger.md') || docUri.endsWith('avoidance_ledger.markdown');
 
-        if (isClaims || isAvoidance) {
-            const { parseMarkdownTable } = require('../utils/table-sync');
-            const { getDb } = require('./sqlite-store');
-            const db = getDb(caseDir);
+            if (isClaims || isAvoidance) {
+                const { parseMarkdownTable } = require('../utils/table-sync');
+                const { getDb } = require('./sqlite-store');
+                const db = getDb(caseDir);
 
-            if (isClaims) {
-                const rows = parseMarkdownTable(docContent);
-                if (rows && rows.length > 0) {
-                    db.exec('DELETE FROM claims;');
-                    const insertClaim = db.prepare(`
-                        INSERT INTO claims (creditor, claimed_amount, admitted_amount, admitted_interest, rejected_amount, rejection_reason, claim_date, status, last_updated)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    `);
-                    rows.forEach(r => {
-                        insertClaim.run(
-                            r.creditor || '',
-                            r.claimed_amount || 0,
-                            r.admitted_amount || 0,
-                            r.admitted_interest || 0,
-                            r.rejected_amount || 0,
-                            r.rejection_reason || '',
-                            r.claim_date || '',
-                            r.status || 'admitted',
-                            new Date().toISOString()
-                        );
-                    });
-                    console.log(`[LSP Sync] Synced ${rows.length} claims registry rows from Markdown table to SQLite.`);
-                }
-            } else if (isAvoidance) {
-                const rows = parseMarkdownTable(docContent);
-                if (rows && rows.length > 0) {
-                    db.exec('DELETE FROM avoidance_transactions;');
-                    const insertTx = db.prepare(`
-                        INSERT INTO avoidance_transactions (transaction_date, amount, debited_account, credited_party, related_party_status, applicable_section, forensic_notes, last_updated)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    `);
-                    rows.forEach(r => {
-                        insertTx.run(
-                            r.transaction_date || '',
-                            r.amount || 0,
-                            r.debited_account || '',
-                            r.credited_party || '',
-                            r.related_party_status || '',
-                            r.applicable_section || '',
-                            r.forensic_notes || '',
-                            new Date().toISOString()
-                        );
-                    });
-                    console.log(`[LSP Sync] Synced ${rows.length} avoidance transaction rows from Markdown table to SQLite.`);
+                if (isClaims) {
+                    const rows = parseMarkdownTable(docContent);
+                    if (rows && rows.length > 0) {
+                        db.exec('DELETE FROM claims;');
+                        const insertClaim = db.prepare(`
+                            INSERT INTO claims (creditor, claimed_amount, admitted_amount, admitted_interest, rejected_amount, rejection_reason, claim_date, status, last_updated)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        `);
+                        rows.forEach(r => {
+                            insertClaim.run(
+                                r.creditor || '',
+                                r.claimed_amount || 0,
+                                r.admitted_amount || 0,
+                                r.admitted_interest || 0,
+                                r.rejected_amount || 0,
+                                r.rejection_reason || '',
+                                r.claim_date || '',
+                                r.status || 'admitted',
+                                new Date().toISOString()
+                            );
+                        });
+                        console.log(`[LSP Sync] Synced ${rows.length} claims registry rows from Markdown table to SQLite.`);
+                    }
+                } else if (isAvoidance) {
+                    const rows = parseMarkdownTable(docContent);
+                    if (rows && rows.length > 0) {
+                        db.exec('DELETE FROM avoidance_transactions;');
+                        const insertTx = db.prepare(`
+                            INSERT INTO avoidance_transactions (transaction_date, amount, debited_account, credited_party, related_party_status, applicable_section, forensic_notes, last_updated)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        `);
+                        rows.forEach(r => {
+                            insertTx.run(
+                                r.transaction_date || '',
+                                r.amount || 0,
+                                r.debited_account || '',
+                                r.credited_party || '',
+                                r.related_party_status || '',
+                                r.applicable_section || '',
+                                r.forensic_notes || '',
+                                new Date().toISOString()
+                            );
+                        });
+                        console.log(`[LSP Sync] Synced ${rows.length} avoidance transaction rows from Markdown table to SQLite.`);
+                    }
                 }
             }
-        }
-        
-        // ── Case Facts Sync: Parse bullet lists and tables in case_facts.md to reviews/case_kv_dictionary.json and SQLite ──
-        const isCaseFacts = docUri.endsWith('case_facts.md') || docUri.endsWith('case_facts.markdown');
-        if (isCaseFacts) {
-            const lines = docContent.split('\n');
-            const parsedKV = {};
-            
-            const listRegex = /^\s*[-*]\s*\*\*([a-zA-Z0-9_-]+)\*\*:\s*(.*)$/;
-            const tableRegex = /^\|\s*([a-zA-Z0-9_-]+)\s*\|\s*([^|]+)\s*\|$/;
 
-            for (let line of lines) {
-                line = line.trim();
-                let match = listRegex.exec(line);
-                if (match) {
-                    parsedKV[match[1].trim()] = match[2].trim();
-                    continue;
-                }
-                match = tableRegex.exec(line);
-                if (match) {
-                    const key = match[1].trim();
-                    const val = match[2].trim();
-                    if (key.toLowerCase() === 'parameter' || key.toLowerCase() === 'key' || key.startsWith('---')) {
+            // ── Case Facts Sync ──
+            const isCaseFacts = docUri.endsWith('case_facts.md') || docUri.endsWith('case_facts.markdown');
+            if (isCaseFacts) {
+                const lines = docContent.split('\n');
+                const parsedKV = {};
+
+                const listRegex = /^\s*[-*]\s*\*\*([a-zA-Z0-9_-]+)\*\*:\s*(.*)$/;
+                const tableRegex = /^\|\s*([a-zA-Z0-9_-]+)\s*\|\s*([^|]+)\s*\|$/;
+
+                for (let line of lines) {
+                    line = line.trim();
+                    let match = listRegex.exec(line);
+                    if (match) {
+                        parsedKV[match[1].trim()] = match[2].trim();
                         continue;
                     }
-                    parsedKV[key] = val;
-                }
-            }
-
-            const keys = Object.keys(parsedKV);
-            if (keys.length > 0) {
-                const reviewsDir = path.join(caseDir, 'reviews');
-                const dictPath = path.join(reviewsDir, 'case_kv_dictionary.json');
-                let currentDict = {};
-                if (fs.existsSync(dictPath)) {
-                    try {
-                        currentDict = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
-                    } catch (_) {}
-                }
-
-                let changed = false;
-                const now = new Date().toISOString();
-                for (const key of keys) {
-                    const val = parsedKV[key];
-                    const existing = currentDict[key];
-                    if (!existing || existing.value !== val) {
-                        currentDict[key] = {
-                            value: val,
-                            originalExtractedValue: existing ? existing.originalExtractedValue : val,
-                            modifiedBy: 'user',
-                            lastUpdated: now,
-                            source: 'case_facts.md (Manual Edit)',
-                            confidence: 'high',
-                            explanation: 'Manually edited by user in case_facts.md.'
-                        };
-                        changed = true;
-                    }
-                }
-
-                if (changed) {
-                    if (!fs.existsSync(reviewsDir)) {
-                        fs.mkdirSync(reviewsDir, { recursive: true });
-                    }
-                    fs.writeFileSync(dictPath, JSON.stringify(currentDict, null, 2), 'utf8');
-                    console.log(`[LSP Sync] Synced ${keys.length} case facts to case_kv_dictionary.json.`);
-
-                    try {
-                        const { getDb } = require('./sqlite-store');
-                        const db = getDb(caseDir);
-                        const { URI } = require('vscode-uri');
-                        const relativeFile = path.relative(caseDir, URI.parse(docUri).fsPath).replace(/\\/g, '/');
-                        const upsertFact = db.prepare(`
-                            INSERT INTO case_facts (key, filename, value, source_clause, verified_by_user, last_updated)
-                            VALUES (?, ?, ?, ?, 1, ?)
-                            ON CONFLICT(key) DO UPDATE SET
-                                filename = excluded.filename,
-                                value = excluded.value,
-                                source_clause = excluded.source_clause,
-                                verified_by_user = 1,
-                                last_updated = excluded.last_updated
-                        `);
-                        for (const key of keys) {
-                            upsertFact.run(
-                                key,
-                                relativeFile,
-                                parsedKV[key],
-                                'case_facts.md (Manual Edit)',
-                                now
-                            );
+                    match = tableRegex.exec(line);
+                    if (match) {
+                        const key = match[1].trim();
+                        const val = match[2].trim();
+                        if (key.toLowerCase() === 'parameter' || key.toLowerCase() === 'key' || key.startsWith('---')) {
+                            continue;
                         }
-                        console.log(`[LSP Sync] SQLite case_facts table updated successfully.`);
-                    } catch (dbErr) {
-                        console.error('[LSP Sync] Failed to sync facts to SQLite database:', dbErr.message);
+                        parsedKV[key] = val;
+                    }
+                }
+
+                const keys = Object.keys(parsedKV);
+                if (keys.length > 0) {
+                    const reviewsDir = path.join(caseDir, 'reviews');
+                    const dictPath = path.join(reviewsDir, 'case_kv_dictionary.json');
+                    let currentDict = {};
+                    if (fs.existsSync(dictPath)) {
+                        try {
+                            currentDict = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
+                        } catch (_) {}
+                    }
+
+                    let changed = false;
+                    const now = new Date().toISOString();
+                    for (const key of keys) {
+                        const val = parsedKV[key];
+                        const existing = currentDict[key];
+                        if (!existing || existing.value !== val) {
+                            currentDict[key] = {
+                                value: val,
+                                originalExtractedValue: existing ? existing.originalExtractedValue : val,
+                                modifiedBy: 'user',
+                                lastUpdated: now,
+                                source: 'case_facts.md (Manual Edit)',
+                                confidence: 'high',
+                                explanation: 'Manually edited by user in case_facts.md.'
+                            };
+                            changed = true;
+                        }
+                    }
+
+                    if (changed) {
+                        if (!fs.existsSync(reviewsDir)) {
+                            fs.mkdirSync(reviewsDir, { recursive: true });
+                        }
+                        fs.writeFileSync(dictPath, JSON.stringify(currentDict, null, 2), 'utf8');
+                        console.log(`[LSP Sync] Synced ${keys.length} case facts to case_kv_dictionary.json.`);
+
+                        try {
+                            const { getDb } = require('./sqlite-store');
+                            const db = getDb(caseDir);
+                            const { URI } = require('vscode-uri');
+                            const relativeFile = path.relative(caseDir, URI.parse(docUri).fsPath).replace(/\\/g, '/');
+                            const upsertFact = db.prepare(`
+                                INSERT INTO case_facts (key, filename, value, source_clause, verified_by_user, last_updated)
+                                VALUES (?, ?, ?, ?, 1, ?)
+                                ON CONFLICT(key) DO UPDATE SET
+                                    filename = excluded.filename,
+                                    value = excluded.value,
+                                    source_clause = excluded.source_clause,
+                                    verified_by_user = 1,
+                                    last_updated = excluded.last_updated
+                            `);
+                            for (const key of keys) {
+                                upsertFact.run(
+                                    key,
+                                    relativeFile,
+                                    parsedKV[key],
+                                    'case_facts.md (Manual Edit)',
+                                    now
+                                );
+                            }
+                            console.log(`[LSP Sync] SQLite case_facts table updated successfully.`);
+                        } catch (dbErr) {
+                            console.error('[LSP Sync] Failed to sync facts to SQLite database:', dbErr.message);
+                        }
                     }
                 }
             }
+        } catch (err) {
+            console.error('[LSP Table Sync] Failed to parse and sync table to DB:', err.message);
         }
-    } catch (err) {
-        console.error('[LSP Table Sync] Failed to parse and sync table to DB:', err.message);
-    }
+    });
 
-    const service = getLspService(caseDir);
+
+    const { service, workspace } = getLspContext(caseDir);
     const doc = TextDocument.create(docUri, 'markdown', Date.now(), docContent);
-    service.config.workspace.documents.set(docUri, doc);
+    workspace.documents.set(docUri, doc);
 
-    const lspDiagnostics = await service.computeDiagnostics(doc, {});
+    const lspDiagnostics = (await service.computeDiagnostics(doc, {}, NO_CANCEL_TOKEN)) || [];
     const customDiagnostics = [];
     
     // Custom linter for @@ statutory references
@@ -378,7 +412,7 @@ async function getDiagnostics(caseDir, docUri, docContent) {
     const docPath = URI.parse(docUri).fsPath;
     
     // Make sure workspace documents are fully loaded for link checking
-    await service.config.workspace.getAllMarkdownDocuments();
+    await workspace.getAllMarkdownDocuments();
     
     while ((linkMatch = linkRegex.exec(docContent)) !== null) {
         const fullMatch = linkMatch[0];
@@ -405,7 +439,7 @@ async function getDiagnostics(caseDir, docUri, docContent) {
             const targetBasename = path.basename(targetPathOnly);
             let foundDoc = null;
             
-            for (const docInWorkspace of service.config.workspace.documents.values()) {
+            for (const docInWorkspace of workspace.documents.values()) {
                 const docFsPath = URI.parse(docInWorkspace.uri).fsPath;
                 if (path.basename(docFsPath) === targetBasename) {
                     foundDoc = docFsPath;
@@ -461,13 +495,13 @@ async function getDiagnostics(caseDir, docUri, docContent) {
 }
 
 async function getCompletions(caseDir, docUri, docContent, position) {
-    const service = getLspService(caseDir);
+    const { service, workspace } = getLspContext(caseDir);
     const doc = TextDocument.create(docUri, 'markdown', Date.now(), docContent);
-    service.config.workspace.documents.set(docUri, doc);
+    workspace.documents.set(docUri, doc);
 
     const completions = await service.getCompletionItems(doc, position, {
         triggerCharacter: '/'
-    });
+    }, NO_CANCEL_TOKEN);
     return completions;
 }
 
@@ -491,7 +525,7 @@ async function getHover(caseDir, docUri, docContent, position) {
                     const cleanText = resolved.replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
                     return {
                         contents: {
-                            kind: 'markdown',
+                             kind: 'markdown',
                             value: `**Law Reference:** \`${lawCode}/${secPath}\`\n\n${cleanText}`
                         },
                         range: {
@@ -504,9 +538,9 @@ async function getHover(caseDir, docUri, docContent, position) {
         }
     }
 
-    const service = getLspService(caseDir);
-    service.config.workspace.documents.set(docUri, doc);
-    const hover = await service.getHover(doc, position);
+    const { service, workspace } = getLspContext(caseDir);
+    workspace.documents.set(docUri, doc);
+    const hover = await service.getHover(doc, position, NO_CANCEL_TOKEN);
     return hover;
 }
 

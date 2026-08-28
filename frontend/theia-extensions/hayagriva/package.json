@@ -21,11 +21,14 @@
     "@theia/filesystem": "1.73.1",
     "@theia/monaco": "1.73.1",
     "@theia/workspace": "1.73.1",
-    "react": "^18.3.1",
-    "react-dom": "18.3.1"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vscode-ws-jsonrpc": "^3.3.1"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "rimraf": "^2.7.1",
     "typescript": "^4.9.5"
   },
@@ -35,6 +38,6 @@
     "watch": "tsc -b --watch"
   },
   "peerDependencies": {
-    "react": "^18.3.1"
+    "react": "^19.0.0"
   }
 }

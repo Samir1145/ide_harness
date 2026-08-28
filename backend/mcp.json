@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "hayagriva": {
+      "command": "node",
+      "args": ["lib/mcp/hayagriva-mcp-server.js"],
+      "env": {},
+      "description": "Hayagriva Legal & Insolvency MCP Server (RAG, Case KV Facts, CIRP Timeline, Law Vault Lookup)"
+    }
+  }
+}

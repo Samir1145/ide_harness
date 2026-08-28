@@ -732,7 +732,11 @@ module.exports = {
 </body>
 </html>`);
                 } else if (ext === '.pdf') {
-                    res.writeHead(200, { 'Content-Type': 'application/pdf' });
+                    res.writeHead(200, {
+                        'Content-Type': 'application/pdf',
+                        'Content-Disposition': `inline; filename="${encodeURIComponent(path.basename(filePath))}"`,
+                        'Accept-Ranges': 'bytes'
+                    });
                     fs.createReadStream(filePath).pipe(res);
                 } else {
                     res.writeHead(400, { 'Content-Type': 'text/plain' });
@@ -2134,9 +2138,9 @@ module.exports = {
                         // D8: Sweep expired .trash items (7-day retention)
                         sweepTrash(caseDir);
 
-                        // Asynchronously pre-warm ONNX embedding model during grace period
-                        const { warmupEmbeddingPipeline } = require('./core/llm-client');
-                        warmupEmbeddingPipeline('legal').catch(() => {});
+                        // Dynamically attach file watcher to workspace
+                        const { ensureCaseWatcher } = require('./daemon/watcher');
+                        ensureCaseWatcher(caseDir);
 
                         console.log(`[API Server] bootstrap-case: settings and audit docs initialized for ${caseDir}`);
                         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -3132,7 +3136,7 @@ module.exports = {
                     const coordinator = require('./agents/agent-coordinator');
                     const agentLogger = require('./agents/agent-logger');
 
-                    const { response: responseText, logs } = await coordinator.run(caseDir, data.message, data.history || [], data.agent, { returnObject: true });
+                    const { response: responseText, logs } = await coordinator.run(caseDir, data.message, data.history || [], data.agent, { returnObject: true, mode: data.mode });
                     const accordionHtml = agentLogger.formatMarkdownAccordion(logs);
                     const finalResponse = (accordionHtml && !(responseText || '').startsWith('<details>')) 
                         ? accordionHtml + responseText 
@@ -3146,6 +3150,57 @@ module.exports = {
                     res.end(JSON.stringify({ success: false, error: err.message }));
                 }
             });
+        },
+
+        '/api/agents/tools/execute': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const caseDir = resolveCaseDir(docsRoot, data.case || '');
+                    const { executeTool } = require('./agents/skills/tool-dispatcher');
+                    const result = await executeTool(caseDir, data.tool, data.args || {});
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, result }));
+                } catch (err) {
+                    console.error('[API Server] Tool execute failed:', err.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/agents/artifacts': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || '';
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            const { listArtifacts, saveArtifact } = require('./agents/skills/artifact-manager');
+
+            if (req.method === 'GET') {
+                try {
+                    const artifacts = listArtifacts(caseDir);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, artifacts }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            } else if (req.method === 'POST') {
+                let body = '';
+                req.on('data', chunk => body += chunk);
+                req.on('end', () => {
+                    try {
+                        const data = JSON.parse(body);
+                        const targetCaseDir = resolveCaseDir(docsRoot, data.case || caseParam);
+                        const result = saveArtifact(targetCaseDir, data);
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, result }));
+                    } catch (e) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: e.message }));
+                    }
+                });
+            }
         },
 
         '/api/lsp/completions': (req, res, parsedUrl, docsRoot) => {
@@ -3206,21 +3261,41 @@ module.exports = {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
-                const data = JSON.parse(body);
-                const caseDir = resolveCaseDir(docsRoot, data.case);
+                try {
+                    const data = JSON.parse(body);
+                    const caseDir = resolveCaseDir(docsRoot, data.case);
 
-                if (!fs.existsSync(caseDir)) {
-                    fs.mkdirSync(caseDir, { recursive: true });
+                    if (!fs.existsSync(caseDir)) {
+                        fs.mkdirSync(caseDir, { recursive: true });
+                    }
+                    getConceptsDir(caseDir);
+                    ensureCaseSettings(caseDir);
+                    const filePath = path.join(caseDir, data.filename);
+                    const buffer = Buffer.from(data.content, 'base64');
+                    fs.writeFileSync(filePath, buffer);
+                    console.log(`[API Server] Uploaded file saved to: ${filePath}`);
+
+                    // Dynamically ensure directory is watched
+                    const { ensureCaseWatcher, ingestFile, updateStatus } = require('./daemon/watcher');
+                    ensureCaseWatcher(caseDir);
+
+                    // Automatically trigger Phase 1 Markdown conversion on upload
+                    const ext = path.extname(filePath).toLowerCase();
+                    const BINARY_EXTS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx'];
+                    if (BINARY_EXTS.includes(ext) || filePath.toLowerCase().endsWith('.wiki.html')) {
+                        const relative = path.relative(caseDir, filePath).replace(/\\/g, '/');
+                        updateStatus(caseDir, relative, 'processing');
+                        ingestFile(caseDir, filePath, { conversionOnly: true }).catch(err => {
+                            console.error('[Upload Auto-Convert] Failed:', err.message);
+                        });
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, filePath }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
                 }
-                getConceptsDir(caseDir);
-                ensureCaseSettings(caseDir);
-                const filePath = path.join(caseDir, data.filename);
-                const buffer = Buffer.from(data.content, 'base64');
-                fs.writeFileSync(filePath, buffer);
-                console.log(`[API Server] Uploaded file saved to: ${filePath}`);
-
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: true, filePath }));
             });
         },
 

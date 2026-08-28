@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
-import * as React from 'react';
+import React, { type ReactNode, type DetailedHTMLProps, type HTMLAttributes } from 'react';
 
 import { Message } from '@theia/core/lib/browser';
 import { PreferenceService } from '@theia/core/lib/common';
@@ -49,7 +49,7 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
         }
     }
 
-    protected render(): React.ReactNode {
+    protected render(): ReactNode {
         return <div className='gs-container'>
             <div className='gs-content-container'>
                 <div className='gs-float'>
@@ -116,7 +116,7 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
         </div>;
     }
 
-    protected renderActions(): React.ReactNode {
+    protected renderActions(): ReactNode {
         return <div className='gs-container'>
             <div className='flex-grid'>
                 <div className='col'>
@@ -141,14 +141,14 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
         </div>;
     }
 
-    protected renderHeader(): React.ReactNode {
+    protected renderHeader(): ReactNode {
         return <div className='gs-header'>
             {renderProductName()}
             {this.renderVersion()}
         </div>;
     }
 
-    protected renderVersion(): React.ReactNode {
+    protected renderVersion(): ReactNode {
         return <div>
             <p className='gs-sub-header' >
                 {this.applicationInfo ? 'Version ' + this.applicationInfo.version : '-'}
@@ -160,9 +160,9 @@ export class TheiaIDEGettingStartedWidget extends GettingStartedWidget {
         </div>;
     }
 
-    protected renderAIBanner(): React.ReactNode {
+    protected renderAIBanner(): ReactNode {
         const framework = super.renderAIBanner();
-        if (React.isValidElement<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>>(framework)) {
+        if (React.isValidElement<DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>>(framework)) {
             return React.cloneElement(framework, { className: 'gs-section' });
         }
         return framework;

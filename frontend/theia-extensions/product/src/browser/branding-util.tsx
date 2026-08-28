@@ -8,7 +8,7 @@
  ********************************************************************************/
 
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
-import * as React from 'react';
+import type { ReactNode, JSX } from 'react';
 import { getBrandingVariant } from './theia-ide-config';
 
 export interface ExternalBrowserLinkProps {
@@ -17,13 +17,13 @@ export interface ExternalBrowserLinkProps {
     windowService: WindowService;
 }
 
-export function renderProductName(): React.ReactNode {
+export function renderProductName(): ReactNode {
     const variant = getBrandingVariant();
     const suffix = variant !== 'stable' ? ` ${variant.charAt(0).toUpperCase() + variant.slice(1)}` : '';
     return <h1>Eclipse Theia <span className="gs-blue-header">IDE</span>{suffix}</h1>;
 }
 
-function BrowserLink(props: ExternalBrowserLinkProps): React.JSX.Element {
+function BrowserLink(props: ExternalBrowserLinkProps): JSX.Element {
     return <a
         role={'button'}
         tabIndex={0}
@@ -34,7 +34,7 @@ function BrowserLink(props: ExternalBrowserLinkProps): React.JSX.Element {
     </a>;
 }
 
-export function renderWhatIs(windowService: WindowService): React.ReactNode {
+export function renderWhatIs(windowService: WindowService): ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             What is this?
@@ -52,7 +52,7 @@ export function renderWhatIs(windowService: WindowService): React.ReactNode {
     </div>;
 }
 
-export function renderExtendingCustomizing(windowService: WindowService): React.ReactNode {
+export function renderExtendingCustomizing(windowService: WindowService): ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             Extending/Customizing the Theia IDE
@@ -70,7 +70,7 @@ export function renderExtendingCustomizing(windowService: WindowService): React.
     </div>;
 }
 
-export function renderSupport(windowService: WindowService): React.ReactNode {
+export function renderSupport(windowService: WindowService): ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             Professional Support
@@ -83,7 +83,7 @@ export function renderSupport(windowService: WindowService): React.ReactNode {
     </div>;
 }
 
-export function renderTickets(windowService: WindowService): React.ReactNode {
+export function renderTickets(windowService: WindowService): ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             Reporting feature requests and bugs
@@ -104,7 +104,7 @@ export function renderTickets(windowService: WindowService): React.ReactNode {
     </div>;
 }
 
-export function renderSourceCode(windowService: WindowService): React.ReactNode {
+export function renderSourceCode(windowService: WindowService): ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             Source Code
@@ -117,7 +117,7 @@ export function renderSourceCode(windowService: WindowService): React.ReactNode 
     </div>;
 }
 
-export function renderDocumentation(windowService: WindowService): React.ReactNode {
+export function renderDocumentation(windowService: WindowService): ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             Documentation
@@ -129,7 +129,7 @@ export function renderDocumentation(windowService: WindowService): React.ReactNo
     </div>;
 }
 
-export function renderCollaboration(windowService: WindowService): React.ReactNode {
+export function renderCollaboration(windowService: WindowService): ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             Collaboration
@@ -144,7 +144,7 @@ export function renderCollaboration(windowService: WindowService): React.ReactNo
     </div>;
 }
 
-export function renderDownloads(): React.ReactNode {
+export function renderDownloads(): ReactNode {
     return <div className='gs-section'>
         <h3 className='gs-section-header'>
             Updates and Downloads

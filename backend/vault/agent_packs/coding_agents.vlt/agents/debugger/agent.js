@@ -1,17 +1,18 @@
+const fs = require('fs');
+const path = require('path');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 
 class DebuggerAgent {
     constructor() {
         this.name = 'Debugger Agent';
         this.id = 'debugger';
+        const instructionsPath = path.join(__dirname, 'agent.md');
+        this.instructions = fs.readFileSync(instructionsPath, 'utf8');
     }
 
     async run(caseDir, userMessage, history = [], options = {}) {
-        const systemPrompt = `You are the Debugger & Traceback Subagent for HAYAGRIVA.
-Your role is to diagnose stack traces, uncover root causes of runtime errors, inspect logs, and recommend precise bug fixes.`;
-
         const messages = [
-            { role: 'system', content: systemPrompt },
+            { role: 'system', content: this.instructions },
             ...history,
             { role: 'user', content: userMessage }
         ];

@@ -37,14 +37,13 @@ async function testLlamafileHealth() {
     console.log(`✓ Llamafile health check returned: ${isHealthy}`);
 }
 
-async function runAll() {
+async function run() {
+    console.log('[InLegal-SBERT & LLM Setup Master Tests]');
     await testCitationParser();
     await testSetupScripts();
     await testLlamafileHealth();
-    console.log('\n[Success] All InLegal-SBERT & Llamafile tests completed successfully!');
+    console.log('  ✓ SUCCESS: InLegal-SBERT & LLM Setup tests completed successfully!\n');
 }
 
-runAll().catch(err => {
-    console.error('Test failure:', err);
-    process.exit(1);
-});
+module.exports = { run };
+

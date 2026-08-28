@@ -59,4 +59,5 @@ if (require.main === module) {
     runTests();
 }
 
-module.exports = { runTests };
+module.exports = { run: runTests, runTests };
+

@@ -2,6 +2,7 @@ const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
 const bm25 = require('../lib/core/bm25');
+const { getConceptsDir } = require('../lib/pipeline/common/helper');
 const { ingestText } = require('../lib/pipeline/common/text_ingest');
 const { retrieveContexts } = require('../lib/core/rag');
 const { indexToSqlite, updateStatus } = require('../lib/daemon/watcher');
@@ -25,7 +26,7 @@ async function run() {
     const filePath = path.join(tempDir, 'long_document.md');
     fs.writeFileSync(filePath, longContent);
 
-    const bm25IndexFile = path.join(tempDir, 'concepts/bm25_index.json');
+    const bm25IndexFile = path.join(getConceptsDir(tempDir), 'bm25_index.json');
     fs.mkdirSync(path.dirname(bm25IndexFile), { recursive: true });
     
     const indexObj = bm25.loadIndex(bm25IndexFile);

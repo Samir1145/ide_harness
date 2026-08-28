@@ -1,0 +1,59 @@
+{
+  "$schema": "https://theia-ide.org/schemas/ai-agent-plugin.json",
+  "id": "hayagriva-coding-agents",
+  "name": "Hayagriva Software Architecture & Coding Agents Pack",
+  "version": "1.0.0",
+  "publisher": "Hayagriva",
+  "domain": "coding",
+  "description": "Full software engineering suite including architecture analysis, error debugging, code generation, and security reviews.",
+  "agents": [
+    {
+      "id": "architecture",
+      "name": "Architecture Agent",
+      "tag": "architecture",
+      "description": "Analyzes codebase structure, component boundaries, and plans system refactoring.",
+      "modes": [
+        { "id": "analyze", "name": "Architecture Analysis", "isDefault": true },
+        { "id": "diagram", "name": "Mermaid Component Diagram" }
+      ],
+      "tags": ["hayagriva", "coding", "architecture", "system-design"],
+      "icon": "codicon-symbol-structure"
+    },
+    {
+      "id": "debugger",
+      "name": "Debugger Agent",
+      "tag": "debugger",
+      "description": "Formulates diagnostic hypotheses, analyzes log traces, and uncovers root causes of errors.",
+      "modes": [
+        { "id": "diagnose", "name": "Diagnose Trace", "isDefault": true },
+        { "id": "fix", "name": "Propose Fix" }
+      ],
+      "tags": ["hayagriva", "coding", "debugger", "troubleshooting"],
+      "icon": "codicon-bug"
+    },
+    {
+      "id": "codewriter",
+      "name": "Code Writer Agent",
+      "tag": "codewriter",
+      "description": "Generates clean, production-ready code edits, multi-file patches, and diffs.",
+      "modes": [
+        { "id": "generate", "name": "Write Code", "isDefault": true },
+        { "id": "patch", "name": "Generate Diff Patch" }
+      ],
+      "tags": ["hayagriva", "coding", "code-generator", "patching"],
+      "icon": "codicon-code"
+    },
+    {
+      "id": "reviewer",
+      "name": "Code Reviewer Agent",
+      "tag": "reviewer",
+      "description": "Audits code quality, enforces architectural rules, and checks for memory leaks or security vulnerabilities.",
+      "modes": [
+        { "id": "review", "name": "Code Review", "isDefault": true },
+        { "id": "security", "name": "Security & Memory Audit" }
+      ],
+      "tags": ["hayagriva", "coding", "code-review", "quality-audit"],
+      "icon": "codicon-check-all"
+    }
+  ]
+}

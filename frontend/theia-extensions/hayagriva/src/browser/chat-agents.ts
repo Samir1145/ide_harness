@@ -1,10 +1,11 @@
 import { inject, optional, injectable } from '@theia/core/shared/inversify';
-import { ChatAgent, ChatAgentLocation } from '@theia/ai-chat/lib/common/chat-agents';
+import { ChatAgent, ChatAgentLocation, ChatMode } from '@theia/ai-chat/lib/common/chat-agents';
 import { MutableChatRequestModel, ErrorChatResponseContentImpl, MarkdownChatResponseContentImpl } from '@theia/ai-chat/lib/common/chat-model';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { PreferenceService } from '@theia/core/lib/common';
+import { ILogger } from '@theia/core/lib/common/logger';
 import URI from '@theia/core/lib/common/uri';
-import { LanguageModelRequirement } from '@theia/ai-core';
+import { LanguageModelRequirement, AgentSpecificVariables, PromptVariantSet } from '@theia/ai-core';
 import { OutputChannelManager } from '@theia/output/lib/browser/output-channel';
 
 @injectable()
@@ -15,16 +16,22 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
   abstract readonly iconClass: string;
 
   readonly locations = [ChatAgentLocation.Panel];
-  readonly variables = [];
-  readonly prompts = [];
+  readonly variables: string[] = ['caseName', 'activeFile', 'memoryDirectory'];
+  readonly prompts: PromptVariantSet[] = [];
   readonly languageModelRequirements: LanguageModelRequirement[] = [{ purpose: 'chat' }];
-  readonly agentSpecificVariables = [];
-  readonly functions = [];
+  readonly agentSpecificVariables: AgentSpecificVariables[] = [
+    { name: 'caseName', description: 'Active case folder path in workspace', usedInPrompt: true },
+    { name: 'memoryDirectory', description: 'Per-case wiki & structured facts repository', usedInPrompt: true }
+  ];
+  readonly functions: string[] = ['retrieveContexts', 'getKVValue', 'queryTimeline'];
+  readonly tags?: string[] = ['hayagriva', 'legal'];
+  readonly modes?: ChatMode[] = [];
   readonly requiresLargeModel: boolean = false;
 
   constructor(
     @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
     @inject(PreferenceService) protected readonly preferenceService: PreferenceService,
+    @inject(ILogger) protected readonly logger: ILogger,
     @inject(OutputChannelManager) @optional() protected readonly outputChannelManager?: OutputChannelManager
   ) {}
 
@@ -46,6 +53,7 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
     
     const userMessage = request.request.text;
     const currentCase = this.getCaseName();
+    const activeMode = request.request.modeId || 'default';
 
     if (this.requiresLargeModel) {
       try {
@@ -60,8 +68,8 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
             ));
           }
         }
-      } catch (e) {
-        console.warn('[HAYAGRIVA] Failed to check model-info for quality badge:', e);
+      } catch (e: any) {
+        this.logger.warn(`[HAYAGRIVA] Failed to check model-info for quality badge: ${e ? e.message : e}`);
       }
     }
 
@@ -74,6 +82,7 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
           case: currentCase,
           agent: this.id.toLowerCase(),
           message: userMessage,
+          mode: activeMode,
           history: [] // Can be extended with request.session history if needed
         })
       });
@@ -99,8 +108,8 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
           data.logs.forEach((l: any) => {
             channel.appendLine(`[${l.timestamp}] [${l.agent}:${l.phase}] ${l.message}`);
           });
-        } catch (e) {
-          console.warn('[HAYAGRIVA] Output channel log stream error:', e);
+        } catch (e: any) {
+          this.logger.warn(`[HAYAGRIVA] Output channel log stream error: ${e ? e.message : e}`);
         }
       }
       
@@ -120,6 +129,30 @@ export class AdvisorChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Advisor';
   readonly description = 'Legal research & precedents. Commands: /strength (score grounds), /analyse-order (decode orders)';
   readonly iconClass = 'codicon codicon-law';
+  override readonly tags = ['legal', 'research', 'precedents'];
+  override readonly modes: ChatMode[] = [
+    { id: 'plan', name: 'Strategy / Plan', isDefault: true },
+    { id: 'draft', name: 'Full Advisory' }
+  ];
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'advisor-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Advisor Agent, an expert legal strategist and counsel co-pilot for Indian insolvency law (IBC 2016 / 2026).'
+      },
+      variants: [
+        {
+          id: 'concise',
+          template: 'You are HAYAGRIVA Advisor Agent. Provide concise, bulleted strategic legal advice focusing directly on actionable grounds.'
+        },
+        {
+          id: 'precedent-heavy',
+          template: 'You are HAYAGRIVA Advisor Agent. Provide deep case law analysis citing Supreme Court and NCLAT precedents with full bench ratios.'
+        }
+      ]
+    }
+  ];
 }
 
 @injectable()
@@ -128,6 +161,26 @@ export class FormsChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Forms';
   readonly description = 'Audit & fill statutory forms. Commands: /fill ibbi-form-a, /fill ibbi-form-b, /fill ibbi-h, /fill aoc-4';
   readonly iconClass = 'codicon codicon-checklist';
+  override readonly tags = ['statutory', 'compliance', 'forms'];
+  override readonly modes: ChatMode[] = [
+    { id: 'fill', name: 'Auto-Fill', isDefault: true },
+    { id: 'audit', name: 'Audit & Cross-Check' }
+  ];
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'forms-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Forms Agent. Audit statutory compliance and populate statutory IBC / NCLT form fields.'
+      },
+      variants: [
+        {
+          id: 'strict-math',
+          template: 'You are HAYAGRIVA Forms Agent. Enforce strict mathematical and date chronology verification across all form schedules.'
+        }
+      ]
+    }
+  ];
 }
 
 @injectable()
@@ -136,6 +189,26 @@ export class DocumentChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Document';
   readonly description = 'Draft court petitions & filings. Commands: /draft sec7-petition, /draft sec9-petition, /draft slp-sc, /draft ibc-sec61-appeal';
   readonly iconClass = 'codicon codicon-diff-added';
+  override readonly tags = ['litigation', 'petitions', 'drafting'];
+  override readonly modes: ChatMode[] = [
+    { id: 'plan', name: 'Outline / Skeleton', isDefault: true },
+    { id: 'draft', name: 'Full Court Draft' }
+  ];
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'document-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Document Agent. Draft court petitions, applications, and legal pleadings conforming to NCLT / Supreme Court rules.'
+      },
+      variants: [
+        {
+          id: 'outline-only',
+          template: 'You are HAYAGRIVA Document Agent. Generate an executive outline and skeleton with grounds, facts, and prayers only.'
+        }
+      ]
+    }
+  ];
 }
 
 @injectable()
@@ -144,7 +217,27 @@ export class ClaimsVerificationChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Claims';
   readonly description = 'Audit creditor claims & debt voting shares. Commands: /claims-check';
   readonly iconClass = 'codicon codicon-briefcase';
+  override readonly tags = ['claims', 'voting-share', 'cirp'];
+  override readonly modes: ChatMode[] = [
+    { id: 'check', name: 'Verify Claims', isDefault: true },
+    { id: 'calculate', name: 'Calculate Voting Shares' }
+  ];
   override readonly requiresLargeModel = true;
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'claims-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Claims Auditor. Audit creditor claims, compute voting shares, and exclude related party debt under Sec 5(24).'
+      },
+      variants: [
+        {
+          id: 'voting-breakdown',
+          template: 'You are HAYAGRIVA Claims Auditor. Produce a financial creditor voting share breakdown table with relative percentage formulas.'
+        }
+      ]
+    }
+  ];
 }
 
 @injectable()
@@ -153,7 +246,27 @@ export class ImCompilerChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'IM';
   readonly description = 'Compile Reg 36 Information Memorandum. Commands: /im-build';
   readonly iconClass = 'codicon codicon-book';
+  override readonly tags = ['im', 'reg36', 'memorandum'];
+  override readonly modes: ChatMode[] = [
+    { id: 'build', name: 'Build IM Sections', isDefault: true },
+    { id: 'audit', name: 'Information Gap Audit' }
+  ];
   override readonly requiresLargeModel = true;
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'im-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA IM Compiler. Structure and compile Regulation 36 Information Memorandum for Corporate Debtor assets.'
+      },
+      variants: [
+        {
+          id: 'gap-audit',
+          template: 'You are HAYAGRIVA IM Compiler. Perform an information deficiency audit identifying missing Reg 36 disclosures.'
+        }
+      ]
+    }
+  ];
 }
 
 @injectable()
@@ -162,7 +275,27 @@ export class ResolutionPlanEvaluatorChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Plan';
   readonly description = 'Audit Sec 30(2) & Reg 39(4) Resolution Plans. Commands: /plan-audit';
   readonly iconClass = 'codicon codicon-compass';
+  override readonly tags = ['plan-evaluator', 'sec30', 'form-h'];
+  override readonly modes: ChatMode[] = [
+    { id: 'audit', name: 'Sec 30(2) Audit', isDefault: true },
+    { id: 'formh', name: 'Form H Compliance Certificate' }
+  ];
   override readonly requiresLargeModel = true;
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'plan-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Plan Evaluator. Audit Resolution Plans under Section 30(2) & Section 29A, compiling Regulation 39(4) Form H certificates.'
+      },
+      variants: [
+        {
+          id: 'form-h',
+          template: 'You are HAYAGRIVA Plan Evaluator. Generate complete Regulation 39(4) Form H compliance certificate tables.'
+        }
+      ]
+    }
+  ];
 }
 
 @injectable()
@@ -171,7 +304,27 @@ export class AvoidanceScannerChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Avoidance';
   readonly description = 'Audit Sec 43/45/49/50 avoidance transactions. Commands: /avoidance-scan';
   readonly iconClass = 'codicon codicon-search';
+  override readonly tags = ['avoidance', 'forensic', 'puda'];
+  override readonly modes: ChatMode[] = [
+    { id: 'scan', name: 'Lookback Scan', isDefault: true },
+    { id: 'puda', name: 'PUDA Audit Classification' }
+  ];
   override readonly requiresLargeModel = true;
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'avoidance-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Avoidance Scanner. Detect and classify preferential (Sec 43), undervalued (Sec 45), extortionate (Sec 50), and fraudulent (Sec 66) transactions.'
+      },
+      variants: [
+        {
+          id: 'puda-forensic',
+          template: 'You are HAYAGRIVA Avoidance Scanner. Produce a forensic PUDA lookback ledger with lookback window calculations.'
+        }
+      ]
+    }
+  ];
 }
 
 @injectable()
@@ -180,4 +333,24 @@ export class LitigationTrackerChatAgent extends BaseHayagrivaChatAgent {
   readonly name = 'Litigation';
   readonly description = 'NCLT bench briefs & counter-arguments. Commands: /brief, /counter, /timeline';
   readonly iconClass = 'codicon codicon-issue-opened';
+  override readonly tags = ['nclt', 'bench-brief', 'litigation'];
+  override readonly modes: ChatMode[] = [
+    { id: 'brief', name: 'Bench Brief', isDefault: true },
+    { id: 'counter', name: 'Counter Arguments' }
+  ];
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'litigation-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Litigation Tracker. Generate NCLT bench briefs, track hearing milestones, and formulate strategic counter-arguments.'
+      },
+      variants: [
+        {
+          id: 'counter-rebuttal',
+          template: 'You are HAYAGRIVA Litigation Tracker. Act as opposing counsel to anticipate defenses and draft counter-rebuttals.'
+        }
+      ]
+    }
+  ];
 }

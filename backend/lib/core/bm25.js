@@ -175,6 +175,10 @@ function removeDocument(index, docId) {
 }
 
 function saveIndex(index, filePath) {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
     fs.writeFileSync(filePath, JSON.stringify(index, null, 2), 'utf8');
 }
 

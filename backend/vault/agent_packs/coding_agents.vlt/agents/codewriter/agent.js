@@ -1,17 +1,18 @@
+const fs = require('fs');
+const path = require('path');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 
 class CodeWriterAgent {
     constructor() {
         this.name = 'Code Writer Agent';
         this.id = 'codewriter';
+        const instructionsPath = path.join(__dirname, 'agent.md');
+        this.instructions = fs.readFileSync(instructionsPath, 'utf8');
     }
 
     async run(caseDir, userMessage, history = [], options = {}) {
-        const systemPrompt = `You are the Code Writer & Patch Generator Subagent for HAYAGRIVA.
-Your role is to write clean, production-ready code, generate multi-file diffs, and format outputs in syntax-highlighted markdown code blocks.`;
-
         const messages = [
-            { role: 'system', content: systemPrompt },
+            { role: 'system', content: this.instructions },
             ...history,
             { role: 'user', content: userMessage }
         ];

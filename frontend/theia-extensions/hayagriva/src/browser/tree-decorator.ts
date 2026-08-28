@@ -2,6 +2,7 @@ import { injectable, inject } from '@theia/core/shared/inversify';
 import { TreeDecorator, TreeDecoration, TreeNode, Tree, TopDownTreeIterator } from '@theia/core/lib/browser';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { Event, Emitter, PreferenceService, MessageService } from '@theia/core/lib/common';
+import { ILogger } from '@theia/core/lib/common/logger';
 import URI from '@theia/core/lib/common/uri';
 
 @injectable()
@@ -10,18 +11,17 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
 
   protected readonly emitter = new Emitter<(tree: Tree) => Map<string, TreeDecoration.Data>>();
   statusCache: { [path: string]: any } = {};
-  private pollTimer: any = undefined;
-  private isFetching = false;
+  protected pollTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  protected isFetching = false;
 
   constructor(
-    @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
-    @inject(PreferenceService) private readonly preferenceService: PreferenceService,
-    @inject(MessageService) private readonly messageService: MessageService
+    @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
+    @inject(PreferenceService) protected readonly preferenceService: PreferenceService,
+    @inject(MessageService) protected readonly messageService: MessageService,
+    @inject(ILogger) protected readonly logger: ILogger
   ) {
-    console.log('[Hayagriva] HayagrivaTreeDecorator: constructor called');
-    // Bootstrap case settings synchronously before first render so that
-    // settings.json (Open Editors hidden, file exclusions) is written
-    // BEFORE Theia reads it for the sidebar layout.
+    this.logger.info('[Hayagriva] HayagrivaTreeDecorator: initialized');
+    // Bootstrap case settings synchronously before first render
     this.bootstrapCaseSettings();
     // Pre-warm status cache on startup
     this.reschedulePoll(500);
@@ -32,7 +32,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
     try {
       const caseName = this.resolveCaseName();
       if (!caseName) {
-        console.log('[Hayagriva] No active case folder open. Skipping automatic bootstrap.');
+        this.logger.info('[Hayagriva] No active case folder open. Skipping automatic bootstrap.');
         return;
       }
       const port = this.preferenceService.get<number>('hayagriva.apiPort', 3210);
@@ -41,12 +41,12 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ case: caseName })
       }).then(res => {
-        console.log('[Hayagriva] bootstrap-case response:', res.status);
+        this.logger.info(`[Hayagriva] bootstrap-case response: ${res.status}`);
       }).catch(err => {
-        console.warn('[Hayagriva] bootstrap-case call failed (server may not be up yet):', err.message);
+        this.logger.warn(`[Hayagriva] bootstrap-case call failed: ${err.message}`);
       });
-    } catch (e) {
-      console.warn('[Hayagriva] bootstrapCaseSettings error:', e);
+    } catch (e: any) {
+      this.logger.warn(`[Hayagriva] bootstrapCaseSettings error: ${e ? e.message : e}`);
     }
   }
 
@@ -100,7 +100,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
     try {
       const caseName = this.resolveCaseName();
       const url = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/file-statuses?case=${encodeURIComponent(caseName)}`;
-      console.log('[Hayagriva] fetching statuses:', url);
+      this.logger.debug(`[Hayagriva] fetching statuses: ${url}`);
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -155,7 +155,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
 
         if (hasChanges || currentKeys.length === 0) {
           this.statusCache = nextCache;
-          console.log('[Hayagriva] statusCache updated, firing decoration update event');
+          this.logger.debug('[Hayagriva] statusCache updated, firing decoration update event');
           this.emitter.fire(tree => this.buildDecorations(tree));
         }
 
@@ -164,11 +164,11 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
         const nextDelay = active ? 1000 : 4000;
         this.reschedulePoll(nextDelay);
       } else {
-        console.warn('[Hayagriva] file-statuses API responded:', res.status);
+        this.logger.warn(`[Hayagriva] file-statuses API responded: ${res.status}`);
         this.reschedulePoll(10000);
       }
     } catch (err: any) {
-      console.warn('[Hayagriva] fetch error (server may not be up yet):', err.message);
+      this.logger.warn(`[Hayagriva] fetch error (server may not be up yet): ${err.message}`);
       this.statusCache = {};
       this.emitter.fire(tree => this.buildDecorations(tree));
       this.reschedulePoll(10000);
@@ -185,8 +185,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
   // Core synchronous decoration builder — reads from pre-populated cache
   private buildDecorations(tree: Tree): Map<string, TreeDecoration.Data> {
     const result = new Map<string, TreeDecoration.Data>();
-    if (!tree.root) { console.log('[Hayagriva] buildDecorations: no tree root'); return result; }
-    console.log('[Hayagriva] buildDecorations called, cache size:', Object.keys(this.statusCache).length);
+    if (!tree.root) { return result; }
 
     const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.wiki.html', '.html'];
 

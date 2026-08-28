@@ -111,14 +111,8 @@ Mock case law summaries.`, 'utf8');
 
     } finally {
         // Cleanup all mock files
-        if (fs.existsSync(mockConceptPath)) fs.unlinkSync(mockConceptPath);
-        if (fs.existsSync(mockConcept2Path)) fs.unlinkSync(mockConcept2Path);
-        if (fs.existsSync(mockWikiPath)) fs.unlinkSync(mockWikiPath);
-        if (fs.existsSync(docConceptsDir)) fs.rmdirSync(docConceptsDir);
-        if (fs.existsSync(conceptsDir)) fs.rmdirSync(conceptsDir);
-        if (fs.existsSync(wikiDir)) fs.rmdirSync(wikiDir);
         if (fs.existsSync(caseDir)) {
-            fs.rmdirSync(caseDir);
+            fs.rmSync(caseDir, { recursive: true, force: true });
             console.log('  -> Cleaned up mock case directories.');
         }
     }

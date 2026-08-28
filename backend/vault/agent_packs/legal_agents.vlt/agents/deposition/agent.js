@@ -6,6 +6,8 @@ const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fal
 class DepositionAgent {
     constructor() {
         this.name = 'DepositionAgent';
+        const instructionsPath = path.join(__dirname, 'agent.md');
+        this.instructions = fs.readFileSync(instructionsPath, 'utf8');
     }
 
     async run(caseDir, userMessage, history = []) {

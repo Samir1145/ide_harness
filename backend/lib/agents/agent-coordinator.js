@@ -18,19 +18,26 @@ class AgentCoordinator {
             const packEntries = fs.readdirSync(packsDir);
             for (const packName of packEntries) {
                 const packPath = path.join(packsDir, packName);
+                const pluginPath = path.join(packPath, 'plugin.json');
                 const manifestPath = path.join(packPath, 'manifest.json');
-                if (fs.existsSync(manifestPath)) {
+                
+                const targetFile = fs.existsSync(pluginPath) ? pluginPath : (fs.existsSync(manifestPath) ? manifestPath : null);
+                if (targetFile) {
                     try {
-                        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                        const manifest = JSON.parse(fs.readFileSync(targetFile, 'utf8'));
                         if (Array.isArray(manifest.agents)) {
                             for (const agentDef of manifest.agents) {
                                 const agentFilePath = path.join(packPath, 'agents', agentDef.id, 'agent.js');
                                 if (fs.existsSync(agentFilePath)) {
                                     const AgentClass = require(agentFilePath);
                                     const instance = new AgentClass();
+                                    instance.pluginMeta = agentDef;
+                                    const { resolveAgentPrompt } = require('./prompt-resolver');
+                                    instance.getPrompt = (variant = 'default') => resolveAgentPrompt(instance, null, variant);
+                                    instance.getPromptForCase = (caseDir, variant = 'default') => resolveAgentPrompt(instance, caseDir, variant);
                                     const tag = (agentDef.tag || agentDef.id).toLowerCase();
                                     this.vaultAgents[tag] = instance;
-                                    console.log(`[AgentCoordinator] Loaded Vault Agent: @${tag} (${manifest.packId})`);
+                                    console.log(`[AgentCoordinator] Loaded Vault Agent: @${tag} (${manifest.id || manifest.packId})`);
                                 }
                             }
                         }
@@ -84,11 +91,29 @@ Prompt: "${message}"`;
         };
 
         const { orchestratorRegistry } = require('./orchestrator-coordinator');
+        const { resolvePromptVariables, buildMemoryContext } = require('./skills/memory-injector');
         const target = (targetAgentName || '').trim().toLowerCase().replace(/^@/, '');
         const reqId = (options && options.requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         
         agentLogger.startContext(reqId);
         agentLogger.log(reqId, 'AgentCoordinator', 'INIT', `Received query: "${userMessage}"`);
+
+        // Track 2: Dynamic Template Resolution & Memory Context Injection
+        const enrichedMessage = resolvePromptVariables(caseDir, userMessage, options.activeFile);
+        let memoryContext = '';
+        try {
+            memoryContext = await buildMemoryContext(caseDir, enrichedMessage);
+            if (memoryContext) {
+                agentLogger.log(reqId, 'AgentCoordinator', 'MEMORY', `Injected dynamic memory from case wiki and concepts.`);
+            }
+        } catch (_) {}
+
+        const agentOptions = {
+            ...options,
+            requestId: reqId,
+            mode: options.mode,
+            memoryContext
+        };
 
         let result = '';
         try {
@@ -96,20 +121,20 @@ Prompt: "${message}"`;
             const domainManager = orchestratorRegistry.getManager(target);
             if (domainManager) {
                 agentLogger.log(reqId, 'AgentCoordinator', 'ORCHESTRATE', `Routing to Level 1 Domain Manager: "@${target}"`);
-                const pipelineRes = await domainManager.runPipeline(caseDir, userMessage, { requestId: reqId });
+                const pipelineRes = await domainManager.runPipeline(caseDir, enrichedMessage, agentOptions);
                 result = `### 🏛️ [Domain Manager] @${target}\n\n**Module:** ${domainManager.alignedModule}\n**Pipeline Status:** \`${pipelineRes.pipelineState}\`\n\n${pipelineRes.summary}\n\n- **Left Pane (Workspace Explorer):** ${pipelineRes.details.leftPane}\n- **Middle Pane (Monaco Editor):** ${pipelineRes.details.middlePane}`;
             } else if (target && agentMap[target]) {
                 agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Direct routing → agent: "${target}"`);
-                result = await agentMap[target].run(caseDir, userMessage, history, { requestId: reqId });
+                result = await agentMap[target].run(caseDir, enrichedMessage, history, agentOptions);
             } else {
                 if (target && !agentMap[target]) {
                     agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Unknown agent "${target}", falling back to intent classification.`);
                 }
-                const intent = await this.classifyIntent(caseDir, userMessage);
+                const intent = await this.classifyIntent(caseDir, enrichedMessage);
                 agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Classified intent: "${intent}"`);
                 const matchedAgent = agentMap[intent] || agentMap['advisor'];
                 if (matchedAgent) {
-                    result = await matchedAgent.run(caseDir, userMessage, history, { requestId: reqId });
+                    result = await matchedAgent.run(caseDir, enrichedMessage, history, agentOptions);
                 } else {
                     result = `Agent @${intent} is currently unavailable. Installed Vault agents: ${Object.keys(agentMap).map(k => '@' + k).join(', ')}`;
                 }

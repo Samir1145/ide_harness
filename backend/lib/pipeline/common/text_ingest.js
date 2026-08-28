@@ -4,7 +4,7 @@ const matter = require('gray-matter');
 const bm25 = require('../../core/bm25');
 const { splitDocument, extractKeyTopics } = require('../../core/splitter');
 const { formatMarkdownWithFrontmatter } = require('../../utils/okf');
-const { getSafeFilename, setupConceptsDir, cleanBm25Index, probeLayoutProfile, getConceptsDir } = require('./helper');
+const { getSafeFilename, setupConceptsDir, cleanBm25Index, probeLayoutProfile, getConceptsDir, chunkText } = require('./helper');
 const { getChatResponse } = require('../../core/llm-client');
 
 /**
@@ -262,34 +262,6 @@ async function ingestText(caseDir, filePath, bm25Index, bm25IndexFile) {
         documentDate,
         markdown
     };
-}
-
-/**
- * Splits text into paragraph blocks with overlap.
- */
-function chunkText(text, maxChars = 3000, overlapParas = 1) {
-    const paras = text.split(/\n\s*\n/).filter(p => p.trim());
-    const chunks = [];
-    let currentChunk = [];
-    let currentLen = 0;
-    
-    for (let i = 0; i < paras.length; i++) {
-        const p = paras[i];
-        currentChunk.push(p);
-        currentLen += p.length;
-        
-        if (currentLen >= maxChars || i === paras.length - 1) {
-            chunks.push(currentChunk.join('\n\n'));
-            if (overlapParas > 0 && i < paras.length - 1) {
-                currentChunk = currentChunk.slice(-overlapParas);
-                currentLen = currentChunk.reduce((acc, c) => acc + c.length, 0);
-            } else {
-                currentChunk = [];
-                currentLen = 0;
-            }
-        }
-    }
-    return chunks;
 }
 
 module.exports = { ingestText };

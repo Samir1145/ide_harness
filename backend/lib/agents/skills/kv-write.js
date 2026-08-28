@@ -16,14 +16,21 @@ const KV_FILENAME = 'case_kv_dictionary.json';
  * @returns {Object}
  */
 function readKV(caseDir) {
-    const kvPath = path.join(getConceptsDir(caseDir), KV_FILENAME);
-    if (!fs.existsSync(kvPath)) return {};
-    try {
-        return JSON.parse(fs.readFileSync(kvPath, 'utf8'));
-    } catch (e) {
-        console.error(`[Skill:kvWrite] Failed to parse KV dictionary:`, e.message);
-        return {};
+    if (!caseDir) return {};
+    const candidatePaths = [
+        path.join(getConceptsDir(caseDir), KV_FILENAME),
+        path.join(caseDir, KV_FILENAME)
+    ];
+    for (const kvPath of candidatePaths) {
+        if (fs.existsSync(kvPath)) {
+            try {
+                return JSON.parse(fs.readFileSync(kvPath, 'utf8'));
+            } catch (e) {
+                console.error(`[Skill:kvWrite] Failed to parse KV dictionary:`, e.message);
+            }
+        }
     }
+    return {};
 }
 
 /**
@@ -96,7 +103,9 @@ function writeMultiKV(caseDir, pairs, source, agentName = 'agent') {
  */
 function readCaseKV(caseDir, key) {
     const kv = readKV(caseDir);
-    return kv[key] ? kv[key].value : null;
+    if (!kv || !kv[key]) return null;
+    const entry = kv[key];
+    return typeof entry === 'object' && entry !== null && entry.value !== undefined ? entry.value : entry;
 }
 
 /**

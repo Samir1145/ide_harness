@@ -1,17 +1,18 @@
+const fs = require('fs');
+const path = require('path');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 
 class CodeReviewerAgent {
     constructor() {
         this.name = 'Code Reviewer Agent';
         this.id = 'reviewer';
+        const instructionsPath = path.join(__dirname, 'agent.md');
+        this.instructions = fs.readFileSync(instructionsPath, 'utf8');
     }
 
     async run(caseDir, userMessage, history = [], options = {}) {
-        const systemPrompt = `You are the Code Reviewer & Quality Auditor Subagent for HAYAGRIVA.
-Your role is to audit code quality, check compliance with workspace rules, identify memory leaks or security flaws, and enforce strict API contracts.`;
-
         const messages = [
-            { role: 'system', content: systemPrompt },
+            { role: 'system', content: this.instructions },
             ...history,
             { role: 'user', content: userMessage }
         ];

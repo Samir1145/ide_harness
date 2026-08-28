@@ -1,0 +1,10 @@
+{
+  "$schema": "https://theia-ide.org/schemas/ai-agent-plugin.json",
+  "id": "hayagriva-finance-agents",
+  "name": "Hayagriva Financial Forensic & Audit Agents Pack",
+  "version": "1.0.0",
+  "publisher": "Hayagriva",
+  "domain": "finance",
+  "description": "Financial statement analysis, transaction auditing, ledger reconciliation, and tax compliance agents.",
+  "agents": []
+}

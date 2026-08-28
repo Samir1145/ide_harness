@@ -73,6 +73,18 @@ class OrchestratorRegistry {
     }
 
     registerDefaultManagers() {
+        // Root Domain Managers
+        const rootDomains = [
+            { tag: 'insolvency', module: 'Insolvency & CIRP Management' },
+            { tag: 'legal', module: 'Legal & Court Practice Management' },
+            { tag: 'finance', module: 'Financial & Accounting Management' }
+        ];
+        for (const r of rootDomains) {
+            const instance = new DomainManagerOrchestrator(`@${r.tag}`, r.tag, { alignedModule: r.module });
+            this.managers[r.tag] = instance;
+            this.managers[`@${r.tag}`] = instance;
+        }
+
         const insolvencyManagers = [
             { tag: 'process_mgr', module: 'Process Commencement' },
             { tag: 'claims_mgr', module: 'Claims Management' },

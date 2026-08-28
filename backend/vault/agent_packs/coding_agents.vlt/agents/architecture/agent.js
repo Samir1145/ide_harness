@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const { getChatResponse } = require('../../../../../lib/core/llm-client');
 const RAG = require('../../../../../lib/core/rag');
 
@@ -5,18 +7,15 @@ class ArchitectureAgent {
     constructor() {
         this.name = 'Architecture Agent';
         this.id = 'architecture';
+        const instructionsPath = path.join(__dirname, 'agent.md');
+        this.instructions = fs.readFileSync(instructionsPath, 'utf8');
     }
 
     async run(caseDir, userMessage, history = [], options = {}) {
         const ragResults = await RAG.retrieveContexts(caseDir, userMessage, 5, 'legal');
         const contextText = ragResults.map(r => r.chunk_text).join('\n---\n');
 
-        const systemPrompt = `You are the Architecture & System Design Subagent for HAYAGRIVA. 
-Your objective is to analyze project architecture, component structures, data flow, and design patterns.
-Provide clear, structured architectural analysis using Markdown headers, bullet points, and Mermaid diagrams where applicable.
-
-Context Excerpts:
-${contextText}`;
+        const systemPrompt = `${this.instructions}\n\nContext Excerpts:\n${contextText}`;
 
         const messages = [
             { role: 'system', content: systemPrompt },

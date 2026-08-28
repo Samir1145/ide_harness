@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: MIT
  ********************************************************************************/
 
-import * as React from 'react';
+import type { ReactNode } from 'react';
 import { AboutDialog, AboutDialogProps, ABOUT_CONTENT_CLASS } from '@theia/core/lib/browser/about-dialog';
 import { injectable, inject } from '@theia/core/shared/inversify';
 import { renderDocumentation, renderDownloads, renderProductName, renderSourceCode, renderSupport, renderTickets, renderWhatIs } from './branding-util';
@@ -35,13 +35,13 @@ export class TheiaIDEAboutDialog extends AboutDialog {
         super.doInit();
     }
 
-    protected render(): React.ReactNode {
+    protected render(): ReactNode {
         return <div className={ABOUT_CONTENT_CLASS}>
             {this.renderContent()}
         </div>;
     }
 
-    protected renderContent(): React.ReactNode {
+    protected renderContent(): ReactNode {
         return <div className='ad-container'>
             <div className='ad-float'>
                 <div className='ad-logo'>
@@ -84,14 +84,14 @@ export class TheiaIDEAboutDialog extends AboutDialog {
 
     }
 
-    protected renderTitle(): React.ReactNode {
+    protected renderTitle(): ReactNode {
         return <div className='gs-header'>
             {renderProductName()}
             {this.renderVersion()}
         </div>;
     }
 
-    protected renderVersion(): React.ReactNode {
+    protected renderVersion(): ReactNode {
         return <div>
             <p className='gs-sub-header' >
                 {this.applicationInfo ? 'Version ' + this.applicationInfo.version : '-'}

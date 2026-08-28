@@ -43,6 +43,7 @@ Refer to the following plans saved in the workspace:
 * **Standard Editor APIs:** Do not use Monaco-specific text selection methods like `.getSelectedText()` or `.replaceSelection(...)` on a `TextEditor` instance. Instead, utilize standard Theia APIs:
   * Reading selection: `activeEditor.editor.document.getText(activeEditor.editor.selection)`
   * Replacing selection: `activeEditor.editor.executeEdits([{ range: activeEditor.editor.selection, newText: ... }])`
+* **Theia Coding Guidelines & Code Organization:** Always adhere to [`docs/THEIA_CODING_GUIDELINES.md`](file:///Users/atulgrover/Desktop/haya_pipie/docs/THEIA_CODING_GUIDELINES.md) (Interface + Symbol DI patterns, `undefined` over `null`, explicit return types, `on[Will|Did]VerbNoun` event patterns, namespace-prefixed context keys, and strict multi-target layer boundaries between `common/`, `browser/`, `node/`, and `electron-main/`).
 
 ---
 
@@ -170,3 +171,8 @@ Refer to the following plans saved in the workspace:
 * **Single-Domain Locking & 0-Document Hot-Swapping**:
   * **0-Document Workspace (`documentCount === 0`)**: Domain switching is 100% unlocked; switching domains cleanly prunes old empty taxonomy folders and provisions the new domain's folders.
   * **Active Workspace (`documentCount > 0`)**: Domain switching is strictly locked (`🔒 Domain Locked`) to preserve vector index integrity (`InLegal-SBERT` vs `Finance-Embeddings`) and prevent cross-domain chunk corruption.
+* **Test-First Architecture & Dynamic Auto-Discovery Runner**:
+  * `backend/tests/run_all_tests.js` enforces a **Phase 1 Pre-Flight Integrity Audit** before executing any tests.
+  * Dynamically discovers all `*.test.js` files via `fs.readdirSync`, verifies each exports a valid `run()` contract, and audits system registrations (25 subagents across installed Vault Agent Packs and 3 domain profiles) upfront.
+  * Always update and verify test coverage for new subagents, endpoints, or features *prior* to executing test suites, preventing silent test omissions and stale assertion failures.
+

@@ -1,16 +1,16 @@
 const path = require('path');
 const fs = require('fs');
-const { convertPdfVisually } = require('../lib/utils/multimodal_parser');
+const { convertPdf } = require('../lib/pipeline/pdf/upload');
 
-function run() {
+async function run() {
     console.log('[Multimodal Ingestion & Concept Merging Unit Tests]');
 
-    // 1. Verify Multimodal parser helper exports
-    console.log('  -> Verifying convertPdfVisually helper exports...');
-    if (typeof convertPdfVisually !== 'function') {
-        throw new Error('convertPdfVisually is not exported as a function.');
+    // 1. Verify Local-First PDF conversion helper exports
+    console.log('  -> Verifying convertPdf helper exports...');
+    if (typeof convertPdf !== 'function') {
+        throw new Error('convertPdf is not exported as a function from lib/pipeline/pdf/upload.');
     }
-    console.log('     ✓ convertPdfVisually helper verified.');
+    console.log('     ✓ convertPdf helper verified.');
 
     // 2. Setup mock case concepts structure to test getExistingTopics helper
     console.log('  -> Testing case directory topic resolution scan...');

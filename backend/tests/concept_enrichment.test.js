@@ -2,6 +2,7 @@ const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
 const bm25 = require('../lib/core/bm25');
+const { getConceptsDir } = require('../lib/pipeline/common/helper');
 const { ingestText } = require('../lib/pipeline/common/text_ingest');
 const { parseMarkdownWithFrontmatter } = require('../lib/utils/okf');
 
@@ -25,7 +26,8 @@ The scope of work involves contracting an Insolvency Professional to manage asse
     const filePath = path.join(tempDir, 'services_doc.md');
     fs.writeFileSync(filePath, markdownContent);
 
-    const bm25IndexFile = path.join(tempDir, 'concepts/bm25_index.json');
+    const conceptsDir = getConceptsDir(tempDir);
+    const bm25IndexFile = path.join(conceptsDir, 'bm25_index.json');
     fs.mkdirSync(path.dirname(bm25IndexFile), { recursive: true });
     
     const indexObj = bm25.loadIndex(bm25IndexFile);
@@ -36,7 +38,7 @@ The scope of work involves contracting an Insolvency Professional to manage asse
         await ingestText(tempDir, filePath, indexObj, bm25IndexFile);
 
         // Verification A: Check that the hierarchical card "Scope" contains ancestors
-        const scopeCardPath = path.join(tempDir, 'concepts/services_doc/Scope.md');
+        const scopeCardPath = path.join(conceptsDir, 'services_doc/Scope.md');
         assert.ok(fs.existsSync(scopeCardPath), 'Scope concept card file should be generated');
 
         const scopeContent = fs.readFileSync(scopeCardPath, 'utf8');

@@ -2,17 +2,17 @@ import { injectable } from '@theia/core/shared/inversify';
 
 @injectable()
 export class HayagrivaEditorDecorator {
-  private decorationType: any = null;
+  protected decorationIds: string[] | undefined = undefined;
 
   applyHighlight(editor: any, lineIndex: number): void {
-    const monacoEditor = editor.getControl ? editor.getControl() : null;
+    const monacoEditor = editor && typeof editor.getControl === 'function' ? editor.getControl() : undefined;
     if (!monacoEditor) return;
 
     this.injectStyles();
 
-    if (this.decorationType) {
-      monacoEditor.deltaDecorations(this.decorationType, []);
-      this.decorationType = null;
+    if (this.decorationIds) {
+      monacoEditor.deltaDecorations(this.decorationIds, []);
+      this.decorationIds = undefined;
     }
 
     // Monaco line numbers are 1-indexed, highlight next 20 lines
@@ -34,13 +34,15 @@ export class HayagrivaEditorDecorator {
       }
     ]);
 
-    this.decorationType = newDecorations;
+    this.decorationIds = newDecorations;
 
     // Fades decoration after 5 seconds
     setTimeout(() => {
-      if (this.decorationType) {
-        monacoEditor.deltaDecorations(this.decorationType, []);
-        this.decorationType = null;
+      if (this.decorationIds && monacoEditor && !monacoEditor.isDisposed?.()) {
+        try {
+          monacoEditor.deltaDecorations(this.decorationIds, []);
+        } catch (_) {}
+        this.decorationIds = undefined;
       }
     }, 5000);
   }

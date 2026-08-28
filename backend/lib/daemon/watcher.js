@@ -496,8 +496,35 @@ function createWatcher(caseDir, onChange) {
     return watcher;
 }
 
+const activeCaseWatchers = new Map();
 
-
+function ensureCaseWatcher(caseDir) {
+    if (!caseDir || !fs.existsSync(caseDir)) return null;
+    const resolved = path.resolve(caseDir);
+    if (activeCaseWatchers.has(resolved)) {
+        return activeCaseWatchers.get(resolved);
+    }
+    const BINARY_EXTS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx'];
+    const watcher = createWatcher(resolved, {
+        async onFileChange(filePath) {
+            const ext = path.extname(filePath).toLowerCase();
+            const relative = path.relative(resolved, filePath);
+            if (BINARY_EXTS.includes(ext) || filePath.toLowerCase().endsWith('.wiki.html')) {
+                updateStatus(resolved, relative, 'processing');
+                ingestFile(resolved, filePath, { conversionOnly: true }).catch(err => {
+                    console.error('[Auto-Extract] Phase 1 failed:', err.message);
+                });
+            } else {
+                registerUnprocessedFile(resolved, filePath).catch(err => {
+                    console.error('[Watcher Queue] Failed to register unprocessed file:', err.message);
+                });
+            }
+        }
+    });
+    activeCaseWatchers.set(resolved, watcher);
+    console.log(`[Watcher] Dynamic file watcher attached to: ${resolved}`);
+    return watcher;
+}
 
 async function _ingestFileInternal(caseDir, filePath, opts = {}) {
     // opts.conversionOnly — Phase 1: PDF→.md only, zero index/BM25 writes
@@ -1550,6 +1577,7 @@ async function registerUnprocessedFile(caseDir, filePath) {
 
 module.exports = { 
     createWatcher, 
+    ensureCaseWatcher,
     ingestFile, 
     registerUnprocessedFile,
     startLazyWorker, 

@@ -59,17 +59,8 @@ async function run() {
 
     } finally {
         // Cleanup temporary folders
-        if (fs.existsSync(mockConceptPath)) {
-            fs.unlinkSync(mockConceptPath);
-        }
-        if (fs.existsSync(docConceptsDir)) {
-            fs.rmdirSync(docConceptsDir);
-        }
-        if (fs.existsSync(conceptsDir)) {
-            fs.rmdirSync(conceptsDir);
-        }
         if (fs.existsSync(caseDir)) {
-            fs.rmdirSync(caseDir);
+            fs.rmSync(caseDir, { recursive: true, force: true });
             console.log('  -> Cleaned up mock case directories.');
         }
     }

@@ -439,5 +439,5 @@ async function convertPdfBlock(filePath, startPage, endPage) {
     }
 }
 
-module.exports = { convertPdf, convertPdfBlock };
+module.exports = { convertPdf, convertPdfBlock, joinParagraphs };
 

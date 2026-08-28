@@ -11,6 +11,8 @@ const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fal
 class EntityGraphAgent {
     constructor() {
         this.name = 'EntityGraphAgent';
+        const instructionsPath = path.join(__dirname, 'agent.md');
+        this.instructions = fs.readFileSync(instructionsPath, 'utf8');
     }
 
     async run(caseDir, userMessage, history = []) {

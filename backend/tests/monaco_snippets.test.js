@@ -5,27 +5,37 @@ const fs = require('fs');
 const path = require('path');
 
 function getSnippetFunction() {
-    // Go up two directories from tests/ to reach workspace root, then into the frontend folder
+    // Check monaco-providers.ts first, then fallback to extension.ts
+    const provPath = path.join(__dirname, '../../frontend/theia-extensions/hayagriva/src/browser/monaco-providers.ts');
     const extPath = path.join(__dirname, '../../frontend/theia-extensions/hayagriva/src/browser/extension.ts');
-    const content = fs.readFileSync(extPath, 'utf8');
+    const filePath = fs.existsSync(provPath) ? provPath : extPath;
+    const content = fs.readFileSync(filePath, 'utf8');
     
     // Extract the function body dynamically using regex
     const startIdx = content.indexOf('export function convertToSnippet');
     if (startIdx === -1) {
-        throw new Error('Could not find convertToSnippet in extension.ts');
+        throw new Error('Could not find convertToSnippet in ' + filePath);
     }
     
-    const funcText = content.substring(startIdx);
+    // Extract function body up to the function closing brace
+    const endIdx = content.indexOf('return { snippet', startIdx);
+    if (endIdx === -1) {
+        throw new Error('Could not find function end in ' + filePath);
+    }
+    const returnObjClose = content.indexOf('}', endIdx);
+    const funcClosingBrace = content.indexOf('}', returnObjClose + 1);
+    const funcText = content.substring(startIdx, funcClosingBrace + 1);
     
     // Evaluate the function body inside a sandbox context
     const cleanFunc = funcText
-        .replace('export function convertToSnippet', 'function convertToSnippet')
-        // Remove TypeScript type annotations
-        .replace(/:\s*\{\s*snippet:\s*string,\s*hasSnippets:\s*boolean\s*\}/, '')
-        .replace(/text:\s*string/, 'text');
+        .replace(/export\s+function\s+convertToSnippet\s*\([^)]*\)\s*:\s*\{[^}]*\}\s*\{/, 'function convertToSnippet(text) {');
         
     const fn = new Function(`${cleanFunc}; return convertToSnippet;`)();
     return fn;
+}
+
+if (require.main === module) {
+    run();
 }
 
 async function run() {

@@ -49,7 +49,10 @@ async function run() {
         assert.ok(!fs.existsSync(cachePath), 'Intermediate cache file should be deleted on completion');
 
         // 2. The companion file should have the original content + consolidated pages
-        const finalContent = fs.readFileSync(companionPath, 'utf8');
+        const actualCompanionPath = fs.existsSync(companionPath)
+            ? companionPath
+            : path.join(tempDir, `${path.basename(tempDir)}_conversions_haya`, 'dummy_doc.md');
+        const finalContent = fs.readFileSync(actualCompanionPath, 'utf8');
         console.log('--- Companion Content ---');
         console.log(finalContent.trim());
         console.log('-------------------------');
