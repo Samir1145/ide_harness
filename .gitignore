@@ -53,3 +53,10 @@ drafts/
 **/*.gguf
 backend/models/
 
+# Local backup & archive directories
+frontend/plugins-disabled-backup/
+backend/vault/agent_packs_archive/
+haya_pipie_*
+claims/
+claims_registry.md
+

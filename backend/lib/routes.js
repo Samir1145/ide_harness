@@ -3006,6 +3006,60 @@ module.exports = {
             });
         },
 
+        '/api/hayagriva/export-pdf': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const file = data.file || data.filePath;
+                    if (!file) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Missing file parameter' }));
+                        return;
+                    }
+                    const caseName = data.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const absoluteFile = path.resolve(caseDir, file);
+                    
+                    if (!fs.existsSync(absoluteFile)) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: `File not found: ${file}` }));
+                        return;
+                    }
+                    
+                    const exportsDir = path.join(caseDir, 'exports');
+                    if (!fs.existsSync(exportsDir)) {
+                        fs.mkdirSync(exportsDir, { recursive: true });
+                    }
+
+                    const baseName = path.basename(absoluteFile, path.extname(absoluteFile));
+                    const pdfExportPath = path.join(exportsDir, `${baseName}.pdf`);
+                    const pdfLocalPath = absoluteFile.replace(/\.md$/i, '.pdf');
+
+                    const { exportMarkdownToPdfFile } = require('./core/pdf-exporter');
+                    await exportMarkdownToPdfFile(absoluteFile, pdfExportPath);
+                    if (pdfLocalPath !== pdfExportPath) {
+                        try {
+                            fs.copyFileSync(pdfExportPath, pdfLocalPath);
+                        } catch (_) {}
+                    }
+                    
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ 
+                        success: true, 
+                        pdfPath: path.relative(caseDir, pdfExportPath),
+                        localPdfPath: path.relative(caseDir, pdfLocalPath),
+                        absolutePdfPath: pdfExportPath
+                    }));
+                } catch (e) {
+                    console.error('[API Server] Export to PDF failed:', e.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+        },
+
         '/api/forms/kv-dictionary/update': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);

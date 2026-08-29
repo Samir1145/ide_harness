@@ -1,106 +1,80 @@
-# CIRP-FORM-C
+# FORM C
+### SUBMISSION OF CLAIM BY FINANCIAL CREDITORS
+*(Under Regulation 8 of the Insolvency and Bankruptcy Board of India (Insolvency Resolution Process for Corporate Persons) Regulations, 2016)*
 
-__FORM C__
+**Date:** {{CLAIM_DATE}}
 
-__Submission of Claim by Financial Creditors__
+**To:**  
+The Interim Resolution Professional / Resolution Professional  
+**Name of IRP/RP:** {{IRP_NAME}}  
+**Address:** {{IRP_ADDRESS}}  
+**Email:** {{IRP_EMAIL}}  
 
-*Under Regulation 8 of the IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016*
+**From:**  
+**Financial Creditor:** {{CREDITOR_NAME}}  
+**Registered / Principal Office:** {{CREDITOR_ADDRESS}}  
+**Email for Correspondence:** {{CREDITOR_EMAIL}}  
 
-\[Date\]
+**Subject:** Submission of proof of claim under Regulation 8 of the IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016 in the matter of **{{CORPORATE_DEBTOR_NAME}}** (Corporate Debtor).
 
-From
+---
 
-\[Name and address of the financial creditor, including registered and principal office\]
+### PARTICULARS OF FINANCIAL DEBT
 
-To
+| Sl. No. | Particulars | Details |
+| :---: | :--- | :--- |
+| **1.** | Name of the Financial Creditor | {{CREDITOR_NAME}} |
+| **2.** | Identification number of the Financial Creditor *(CIN / PAN / Registration No.)* | {{CREDITOR_ID_NUMBER}} |
+| **3.** | Address and email address of the Financial Creditor for correspondence | {{CREDITOR_ADDRESS_AND_EMAIL}} |
+| **4.** | Total amount of claim *(including interest accrued up to the Insolvency Commencement Date)* | **₹{{TOTAL_CLAIM_AMOUNT}}**<br>*(Principal: ₹{{PRINCIPAL_AMOUNT}} \| Interest: ₹{{INTEREST_AMOUNT}} \| Penal Charges: ₹{{PENAL_CHARGES}})* |
+| **5.** | Details of claim if made against Corporate Debtor as **Principal Borrower**:<br>(i) Amount of claim<br>(ii) Amount covered by security interest (nature, value, date)<br>(iii) Amount covered by guarantee<br>(iv) Name and address of the guarantor(s) | **Claim Amount:** ₹{{PRINCIPAL_BORROWER_CLAIM}}<br>**Security Interest:** {{SECURITY_DETAILS}}<br>**Guarantee Amount:** ₹{{GUARANTEE_AMOUNT}}<br>**Guarantor Details:** {{GUARANTOR_DETAILS}} |
+| **6.** | Details of claim if made against Corporate Debtor as **Guarantor**:<br>(i) Amount of claim<br>(ii) Amount covered by security interest<br>(iii) Amount covered by guarantee<br>(iv) Name and address of principal borrower | **Guarantor Claim:** ₹{{GUARANTOR_CLAIM}}<br>**Security:** {{GUARANTOR_SECURITY}}<br>**Principal Borrower:** {{PRINCIPAL_BORROWER_NAME_ADDRESS}} |
+| **7.** | Details of claim in respect of financial debt covered under clauses (h) and (i) of Section 5(8) | {{SEC_5_8_DETAILS}} |
+| **8.** | Details of how and when debt incurred *(Sanction Date, Loan Agreement Date, Disbursement Details, Interest Rate %)* | {{DEBT_INCURRED_DETAILS}} |
+| **9.** | Details of any mutual credit, mutual debts, or other mutual dealings which may be set-off against the claim | {{MUTUAL_DEALINGS_SETOFF}} |
+| **10.** | Details of the bank account to which the claim amount can be transferred pursuant to a resolution plan | **Bank Name:** {{BANK_NAME}}<br>**Account No:** {{BANK_ACCOUNT_NO}}<br>**IFSC Code:** {{BANK_IFSC}}<br>**Branch:** {{BANK_BRANCH}} |
+| **11.** | List of documents attached to prove the existence and non-payment of the financial debt *(Sanction Letter, Facility Agreement, ROC Charge CHG-1, Bank Statement/CIBIL/NeSL)* | {{ATTACHED_DOCUMENTS_LIST}} |
 
-The Interim Resolution Professional / Resolution Professional
+---
 
-\[Name of the IRP / RP\]
+### SIGNATURE OF FINANCIAL CREDITOR / AUTHORISED SIGNATORY
 
-\[Address as set out in public announcement\]
+**Signature:** ________________________________________  
+**Name (in BLOCK LETTERS):** {{SIGNATORY_NAME}}  
+**Position / Designation:** {{SIGNATORY_DESIGNATION}}  
+**Address of Signatory:** {{SIGNATORY_ADDRESS}}  
 
-__Subject: Submission of proof of claim.__
+*(Enclose Power of Attorney / Board Resolution / Authorisation Letter)*
 
-\[Name of the financial creditor\] hereby submits this claim in respect of the CIRP of \[name of corporate debtor\]. The details are set out below:
+---
 
-__Particulars__
+### DECLARATION
 
+I, **{{DECLARANT_NAME}}**, currently residing at **{{DECLARANT_ADDRESS}}**, do hereby declare and state as follows:
 
-__Particulars__
+1. **{{CORPORATE_DEBTOR_NAME}}**, the Corporate Debtor was, at the Insolvency Commencement Date, being the **{{ICD_DATE}}**, actually indebted to the Financial Creditor in the sum of **₹{{TOTAL_CLAIM_AMOUNT}}** (*Rupees {{TOTAL_CLAIM_AMOUNT_WORDS}}*).
+2. In respect of the claim of the said sum or any part thereof, I / the Financial Creditor have relied on the documents specified below:
+{{ANNEXURE_LIST}}
+3. The said documents are true, valid, and genuine to the best of my knowledge, information, and belief, and no material facts have been concealed therefrom.
+4. In respect of the said sum or any part thereof, neither I nor any person, by my order, to my knowledge or belief, for my use, had or received any manner of satisfaction or security whatsoever, save and except the following:
+{{SETOFF_EXCEPTIONS}}
+5. I undertake to update the claim as and when the claim is satisfied, partly or fully, from any source in any manner, after the Insolvency Commencement Date.
+6. **Related Party Statement:** The Financial Creditor **{{IS_RELATED_PARTY_TEXT}}** a related party of the Corporate Debtor, as defined under Section 5(24) of the Insolvency and Bankruptcy Code, 2016.
+7. **CoC Eligibility:** The Financial Creditor **{{IS_COC_ELIGIBLE_TEXT}}** eligible to join the Committee of Creditors (CoC) and cast voting share.
 
+**Date:** {{SIGN_DATE}}  
+**Place:** {{SIGN_PLACE}}  
 
-| Sl. | Particulars | Details |
-|---|---|---|
-| 1 |  | {{ DETAILS }} |
-Name of the financial creditor
+________________________________________  
+*(Signature of the Financial Creditor / Deponent)*
 
-2.
+---
 
-Identification number of the financial creditor (proof of incorporation / identification records\* as applicable)
+### VERIFICATION
 
-3.
+I, **{{VERIFIER_NAME}}**, the claimant / authorised representative hereinabove, do hereby verify that the contents of this proof of claim (Clauses 1 to 11 and Declaration) are true and correct to my knowledge and belief, and no material fact has been concealed therefrom.
 
-Address and email address of the financial creditor for correspondence
+Verified at **{{VERIFICATION_PLACE}}** on this **{{VERIFICATION_DAY}}** day of **{{VERIFICATION_MONTH}}**, **{{VERIFICATION_YEAR}}**.
 
-4.
-
-Details of claim, if made against corporate debtor as principal borrower: (i) amount of claim; (ii) amount covered by security interest (details, value, date); (iii) amount covered by guarantee (details, value, date); (iv) name and address of the guarantor(s)
-
-5.
-
-Details of claim, if made against corporate debtor as guarantor: (i) amount; (ii) amount covered by security interest; (iii) amount covered by guarantee; (iv) name and address of the principal borrower
-
-6.
-
-Details of claim in respect of financial debt covered under clauses (h) and (i) of section 5(8): (i) amount; (ii) name and address of the beneficiary
-
-7.
-
-Details of how and when debt incurred
-
-8.
-
-Details of any mutual credit, mutual debts, or other mutual dealings which may be set-off against the claim
-
-9.
-
-Details of the bank account to which the claim amount can be transferred pursuant to a resolution plan
-
-Signature of the creditor or person authorised to act on his / its behalf
-
-*\[Please enclose the authority if this is being submitted on behalf of the creditor\]*
-
-Name in BLOCK LETTERS : _______________________
-
-Position with or in relation to creditor : _______________________
-
-Address of person signing : _______________________
-
-__DECLARATION__
-
-I, \[Name of claimant\], currently residing at \[insert address\], do hereby declare and state as follows:
-
-1. \[Name of corporate debtor\], the corporate debtor was, at the insolvency commencement date, being the …… day of …… 20…, actually indebted to me in the sum of Rs. \[insert amount of claim\].
-
-2. In respect of my claim of the said sum or any part thereof, I have relied on the documents specified below: \[please list the documents relied on as evidence of claim\].
-
-3. The said documents are true, valid and genuine to the best of my knowledge, information and belief and no material facts have been concealed therefrom.
-
-4. In respect of the said sum or any part thereof, neither I nor any person, by my order, to my knowledge or belief, for my use, had or received any manner of satisfaction or security whatsoever, save and except the following: \[state details of any mutual credit, mutual debts or other mutual dealings that may be set-off against the claim\].
-
-5. I undertake to update my claim as and when the claim is satisfied, partly or fully, from any source in any manner, after the insolvency commencement date.
-
-6. I am / I am not a related party of the corporate debtor, as defined under section 5(24) of the Code.
-
-7. I am eligible to join the committee of creditors by virtue of the proviso to section 21(2) of the Code even though I am a related party.
-
-Date: _____________     Place: _____________                         (Signature of the claimant)
-
-__VERIFICATION__
-
-I, \[Name\], the claimant hereinabove, verify that the contents of this proof of claim are true and correct to my knowledge and belief and no material fact has been concealed therefrom.
-
-Verified at …… on this …… day of ………, 20…                         (Signature of the claimant)
-
-*Note: In the case of a company or LLP, the declaration and verification shall be made by the director / manager / secretary / designated partner; for other entities, by an authorised officer.*
+________________________________________  
+*(Signature of the Financial Creditor / Deponent)*

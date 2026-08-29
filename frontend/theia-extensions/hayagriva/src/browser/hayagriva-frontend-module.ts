@@ -19,6 +19,8 @@ import {
   FormsChatAgent,
   DocumentChatAgent,
   ClaimsVerificationChatAgent,
+  ClaimPreparationChatAgent,
+  ClaimVerificationChatAgent,
   ImCompilerChatAgent,
   ResolutionPlanEvaluatorChatAgent,
   AvoidanceScannerChatAgent,
@@ -43,7 +45,15 @@ import { HayagrivaVariableContribution } from './hayagriva-variables';
 import { AIVariableContribution } from '@theia/ai-core';
 import { HayagrivaContextChipsContribution } from './hayagriva-context-chips';
 
-export default new ContainerModule((bind) => {
+import {
+  ChatAgentService,
+  ChatAgentServiceImpl,
+  DefaultChatAgentId,
+  FallbackChatAgentId
+} from '@theia/ai-chat/lib/common/chat-agent-service';
+import { HayagrivaChatAgentServiceImpl } from './chat-agent-service';
+
+export default new ContainerModule((bind, unbind, isBound, rebind) => {
   // Bind preference contribution
   bind(PreferenceContribution).toConstantValue({ schema: hayagrivaPreferenceSchema });
   
@@ -76,10 +86,28 @@ export default new ContainerModule((bind) => {
   bind(ChatAgent).to(FormsChatAgent).inSingletonScope();
   bind(ChatAgent).to(DocumentChatAgent).inSingletonScope();
   bind(ChatAgent).to(ClaimsVerificationChatAgent).inSingletonScope();
+  bind(ChatAgent).to(ClaimPreparationChatAgent).inSingletonScope();
+  bind(ChatAgent).to(ClaimVerificationChatAgent).inSingletonScope();
   bind(ChatAgent).to(ImCompilerChatAgent).inSingletonScope();
   bind(ChatAgent).to(ResolutionPlanEvaluatorChatAgent).inSingletonScope();
   bind(ChatAgent).to(AvoidanceScannerChatAgent).inSingletonScope();
   bind(ChatAgent).to(LitigationTrackerChatAgent).inSingletonScope();
+
+  // Enforce HayagrivaChatAgentService (purges all non-legal/developer agents from UI)
+  rebind(ChatAgentServiceImpl).to(HayagrivaChatAgentServiceImpl).inSingletonScope();
+  rebind(ChatAgentService).toService(ChatAgentServiceImpl);
+
+  // Set default & fallback chat agent to @advisor (Legal Strategy Advisor)
+  if (isBound(DefaultChatAgentId)) {
+    rebind(DefaultChatAgentId).toConstantValue({ id: 'hayagriva-advisor' });
+  } else {
+    bind(DefaultChatAgentId).toConstantValue({ id: 'hayagriva-advisor' });
+  }
+  if (isBound(FallbackChatAgentId)) {
+    rebind(FallbackChatAgentId).toConstantValue({ id: 'hayagriva-advisor' });
+  } else {
+    bind(FallbackChatAgentId).toConstantValue({ id: 'hayagriva-advisor' });
+  }
 
   // Bind AI Configuration Categories (Forward-compatible for Theia AI Config View)
   bind(HayagrivaEngineCategoryContribution).toSelf().inSingletonScope();

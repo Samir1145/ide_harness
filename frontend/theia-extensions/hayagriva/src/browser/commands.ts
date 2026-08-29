@@ -1080,6 +1080,47 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:exportCourtPdf`, label: 'Export to Court PDF & Preview' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected for PDF export');
+            return;
+          }
+          const filePath = resourceUri.path.toString();
+          const caseName = this.getCasePath();
+
+          try {
+            const apiPort = this.contribution.getApiPort();
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/export-pdf`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: filePath })
+            });
+            const result = await res.json();
+            if (result.success && result.absolutePdfPath) {
+              this.logger.info(`[HAYAGRIVA] Successfully exported to Court PDF: ${result.pdfPath}`);
+              await this.treeDecorator.refreshStatuses();
+              // Open generated PDF in live preview tab
+              await this.contribution.openOfficePreview(result.absolutePdfPath, caseName);
+            } else {
+              alert(result.error || 'PDF Export failed');
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] PDF export failed: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          return resolved.path.toString().toLowerCase().endsWith('.md');
+        },
+        isVisible: () => true
+      }
+    );
+
+    registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:viewSlashCommandsCheatSheet`, label: 'Hayagriva: View Slash Commands Reference' },
       {
         execute: async () => {

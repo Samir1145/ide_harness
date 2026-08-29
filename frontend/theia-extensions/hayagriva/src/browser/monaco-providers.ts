@@ -4,7 +4,15 @@ import { PreferenceService } from '@theia/core/lib/common';
 import { ILogger } from '@theia/core/lib/common/logger';
 import { HayagrivaLspClient } from './lsp-client';
 
-declare const monaco: any;
+function getMonaco(): any {
+  if (typeof window !== 'undefined' && (window as any).monaco) {
+    return (window as any).monaco;
+  }
+  if (typeof globalThis !== 'undefined' && (globalThis as any).monaco) {
+    return (globalThis as any).monaco;
+  }
+  return undefined;
+}
 
 const HAYAGRIVA_NS = 'hayagriva';
 
@@ -35,6 +43,7 @@ export class HayagrivaMonacoProviders {
   // ─── 1. Citation Link Provider ─────────────────────────────────────────────
   registerLinkProvider(): void {
     const checkMonaco = () => {
+      const monaco = getMonaco();
       if (monaco && monaco.languages && monaco.languages.registerLinkProvider) {
         monaco.languages.registerLinkProvider('markdown', {
           provideLinks: (model: any) => {
@@ -98,6 +107,7 @@ export class HayagrivaMonacoProviders {
     };
 
     const checkMonaco = () => {
+      const monaco = getMonaco();
       if (!monaco || !monaco.languages || !monaco.languages.registerCompletionItemProvider) {
         setTimeout(checkMonaco, 300);
         return;
@@ -274,6 +284,18 @@ export class HayagrivaMonacoProviders {
                     detail: 'Court Layout Formatted DOCX Compiler',
                     command: {
                       id: `${HAYAGRIVA_NS}:exportScDocx`,
+                      arguments: [model.uri]
+                    }
+                  },
+                  {
+                    label: '/export-pdf - Export to Court PDF & Open Preview',
+                    filterText: '/export-pdf',
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: '',
+                    range: replaceRange,
+                    detail: 'Court & IBBI Formatted PDF Compiler with Live Preview',
+                    command: {
+                      id: `${HAYAGRIVA_NS}:exportCourtPdf`,
                       arguments: [model.uri]
                     }
                   }
@@ -469,6 +491,7 @@ export class HayagrivaMonacoProviders {
   // ─── 3. Law Hover Preview Provider ────────────────────────────────────────
   registerLawHoverProvider(): void {
     const checkMonacoHover = () => {
+      const monaco = getMonaco();
       if (!monaco || !monaco.languages || !monaco.languages.registerHoverProvider) {
         setTimeout(checkMonacoHover, 300);
         return;

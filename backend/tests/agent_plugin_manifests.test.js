@@ -7,7 +7,7 @@ async function run() {
     console.log('[Theia Agent Plugin Manifests Unit Tests]');
 
     const packsDir = path.join(__dirname, '..', 'vault', 'agent_packs');
-    const expectedPacks = ['legal_agents.vlt', 'coding_agents.vlt'];
+    const expectedPacks = ['legal_agents.vlt'];
 
     // 1. Verify plugin.json exists and adheres to Theia Agent Plugin standard in each pack
     console.log('  -> Verifying plugin.json compliance across all Agent Packs...');
@@ -49,10 +49,10 @@ async function run() {
     // 2. Verify AgentCoordinator correctly loaded all agents from plugin.json
     console.log('  -> Verifying AgentCoordinator discovery integration...');
     const registeredTags = Object.keys(coordinator.vaultAgents);
-    assert.ok(registeredTags.length >= 25, `Expected at least 25 registered agents, found ${registeredTags.length}`);
+    assert.ok(registeredTags.length >= 20, `Expected at least 20 registered agents, found ${registeredTags.length}`);
     
     // Check specific subagents
-    const sampleAgents = ['advisor', 'document', 'coc', 'evaluator', 'architecture', 'debugger'];
+    const sampleAgents = ['advisor', 'document', 'coc', 'evaluator', 'claims', 'nclt', 'avoidance'];
     for (const tag of sampleAgents) {
         assert.ok(coordinator.vaultAgents[tag], `Agent @${tag} should be registered in coordinator`);
     }

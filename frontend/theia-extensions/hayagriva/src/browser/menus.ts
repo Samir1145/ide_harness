@@ -59,9 +59,15 @@ export class HayagrivaMenuContribution implements MenuContribution {
     });
 
     registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:exportCourtPdf`,
+      label: 'Export to Court PDF & Preview',
+      order: '6'
+    });
+
+    registry.registerMenuAction(['editor_context_menu'], {
       commandId: `${HAYAGRIVA_NS}:exportScDocx`,
       label: 'Export to SC DOCX',
-      order: '6'
+      order: '7'
     });
 
     // Navigator (File Explorer) right click sibling submenus
@@ -97,15 +103,21 @@ export class HayagrivaMenuContribution implements MenuContribution {
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:exportScDocx`,
-      label: '5. Export to SC DOCX',
+      commandId: `${HAYAGRIVA_NS}:exportCourtPdf`,
+      label: '5. Export to Court PDF & Preview',
       order: '5'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:exportChunksToTiddlyWiki`,
-      label: '6. Export Chunks to TiddlyWiki',
+      commandId: `${HAYAGRIVA_NS}:exportScDocx`,
+      label: '6. Export to SC DOCX',
       order: '6'
+    });
+
+    registry.registerMenuAction(PIPELINE_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:exportChunksToTiddlyWiki`,
+      label: '7. Export Chunks to TiddlyWiki',
+      order: '7'
     });
 
     // Archive Submenu actions

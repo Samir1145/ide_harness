@@ -16,10 +16,14 @@ pkill -f "node cli.js" 2>/dev/null || true
 pkill -f "theia start" 2>/dev/null || true
 pkill -f "theia build" 2>/dev/null || true
 
-# Find and kill Hayagriva Electron processes
+# Find and kill Hayagriva Electron processes & workers
 pkill -f "electron scripts/theia-electron-main.js" 2>/dev/null || true
 pkill -f "theia-ide-electron" 2>/dev/null || true
 pkill -f "Electron Framework" 2>/dev/null || true
+pkill -f "Electron Helper" 2>/dev/null || true
+pkill -f "plugin-host" 2>/dev/null || true
+pkill -f "ipc-bootstrap" 2>/dev/null || true
+pkill -f "monitor_backend_health" 2>/dev/null || true
 
 # Also kill anything listening on the primary ports:
 # 3210 (Hayagriva proxy), 3000 (Theia Browser backend), 8080 (wiki), 9222 (CDP Debugging), 8090/8091 (Llamafiles)

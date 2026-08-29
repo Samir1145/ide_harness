@@ -37,6 +37,16 @@ class AgentCoordinator {
                                     instance.getPromptForCase = (caseDir, variant = 'default') => resolveAgentPrompt(instance, caseDir, variant);
                                     const tag = (agentDef.tag || agentDef.id).toLowerCase();
                                     this.vaultAgents[tag] = instance;
+                                    this.vaultAgents[tag.replace(/_/g, '-')] = instance;
+                                    this.vaultAgents[tag.replace(/-/g, '_')] = instance;
+                                    if (Array.isArray(agentDef.aliases)) {
+                                        for (const alias of agentDef.aliases) {
+                                            const cleanAlias = alias.toLowerCase();
+                                            this.vaultAgents[cleanAlias] = instance;
+                                            this.vaultAgents[cleanAlias.replace(/_/g, '-')] = instance;
+                                            this.vaultAgents[cleanAlias.replace(/-/g, '_')] = instance;
+                                        }
+                                    }
                                     console.log(`[AgentCoordinator] Loaded Vault Agent: @${tag} (${manifest.id || manifest.packId})`);
                                 }
                             }
@@ -160,5 +170,7 @@ Prompt: "${message}"`;
     }
 }
 
-module.exports = new AgentCoordinator();
+const coordinatorInstance = new AgentCoordinator();
+coordinatorInstance.AgentCoordinator = AgentCoordinator;
+module.exports = coordinatorInstance;
 

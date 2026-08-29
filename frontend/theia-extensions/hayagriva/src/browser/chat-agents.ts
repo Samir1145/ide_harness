@@ -7,6 +7,7 @@ import { ILogger } from '@theia/core/lib/common/logger';
 import URI from '@theia/core/lib/common/uri';
 import { LanguageModelRequirement, AgentSpecificVariables, PromptVariantSet } from '@theia/ai-core';
 import { OutputChannelManager } from '@theia/output/lib/browser/output-channel';
+import { EditorManager } from '@theia/editor/lib/browser';
 
 @injectable()
 export abstract class BaseHayagrivaChatAgent implements ChatAgent {
@@ -32,6 +33,7 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
     @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
     @inject(PreferenceService) protected readonly preferenceService: PreferenceService,
     @inject(ILogger) protected readonly logger: ILogger,
+    @inject(EditorManager) @optional() protected readonly editorManager?: EditorManager,
     @inject(OutputChannelManager) @optional() protected readonly outputChannelManager?: OutputChannelManager
   ) {}
 
@@ -114,6 +116,23 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
       }
       
       request.response.response.addContent(new MarkdownChatResponseContentImpl(responseText));
+
+      // Auto-Open generated claim drafts / verification reports in Monaco Editor (Middle Panel)
+      if (this.editorManager && currentCase) {
+        const draftMatch = responseText.match(/(?:drafts|claims)[\/\\][a-zA-Z0-9_.\-]+\.md/i);
+        if (draftMatch) {
+          try {
+            const relPath = draftMatch[0].replace(/\\/g, '/');
+            const cleanCase = currentCase.replace(/\/+$/, '');
+            const targetUri = new URI(`file://${cleanCase}/${relPath}`);
+            setTimeout(() => {
+              this.editorManager?.open(targetUri);
+            }, 150);
+          } catch (e: any) {
+            this.logger.warn(`[HAYAGRIVA] Auto-open draft error: ${e ? e.message : e}`);
+          }
+        }
+      }
     } catch (err: any) {
       request.response.response.addContent(new ErrorChatResponseContentImpl(err));
     } finally {
@@ -354,3 +373,63 @@ export class LitigationTrackerChatAgent extends BaseHayagrivaChatAgent {
     }
   ];
 }
+
+@injectable()
+export class ClaimPreparationChatAgent extends BaseHayagrivaChatAgent {
+  readonly id = 'Claim_Preparation';
+  readonly name = 'Claim-Prep';
+  readonly description = 'Draft statutory IBBI claim forms (Form B, C, CA, D, F). Commands: /draft-form-b, /draft-form-c, /draft-form-ca, /draft-form-d, /draft-form-f';
+  readonly iconClass = 'codicon codicon-file-text';
+  override readonly tags = ['claims', 'form-b', 'form-c', 'form-ca', 'form-d', 'form-f', 'drafting', 'cirp'];
+  override readonly modes: ChatMode[] = [
+    { id: 'draft', name: 'Draft Form', isDefault: true },
+    { id: 'financial', name: 'Form C (Financial)' },
+    { id: 'operational', name: 'Form B (Operational)' },
+    { id: 'class', name: 'Form CA (Class / Allottee)' }
+  ];
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'claim-prep-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Claim Preparation Agent. Extract creditor debts and compile statutory IBBI CIRP claim forms (Form B, C, CA, D, F).'
+      },
+      variants: [
+        {
+          id: 'strict-interest',
+          template: 'You are HAYAGRIVA Claim Preparation Agent. Calculate contractual interest strictly up to the Insolvency Commencement Date.'
+        }
+      ]
+    }
+  ];
+}
+
+@injectable()
+export class ClaimVerificationChatAgent extends BaseHayagrivaChatAgent {
+  readonly id = 'Claim_Verification';
+  readonly name = 'Claim-Verify';
+  readonly description = 'Statutory RP claim audit, limitation check, and voting share calculation. Commands: /verify-claim, /voting-share';
+  readonly iconClass = 'codicon codicon-verified';
+  override readonly tags = ['claims', 'audit', 'verification', 'limitation', 'voting-share', 'cirp'];
+  override readonly modes: ChatMode[] = [
+    { id: 'audit', name: 'Statutory Audit', isDefault: true },
+    { id: 'voting', name: 'Voting Share & CoC' }
+  ];
+  override readonly requiresLargeModel = true;
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'claim-verify-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Claim Verification Agent. Audit claims against limitation, interest contractual basis, security registration, and Section 5(24) related-party rules.'
+      },
+      variants: [
+        {
+          id: 'limitation-focus',
+          template: 'You are HAYAGRIVA Claim Verification Agent. Conduct deep scrutiny of Section 238A limitation periods and Section 18 balance sheet acknowledgments.'
+        }
+      ]
+    }
+  ];
+}
+

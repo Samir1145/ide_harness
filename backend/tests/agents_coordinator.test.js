@@ -11,12 +11,11 @@ async function run() {
     console.log(`     Discovered ${registeredTags.length} registered Vault agents: [${registeredTags.join(', ')}]`);
 
     const expectedAgents = [
-        // Legal Pack (21)
+        // Legal & Insolvency Domain Pack
         'advisor', 'document', 'forms', 'claims', 'avoidance', 'nclt', 'im', 'plan',
         'litigation', 'timeline', 'precedent', 'strength', 'entitygraph', 'order',
         'counter', 'compliance', 'witness', 'deposition', 'clientupdate', 'coc', 'evaluator',
-        // Coding Pack (4)
-        'architecture', 'debugger', 'codewriter', 'reviewer'
+        'claim_preparation', 'claim_verification'
     ];
 
     for (const tag of expectedAgents) {

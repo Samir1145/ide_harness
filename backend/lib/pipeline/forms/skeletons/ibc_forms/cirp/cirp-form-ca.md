@@ -1,112 +1,77 @@
-# CIRP-FORM-CA
+# FORM CA
+### SUBMISSION OF CLAIM BY FINANCIAL CREDITORS IN A CLASS
+*(Under Regulation 8A of the Insolvency and Bankruptcy Board of India (Insolvency Resolution Process for Corporate Persons) Regulations, 2016)*
 
-__FORM CA__
+**Date:** {{CLAIM_DATE}}
 
-__Submission of Claim by Financial Creditors in a Class__
+**To:**  
+The Interim Resolution Professional / Resolution Professional  
+**Name of IRP/RP:** {{IRP_NAME}}  
+**Address:** {{IRP_ADDRESS}}  
+**Email:** {{IRP_EMAIL}}  
 
-*Under Regulation 8A of the IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016*
+**From:**  
+**Financial Creditor in a Class (Allottee / Creditor):** {{CREDITOR_NAME}}  
+**Address:** {{CREDITOR_ADDRESS}}  
+**Email for Correspondence:** {{CREDITOR_EMAIL}}  
 
-\[Date\]
+**Subject:** Submission of proof of claim under Regulation 8A of the IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016 in the matter of **{{CORPORATE_DEBTOR_NAME}}** (Corporate Debtor).
 
-From
+---
 
-\[Name and address of the financial creditor, including registered and principal office\]
+### PARTICULARS OF CLAIM (CLASS CREDITORS / REAL ESTATE ALLOTTEES)
 
-To
+| Sl. No. | Particulars | Details |
+| :---: | :--- | :--- |
+| **1.** | Name of the Financial Creditor | {{CREDITOR_NAME}} |
+| **2.** | Identification number of Financial Creditor *(PAN / Aadhaar / Passport / Voter ID)* | {{CREDITOR_ID_NUMBER}} |
+| **3.** | Address and email address of Financial Creditor for correspondence | {{CREDITOR_ADDRESS_AND_EMAIL}} |
+| **4.** | Total amount of claim *(including interest / assured returns as at the Insolvency Commencement Date)* | **₹{{TOTAL_CLAIM_AMOUNT}}**<br>*(Principal Paid: ₹{{PRINCIPAL_AMOUNT}} \| Interest/Compensation: ₹{{INTEREST_AMOUNT}})* |
+| **5.** | Details of documents by reference to which the debt can be substantiated *(Allotment Letter, Builder Buyer Agreement, Receipts, Bank Statement)* | {{SUBSTANTIATING_DOCUMENTS}} |
+| **6.** | Details of unit/property booked *(Unit No., Project Name, Tower/Floor, Super Area, Basic Sale Price)* | **Unit/Flat No:** {{UNIT_NUMBER}}<br>**Project:** {{PROJECT_NAME}}<br>**Tower/Block:** {{TOWER_BLOCK}} |
+| **7.** | Details of how and when debt incurred *(Booking Date, Agreement Date, Payment Milestone Schedule)* | {{DEBT_INCURRED_DETAILS}} |
+| **8.** | Details of any mutual credit, mutual debts, or other mutual dealings which may be set-off against the claim | {{MUTUAL_DEALINGS_SETOFF}} |
+| **9.** | Details of any security held, its value, and the date it was given | {{SECURITY_DETAILS}} |
+| **10.** | Details of the bank account to which the claim amount can be transferred pursuant to a resolution plan | **Bank Name:** {{BANK_NAME}}<br>**Account No:** {{BANK_ACCOUNT_NO}}<br>**IFSC Code:** {{BANK_IFSC}}<br>**Branch:** {{BANK_BRANCH}} |
+| **11.** | List of documents attached to prove the existence and non-payment of the claim | {{ATTACHED_DOCUMENTS_LIST}} |
+| **12.** | Name of the Insolvency Professional selected to act as the **Authorised Representative (AR)** of the class of creditors | **Name of AR Selected:** {{AUTHORISED_REPRESENTATIVE_NAME}} |
 
-The Interim Resolution Professional / Resolution Professional
+---
 
-\[Name of the IRP / RP\]
+### SIGNATURE OF FINANCIAL CREDITOR / AUTHORISED PERSON
 
-\[Address as set out in public announcement\]
+**Signature:** ________________________________________  
+**Name (in BLOCK LETTERS):** {{SIGNATORY_NAME}}  
+**Address of Signatory:** {{SIGNATORY_ADDRESS}}  
 
-__Subject: Submission of proof of claim.__
+---
 
-\[Name of the financial creditor\] hereby submits this claim in respect of the CIRP of \[name of corporate debtor\]. The details are set out below:
+### DECLARATION
 
-__Particulars__
+I, **{{DECLARANT_NAME}}**, currently residing at **{{DECLARANT_ADDRESS}}**, do hereby declare and state as follows:
 
+1. **{{CORPORATE_DEBTOR_NAME}}**, the Corporate Debtor was, at the Insolvency Commencement Date, being the **{{ICD_DATE}}**, actually indebted to me in the sum of **₹{{TOTAL_CLAIM_AMOUNT}}** (*Rupees {{TOTAL_CLAIM_AMOUNT_WORDS}}*).
+2. In respect of my claim of the said sum or any part thereof, I have relied on the documents specified below:
+{{ANNEXURE_LIST}}
+3. The said documents are true, valid, and genuine to the best of my knowledge, information, and belief, and no material facts have been concealed therefrom.
+4. In respect of the said sum or any part thereof, neither I nor any person, by my order, to my knowledge or belief, for my use, had or received any manner of satisfaction or security whatsoever, save and except the following:
+{{SETOFF_EXCEPTIONS}}
+5. **Related Party Statement:** I **{{IS_RELATED_PARTY_TEXT}}** a related party of the Corporate Debtor, as defined under Section 5(24) of the Code.
+6. **Authorised Representative Voting:** I hereby cast my preference for **{{AUTHORISED_REPRESENTATIVE_NAME}}** to act as the Authorised Representative for our class in the Committee of Creditors.
 
-__Particulars__
+**Date:** {{SIGN_DATE}}  
+**Place:** {{SIGN_PLACE}}  
 
+________________________________________  
+*(Signature of the Claimant / Deponent)*
 
-| Sl. | Particulars | Details |
-|---|---|---|
-| 1 |  | {{ DETAILS }} |
-Name of the financial creditor
+---
 
-2.
+### VERIFICATION
 
-Identification number of the financial creditor (proof of incorporation / identification records as applicable)
+I, **{{VERIFIER_NAME}}**, the claimant hereinabove, do hereby verify that the contents of this proof of claim (Clauses 1 to 12 and Declaration) are true and correct to my knowledge and belief, and no material fact has been concealed therefrom.
 
-3.
+Verified at **{{VERIFICATION_PLACE}}** on this **{{VERIFICATION_DAY}}** day of **{{VERIFICATION_MONTH}}**, **{{VERIFICATION_YEAR}}**.
 
-Address and e-mail address of the financial creditor for correspondence
-
-4.
-
-Total amount of claim (in Rs.)
-
-5.
-
-Details of documents by reference to which the debt can be substantiated
-
-6.
-
-Details of how and when debt incurred
-
-7.
-
-Details of any mutual credit, mutual debts, or other mutual dealings which may be set-off against the claim
-
-8.
-
-Details of any security held, its value, and the date it was given
-
-9.
-
-Details of the bank account to which the claim amount can be transferred pursuant to a resolution plan
-
-10.
-
-List of documents attached to prove the existence and non-payment of the claim
-
-11.
-
-Name of the insolvency professional who will act as the Authorised Representative of creditors of the class
-
-Signature of the creditor or person authorised to act on his / its behalf
-
-*\[Please enclose the authority if this is being submitted on behalf of the creditor\]*
-
-Name in BLOCK LETTERS : _______________________
-
-Position with or in relation to creditor : _______________________
-
-Address of person signing : _______________________
-
-__DECLARATION__
-
-I, \[Name of claimant\], currently residing at \[insert address\], do hereby declare and state as follows:
-
-1. \[Name of corporate debtor\], the corporate debtor was, at the insolvency commencement date, being the …… day of …… 20…, actually indebted to me in the sum of Rs. \[insert amount of claim\].
-
-2. In respect of my claim of the said sum or any part thereof, I have relied on the documents specified below: \[please list the documents relied on as evidence of claim\].
-
-3. The said documents are true, valid and genuine to the best of my knowledge, information and belief and no material facts have been concealed therefrom.
-
-4. In respect of the said sum or any part thereof, neither I nor any person, by my order, to my knowledge or belief, for my use, had or received any manner of satisfaction or security whatsoever, save and except the following: \[state details of any mutual credit, mutual debts or other mutual dealings that may be set-off against the claim\].
-
-5. I am / I am not a related party of the corporate debtor, as defined under section 5(24) of the Code.
-
-6. I am eligible to give voting instruction to the authorised representative by virtue of the proviso to section 21(2) even though I am a related party.
-
-Date: _____________     Place: _____________                         (Signature of the claimant)
-
-__VERIFICATION__
-
-I, \[Name\], the claimant hereinabove, verify that the contents of this proof of claim are true and correct to my knowledge and belief and no material fact has been concealed therefrom.
-
-Verified at …… on this …… day of ………, 20…                         (Signature of the claimant)
-
-*Note: In the case of a company or LLP, the declaration and verification shall be made by the director / manager / secretary / designated partner; for other entities, by an authorised officer.*
+________________________________________  
+*(Signature of the Claimant / Deponent)*

@@ -1,108 +1,77 @@
-# CIRP-FORM-B
+# FORM B
+### PROOF OF CLAIM BY OPERATIONAL CREDITORS EXCEPT WORKMEN AND EMPLOYEES
+*(Under Regulation 7 of the Insolvency and Bankruptcy Board of India (Insolvency Resolution Process for Corporate Persons) Regulations, 2016)*
 
-__FORM B__
+**Date:** {{CLAIM_DATE}}
 
-__Proof of Claim by Operational Creditors except Workmen and Employees__
+**To:**  
+The Interim Resolution Professional / Resolution Professional  
+**Name of IRP/RP:** {{IRP_NAME}}  
+**Address:** {{IRP_ADDRESS}}  
+**Email:** {{IRP_EMAIL}}  
 
-*Under Regulation 7 of the IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016*
+**From:**  
+**Operational Creditor:** {{CREDITOR_NAME}}  
+**Registered / Principal Address:** {{CREDITOR_ADDRESS}}  
+**Email for Correspondence:** {{CREDITOR_EMAIL}}  
 
-\[Date\]
+**Subject:** Submission of proof of claim under Regulation 7 of the IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016 in the matter of **{{CORPORATE_DEBTOR_NAME}}** (Corporate Debtor).
 
-To
+---
 
-The Interim Resolution Professional / Resolution Professional
+### PARTICULARS OF CLAIM
 
-\[Name of the IRP / RP\]
+| Sl. No. | Particulars | Details |
+| :---: | :--- | :--- |
+| **1.** | Name of Operational Creditor | {{CREDITOR_NAME}} |
+| **2.** | Identification number of Operational Creditor *(CIN / PAN / Passport / Aadhaar / Registration No.)* | {{CREDITOR_ID_NUMBER}} |
+| **3.** | Address and email address of Operational Creditor for correspondence | {{CREDITOR_ADDRESS_AND_EMAIL}} |
+| **4.** | Total amount of claim *(including any contractual interest as at the Insolvency Commencement Date)* | **₹{{TOTAL_CLAIM_AMOUNT}}**<br>*(Principal: ₹{{PRINCIPAL_AMOUNT}} \| Interest: ₹{{INTEREST_AMOUNT}})* |
+| **5.** | Details of documents by reference to which the debt can be substantiated | {{SUBSTANTIATING_DOCUMENTS}} |
+| **6.** | Details of any dispute as well as the record of pendency or order of suit or arbitration proceedings | {{DISPUTE_DETAILS}} |
+| **7.** | Details of how and when debt incurred *(Invoices, Contracts, Work Orders, Delivery Challans)* | {{DEBT_INCURRED_DETAILS}} |
+| **8.** | Details of any mutual credit, mutual debts, or other mutual dealings which may be set-off against the claim | {{MUTUAL_DEALINGS_SETOFF}} |
+| **9.** | Details of: (a) any security held, its value and date, or (b) retention of title arrangement in respect of goods/properties | {{SECURITY_DETAILS}} |
+| **10.** | Details of the bank account to which the claim amount can be transferred pursuant to a resolution plan | **Bank Name:** {{BANK_NAME}}<br>**Account No:** {{BANK_ACCOUNT_NO}}<br>**IFSC Code:** {{BANK_IFSC}}<br>**Branch:** {{BANK_BRANCH}} |
+| **11.** | List of documents attached to prove the existence and non-payment of the claim due to the operational creditor | {{ATTACHED_DOCUMENTS_LIST}} |
 
-\[Address as set out in public announcement\]
+---
 
-From
+### SIGNATURE OF OPERATIONAL CREDITOR / AUTHORISED REPRESENTATIVE
 
-\[Name and address of the operational creditor\]
+**Signature:** ________________________________________  
+**Name (in BLOCK LETTERS):** {{SIGNATORY_NAME}}  
+**Position / Relation to Creditor:** {{SIGNATORY_DESIGNATION}}  
+**Address of Signatory:** {{SIGNATORY_ADDRESS}}  
 
-__Subject: Submission of proof of claim.__
+*(Enclose Board Resolution / Power of Attorney / Letter of Authority if submitted on behalf of the creditor)*
 
-\[Name of the operational creditor\] hereby submits this proof of claim in respect of the CIRP in the case of \[name of corporate debtor\]. The details are set out below:
+---
 
-__Particulars__
+### DECLARATION
 
+I, **{{DECLARANT_NAME}}**, currently residing at **{{DECLARANT_ADDRESS}}**, do hereby declare and state as follows:
 
-__Particulars__
+1. **{{CORPORATE_DEBTOR_NAME}}**, the Corporate Debtor was, at the Insolvency Commencement Date, being the **{{ICD_DATE}}**, actually indebted to me / the Operational Creditor in the sum of **₹{{TOTAL_CLAIM_AMOUNT}}** (*Rupees {{TOTAL_CLAIM_AMOUNT_WORDS}}*).
+2. In respect of my claim of the said sum or any part thereof, I have relied on the documents specified below:
+{{ANNEXURE_LIST}}
+3. The said documents are true, valid, and genuine to the best of my knowledge, information, and belief, and no material facts have been concealed therefrom.
+4. In respect of the said sum or any part thereof, neither I nor any person, by my order, to my knowledge or belief, for my use, had or received any manner of satisfaction or security whatsoever, save and except the following:
+{{SETOFF_EXCEPTIONS}}
 
+**Date:** {{SIGN_DATE}}  
+**Place:** {{SIGN_PLACE}}  
 
-| Sl. | Particulars | Details |
-|---|---|---|
-| 1 |  | {{ DETAILS }} |
-Name of Operational Creditor
+________________________________________  
+*(Signature of the Claimant / Deponent)*
 
-2.
+---
 
-Identification number of Operational Creditor (proof of incorporation, or identification records\* of all partners / the individual)
+### VERIFICATION
 
-3.
+I, **{{VERIFIER_NAME}}**, the claimant / authorised representative hereinabove, do hereby verify that the contents of this proof of claim (Clauses 1 to 11 and Declaration) are true and correct to my knowledge and belief, and no material fact has been concealed therefrom.
 
-Address and email address of operational creditor for correspondence
+Verified at **{{VERIFICATION_PLACE}}** on this **{{VERIFICATION_DAY}}** day of **{{VERIFICATION_MONTH}}**, **{{VERIFICATION_YEAR}}**.
 
-4.
-
-Total amount of claim (including any interest as at the insolvency commencement date)
-
-5.
-
-Details of documents by reference to which the debt can be substantiated
-
-6.
-
-Details of any dispute as well as the record of pendency or order of suit or arbitration proceedings
-
-7.
-
-Details of how and when debt incurred
-
-8.
-
-Details of any mutual credit, mutual debts, or other mutual dealings which may be set-off against the claim
-
-9.
-
-Details of: (a) any security held, its value and date, or (b) any retention of title arrangement in respect of goods/properties to which the claim refers
-
-10.
-
-Details of the bank account to which the claim amount can be transferred pursuant to a resolution plan
-
-11.
-
-List of documents attached to prove the existence and non-payment of the claim due to the operational creditor
-
-Signature of the creditor or person authorised to act on his / its behalf
-
-*\[Please enclose the authority if this is being submitted on behalf of the creditor\]*
-
-Name in BLOCK LETTERS : _______________________
-
-Position with or in relation to creditor : _______________________
-
-Address of person signing : _______________________
-
-__DECLARATION__
-
-I, \[Name of claimant\], currently residing at \[insert address\], do hereby declare and state as follows:
-
-1. \[Name of corporate debtor\], the corporate debtor was, at the insolvency commencement date, being the …… day of …… 20…, actually indebted to me in the sum of Rs. \[insert amount of claim\].
-
-2. In respect of my claim of the said sum or any part thereof, I have relied on the documents specified below: \[please list the documents relied on as evidence of claim\].
-
-3. The said documents are true, valid and genuine to the best of my knowledge, information and belief and no material facts have been concealed therefrom.
-
-4. In respect of the said sum or any part thereof, neither I nor any person, by my order, to my knowledge or belief, for my use, had or received any manner of satisfaction or security whatsoever, save and except the following: \[state details of any mutual credit, mutual debts or other mutual dealings that may be set-off against the claim\].
-
-Date: _____________     Place: _____________                         (Signature of the claimant)
-
-__VERIFICATION__
-
-I, \[Name\], the claimant hereinabove, verify that the contents of this proof of claim are true and correct to my knowledge and belief and no material fact has been concealed therefrom.
-
-Verified at …… on this …… day of ………, 20…                         (Signature of the claimant)
-
-*Note: In the case of a company or LLP, the declaration and verification shall be made by the director / manager / secretary; for other entities, by an authorised officer.*
+________________________________________  
+*(Signature of the Claimant / Deponent)*
