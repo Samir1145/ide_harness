@@ -56,7 +56,10 @@ backend/models/
 # Local backup & archive directories
 frontend/plugins-disabled-backup/
 backend/vault/agent_packs_archive/
-haya_pipie_*
-claims/
-claims_registry.md
+# SQLite lock & WAL files
+*.db-shm
+*.db-wal
+**/*_concepts_haya/
+**/*_conversions_haya/
+**/*_wiki_haya/
 
