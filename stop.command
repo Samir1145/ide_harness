@@ -17,6 +17,8 @@ pkill -f "theia start" 2>/dev/null || true
 pkill -f "theia build" 2>/dev/null || true
 
 # Find and kill Hayagriva Electron processes & workers
+pkill -f "Electron.bin" 2>/dev/null || true
+pkill -f "theia-electron-main.js" 2>/dev/null || true
 pkill -f "electron scripts/theia-electron-main.js" 2>/dev/null || true
 pkill -f "theia-ide-electron" 2>/dev/null || true
 pkill -f "Electron Framework" 2>/dev/null || true

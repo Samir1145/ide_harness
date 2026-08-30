@@ -21,6 +21,18 @@ const USER_CASES_DIR = process.platform === 'win32'
   ? path.join(process.env.APPDATA || os.homedir(), 'Hayagriva', 'vaults', 'cases')
   : path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'vaults', 'cases');
 
+const BUNDLED_CASES_DIR = path.join(__dirname, '..', '..', 'vault', 'data_vaults', 'cases');
+
+function resolveCasesDir() {
+  if (fs.existsSync(path.join(USER_CASES_DIR, 'cases-manifest.json'))) {
+    return USER_CASES_DIR;
+  }
+  if (fs.existsSync(path.join(BUNDLED_CASES_DIR, 'cases-manifest.json'))) {
+    return BUNDLED_CASES_DIR;
+  }
+  return USER_CASES_DIR;
+}
+
 const KEYCHAIN_SERVICE = 'hayagriva';
 const KEYCHAIN_ACCOUNT = 'vault-cases';
 
@@ -41,7 +53,7 @@ async function getVaultKey() {
         const k = await keytar.getPassword(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
         if (k && k.length === 64) return k;
     } catch (_) {}
-    const env = process.env.VAULT_KEY_CASES || '';
+    const env = process.env.VAULT_KEY_CASES || process.env.VAULT_KEY || '';
     return env.length === 64 ? env : null;
 }
 
@@ -84,9 +96,10 @@ async function getEmbedding(text) {
 
 // ── Load ──────────────────────────────────────────────────────────
 function loadCasesVault() {
-    _manifestPath = path.join(USER_CASES_DIR, 'cases-manifest.json');
-    _dataPath     = path.join(USER_CASES_DIR, 'cases.vlt.data');
-    _verPath      = path.join(USER_CASES_DIR, 'cases-version.json');
+    const dir = resolveCasesDir();
+    _manifestPath = path.join(dir, 'cases-manifest.json');
+    _dataPath     = path.join(dir, 'cases.vlt.data');
+    _verPath      = path.join(dir, 'cases-version.json');
 
     if (!fs.existsSync(_manifestPath)) {
         console.warn('[CasesVaultLoader] No manifest — cases vault not downloaded yet.');

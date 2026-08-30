@@ -155,10 +155,10 @@ async function generateClaimForm(caseDir, formType = 'c', customData = {}) {
         populated = populated.split(key).join(val || '');
     }
 
-    // Determine target claims directory (default to 02_claims/ if present, or customData.targetDir, or caseDir)
+    // Determine target claims directory (default to 02_claims/ or drafts/ if present, or customData.targetDir, or caseDir)
     let targetDir = customData.targetDir || customData.folder;
     if (!targetDir || !fs.existsSync(targetDir)) {
-        const candidates = ['02_claims', '02_Claims', 'claims', 'Claims'];
+        const candidates = ['02_claims', '02_Claims', 'claims', 'Claims', 'drafts', 'Drafts'];
         for (const cand of candidates) {
             const candidatePath = path.join(caseDir, cand);
             if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isDirectory()) {

@@ -1,8 +1,4 @@
-/**
- * Skill: precedent-search.js
- * Searches the local Law Vault for SC/NCLT/NCLAT judgment precedents
- * relevant to a legal issue. Used by @precedent and @advisor agents.
- */
+const { searchCases, isCasesVaultReady } = require('../../utils/cases-vault-loader');
 const { vaultSearch } = require('./vault-lookup');
 
 /**
@@ -13,7 +9,21 @@ const { vaultSearch } = require('./vault-lookup');
  * @returns {Promise<Array<{id, title, text, court}>>}
  */
 async function searchPrecedents(issue, caseDir, n = 4) {
-    // Augment query with judgment-specific terms for better vault retrieval
+    if (isCasesVaultReady()) {
+        try {
+            const results = await searchCases(issue, n);
+            if (results && results.length > 0) {
+                return results.map(r => ({
+                    ...r,
+                    court: detectCourt(r.title || r.id || r.text || '')
+                }));
+            }
+        } catch (err) {
+            console.warn('[Skill:precedentSearch] searchCases failed:', err.message);
+        }
+    }
+
+    // Fallback: Augment query with judgment-specific terms for laws vault retrieval
     const augmented = `judgment order held ${issue} Supreme Court NCLT NCLAT precedent`;
     const results = await vaultSearch(augmented, n);
     return results.map(r => ({

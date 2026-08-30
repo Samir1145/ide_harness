@@ -175,4 +175,15 @@ Refer to the following plans saved in the workspace:
   * `backend/tests/run_all_tests.js` enforces a **Phase 1 Pre-Flight Integrity Audit** before executing any tests.
   * Dynamically discovers all `*.test.js` files via `fs.readdirSync`, verifies each exports a valid `run()` contract, and audits system registrations (25 subagents across installed Vault Agent Packs and 3 domain profiles) upfront.
   * Always update and verify test coverage for new subagents, endpoints, or features *prior* to executing test suites, preventing silent test omissions and stale assertion failures.
+* **Case Law & Statutory Vault Directory Resolution & Fallbacks**:
+  * `cases-vault-loader.js` and `vault-loader.js` check user Application Support vaults first (`~/Library/Application Support/Hayagriva/vaults/`) and seamlessly fall back to local project data vaults (`backend/vault/data_vaults/cases` with 17,558 case precedents and `backend/vault/data_vaults/laws` with 4,032 statutory acts).
+  * `getVaultKey()` queries OS Keychain (`keytar`) under accounts `vault-cases` and `vault-laws`, with automatic fallback to `process.env.VAULT_KEY` for local development.
+* **First-Class `@Precedent` Theia AI Chat Agent**:
+  * Bound `PrecedentChatAgent` (`@precedent`) directly in `chat-agents.ts` and `hayagriva-frontend-module.ts` to expose `@Precedent` in Theia AI Chat dropdown alongside `@Advisor`, `@Forms`, `@Document`, and `@Claims`.
+  * Specialized in querying the 17,558 encrypted Supreme Court, NCLAT, and NCLT judgments vault with `/search` and `/ratio` modes.
+* **Monaco `/precedent` & `@precedent` Autocomplete Metadata**:
+  * Enhanced `/precedent <query>`, `/case <query>`, and `@precedent` completion providers in `monaco-providers.ts` and `/api/hayagriva/learning-curves` route to parse frontmatter (`Case-Title`, `Issue`, `Citation`, `Date-of-Order`, `Court-Tribunal`) for rich inline preview cards and snippets.
+* **Electron Stop Script Wrapper Matching**:
+  * Added `Electron.bin` and `theia-electron-main.js` pattern matching in `stop.command` to prevent orphaned wrapped Electron binary processes from holding single-instance locks (`requestSingleInstanceLock`).
+
 

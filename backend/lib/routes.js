@@ -1562,24 +1562,53 @@ module.exports = {
         },
 
         '/api/hayagriva/learning-curves': async (req, res, parsedUrl) => {
-            // Deprecated: SQLite learning_curves.db — now served by the cases vault.
-            // Route kept for backward compat; delegates to /api/vault/search-cases.
             const q = parsedUrl.query.query || '';
             if (!isCasesVaultReady()) {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ learningCurves: [], note: 'Cases vault not ready — download via Settings > Vault & License.' }));
             }
             try {
-                const results = await searchCases(q || 'insolvency', 50);
-                const list = results.map(r => ({
-                    case_title:    r.title,
-                    filename:      r.id,
-                    issue:         '',
-                    citation:      '',
-                    date_of_order: '',
-                    court_tribunal:'',
-                    content:       r.text,
-                }));
+                const results = await searchCases(q || 'insolvency', 30);
+                const list = results.map(r => {
+                    let title = r.title;
+                    let issue = '';
+                    let citation = '';
+                    let date = '';
+                    let court = '';
+                    if (r.text) {
+                        const titleM = r.text.match(/Case-Title:\s*"([^"]+)"/i) || r.text.match(/Case-Title:\s*([^\r\n]+)/i);
+                        if (titleM && titleM[1]) title = titleM[1].trim();
+
+                        const issueM = r.text.match(/Issue:\s*"([^"]+)"/i) || r.text.match(/Issue:\s*([^\r\n]+)/i);
+                        if (issueM && issueM[1]) issue = issueM[1].trim();
+
+                        const citeM = r.text.match(/(?:Case-Citation|Citation):\s*"([^"]+)"/i) || r.text.match(/(?:Case-Citation|Citation):\s*([^\r\n]+)/i);
+                        if (citeM && citeM[1]) citation = citeM[1].trim();
+
+                        const dateM = r.text.match(/(?:Date-of-Order|Date):\s*"([^"]+)"/i) || r.text.match(/(?:Date-of-Order|Date):\s*([^\r\n]+)/i);
+                        if (dateM && dateM[1]) date = dateM[1].trim();
+
+                        const courtM = r.text.match(/(?:Court-Tribunal|Court):\s*"([^"]+)"/i) || r.text.match(/(?:Court-Tribunal|Court):\s*([^\r\n]+)/i);
+                        if (courtM && courtM[1]) court = courtM[1].trim();
+
+                        if (!court) {
+                            if (/supreme court/i.test(title) || /supreme court/i.test(r.text.slice(0, 500))) court = 'Supreme Court';
+                            else if (/nclat/i.test(title) || /nclat/i.test(r.text.slice(0, 500))) court = 'NCLAT';
+                            else if (/nclt/i.test(title) || /nclt/i.test(r.text.slice(0, 500))) court = 'NCLT';
+                            else if (/high court/i.test(title) || /high court/i.test(r.text.slice(0, 500))) court = 'High Court';
+                        }
+                    }
+
+                    return {
+                        case_title:    title,
+                        filename:      r.id,
+                        issue:         issue,
+                        citation:      citation,
+                        date_of_order: date,
+                        court_tribunal:court,
+                        content:       r.text,
+                    };
+                });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ learningCurves: list }));
             } catch (err) {

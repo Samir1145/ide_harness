@@ -25,14 +25,19 @@ const USER_VAULTS_DIR  = process.platform === 'win32'
   ? path.join(process.env.APPDATA || os.homedir(), 'Hayagriva', 'vaults', 'laws')
   : path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'vaults', 'laws');
 
-const BUNDLED_VAULT_DIR = path.join(__dirname, '..', '..', 'vault');
+const BUNDLED_DATA_VAULT_DIR = path.join(__dirname, '..', '..', 'vault', 'data_vaults', 'laws');
+const BUNDLED_VAULT_DIR      = path.join(__dirname, '..', '..', 'vault');
 
 function resolveVaultDir() {
-  // Prefer user-downloaded vault if manifest exists there
+  // 1. Prefer user-downloaded vault if manifest exists there
   if (fs.existsSync(path.join(USER_VAULTS_DIR, 'laws-manifest.json'))) {
     return { dir: USER_VAULTS_DIR, prefix: 'laws-' };
   }
-  // Bundled fallback (original layout — no prefix)
+  // 2. Bundled data_vaults directory (new modular distribution format)
+  if (fs.existsSync(path.join(BUNDLED_DATA_VAULT_DIR, 'laws-manifest.json'))) {
+    return { dir: BUNDLED_DATA_VAULT_DIR, prefix: 'laws-' };
+  }
+  // 3. Bundled fallback (original root layout)
   return { dir: BUNDLED_VAULT_DIR, prefix: '' };
 }
 
@@ -49,7 +54,9 @@ function _resolvePaths() {
   _vaultDir     = dir;
   _prefix       = prefix;
   _manifestPath = path.join(dir, `${prefix}manifest.json`);
-  const dataFile = fs.existsSync(path.join(dir, `${prefix}laws.vlt.data`)) ? `${prefix}laws.vlt.data` : 'laws.vlt.data';
+  const dataFile = fs.existsSync(path.join(dir, `${prefix}laws.vlt.data`))
+    ? `${prefix}laws.vlt.data`
+    : (fs.existsSync(path.join(dir, 'laws.vlt.data')) ? 'laws.vlt.data' : `${prefix}data`);
   _dataPath     = path.join(dir, dataFile);
   _verPath      = path.join(dir, `${prefix}version.json`);
 }

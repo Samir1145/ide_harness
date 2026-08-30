@@ -97,7 +97,7 @@ export class HayagrivaMonacoProviders {
     for (const lang of LANGS) {
       // ── Standard Completion Item Provider (@ and / triggers) ───────────────
       monaco.languages.registerCompletionItemProvider(lang, {
-          triggerCharacters: ['@', '/'],
+          triggerCharacters: ['@', '/', ' ', ':', '-', '_'],
           provideCompletionItems: async (model: any, position: any, _context: any, token: any) => {
             const lineText: string = model.getLineContent(position.lineNumber);
             const textUpToCursor = lineText.substring(0, position.column - 1);
@@ -123,6 +123,14 @@ export class HayagrivaMonacoProviders {
 
               if (!query) {
                 const categorySuggestions = [
+                  {
+                    label: `${typedPrefix}precedent/ - Search Court Precedents & Judgments`,
+                    filterText: `${typedPrefix}precedent case rulings orders judgments supreme court nclat`,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: `${typedPrefix}precedent/`,
+                    range: replaceRange,
+                    detail: 'Case Law Vault (17,500+ Judgments)'
+                  },
                   {
                     label: `${typedPrefix}ibc/ - Search Insolvency & Bankruptcy Code`,
                     filterText: `${typedPrefix}ibc`,
@@ -151,6 +159,30 @@ export class HayagrivaMonacoProviders {
                 return { suggestions: categorySuggestions };
               }
 
+              const rawAtLower = rawAt.toLowerCase();
+              if (rawAtLower.startsWith('precedent') || rawAtLower.startsWith('case')) {
+                const prefixLength = rawAtLower.startsWith('precedent') ? 9 : 4;
+                const prefixCmd = rawAt.split(/[\s/]+/)[0] || 'precedent';
+                const subQuery = rawAt.substring(prefixLength).replace(/^[\/\s]+/, '').trim();
+                try {
+                  const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/learning-curves?case=${encodeURIComponent(currentCase)}&query=${encodeURIComponent(subQuery)}`);
+                  if (!token.isCancellationRequested && res.ok) {
+                    const data = await res.json();
+                    const list = data.learningCurves || [];
+                    const suggestions = list.map((c: any) => ({
+                      label: `${typedPrefix}${prefixCmd}: ${c.case_title}`,
+                      filterText: `${typedPrefix}${rawAt} ${c.case_title.toLowerCase()}`,
+                      kind: monaco.languages.CompletionItemKind.Reference,
+                      insertText: c.content || `[${c.case_title}](${c.filename})`,
+                      range: replaceRange,
+                      detail: `${c.court_tribunal ? `[${c.court_tribunal}] ` : ''}${c.citation || 'Case Summary'}`,
+                      documentation: `${c.case_title}\n\n${c.court_tribunal ? `Court: ${c.court_tribunal}\n` : ''}${c.date_of_order ? `Date: ${c.date_of_order}\n` : ''}${c.issue ? `Issue: ${c.issue}\n\n` : ''}${c.content ? c.content.substring(0, 300) + '...' : ''}`
+                    }));
+                    return { suggestions };
+                  }
+                } catch (_) {}
+              }
+
               const results = await fetchCompletions(query);
               if (token.isCancellationRequested) return { suggestions: [] };
 
@@ -176,9 +208,9 @@ export class HayagrivaMonacoProviders {
             }
 
             // ── B. Slash Commands & Notion-style Drafting Trigger (/) ──────────────
-            const slashMatch = textUpToCursor.match(/(?:^|\s)\/([\w\s./,-]*)$/);
+            const slashMatch = textUpToCursor.match(/(?:^|\s)\/([\w\s./,-:_]*)$/);
             if (slashMatch) {
-              const slashIdx = textUpToCursor.search(/(?:^|\s)\/([\w\s./,-]*)$/);
+              const slashIdx = textUpToCursor.search(/(?:^|\s)\/([\w\s./,-:_]*)$/);
               const matchStr = slashMatch[0];
               const slashSymbolIdx = matchStr.indexOf('/') + slashIdx;
 
@@ -191,6 +223,7 @@ export class HayagrivaMonacoProviders {
 
               const rawSlash = slashMatch[1];
               const rawSlashLower = rawSlash.trim().toLowerCase();
+              const typedFromSlash = textUpToCursor.substring(slashSymbolIdx);
 
               const CLAUSES = [
                 { id: 'arbitration', title: 'Arbitration Clause', text: 'Any dispute, controversy, or claim arising out of or relating to this contract, including its formation, breach, termination, or invalidity, shall be referred to and finally resolved by arbitration under the Arbitration and Conciliation Act, 1996. The tribunal shall consist of one arbitrator. The venue/seat of arbitration shall be New Delhi, and the language of the proceedings shall be English.' },
@@ -209,208 +242,170 @@ export class HayagrivaMonacoProviders {
                 { id: 'preferential', title: 'Avoidance: Preferential Transactions (Sec 43 IBC)', text: 'Any transfer of property or interest thereof of the Corporate Debtor for the benefit of a creditor on account of an antecedent financial debt that puts such creditor in a more beneficial position than in distribution under Section 53 shall be liable to be avoided under Section 43.' }
               ];
 
-              // Level 1: Menu Listing
-              if (!rawSlashLower.startsWith('law') &&
-                  !rawSlashLower.startsWith('ibc') &&
-                  !rawSlashLower.startsWith('mca') &&
-                  !rawSlashLower.startsWith('sec') &&
-                  !rawSlashLower.startsWith('precedent') &&
-                  !rawSlashLower.startsWith('fact') &&
-                  !rawSlashLower.startsWith('concept') &&
-                  !rawSlashLower.startsWith('qa') &&
-                  !rawSlashLower.startsWith('clause') &&
-                  !rawSlashLower.startsWith('case') &&
-                  !rawSlashLower.startsWith('export')) {
-                const commandSuggestions = [
-                  {
-                    label: '/law - Search Statutory Laws & Sections',
-                    filterText: '/law',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'law ',
-                    range: replaceRange,
-                    detail: 'AES Encrypted Law Vault (Statutes, Sections, Rules)'
-                  },
-                  {
-                    label: '/precedent - Search Court Precedents & Judgments',
-                    filterText: '/precedent',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'precedent ',
-                    range: replaceRange,
-                    detail: 'Supreme Court & NCLAT Case Rulings'
-                  },
-                  {
-                    label: '/fact - Link Case Facts & Q&A Cards',
-                    filterText: '/fact',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'fact ',
-                    range: replaceRange,
-                    detail: 'Workspace Fact Dictionary & Q&A Nodes'
-                  },
-                  {
-                    label: '/clause - Insert Drafting Boilerplate',
-                    filterText: '/clause',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: 'clause ',
-                    range: replaceRange,
-                    detail: 'Interactive Legal Clause Templates'
-                  },
-                  {
-                    label: '/export - Export to Supreme Court / NCLAT DOCX',
-                    filterText: '/export',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: '',
-                    range: replaceRange,
-                    detail: 'Court Layout Formatted DOCX Compiler',
-                    command: {
-                      id: `${HAYAGRIVA_NS}:exportScDocx`,
-                      arguments: [model.uri]
-                    }
-                  },
-                  {
-                    label: '/export-pdf - Export to Court PDF & Open Preview',
-                    filterText: '/export-pdf',
-                    kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: '',
-                    range: replaceRange,
-                    detail: 'Court & IBBI Formatted PDF Compiler with Live Preview',
-                    command: {
-                      id: `${HAYAGRIVA_NS}:exportCourtPdf`,
-                      arguments: [model.uri]
-                    }
-                  }
-                ].filter(s => s.filterText.startsWith('/' + rawSlashLower));
+              const suggestions: any[] = [];
 
-                return { suggestions: commandSuggestions };
+              // Top level command entries
+              suggestions.push(
+                {
+                  label: '/law - Search Statutory Laws & Sections',
+                  filterText: `${typedFromSlash} law statutes acts ibc mca sections`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '/law ',
+                  range: replaceRange,
+                  detail: 'AES Encrypted Law Vault (Statutes, Sections, Rules)'
+                },
+                {
+                  label: '/precedent - Search Court Precedents & Judgments',
+                  filterText: `${typedFromSlash} precedent case rulings orders judgments supreme court nclat`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '/precedent ',
+                  range: replaceRange,
+                  detail: 'Supreme Court & NCLAT Case Rulings'
+                },
+                {
+                  label: '/fact - Link Case Facts & Concepts',
+                  filterText: `${typedFromSlash} fact concept dictionary qna terms`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '/fact ',
+                  range: replaceRange,
+                  detail: 'Workspace Fact Dictionary & Q&A Nodes'
+                },
+                {
+                  label: '/clause - Insert Drafting Boilerplate',
+                  filterText: `${typedFromSlash} clause template boilerplate drafting`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '/clause ',
+                  range: replaceRange,
+                  detail: 'Interactive Legal Clause Templates'
+                },
+                {
+                  label: '/export - Export to Supreme Court / NCLAT DOCX',
+                  filterText: `${typedFromSlash} export sc docx word court format`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Court Layout Formatted DOCX Compiler',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:exportScDocx`,
+                    arguments: [model.uri]
+                  }
+                },
+                {
+                  label: '/export-pdf - Export to Court PDF & Open Preview',
+                  filterText: `${typedFromSlash} export-pdf pdf court print preview`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Court & IBBI Formatted PDF Compiler with Live Preview',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:exportCourtPdf`,
+                    arguments: [model.uri]
+                  }
+                }
+              );
+
+              // All individual standard clause templates
+              for (const c of CLAUSES) {
+                const { snippet, hasSnippets } = convertToSnippet(c.text);
+                suggestions.push({
+                  label: `/clause: ${c.title}`,
+                  filterText: `/clause ${c.id} ${c.title.toLowerCase()}`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: snippet,
+                  insertTextRules: hasSnippets
+                    ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                    : undefined,
+                  range: replaceRange,
+                  detail: `Standard Clause (${c.id})`,
+                  documentation: c.text.substring(0, 160) + '...'
+                });
               }
 
-              // Level 2: /law <query>
+              // Dynamic Level 2 queries:
+              // 1. /law <query> or /sec <query> or /ibc <query> or /mca <query>
               if (rawSlashLower.startsWith('law') || rawSlashLower.startsWith('ibc') || rawSlashLower.startsWith('mca') || rawSlashLower.startsWith('sec')) {
                 let query = rawSlash.trim();
+                const prefixCmd = rawSlash.split(/\s+/)[0] || 'law';
                 if (rawSlashLower.startsWith('law')) {
                   query = rawSlash.substring(3).trim();
                 }
-                if (query.length < 2) return { suggestions: [] };
-
-                const results = await fetchCompletions(query);
-                if (token.isCancellationRequested) return { suggestions: [] };
-
-                const prefixCmd = rawSlash.split(/\s+/)[0];
-                const suggestions = results.map((r: any) => {
-                  const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
-                  const { snippet, hasSnippets } = convertToSnippet(cleanText);
-                  return {
-                    label: `/${prefixCmd} → ${r.title || `Section ${r.section}`}`,
-                    filterText: `/${rawSlash}`,
-                    kind: monaco.languages.CompletionItemKind.Snippet,
-                    insertText: snippet,
-                    insertTextRules: hasSnippets
-                      ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-                      : undefined,
-                    range: replaceRange,
-                    detail: r.id,
-                    documentation: cleanText.substring(0, 200) + '...'
-                  };
-                });
-                return { suggestions };
+                if (query.length >= 2) {
+                  try {
+                    const results = await fetchCompletions(query);
+                    if (!token.isCancellationRequested) {
+                      for (const r of results) {
+                        const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+                        const { snippet, hasSnippets } = convertToSnippet(cleanText);
+                        suggestions.unshift({
+                          label: `/${prefixCmd}: ${r.title || `Section ${r.section}`}`,
+                          filterText: typedFromSlash,
+                          kind: monaco.languages.CompletionItemKind.Snippet,
+                          insertText: snippet,
+                          insertTextRules: hasSnippets
+                            ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                            : undefined,
+                          range: replaceRange,
+                          detail: r.id,
+                          documentation: cleanText.substring(0, 200) + '...'
+                        });
+                      }
+                    }
+                  } catch (_) {}
+                }
               }
 
-              // Level 2: /fact <query>
+              // 2. /fact <query> or /concept <query>
               if (rawSlashLower.startsWith('fact') || rawSlashLower.startsWith('concept')) {
                 const prefixLength = rawSlashLower.startsWith('fact') ? 4 : 7;
+                const prefixCmd = rawSlash.split(/\s+/)[0] || 'fact';
                 const query = rawSlash.substring(prefixLength).trim().toLowerCase();
                 try {
                   const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/concepts?case=${encodeURIComponent(currentCase)}`);
-                  if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
-                  const data = await res.json();
-                  const list = data.concepts || [];
-
-                  const filtered = list.filter((c: any) => c.title.toLowerCase().includes(query));
-                  const suggestions = filtered.map((c: any) => ({
-                    label: `/fact → ${c.title}`,
-                    filterText: `/fact ${query}`,
-                    kind: monaco.languages.CompletionItemKind.Reference,
-                    insertText: `[${c.title}](${c.relativePath})`,
-                    range: replaceRange,
-                    detail: 'Concept Link',
-                    documentation: `Path: ${c.relativePath}`
-                  }));
-                  return { suggestions };
-                } catch {
-                  return { suggestions: [] };
-                }
+                  if (!token.isCancellationRequested && res.ok) {
+                    const data = await res.json();
+                    const list = data.concepts || [];
+                    const filtered = query ? list.filter((c: any) => c.title.toLowerCase().includes(query)) : list;
+                    for (const c of filtered) {
+                      suggestions.unshift({
+                        label: `/${prefixCmd}: ${c.title}`,
+                        filterText: typedFromSlash,
+                        kind: monaco.languages.CompletionItemKind.Reference,
+                        insertText: `[${c.title}](${c.relativePath})`,
+                        range: replaceRange,
+                        detail: 'Concept Link',
+                        documentation: `Path: ${c.relativePath}`
+                      });
+                    }
+                  }
+                } catch (_) {}
               }
 
-              // Level 2: /qa <query>
-              if (rawSlashLower.startsWith('qa')) {
-                const query = rawSlash.substring(2).trim().toLowerCase();
-                try {
-                  const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/wiki-cards?case=${encodeURIComponent(currentCase)}`);
-                  if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
-                  const data = await res.json();
-                  const list = data.cards || [];
-
-                  const filtered = list.filter((c: any) => c.title.toLowerCase().includes(query) || c.filename.toLowerCase().includes(query));
-                  const suggestions = filtered.map((c: any) => ({
-                    label: `/qa → ${c.title}`,
-                    filterText: `/qa ${query}`,
-                    kind: monaco.languages.CompletionItemKind.Reference,
-                    insertText: `[${c.title}](wiki/${c.filename})`,
-                    range: replaceRange,
-                    detail: 'Wiki Q&A Link',
-                    documentation: `Filename: wiki/${c.filename}`
-                  }));
-                  return { suggestions };
-                } catch {
-                  return { suggestions: [] };
-                }
-              }
-
-              // Level 2: /clause <query>
-              if (rawSlashLower.startsWith('clause')) {
-                const query = rawSlash.substring(6).trim().toLowerCase();
-                const filtered = CLAUSES.filter(c => c.title.toLowerCase().includes(query) || c.id.toLowerCase().includes(query));
-                const suggestions = filtered.map(c => {
-                  const { snippet, hasSnippets } = convertToSnippet(c.text);
-                  return {
-                    label: `/clause → ${c.title}`,
-                    filterText: `/clause ${query}`,
-                    kind: monaco.languages.CompletionItemKind.Snippet,
-                    insertText: snippet,
-                    insertTextRules: hasSnippets
-                      ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-                      : undefined,
-                    range: replaceRange,
-                    detail: 'Standard Clause',
-                    documentation: c.text.substring(0, 150) + '...'
-                  };
-                });
-                return { suggestions };
-              }
-
-              // Level 2: /precedent <query>
+              // 3. /precedent <query> or /case <query>
               if (rawSlashLower.startsWith('precedent') || rawSlashLower.startsWith('case')) {
                 const prefixLength = rawSlashLower.startsWith('precedent') ? 9 : 4;
+                const prefixCmd = rawSlash.split(/\s+/)[0] || 'precedent';
                 const query = rawSlash.substring(prefixLength).trim().toLowerCase();
                 try {
                   const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/learning-curves?case=${encodeURIComponent(currentCase)}&query=${encodeURIComponent(query)}`);
-                  if (token.isCancellationRequested || !res.ok) return { suggestions: [] };
-                  const data = await res.json();
-                  const list = data.learningCurves || [];
-
-                  const suggestions = list.map((c: any) => ({
-                    label: `/precedent → ${c.case_title}`,
-                    filterText: `/precedent ${query}`,
-                    kind: monaco.languages.CompletionItemKind.Reference,
-                    insertText: c.content || `[${c.case_title}](${c.relativePath})`,
-                    range: replaceRange,
-                    detail: c.citation || 'Case Summary',
-                    documentation: `Issue: ${c.issue}\n\nDate: ${c.date_of_order} | Court: ${c.court_tribunal}`
-                  }));
-                  return { suggestions };
-                } catch {
-                  return { suggestions: [] };
-                }
+                  if (!token.isCancellationRequested && res.ok) {
+                    const data = await res.json();
+                    const list = data.learningCurves || [];
+                    for (const c of list) {
+                      suggestions.unshift({
+                        label: `/${prefixCmd}: ${c.case_title}`,
+                        filterText: `${typedFromSlash} ${c.case_title.toLowerCase()} ${c.citation ? c.citation.toLowerCase() : ''}`,
+                        kind: monaco.languages.CompletionItemKind.Reference,
+                        insertText: c.content || `[${c.case_title}](${c.filename})`,
+                        range: replaceRange,
+                        detail: `${c.court_tribunal ? `[${c.court_tribunal}] ` : ''}${c.citation || 'Case Law'}`,
+                        documentation: `${c.case_title}\n\n${c.court_tribunal ? `Court: ${c.court_tribunal}\n` : ''}${c.date_of_order ? `Date: ${c.date_of_order}\n` : ''}${c.citation ? `Citation: ${c.citation}\n` : ''}\n${c.issue ? `Issue: ${c.issue}\n\n` : ''}${c.content ? c.content.substring(0, 300) + '...' : ''}`
+                      });
+                    }
+                  }
+                } catch (_) {}
               }
+
+              return { suggestions, incomplete: true };
             }
 
             return { suggestions: [] };

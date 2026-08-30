@@ -15,9 +15,9 @@ async function runTests() {
     console.log('✓ @claim_preparation and @claim_verification successfully loaded.');
 
     const testCaseDir = path.join(__dirname, 'fixtures', 'test_claim_agents_case');
-    if (!fs.existsSync(testCaseDir)) {
-        fs.mkdirSync(testCaseDir, { recursive: true });
-    }
+    fs.mkdirSync(testCaseDir, { recursive: true });
+    fs.mkdirSync(path.join(testCaseDir, 'drafts'), { recursive: true });
+    fs.mkdirSync(path.join(testCaseDir, 'claims'), { recursive: true });
 
     // Set up sample case facts in case_facts.md
     const sampleFacts = `---
@@ -50,7 +50,9 @@ Financial Creditor Punjab National Bank disbursed credit facilities under Sancti
     assert.ok(prepResponse.includes('Punjab National Bank'), 'Response must mention claimant name');
     assert.ok(prepResponse.includes('9,45,00,000.00'), 'Response must show formatted total claim amount');
 
-    const expectedDraft = path.join(testCaseDir, 'drafts', 'CLAIM_Punjab_National_Bank_FORM-C.md');
+    const expectedDraft = fs.existsSync(path.join(testCaseDir, 'claims', 'CLAIM_Punjab_National_Bank_FORM-C.md'))
+      ? path.join(testCaseDir, 'claims', 'CLAIM_Punjab_National_Bank_FORM-C.md')
+      : path.join(testCaseDir, 'drafts', 'CLAIM_Punjab_National_Bank_FORM-C.md');
     assert.ok(fs.existsSync(expectedDraft), `Draft file must exist at ${expectedDraft}`);
     console.log('✓ @claim_preparation successfully drafted Form C.');
 

@@ -24,7 +24,8 @@ import {
   ImCompilerChatAgent,
   ResolutionPlanEvaluatorChatAgent,
   AvoidanceScannerChatAgent,
-  LitigationTrackerChatAgent
+  LitigationTrackerChatAgent,
+  PrecedentChatAgent
 } from './chat-agents';
 import {
   AiConfigurationCategory,
@@ -92,6 +93,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(ChatAgent).to(ResolutionPlanEvaluatorChatAgent).inSingletonScope();
   bind(ChatAgent).to(AvoidanceScannerChatAgent).inSingletonScope();
   bind(ChatAgent).to(LitigationTrackerChatAgent).inSingletonScope();
+  bind(ChatAgent).to(PrecedentChatAgent).inSingletonScope();
 
   // Enforce HayagrivaChatAgentService (purges all non-legal/developer agents from UI)
   rebind(ChatAgentServiceImpl).to(HayagrivaChatAgentServiceImpl).inSingletonScope();

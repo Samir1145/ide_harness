@@ -106,6 +106,7 @@ export class HayagrivaAgentsCategoryContribution implements AiConfigurationCateg
     /** Static agent metadata – keep in sync with chat-agents.ts */
     private readonly agents = [
         { id: 'Advisor',   name: '@advisor',   desc: 'Legal research & precedents',                 modes: ['plan', 'draft'] },
+        { id: 'Precedent', name: '@precedent', desc: 'Supreme Court & NCLAT case law search',       modes: ['search', 'ratio'] },
         { id: 'Document',  name: '@document',  desc: 'Draft court petitions & filings',             modes: ['plan', 'draft'] },
         { id: 'Forms',     name: '@forms',     desc: 'Audit & fill statutory forms',                modes: ['fill', 'audit'] },
         { id: 'Claims',    name: '@claims',    desc: 'Creditor claims & debt voting shares',        modes: ['check'] },

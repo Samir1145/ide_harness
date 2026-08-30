@@ -433,3 +433,27 @@ export class ClaimVerificationChatAgent extends BaseHayagrivaChatAgent {
   ];
 }
 
+@injectable()
+export class PrecedentChatAgent extends BaseHayagrivaChatAgent {
+  readonly id = 'Precedent';
+  readonly name = 'Precedent';
+  readonly description = 'Supreme Court, NCLAT & NCLT case law research across 17,500+ rulings';
+  readonly iconClass = 'codicon codicon-book';
+  override readonly tags = ['precedents', 'caselaw', 'judgments', 'court', 'supreme-court', 'nclat'];
+  override readonly modes: ChatMode[] = [
+    { id: 'search', name: 'Precedent Search', isDefault: true },
+    { id: 'ratio', name: 'Ratio Decidendi' }
+  ];
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'precedent-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are HAYAGRIVA Precedent Agent. Search and extract Supreme Court, NCLAT, and NCLT rulings from the encrypted case law vault.'
+      }
+    }
+  ];
+}
+
+
+
