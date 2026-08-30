@@ -43,43 +43,44 @@ function startApiServer(docsRoot, port = 3210) {
         startLazyWorker();
     });
 
-    // ── LSP WebSocket Bridge ────────────────────────────────────────────────
-    // Attaches to the SAME http.Server — no new port opened.
-    // Only WebSocket upgrade requests to path /lsp are routed here.
-    // All HTTP routes on port 3210 continue to work unchanged.
-    try {
-        const { WebSocketServer } = require('ws');
-        const { toSocket } = require('vscode-ws-jsonrpc');
-        const { createWebSocketConnection, createServerProcess, forward } = require('vscode-ws-jsonrpc/server');
+    // ── LSP WebSocket Bridge (Detached / Disabled) ─────────────────────────
+    // Standalone out-of-process LSP server is disabled for now.
+    // Monaco editor uses direct, fast HTTP REST routes instead.
+    const ENABLE_LSP = process.env.ENABLE_HAYAGRIVA_LSP === 'true';
+    if (ENABLE_LSP) {
+        try {
+            const { WebSocketServer } = require('ws');
+            const { toSocket } = require('vscode-ws-jsonrpc');
+            const { createWebSocketConnection, createServerProcess, forward } = require('vscode-ws-jsonrpc/server');
 
-        const wss = new WebSocketServer({ server, path: '/lsp' });
+            const wss = new WebSocketServer({ server, path: '/lsp' });
 
-        wss.on('connection', (socket, req) => {
-            console.log(`[LSP WS] New client connected from ${req.socket.remoteAddress}`);
+            wss.on('connection', (socket, req) => {
+                console.log(`[LSP WS] New client connected from ${req.socket.remoteAddress}`);
 
-            const clientConnection = createWebSocketConnection(toSocket(socket));
-            const serverConnection = createServerProcess(
-                'HayagrivaLSP',
-                process.execPath,
-                [path.join(__dirname, 'core', 'lsp-server-process.js')],
-                {
-                    execArgv: ['--max-old-space-size=256']
+                const clientConnection = createWebSocketConnection(toSocket(socket));
+                const serverConnection = createServerProcess(
+                    'HayagrivaLSP',
+                    process.execPath,
+                    [path.join(__dirname, 'core', 'lsp-server-process.js')],
+                    {
+                        execArgv: ['--max-old-space-size=256']
+                    }
+                );
+
+                if (serverConnection) {
+                    forward(clientConnection, serverConnection);
                 }
-            );
+            });
 
-            if (serverConnection) {
-                forward(clientConnection, serverConnection);
-            }
-        });
+            wss.on('error', (err) => {
+                console.error(`[LSP WS Server] Error: ${err.message}`);
+            });
 
-        wss.on('error', (err) => {
-            console.error(`[LSP WS Server] Error: ${err.message}`);
-        });
-
-        console.log(`[LSP WS] WebSocket bridge active at ws://127.0.0.1:${port}/lsp`);
-    } catch (err) {
-        // ws or vscode-ws-jsonrpc not installed — degrade gracefully
-        console.warn(`[LSP WS] WebSocket bridge could not start: ${err.message}. Falling back to HTTP LSP routes.`);
+            console.log(`[LSP WS] WebSocket bridge active at ws://127.0.0.1:${port}/lsp`);
+        } catch (err) {
+            console.warn(`[LSP WS] WebSocket bridge could not start: ${err.message}.`);
+        }
     }
 
     return server;

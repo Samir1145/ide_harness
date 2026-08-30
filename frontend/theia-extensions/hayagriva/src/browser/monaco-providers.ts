@@ -2,7 +2,6 @@ import { injectable, inject } from '@theia/core/shared/inversify';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { PreferenceService } from '@theia/core/lib/common';
 import { ILogger } from '@theia/core/lib/common/logger';
-import { HayagrivaLspClient } from './lsp-client';
 
 import * as monaco from '@theia/monaco-editor-core';
 
@@ -13,8 +12,7 @@ export class HayagrivaMonacoProviders {
   constructor(
     @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
     @inject(PreferenceService) protected readonly preferenceService: PreferenceService,
-    @inject(ILogger) protected readonly logger: ILogger,
-    @inject(HayagrivaLspClient) protected readonly lspClient: HayagrivaLspClient
+    @inject(ILogger) protected readonly logger: ILogger
   ) {}
 
   protected getBackendUrl(): string {
@@ -467,44 +465,7 @@ export class HayagrivaMonacoProviders {
     for (const lang of LANGS) {
       monaco.languages.registerHoverProvider(lang, {
           provideHover: async (model: any, position: any, token: any) => {
-            const docUri = model.uri.toString();
-            const conn = this.lspClient.getConnection();
-
-            // 1. Try out-of-process LSP server over WebSocket first
-            if (conn) {
-              try {
-                const hoverResult: any = await conn.sendRequest('textDocument/hover', {
-                  textDocument: { uri: docUri },
-                  position: {
-                    line: position.lineNumber - 1,
-                    character: position.column - 1
-                  }
-                });
-                if (token.isCancellationRequested) return undefined;
-                if (hoverResult && hoverResult.contents) {
-                  const value = typeof hoverResult.contents === 'string'
-                    ? hoverResult.contents
-                    : (hoverResult.contents.value || '');
-                  if (value.trim()) {
-                    let range = undefined;
-                    if (hoverResult.range) {
-                      range = new monaco.Range(
-                        hoverResult.range.start.line + 1,
-                        hoverResult.range.start.character + 1,
-                        hoverResult.range.end.line + 1,
-                        hoverResult.range.end.character + 1
-                      );
-                    }
-                    return {
-                      contents: [{ value }],
-                      range
-                    };
-                  }
-                }
-              } catch (_) {}
-            }
-
-            // 2. Local Fallback for @@ law citations
+            // Local & REST Provider for @@ and @ law citations
             const lineText: string = model.getLineContent(position.lineNumber);
             const citationRegex = /@@?([\w/.\-]+)/g;
             let match: RegExpExecArray | null;

@@ -157,7 +157,6 @@ export class HayagrivaFrontendContribution
     this.initializeWikiExplorerWidget();
     this.initializeConceptsExplorerWidget();
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
-    this.lspClient.start(() => this.getActiveCaseName());
     this.startBackendMonitor();
 
     // Dynamically sync theme changes
