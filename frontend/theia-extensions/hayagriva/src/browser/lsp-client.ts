@@ -3,7 +3,7 @@ import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service
 import { PreferenceService } from '@theia/core/lib/common';
 import { ILogger } from '@theia/core/lib/common/logger';
 
-declare const monaco: any;
+import * as monaco from '@theia/monaco-editor-core';
 
 @injectable()
 export class HayagrivaLspClient {

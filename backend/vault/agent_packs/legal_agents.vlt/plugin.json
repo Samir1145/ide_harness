@@ -59,7 +59,7 @@
       "id": "claim-prep",
       "name": "Claim Preparation Agent",
       "tag": "claim_preparation",
-      "aliases": ["claim-prep", "claim_prep", "claim-preparation"],
+      "aliases": ["claim-prep", "claim_prep", "claim-preparation", "claim_preparer", "claim-preparer", "claim_drafter", "claim-drafter"],
       "description": "Drafts and prepares statutory IBBI claim forms (Form B, Form C, Form CA, Form D, Form F) from creditor proofs.",
       "modes": [
         { "id": "draft", "name": "Draft Form", "isDefault": true },

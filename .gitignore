@@ -62,4 +62,8 @@ backend/vault/agent_packs_archive/
 **/*_concepts_haya/
 **/*_conversions_haya/
 **/*_wiki_haya/
-
+# Local runtime case directories
+claims_live_run/
+claims_demo_case/
+dev-scratch/
+**/dev-scratch/

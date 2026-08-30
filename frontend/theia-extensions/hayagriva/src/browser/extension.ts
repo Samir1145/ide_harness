@@ -97,20 +97,34 @@ export class HayagrivaFrontendContribution
     if (/\.(pdf|docx|doc|xlsx|xls)$/i.test(filePath)) {
       const previewWidget = await this.previewManager.openOfficePreview(filePath, caseName);
 
-      const companionPath = filePath.replace(/\.(pdf|docx|doc|xlsx|xls)$/i, '.md');
-      const companionUri = new URI(companionPath);
+      const caseDir = this.getCaseName(filePath);
+      const caseNameOnly = caseDir.split('/').filter(Boolean).pop() || 'case';
+      const rel = filePath.startsWith(caseDir) ? filePath.substring(caseDir.length).replace(/^[/\\]+/, '') : getBasename(filePath);
+      const subfolder = rel.includes('/') || rel.includes('\\') ? rel.substring(0, Math.max(rel.lastIndexOf('/'), rel.lastIndexOf('\\'))) : '';
+      const basename = getBasename(filePath).replace(/\.[a-zA-Z0-9]+$/, '');
 
-      const checkUrl = `${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(companionPath)}`;
-      let companionExists = false;
-      try {
-        const res = await fetch(checkUrl);
-        if (res.ok) {
-          const data = await res.json();
-          companionExists = !!(data && data.content);
-        }
-      } catch (_) {}
+      // Potential companion markdown paths in priority order
+      const candidates = [
+        subfolder ? `${caseDir}/${caseNameOnly}_conversions_haya/${subfolder}/${basename}.md` : `${caseDir}/${caseNameOnly}_conversions_haya/${basename}.md`,
+        subfolder ? `${caseDir}/conversions/${subfolder}/${basename}.md` : `${caseDir}/conversions/${basename}.md`,
+        `${caseDir}/${caseNameOnly}_conversions_haya/${basename}.md`,
+        `${caseDir}/conversions/${basename}.md`,
+        filePath.replace(/\.(pdf|docx|doc|xlsx|xls)$/i, '.md')
+      ];
 
-      if (companionExists) {
+      let companionUri: URI | undefined;
+      for (const cand of candidates) {
+        const checkUrl = `${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(cand)}&case=${encodeURIComponent(caseDir)}`;
+        try {
+          const res = await fetch(checkUrl);
+          if (res.ok) {
+            companionUri = new URI(cand);
+            break;
+          }
+        } catch (_) {}
+      }
+
+      if (companionUri) {
         const editors = this.editorManager.all;
         for (const ed of editors) {
           const resUri = ed.getResourceUri();

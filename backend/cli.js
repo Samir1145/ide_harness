@@ -61,8 +61,8 @@ async function bootstrapCase(caseDir) {
             settings['files.exclude']['**/conversions/**'] = true;
             settings['files.exclude']['concepts/'] = true;
             settings['files.exclude']['conversions/'] = true;
-            // Never globally exclude *.md — companion .md files are shown inline as caption suffix on parent PDF row
-            ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md'].forEach(wKey => {
+            // Never globally exclude wiki, md, drafts, or exports
+            ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md', '**/drafts', 'drafts', '**/drafts/**', 'drafts/', '**/exports', 'exports', '**/exports/**', 'exports/'].forEach(wKey => {
                 delete settings['files.exclude'][wKey];
             });
             settings['files.exclude']['**/.trash'] = true;

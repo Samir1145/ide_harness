@@ -5,32 +5,32 @@
   <title>Hayagriva Command Center &amp; Settings</title>
   <style>
     :root {
-      --bg-color: #12151e;
-      --card-bg: rgba(255, 255, 255, 0.03);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-bg-active: rgba(59, 130, 246, 0.12);
-      --card-border-active: #3b82f6;
-      --text-main: #f1f5f9;
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --card-bg-active: rgba(56, 189, 248, 0.12);
+      --card-border-active: #38bdf8;
+      --text-main: #f8fafc;
       --text-muted: #94a3b8;
-      --accent-color: #3b82f6;
-      --accent-hover: #2563eb;
+      --accent-color: #0284c7;
+      --accent-hover: #0369a1;
       --success-color: #10b981;
       --warning-color: #f59e0b;
       --danger-color: #ef4444;
-      --input-bg: #1e293b;
+      --input-bg: #0f172a;
       --input-border: #334155;
     }
 
     [data-theme="light"] {
       --bg-color: #f8fafc;
       --card-bg: #ffffff;
-      --card-border: #e2e8f0;
-      --card-bg-active: rgba(37, 99, 235, 0.08);
-      --card-border-active: #2563eb;
+      --card-border: #cbd5e1;
+      --card-bg-active: #f0f9ff;
+      --card-border-active: #0284c7;
       --text-main: #0f172a;
-      --text-muted: #64748b;
-      --accent-color: #2563eb;
-      --accent-hover: #1d4ed8;
+      --text-muted: #475569;
+      --accent-color: #0284c7;
+      --accent-hover: #0369a1;
       --success-color: #059669;
       --warning-color: #d97706;
       --danger-color: #dc2626;
@@ -43,16 +43,17 @@
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       margin: 0;
-      padding: 20px;
-      line-height: 1.5;
-      font-size: 13px;
+      padding: 0 0 40px 0;
+      line-height: 1.6;
+      font-size: 14px;
     }
 
     .container {
-      max-width: 760px;
+      max-width: 960px;
       margin: 0 auto;
+      padding: 24px 20px;
     }
 
     /* ── Header & Telemetry Bar ────────────────────────────────────────── */
@@ -61,47 +62,52 @@
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--card-border);
-      padding-bottom: 16px;
-      margin-bottom: 20px;
+      padding-bottom: 20px;
+      margin-bottom: 16px;
     }
     .header-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
     .header-logo {
-      width: 32px;
-      height: 32px;
+      width: 38px;
+      height: 38px;
       object-fit: contain;
     }
     .header-title {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 700;
       letter-spacing: -0.5px;
       margin: 0;
+      color: var(--text-main);
     }
     .header-subtitle {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--text-muted);
+      margin-top: 2px;
     }
     .telemetry-pill {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-size: 11px;
+      border-radius: 24px;
+      padding: 8px 16px;
+      font-size: 12px;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
     .ram-bar-bg {
-      width: 70px;
-      height: 6px;
+      width: 80px;
+      height: 8px;
       background: var(--input-border);
-      border-radius: 3px;
+      border-radius: 4px;
       overflow: hidden;
       display: inline-block;
+      vertical-align: middle;
+      margin: 0 6px;
     }
     .ram-bar-fill {
       height: 100%;
@@ -110,31 +116,40 @@
       transition: width 0.4s ease;
     }
 
-    /* ── Main Navigation Tabs ──────────────────────────────────────────── */
+    /* ── Sticky Main Navigation Tabs ───────────────────────────────────── */
+    .nav-tabs-wrapper {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-color);
+      padding: 10px 0 16px 0;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+    }
     .nav-tabs {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      padding: 4px;
-      border-radius: 10px;
-      margin-bottom: 20px;
+      padding: 6px;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
     }
     .nav-tab-btn {
       flex: 1;
       background: none;
       border: none;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      padding: 8px 12px;
-      border-radius: 7px;
+      padding: 10px 14px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
     }
     .nav-tab-btn:hover {
       color: var(--text-main);
@@ -142,7 +157,7 @@
     .nav-tab-btn.active {
       background: var(--accent-color);
       color: #ffffff;
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
     }
 
     /* ── Tab Views Container ───────────────────────────────────────────── */
@@ -152,75 +167,99 @@
     .section-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     }
     .section-header {
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      margin-bottom: 14px;
+      letter-spacing: 0.2px;
+      color: var(--text-main);
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
+    .section-desc {
+      margin-top: 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
 
-    /* ── Mode Selector Tiles ────────────────────────────────────────────── */
-    .mode-grid {
+    /* ── Multi-Row Grids ────────────────────────────────────────────────── */
+    .mode-grid-2col {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 16px;
+      gap: 18px;
     }
+    .domain-grid-3col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 768px) {
+      .mode-grid-2col, .domain-grid-3col {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .mode-tile {
       background: var(--card-bg);
       border: 2px solid var(--card-border);
       border-radius: 10px;
-      padding: 16px;
+      padding: 20px;
       cursor: pointer;
       transition: all 0.2s ease;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .mode-tile:hover {
       border-color: var(--accent-color);
+      transform: translateY(-1px);
     }
     .mode-tile.active {
       border-color: var(--card-border-active);
       background: var(--card-bg-active);
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.1);
     }
     .mode-tile-title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      color: var(--text-main);
     }
     .mode-tile-desc {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-muted);
-      line-height: 1.4;
-      margin-bottom: 12px;
+      line-height: 1.5;
+      margin-bottom: 14px;
     }
     .feature-list {
       border-top: 1px dashed var(--card-border);
-      padding-top: 10px;
-      font-size: 11px;
+      padding-top: 12px;
+      font-size: 12px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
-    .feature-item.yes { color: var(--success-color); }
-    .feature-item.no { color: var(--danger-color); opacity: 0.6; }
+    .feature-item.yes { color: var(--success-color); font-weight: 600; }
+    .feature-item.no { color: var(--danger-color); opacity: 0.7; }
 
     /* ── LLM Engine Cards ───────────────────────────────────────────────── */
     .engine-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 14px;
     }
     .engine-item {
       display: flex;
@@ -228,8 +267,9 @@
       justify-content: space-between;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 12px 16px;
+      border-radius: 10px;
+      padding: 16px 20px;
+      transition: all 0.2s ease;
     }
     .engine-item.active {
       border-color: var(--success-color);
@@ -239,14 +279,15 @@
       border-color: var(--card-border);
     }
     .engine-status-dot {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       display: inline-block;
+      flex-shrink: 0;
     }
     .engine-item.active .engine-status-dot {
       background: var(--success-color);
-      box-shadow: 0 0 8px var(--success-color);
+      box-shadow: 0 0 10px var(--success-color);
     }
     .engine-item.offline .engine-status-dot {
       background: var(--text-muted);
@@ -256,12 +297,13 @@
       background: var(--accent-color);
       color: #ffffff;
       border: none;
-      padding: 6px 14px;
+      padding: 8px 18px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      white-space: nowrap;
     }
     .btn-action:hover { background: var(--accent-hover); }
     .btn-action.stop { background: var(--danger-color); }
@@ -271,18 +313,18 @@
     /* ── Marketplace Catalog Sub-Tabs ────────────────────────────────────── */
     .mkt-subtabs {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       border-bottom: 1px solid var(--card-border);
-      padding-bottom: 8px;
-      margin-bottom: 14px;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
     }
     .mkt-subtab-btn {
       background: none;
       border: none;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      padding: 6px 12px;
+      padding: 8px 16px;
       border-radius: 6px;
       cursor: pointer;
     }
@@ -296,7 +338,7 @@
     .mkt-grid {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
     .mkt-card {
       display: flex;
@@ -305,15 +347,15 @@
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 8px;
-      padding: 12px 16px;
+      padding: 14px 18px;
     }
-    .mkt-card.installed { border-left: 3px solid var(--success-color); }
+    .mkt-card.installed { border-left: 4px solid var(--success-color); }
 
     /* ── Drag & Drop Offline Importer ───────────────────────────────────── */
     .dropzone {
       border: 2px dashed var(--card-border);
-      border-radius: 10px;
-      padding: 24px;
+      border-radius: 12px;
+      padding: 28px;
       text-align: center;
       background: rgba(255, 255, 255, 0.01);
       transition: all 0.2s ease;
@@ -324,19 +366,19 @@
       background: var(--card-bg-active);
     }
     .dropzone-title {
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     .dropzone-desc {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--text-muted);
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .dropzone-input-row {
       display: flex;
-      gap: 8px;
-      max-width: 540px;
+      gap: 10px;
+      max-width: 600px;
       margin: 0 auto;
     }
     .dropzone-input-row input {
@@ -345,16 +387,16 @@
       border: 1px solid var(--input-border);
       border-radius: 6px;
       color: var(--text-main);
-      padding: 8px 12px;
-      font-size: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
       font-family: monospace;
     }
 
     /* ── License & Subscriptions ────────────────────────────────────────── */
     .license-box {
       display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
+      gap: 12px;
+      margin-bottom: 16px;
     }
     .license-box input {
       flex: 1;
@@ -362,8 +404,8 @@
       border: 1px solid var(--input-border);
       border-radius: 6px;
       color: var(--text-main);
-      padding: 10px 14px;
-      font-size: 13px;
+      padding: 12px 16px;
+      font-size: 14px;
       font-family: monospace;
     }
 
@@ -375,12 +417,12 @@
       color: #fff;
       text-align: center;
       border-radius: 8px;
-      padding: 12px 20px;
+      padding: 14px 24px;
       position: fixed;
       z-index: 1000;
       right: 24px;
       bottom: 24px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
     }
@@ -410,78 +452,87 @@
           <div class="ram-bar-bg"><div class="ram-bar-fill" id="ramFill"></div></div>
           <span id="ramText" style="color: var(--text-muted);">-- / -- GB</span>
         </div>
-        <span id="modeBadge" style="background: rgba(16, 185, 129, 0.15); color: var(--success-color); padding: 2px 8px; border-radius: 10px;">Lite Mode</span>
+        <span id="modeBadge" style="background: rgba(16, 185, 129, 0.15); color: var(--success-color); padding: 4px 10px; border-radius: 12px; font-weight: 700;">Lite Mode</span>
       </div>
     </div>
 
-    <!-- ── Main Navigation Tabs ─────────────────────────────────────────── -->
-    <div class="nav-tabs">
-      <button type="button" class="nav-tab-btn active" onclick="switchNavTab('mode')">⚡ Mode &amp; Engine</button>
-      <button type="button" class="nav-tab-btn" onclick="switchNavTab('marketplace')">🛒 Marketplace</button>
-      <button type="button" class="nav-tab-btn" onclick="switchNavTab('pipeline')">🛠️ Pipeline</button>
-      <button type="button" class="nav-tab-btn" onclick="switchNavTab('license')">🔑 License</button>
-      <button type="button" class="nav-tab-btn" onclick="switchNavTab('slash')">📖 Slash Commands</button>
+    <!-- ── Sticky Main Navigation Tabs ───────────────────────────────────── -->
+    <div class="nav-tabs-wrapper">
+      <div class="nav-tabs">
+        <button type="button" class="nav-tab-btn active" onclick="switchNavTab('mode')">⚡ Mode &amp; Engine</button>
+        <button type="button" class="nav-tab-btn" onclick="switchNavTab('marketplace')">🛒 Marketplace</button>
+        <button type="button" class="nav-tab-btn" onclick="switchNavTab('pipeline')">🛠️ Pipeline</button>
+        <button type="button" class="nav-tab-btn" onclick="switchNavTab('license')">🔑 License</button>
+        <button type="button" class="nav-tab-btn" onclick="switchNavTab('slash')">📖 Slash Commands</button>
+      </div>
     </div>
 
     <!-- ── TAB 1: Mode & Engine Control Center ──────────────────────────── -->
     <div class="tab-content active" id="tabMode">
-      <div id="domainOnboardingBanner" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent-color); border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;">
-        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">
+      <div id="domainOnboardingBanner" style="display: none; background: rgba(2, 132, 199, 0.12); border: 1px solid var(--accent-color); border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;">
+        <div style="font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 4px;">
           ✨ Welcome to Hayagriva Case Command Center
         </div>
-        <div style="font-size: 12px; color: var(--text-muted);">
+        <div style="font-size: 13px; color: var(--text-muted);">
           This workspace is currently uninitialized. Please select your <strong>Practice Edition &amp; Active Domain Profile</strong> below to provision the appropriate case folder taxonomy and AI compliance tools.
         </div>
       </div>
 
+      <!-- ROW 1: Processing Mode Card -->
       <div class="section-card">
-        <div class="section-header">🤖 Select Processing Mode</div>
-        <div class="mode-grid">
-          
+        <div class="section-header">🤖 Row 1: Select Processing Mode</div>
+        <div class="section-desc">Choose between high-speed zero-RAM indexing or full neural AI drafting with specialized subagents.</div>
+        
+        <div class="mode-grid-2col">
           <!-- Lite Mode Tile -->
           <div class="mode-tile" id="tileLite" onclick="setMode('lite')">
-            <div class="mode-tile-title">
-              <span>⚡ Lite Mode</span>
-              <span id="radioLite" style="color: var(--accent-color);">✓</span>
+            <div>
+              <div class="mode-tile-title">
+                <span>⚡ Lite Mode</span>
+                <span id="radioLite" style="color: var(--accent-color);">✓</span>
+              </div>
+              <div class="mode-tile-desc">High-speed passage search (FTS5 + ONNX vector embeddings). 0 MB local LLM RAM overhead.</div>
             </div>
-            <div class="mode-tile-desc">High-speed passage search (FTS5 + ONNX vector embeddings). 0 MB local LLM RAM overhead.</div>
             <div class="feature-list">
-              <div class="feature-item yes">✓ Local Semantic Search</div>
-              <div class="feature-item yes">✓ Date &amp; Chronology Timeline</div>
-              <div class="feature-item yes">✓ Topic Overlap Mapping</div>
-              <div class="feature-item no">✗ AI Chat Assistant</div>
+              <div class="feature-item yes">✓ Local Semantic Search (InLegal-SBERT)</div>
+              <div class="feature-item yes">✓ Statutory CIRP Timeline Engine (T₀ → T₃₃₀)</div>
+              <div class="feature-item yes">✓ Concept Overlap Matrix &amp; Companion Markdown</div>
+              <div class="feature-item no">✗ Neural LLM Drafting &amp; Subagents (Offline)</div>
             </div>
           </div>
 
           <!-- AI Mode Tile -->
           <div class="mode-tile" id="tileLocal" onclick="setMode('local')">
-            <div class="mode-tile-title">
-              <span>🧠 AI Mode</span>
-              <span id="radioLocal" style="display: none; color: var(--accent-color);">✓</span>
+            <div>
+              <div class="mode-tile-title">
+                <span>🧠 AI Mode</span>
+                <span id="radioLocal" style="display: none; color: var(--accent-color);">✓</span>
+              </div>
+              <div class="mode-tile-desc">Full AI-assisted legal drafting, automated fact extraction, and compliance audits. Requires 16GB+ RAM.</div>
             </div>
-            <div class="mode-tile-desc">Full AI-assisted legal drafting, automated fact extraction, and compliance audits. Requires 16GB+ RAM.</div>
             <div class="feature-list">
-              <div class="feature-item yes">✓ Full AI Chat &amp; @Subagents</div>
-              <div class="feature-item yes">✓ Automated Fact Dictionary</div>
-              <div class="feature-item yes">✓ Document Audit &amp; Form H</div>
-              <div class="feature-item yes">✓ Neural Code &amp; Doc Drafting</div>
+              <div class="feature-item yes">✓ Full AI Chat &amp; Specialized Subagents</div>
+              <div class="feature-item yes">✓ Bi-directional Automated Fact Dictionary</div>
+              <div class="feature-item yes">✓ Resolution Plan Audit &amp; Form H Compliance</div>
+              <div class="feature-item yes">✓ Neural Petition Drafting &amp; Court Compilers</div>
             </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 🏛️ Active Domain Profile Card -->
+      <!-- ROW 2: Practice Domain Profile Card -->
       <div class="section-card">
-        <div class="section-header">🏛️ Workspace Active Domain Profile</div>
-        <p style="margin-top: 0; color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">
-          Select the active domain profile for this workspace. Enforces single-domain workspace isolation and provisions domain folder taxonomy.
-        </p>
-        <div class="mode-grid">
+        <div class="section-header">🏛️ Row 2: Workspace Active Domain Profile</div>
+        <div class="section-desc">Select the active domain profile for this workspace. Enforces single-domain workspace isolation and provisions domain folder taxonomy.</div>
+        
+        <div class="domain-grid-3col">
           <!-- Insolvency Profile Tile -->
           <div class="mode-tile" id="tileDomainInsolvency" onclick="setWorkspaceDomain('insolvency')">
             <div class="mode-tile-title">
               <span>🏛️ Haya Insolvency (IP)</span>
               <span id="radioDomainInsolvency" style="color: var(--accent-color);">✓</span>
             </div>
-            <div class="mode-tile-desc">Insolvency Professional &amp; IPE workflow. 10 iPIE Folders, CoC Voting Engine &amp; @claims_mgr.</div>
+            <div class="mode-tile-desc">Insolvency Professional &amp; IPE workflow. 10 iPIE Folders, CoC Voting Engine &amp; <code>@claims_mgr</code>.</div>
           </div>
 
           <!-- Legal Advocate Profile Tile -->
@@ -490,7 +541,7 @@
               <span>⚖️ Haya Legal (Advocate)</span>
               <span id="radioDomainLegal" style="display: none; color: var(--accent-color);">✓</span>
             </div>
-            <div class="mode-tile-desc">Advocate &amp; Law Firm litigation workflow. 5 Legal Folders, Court Dockets &amp; @docket_mgr.</div>
+            <div class="mode-tile-desc">Advocate &amp; Law Firm litigation workflow. 5 Legal Folders, Court Dockets &amp; <code>@docket_mgr</code>.</div>
           </div>
 
           <!-- Finance CA Profile Tile -->
@@ -499,28 +550,28 @@
               <span>📊 Haya Finance (CA)</span>
               <span id="radioDomainFinance" style="display: none; color: var(--accent-color);">✓</span>
             </div>
-            <div class="mode-tile-desc">CA &amp; Forensic Audit workflow. 5 Finance Folders, Ledger Audits &amp; @audit_mgr.</div>
+            <div class="mode-tile-desc">CA &amp; Forensic Audit workflow. 5 Finance Folders, Ledger Audits &amp; <code>@audit_mgr</code>.</div>
           </div>
         </div>
       </div>
 
-      <!-- Engine Lifecycle Matrix -->
-      <div class="section-card" id="engineControlSection" style="display: none;">
-        <div class="section-header">🧠 Local LLM Single-Engine Control</div>
-        <p style="margin-top: 0; color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">
-          Starting an engine automatically allocates ~2.7 GB of local memory on port 8090/8091. Hot-swapping between domains strictly runs 1 engine at a time to save RAM.
-        </p>
+      <!-- ROW 3: Local LLM Single-Engine Control Card -->
+      <div class="section-card" id="engineControlSection">
+        <div class="section-header">🧠 Row 3: Local LLM Single-Engine Control</div>
+        <div class="section-desc">
+          Starting an engine allocates ~2.7 GB of local RAM on unified Port 8090. Switching engines hot-swaps the model automatically to keep execution strictly 1 engine at a time.
+        </div>
 
         <div class="engine-list">
           <!-- Legal Engine Card -->
           <div class="engine-item" id="cardLegal">
             <div>
-              <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+              <div style="font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 10px;">
                 <span class="engine-status-dot"></span>
                 <span>LegalParam-2.9B Engine</span>
-                <span style="font-size: 10px; opacity: 0.6; font-weight: normal;">(Port 8090)</span>
+                <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(Port 8090)</span>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="statusTextLegal">Status: Offline</div>
+              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="statusTextLegal">Status: Offline</div>
             </div>
             <button type="button" class="btn-action" id="btnLegal" onclick="toggleEngine('legal')">Start Engine</button>
           </div>
@@ -528,12 +579,12 @@
           <!-- Finance Engine Card -->
           <div class="engine-item" id="cardFinance">
             <div>
-              <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+              <div style="font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 10px;">
                 <span class="engine-status-dot"></span>
                 <span>FinanceParam-2.9B Engine</span>
-                <span style="font-size: 10px; opacity: 0.6; font-weight: normal;">(Port 8090)</span>
+                <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(Port 8090)</span>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="statusTextFinance">Status: Offline</div>
+              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="statusTextFinance">Status: Offline</div>
             </div>
             <button type="button" class="btn-action" id="btnFinance" onclick="toggleEngine('finance')">Start Engine</button>
           </div>
@@ -541,12 +592,12 @@
           <!-- SaulLM-7B Engine Card -->
           <div class="engine-item" id="cardSaul">
             <div>
-              <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+              <div style="font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 10px;">
                 <span class="engine-status-dot"></span>
                 <span>SaulLM-7B Instruct (Pro Engine)</span>
-                <span style="font-size: 10px; opacity: 0.6; font-weight: normal;">(Port 8090)</span>
+                <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(Port 8090)</span>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="statusTextSaul">Status: Offline</div>
+              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="statusTextSaul">Status: Offline</div>
             </div>
             <button type="button" class="btn-action" id="btnSaul" onclick="toggleEngine('saul')">Start Engine</button>
           </div>
@@ -558,6 +609,8 @@
     <div class="tab-content" id="tabMarketplace">
       <div class="section-card">
         <div class="section-header">🛒 Marketplace Catalog &amp; Subagents</div>
+        <div class="section-desc">Browse and manage installed encrypted Data Vaults, specialized Subagent Packs, and local neural weights.</div>
+        
         <div class="mkt-subtabs">
           <button type="button" class="mkt-subtab-btn active" onclick="switchMktSubtab('agents')">🤖 Agent Packs</button>
           <button type="button" class="mkt-subtab-btn" onclick="switchMktSubtab('engines')">🧠 LLM Engines</button>
@@ -578,9 +631,11 @@
       <!-- Drag & Drop Importer -->
       <div class="section-card">
         <div class="section-header">📥 Offline Module Importer (.vlt / .gguf / .zip)</div>
+        <div class="section-desc">Import pre-downloaded modules directly from your local filesystem into the Hayagriva runtime environment.</div>
+        
         <div class="dropzone" id="dropzone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
           <div class="dropzone-title">Drag &amp; Drop Offline Module File</div>
-          <div class="dropzone-desc">Drop any pre-downloaded .vlt agent pack, .gguf model, or .zip vault file here</div>
+          <div class="dropzone-desc">Drop any .vlt agent pack, .gguf model, or .zip data vault archive here</div>
           <div class="dropzone-input-row">
             <input type="text" id="importPathInput" placeholder="/Users/path/to/module_file.zip">
             <button type="button" class="btn-action" onclick="submitImportPath()">Import File</button>
@@ -592,19 +647,23 @@
     <!-- ── TAB 3: Pipeline & Preferences ────────────────────────────────── -->
     <div class="tab-content" id="tabPipeline">
       <div class="section-card">
-        <div class="section-header">📄 Ingestion &amp; Document Conversion</div>
-        <div id="libreOfficeBanner" style="padding: 12px; border-radius: 6px; margin-bottom: 14px; font-weight: 600;">
+        <div class="section-header">📄 Ingestion &amp; Document Conversion Pipeline</div>
+        <div class="section-desc">Manage local document parsers, headless PDF conversion engines, and RAG retrieval parameters.</div>
+        
+        <div id="libreOfficeBanner" style="padding: 14px 18px; border-radius: 8px; margin-bottom: 18px; font-weight: 600; font-size: 14px;">
           Checking LibreOffice status…
         </div>
         
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <input type="checkbox" id="chkLibreOfficeWarning" onchange="autoSaveSettings()" style="cursor: pointer;">
-          <label for="chkLibreOfficeWarning" style="cursor: pointer; user-select: none;">Enable Warning Banner for Legacy Doc Formats (.doc, .xls)</label>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+          <input type="checkbox" id="chkLibreOfficeWarning" onchange="autoSaveSettings()" style="cursor: pointer; width: 16px; height: 16px;">
+          <label for="chkLibreOfficeWarning" style="cursor: pointer; user-select: none; font-size: 14px; font-weight: 500;">
+            Enable Warning Banner for Legacy Doc Formats (.doc, .xls)
+          </label>
         </div>
 
-        <div id="libreOfficeInstallGuide" style="display: none; font-size: 11px; color: var(--text-muted); border-top: 1px dashed var(--card-border); padding-top: 10px;">
+        <div id="libreOfficeInstallGuide" style="display: none; font-size: 13px; color: var(--text-muted); border-top: 1px dashed var(--card-border); padding-top: 14px; margin-top: 10px;">
           <strong>Terminal Command to Install LibreOffice (macOS):</strong><br>
-          <code style="background: var(--input-bg); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px;">brew install --cask libreoffice</code>
+          <code style="background: var(--input-bg); border: 1px solid var(--input-border); padding: 6px 12px; border-radius: 6px; display: inline-block; margin-top: 8px; font-size: 13px; color: var(--text-main);">brew install --cask libreoffice</code>
         </div>
       </div>
     </div>
@@ -612,119 +671,124 @@
     <!-- ── TAB 4: License & Ecosystem ────────────────────────────────────── -->
     <div class="tab-content" id="tabLicense">
       <div class="section-card">
-        <div class="section-header">🔑 License Key Activation</div>
-        <p style="margin-top: 0; color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">
+        <div class="section-header">🔑 Cryptographic License Key Activation</div>
+        <div class="section-desc">
           Enter an offline cryptographic Ed25519 license key to unlock Pro or Enterprise features and custom subagents.
-        </p>
+        </div>
+        
         <div class="license-box">
           <input type="text" id="licenseInput" placeholder="Paste license key string here…">
           <button type="button" class="btn-action" onclick="activateLicense()">Activate Key</button>
         </div>
-        <div style="font-size: 12px; color: var(--text-muted);">Current Active Tier: <strong id="tierBadge" style="color: var(--accent-color);">Starter (Free)</strong></div>
+        
+        <div style="font-size: 14px; color: var(--text-muted); margin-top: 8px;">
+          Current Active Tier: <strong id="tierBadge" style="color: var(--accent-color); font-size: 15px;">Starter (Free)</strong>
+        </div>
+      </div>
+    </div>
+
     <!-- ── TAB 5: Slash Commands Cheat Sheet ────────────────────────────── -->
     <div class="tab-content" id="tabSlash">
       <div class="section-card">
-        <div class="section-header">⚡ Monaco Slash Commands Cheat Sheet</div>
-        <p style="margin-top: 0; color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">
-          Type <code>/</code> inside any document editor canvas to open the inline autocomplete menu.
-        </p>
+        <div class="section-header">⚡ Monaco Slash Commands Reference</div>
+        <div class="section-desc">
+          Type <code>/</code> inside any document editor canvas to open the inline autocomplete command menu.
+        </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
           
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/law</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Statutory Law &amp; Section Lookup</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Searches encrypted Law Vaults across all Acts, Sections, &amp; Rules (IBC, MCA, Banking).</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 16px; margin-bottom: 4px;">/law</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Statutory Law &amp; Section Lookup</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Searches encrypted Law Vaults across all Acts, Sections, &amp; Rules (IBC, MCA, Banking).</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               /law sec 30(2)<br>/law ibc 14<br>/law mca 185
             </div>
-            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Aliases: <code>/sec</code>, <code>/ibc</code>, <code>/mca</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Aliases: <code>/sec</code>, <code>/ibc</code>, <code>/mca</code></div>
           </div>
 
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/precedent</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Court Precedents &amp; Judgments</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Searches 581 precedent court rulings, Supreme Court judgments, &amp; NCLAT orders.</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 16px; margin-bottom: 4px;">/precedent</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Court Precedents &amp; Judgments</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Searches precedent court rulings, Supreme Court judgments, &amp; NCLAT orders.</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               /precedent related party voting<br>/precedent CIRP timeline
             </div>
-            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Alias: <code>/case</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Alias: <code>/case</code></div>
           </div>
 
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/fact</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Workspace Facts &amp; Q&amp;A Nodes</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Links defined terms, case facts, and Q&amp;A cards from workspace case subfolders.</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 16px; margin-bottom: 4px;">/fact</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Workspace Facts &amp; Q&amp;A Nodes</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Links defined terms, case facts, and Q&amp;A cards from workspace case subfolders.</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               /fact claim dispute<br>/fact insolvency date
             </div>
-            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Aliases: <code>/concept</code>, <code>/qa</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Aliases: <code>/concept</code>, <code>/qa</code></div>
           </div>
 
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/clause</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Drafting Contract Clauses</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Inserts legal clauses with interactive Tab-stop placeholders from the Atticus dealpoint library.</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 16px; margin-bottom: 4px;">/clause</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Drafting Contract Clauses</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Inserts legal clauses with interactive Tab-stop placeholders from the Atticus dealpoint library.</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               /clause arbitration<br>/clause indemnity<br>/clause governing_law
             </div>
-            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Alias: <code>/clause</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Alias: <code>/clause</code></div>
           </div>
 
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px; grid-column: 1 / -1;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">/export</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Supreme Court &amp; NCLAT DOCX Exporter</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Compiles active Markdown document into a court-compliant Word file (.docx) conforming to Supreme Court rules (14pt Times New Roman, 1.5 line spacing, 4cm left/right margins).</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px; grid-column: 1 / -1;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 16px; margin-bottom: 4px;">/export</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Supreme Court &amp; NCLAT DOCX Exporter</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Compiles active Markdown document into a court-compliant Word file (.docx) conforming to Supreme Court rules (14pt Times New Roman, 1.5 line spacing, 4cm left/right margins).</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               /export<br>/export-sc
             </div>
-            <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">Aliases: <code>/export-sc</code>, <code>/court-export</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Aliases: <code>/export-sc</code>, <code>/court-export</code></div>
           </div>
 
         </div>
       </div>
 
       <!-- Section B: AI Subagent Chat Workflows -->
-      <div class="section-card" style="margin-top: 20px;">
+      <div class="section-card" style="margin-top: 24px;">
         <div class="section-header">🤖 AI Chat Panel Subagent Workflows</div>
-        <p style="margin-top: 0; color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">
-          Type <code>@agent /command</code> or select the agent in the AI Chat Panel sidebar.
-        </p>
+        <div class="section-desc">Type <code>@agent /command</code> or select the subagent in the AI Chat Panel sidebar.</div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
 
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">📝 Document Drafting</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Target Agent: <code>@document</code></div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Generates full court petitions, revision replies, and appellate skeletons.</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 15px; margin-bottom: 4px;">📝 Document Drafting</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Target Agent: <code>@document</code></div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Generates full court petitions, revision replies, and appellate skeletons.</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               @document /draft sec7-petition<br>@document /draft sec9-petition<br>@document /draft slp-sc
             </div>
           </div>
 
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">📑 Statutory Form Fill</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Target Agent: <code>@forms</code></div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Hydrates official IBBI &amp; MCA statutory templates from case facts.</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 15px; margin-bottom: 4px;">📑 Statutory Form Fill</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Target Agent: <code>@forms</code></div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Hydrates official IBBI &amp; MCA statutory templates from case facts.</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               @forms /fill ibbi-form-a<br>@forms /fill ibbi-h<br>@forms /fill aoc-4
             </div>
           </div>
 
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">🔍 Forensic Audit &amp; Timeline</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Agents: <code>@avoidance</code>, <code>@timeline</code>, <code>@coc</code></div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Audits Sec 43/45 avoidance ledgers, debt voting shares, &amp; CIRP Gantt timeline.</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 15px; margin-bottom: 4px;">🔍 Forensic Audit &amp; Timeline</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Agents: <code>@avoidance</code>, <code>@timeline</code>, <code>@coc</code></div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Audits Sec 43/45 avoidance ledgers, debt voting shares, &amp; CIRP Gantt timeline.</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               @timeline /timeline<br>@avoidance /avoidance-scan<br>@coc /claims-check
             </div>
           </div>
 
-          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px; border-radius: 8px;">
-            <div style="font-weight: 700; color: var(--accent-color); font-size: 14px; margin-bottom: 4px;">⚖️ Tribunal Strategy &amp; Briefs</div>
-            <div style="font-size: 12px; color: var(--text-color); font-weight: 600;">Agents: <code>@nclt</code>, <code>@advisor</code>, <code>@litigation</code></div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Builds NCLT Bench synopses, scores ground strength (1-10), &amp; decodes orders.</div>
-            <div style="margin-top: 10px; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--accent-color);">
+          <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 18px; border-radius: 10px;">
+            <div style="font-weight: 700; color: var(--accent-color); font-size: 15px; margin-bottom: 4px;">⚖️ Tribunal Strategy &amp; Briefs</div>
+            <div style="font-size: 13px; color: var(--text-main); font-weight: 600;">Agents: <code>@nclt</code>, <code>@advisor</code>, <code>@litigation</code></div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Builds NCLT Bench synopses, scores ground strength (1-10), &amp; decodes orders.</div>
+            <div style="margin-top: 12px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-color);">
               @nclt /brief<br>@advisor /strength<br>@advisor /analyse-order
             </div>
           </div>
@@ -745,6 +809,7 @@
     let activeMode = 'lite';
     let isLegalRunning = false;
     let isFinanceRunning = false;
+    let isSaulRunning = false;
     let telemetryTimer = null;
 
     document.documentElement.setAttribute('data-theme', theme);
@@ -780,11 +845,6 @@
       document.getElementById('radioLite').style.display = mode === 'lite' ? 'inline' : 'none';
       document.getElementById('radioLocal').style.display = mode === 'local' ? 'inline' : 'none';
       
-      const engineSection = document.getElementById('engineControlSection');
-      if (engineSection) {
-        engineSection.style.display = (mode === 'local' || mode === 'standard') ? 'block' : 'none';
-      }
-
       autoSaveSettings();
     }
 
@@ -832,7 +892,8 @@
 
     async function autoSaveSettings() {
       try {
-        const remindLibreOffice = document.getElementById('chkLibreOfficeWarning').checked;
+        const chk = document.getElementById('chkLibreOfficeWarning');
+        const remindLibreOffice = chk ? chk.checked : true;
         const res = await fetch('/api/hayagriva/settings/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -851,8 +912,6 @@
     }
 
     // ── LLM Engine Controls ──────────────────────────────────────────────
-    let isSaulRunning = false;
-
     async function toggleEngine(engineType) {
       const isRunning = engineType === 'legal' ? isLegalRunning : (engineType === 'finance' ? isFinanceRunning : isSaulRunning);
       const endpoint = isRunning ? '/api/hayagriva/engine/stop' : '/api/hayagriva/engine/start';
@@ -925,7 +984,7 @@
           const modeBadge = document.getElementById('modeBadge');
           if (activeMode === 'local' || isLegalRunning || isFinanceRunning) {
             modeBadge.innerText = 'AI Mode Active';
-            modeBadge.style.background = 'rgba(59, 130, 246, 0.15)';
+            modeBadge.style.background = 'rgba(2, 132, 199, 0.15)';
             modeBadge.style.color = 'var(--accent-color)';
           } else {
             modeBadge.innerText = 'Lite Mode Active';
@@ -953,16 +1012,16 @@
       const container = document.getElementById(containerId);
       if (!container) return;
       if (!items || items.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">No items found.</div>';
+        container.innerHTML = '<div style="color: var(--text-muted); font-size: 13px; padding: 12px 0;">No catalog items found.</div>';
         return;
       }
       container.innerHTML = items.map(item => `
         <div class="mkt-card ${item.installed ? 'installed' : ''}">
           <div>
-            <div style="font-weight: 700; font-size: 13px;">${item.name || item.id}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${item.description || ''}</div>
+            <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">${item.name || item.id}</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${item.description || ''}</div>
           </div>
-          <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: ${item.installed ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)'}; color: ${item.installed ? 'var(--success-color)' : 'var(--text-muted)'};">
+          <span style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px; background: ${item.installed ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.06)'}; color: ${item.installed ? 'var(--success-color)' : 'var(--text-muted)'};">
             ${item.installed ? 'INSTALLED ✓' : 'AVAILABLE'}
           </span>
         </div>
@@ -1039,7 +1098,8 @@
           workspaceDocumentCount = config.documentCount || 0;
           setMode(activeMode);
           renderDomainTiles();
-          document.getElementById('chkLibreOfficeWarning').checked = config.remindLibreOffice !== false;
+          const chk = document.getElementById('chkLibreOfficeWarning');
+          if (chk) chk.checked = config.remindLibreOffice !== false;
 
           const onboardingBanner = document.getElementById('domainOnboardingBanner');
           if (onboardingBanner) {
@@ -1048,18 +1108,20 @@
 
           const banner = document.getElementById('libreOfficeBanner');
           const guide = document.getElementById('libreOfficeInstallGuide');
-          if (config.libreOfficeDetected) {
-            banner.innerText = '✓ Headless LibreOffice Converter: Active & Detected';
-            banner.style.background = 'rgba(16, 185, 129, 0.12)';
-            banner.style.border = '1px solid var(--success-color)';
-            banner.style.color = 'var(--success-color)';
-            guide.style.display = 'none';
-          } else {
-            banner.innerText = '⚠️ Headless LibreOffice Converter: Missing / Not Detected';
-            banner.style.background = 'rgba(239, 68, 68, 0.12)';
-            banner.style.border = '1px solid var(--danger-color)';
-            banner.style.color = 'var(--danger-color)';
-            guide.style.display = 'block';
+          if (banner) {
+            if (config.libreOfficeDetected) {
+              banner.innerText = '✓ Headless LibreOffice Converter: Active & Detected';
+              banner.style.background = 'rgba(16, 185, 129, 0.12)';
+              banner.style.border = '1px solid var(--success-color)';
+              banner.style.color = 'var(--success-color)';
+              if (guide) guide.style.display = 'none';
+            } else {
+              banner.innerText = '⚠️ Headless LibreOffice Converter: Missing / Not Detected';
+              banner.style.background = 'rgba(239, 68, 68, 0.12)';
+              banner.style.border = '1px solid var(--danger-color)';
+              banner.style.color = 'var(--danger-color)';
+              if (guide) guide.style.display = 'block';
+            }
           }
         }
       } catch (_) {}

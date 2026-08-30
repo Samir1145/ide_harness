@@ -1128,5 +1128,28 @@ export class HayagrivaCommandContribution implements CommandContribution {
         }
       }
     );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:previewInMiddlePanel`, label: '📄 Open Preview in Middle Panel' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected for middle panel preview');
+            return;
+          }
+          const filePath = decodeURIComponent(resourceUri.path.toString());
+          const caseName = this.getCasePath();
+          await this.contribution.openOfficePreview(filePath, caseName);
+        },
+        isEnabled: (uri?: any) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const p = resolved.path.toString().toLowerCase();
+          return p.endsWith('.md') || p.endsWith('.pdf') || p.endsWith('.docx') || p.endsWith('.doc') || p.endsWith('.xlsx') || p.endsWith('.xls') || p.endsWith('.txt');
+        },
+        isVisible: () => true
+      }
+    );
   }
 }

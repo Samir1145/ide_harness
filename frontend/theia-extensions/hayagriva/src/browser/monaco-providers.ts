@@ -4,15 +4,7 @@ import { PreferenceService } from '@theia/core/lib/common';
 import { ILogger } from '@theia/core/lib/common/logger';
 import { HayagrivaLspClient } from './lsp-client';
 
-function getMonaco(): any {
-  if (typeof window !== 'undefined' && (window as any).monaco) {
-    return (window as any).monaco;
-  }
-  if (typeof globalThis !== 'undefined' && (globalThis as any).monaco) {
-    return (globalThis as any).monaco;
-  }
-  return undefined;
-}
+import * as monaco from '@theia/monaco-editor-core';
 
 const HAYAGRIVA_NS = 'hayagriva';
 
@@ -42,10 +34,8 @@ export class HayagrivaMonacoProviders {
 
   // ─── 1. Citation Link Provider ─────────────────────────────────────────────
   registerLinkProvider(): void {
-    const checkMonaco = () => {
-      const monaco = getMonaco();
-      if (monaco && monaco.languages && monaco.languages.registerLinkProvider) {
-        monaco.languages.registerLinkProvider('markdown', {
+    if (monaco && monaco.languages && monaco.languages.registerLinkProvider) {
+      monaco.languages.registerLinkProvider('markdown', {
           provideLinks: (model: any) => {
             const links: any[] = [];
             const text = model.getValue();
@@ -73,13 +63,9 @@ export class HayagrivaMonacoProviders {
             }
             return { links };
           }
-        });
-        this.logger.info('[HAYAGRIVA] Successfully registered Monaco Link Provider for Citations.');
-      } else {
-        setTimeout(checkMonaco, 200);
-      }
-    };
-    checkMonaco();
+      });
+      this.logger.info('[HAYAGRIVA] Successfully registered Monaco Link Provider for Citations.');
+    }
   }
 
   // ─── 2. Autocompletions (@@ & /) + Inline Ghost Text ───────────────────────
@@ -106,18 +92,11 @@ export class HayagrivaMonacoProviders {
       }
     };
 
-    const checkMonaco = () => {
-      const monaco = getMonaco();
-      if (!monaco || !monaco.languages || !monaco.languages.registerCompletionItemProvider) {
-        setTimeout(checkMonaco, 300);
-        return;
-      }
+    const LANGS = ['markdown', 'plaintext'];
 
-      const LANGS = ['markdown', 'plaintext'];
-
-      for (const lang of LANGS) {
-        // ── Standard Completion Item Provider (@ and / triggers) ───────────────
-        monaco.languages.registerCompletionItemProvider(lang, {
+    for (const lang of LANGS) {
+      // ── Standard Completion Item Provider (@ and / triggers) ───────────────
+      monaco.languages.registerCompletionItemProvider(lang, {
           triggerCharacters: ['@', '/'],
           provideCompletionItems: async (model: any, position: any, _context: any, token: any) => {
             const lineText: string = model.getLineContent(position.lineNumber);
@@ -478,29 +457,20 @@ export class HayagrivaMonacoProviders {
 
               return { items: [] };
             },
-            freeInlineCompletions: () => {}
+            disposeInlineCompletions: () => {}
           });
         }
       }
 
-      this.logger.info('[HAYAGRIVA] Monaco Completion Items (@ and /) and Ghost Text Provider registered for markdown and plaintext.');
-    };
-    checkMonaco();
+    this.logger.info('[HAYAGRIVA] Monaco Completion Items (@ and /) and Ghost Text Provider registered for markdown and plaintext.');
   }
 
   // ─── 3. Law Hover Preview Provider ────────────────────────────────────────
   registerLawHoverProvider(): void {
-    const checkMonacoHover = () => {
-      const monaco = getMonaco();
-      if (!monaco || !monaco.languages || !monaco.languages.registerHoverProvider) {
-        setTimeout(checkMonacoHover, 300);
-        return;
-      }
+    const LANGS = ['markdown', 'plaintext'];
 
-      const LANGS = ['markdown', 'plaintext'];
-
-      for (const lang of LANGS) {
-        monaco.languages.registerHoverProvider(lang, {
+    for (const lang of LANGS) {
+      monaco.languages.registerHoverProvider(lang, {
           provideHover: async (model: any, position: any, token: any) => {
             const docUri = model.uri.toString();
             const conn = this.lspClient.getConnection();
@@ -578,9 +548,7 @@ export class HayagrivaMonacoProviders {
         });
       }
 
-      this.logger.info('[HAYAGRIVA] Law hover preview provider registered for markdown and plaintext.');
-    };
-    checkMonacoHover();
+    this.logger.info('[HAYAGRIVA] Law hover preview provider registered for markdown and plaintext.');
   }
 }
 

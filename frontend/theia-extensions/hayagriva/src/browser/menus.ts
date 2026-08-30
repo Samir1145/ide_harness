@@ -29,6 +29,12 @@ export class HayagrivaMenuContribution implements MenuContribution {
 
     // File Editor right click menu
     registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
+      label: '📄 Open Preview in Middle Panel',
+      order: '0'
+    });
+
+    registry.registerMenuAction(['editor_context_menu'], {
       commandId: `${HAYAGRIVA_NS}:compareDocuments`,
       label: 'Compare with... (Diff)',
       order: '1'
@@ -70,6 +76,13 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '7'
     });
 
+    // Direct preview action on top of Navigator context menu
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
+      label: '📄 Open Preview in Middle Panel',
+      order: '0_preview'
+    });
+
     // Navigator (File Explorer) right click sibling submenus
     const PIPELINE_SUBMENU = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_pipeline_submenu'];
     registry.registerSubmenu(PIPELINE_SUBMENU, 'Hayagriva (Pipeline)', { sortString: 'a_hayagriva_1' });
@@ -78,6 +91,12 @@ export class HayagrivaMenuContribution implements MenuContribution {
     registry.registerSubmenu(ARCHIVE_SUBMENU, 'Hayagriva (Archive)', { sortString: 'a_hayagriva_2' });
 
     // D7: Pipeline Submenu — Step 1 (Convert to Markdown) removed; now auto-starts on drop
+    registry.registerMenuAction(PIPELINE_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
+      label: '📄 Preview in Middle Panel',
+      order: '0'
+    });
+
     registry.registerMenuAction(PIPELINE_SUBMENU, {
       commandId: `${HAYAGRIVA_NS}:enhanceMarkdown`,
       label: '1. Review / Edit Companion Markdown',

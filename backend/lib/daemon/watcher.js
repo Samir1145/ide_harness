@@ -323,6 +323,32 @@ function renameDocumentInDb(caseDir, oldRelative, newRelative) {
         }
     }
 
+    // 2b. Relocate conversions companion .md across subfolders
+    try {
+        const oldSubfolder = path.dirname(oldRelative);
+        const newSubfolder = path.dirname(newRelative);
+        const baseConversionsDir = getConversionsDir(caseDir);
+        const oldConvDir = oldSubfolder === '.' ? baseConversionsDir : path.join(baseConversionsDir, oldSubfolder);
+        const newConvDir = newSubfolder === '.' ? baseConversionsDir : path.join(baseConversionsDir, newSubfolder);
+        
+        const oldCompanion = path.join(oldConvDir, `${oldBasename}.md`);
+        const newCompanion = path.join(newConvDir, `${newBasename}.md`);
+        if (fs.existsSync(oldCompanion) && path.resolve(oldCompanion) !== path.resolve(newCompanion)) {
+            fs.mkdirSync(newConvDir, { recursive: true });
+            fs.renameSync(oldCompanion, newCompanion);
+            console.log(`[Watcher] Relocated companion markdown: "${oldCompanion}" -> "${newCompanion}"`);
+            
+            // Also relocate sidecars
+            const oldFooter = path.join(oldConvDir, `${oldBasename}.footer`);
+            const newFooter = path.join(newConvDir, `${newBasename}.footer`);
+            if (fs.existsSync(oldFooter)) {
+                try { fs.renameSync(oldFooter, newFooter); } catch (_) {}
+            }
+        }
+    } catch (e) {
+        console.error('[Watcher] Failed to relocate companion markdown:', e.message);
+    }
+
     // 3. Rename keys in BM25 index JSON
     try {
         const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');

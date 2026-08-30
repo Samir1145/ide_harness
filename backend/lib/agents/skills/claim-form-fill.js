@@ -155,16 +155,26 @@ async function generateClaimForm(caseDir, formType = 'c', customData = {}) {
         populated = populated.split(key).join(val || '');
     }
 
-    // Persist to drafts/ directory
-    const draftsDir = path.join(caseDir, 'drafts');
-    if (!fs.existsSync(draftsDir)) {
-        fs.mkdirSync(draftsDir, { recursive: true });
+    // Determine target claims directory (default to 02_claims/ if present, or customData.targetDir, or caseDir)
+    let targetDir = customData.targetDir || customData.folder;
+    if (!targetDir || !fs.existsSync(targetDir)) {
+        const candidates = ['02_claims', '02_Claims', 'claims', 'Claims'];
+        for (const cand of candidates) {
+            const candidatePath = path.join(caseDir, cand);
+            if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isDirectory()) {
+                targetDir = candidatePath;
+                break;
+            }
+        }
+    }
+    if (!targetDir || !fs.existsSync(targetDir)) {
+        targetDir = caseDir;
     }
 
     const safeClaimant = data.claimantName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
     const formCode = formId.replace('cirp-', '').toUpperCase();
     const fileName = `CLAIM_${safeClaimant}_${formCode}.md`;
-    const filePath = path.join(draftsDir, fileName);
+    const filePath = path.join(targetDir, fileName);
 
     fs.writeFileSync(filePath, populated, 'utf8');
 

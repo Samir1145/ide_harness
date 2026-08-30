@@ -120,8 +120,6 @@ function ensureCaseSettings(caseDir) {
                 '**/.trash/**': true,
                 '**/concepts': true,
                 '**/conversions': true,
-                '**/drafts': true,
-                '**/exports': true,
                 '**/summaries': true,
                 '**/reviews': true,
                 '**/*_conversions_haya': true,
@@ -135,20 +133,14 @@ function ensureCaseSettings(caseDir) {
                 '*_wiki_haya': true,
                 'concepts': true,
                 'conversions': true,
-                'drafts': true,
-                'exports': true,
                 'summaries': true,
                 'reviews': true,
                 '**/concepts/**': true,
                 '**/conversions/**': true,
-                '**/drafts/**': true,
-                '**/exports/**': true,
                 '**/summaries/**': true,
                 '**/reviews/**': true,
                 'concepts/': true,
                 'conversions/': true,
-                'drafts/': true,
-                'exports/': true,
                 'summaries/': true,
                 'reviews/': true,
                 '**/*.status': true,
@@ -171,10 +163,10 @@ function ensureCaseSettings(caseDir) {
                     changed = true;
                 }
             }
-            // Never globally exclude *.md — companion .md files are shown via caption suffix on parent PDF
-            ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md'].forEach(wikiKey => {
-                if (settings['files.exclude'][wikiKey] !== undefined) {
-                    delete settings['files.exclude'][wikiKey];
+            // Ensure drafts, exports, and wiki are NEVER excluded
+            ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md', '**/drafts', 'drafts', '**/drafts/**', 'drafts/', '**/exports', 'exports', '**/exports/**', 'exports/'].forEach(visibleKey => {
+                if (settings['files.exclude'][visibleKey] !== undefined) {
+                    delete settings['files.exclude'][visibleKey];
                     changed = true;
                 }
             });
@@ -239,26 +231,18 @@ function ensureGlobalUserSettings() {
             '**/.trash/**': true,
             '**/concepts': true,
             '**/conversions': true,
-            '**/drafts': true,
-            '**/exports': true,
             '**/summaries': true,
             '**/reviews': true,
             'concepts': true,
             'conversions': true,
-            'drafts': true,
-            'exports': true,
             'summaries': true,
             'reviews': true,
             '**/concepts/**': true,
             '**/conversions/**': true,
-            '**/drafts/**': true,
-            '**/exports/**': true,
             '**/summaries/**': true,
             '**/reviews/**': true,
             'concepts/': true,
             'conversions/': true,
-            'drafts/': true,
-            'exports/': true,
             'summaries/': true,
             'reviews/': true,
             '**/*.status': true,
@@ -280,9 +264,9 @@ function ensureGlobalUserSettings() {
                 changed = true;
             }
         }
-        ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md'].forEach(wikiKey => {
-            if (settings['files.exclude'][wikiKey] !== undefined) {
-                delete settings['files.exclude'][wikiKey];
+        ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md', '**/drafts', 'drafts', '**/drafts/**', 'drafts/', '**/exports', 'exports', '**/exports/**', 'exports/'].forEach(visibleKey => {
+            if (settings['files.exclude'][visibleKey] !== undefined) {
+                delete settings['files.exclude'][visibleKey];
                 changed = true;
             }
         });
@@ -630,9 +614,9 @@ module.exports = {
   </div>
 </body>
 </html>`);
-                } else if (ext === '.xlsx' || ext === '.xls') {
-                    const workbook = xlsx.readFile(filePath);
-                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                } else if (ext === '.xlsx' || ext === '.xls' || ext === '.csv' || ext === '.tsv') {
+                    const workbook = ext === '.csv' || ext === '.tsv' ? xlsx.read(fs.readFileSync(filePath, 'utf8'), { type: 'string' }) : xlsx.readFile(filePath);
+                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
                     res.end(`<!DOCTYPE html>
 <html>
 <head>
@@ -689,7 +673,7 @@ module.exports = {
   }
   .sheet-content { display: none; padding: 15px; }
   .sheet-content.active { display: block; }
-  table { border-collapse: collapse; min-width: 100%; }
+  table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
   th, td { border: 1px solid var(--theia-border-color, #ccc); padding: 6px 12px; text-align: left; }
   th { background-color: var(--theia-layout-color2, #f5f5f5); font-weight: bold; }
 </style>
@@ -738,9 +722,129 @@ module.exports = {
                         'Accept-Ranges': 'bytes'
                     });
                     fs.createReadStream(filePath).pipe(res);
+                } else if (['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico'].includes(ext)) {
+                    const mimeTypes = {
+                        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+                        '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp',
+                        '.bmp': 'image/bmp', '.ico': 'image/x-icon'
+                    };
+                    res.writeHead(200, {
+                        'Content-Type': mimeTypes[ext] || 'image/png',
+                        'Content-Disposition': `inline; filename="${encodeURIComponent(path.basename(filePath))}"`
+                    });
+                    fs.createReadStream(filePath).pipe(res);
+                } else if (['.md', '.markdown', '.mdown', '.mkdn'].includes(ext)) {
+                    const MarkdownIt = require('markdown-it');
+                    const md = new MarkdownIt({ html: true, linkify: true, typographer: true });
+                    const raw = fs.readFileSync(filePath, 'utf8');
+                    let content = raw;
+                    try {
+                        const parsed = matter(raw);
+                        content = parsed.content;
+                    } catch (_) {}
+                    const htmlBody = md.render(content);
+                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                    res.end(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 32px 24px;
+    display: flex;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 100vh;
+  }
+  .document-content {
+    max-width: 860px;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 48px 56px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+    border-radius: 6px;
+    box-sizing: border-box;
+    overflow-x: auto;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 13px; }
+  th, td { border: 1px solid #cbd5e1; padding: 9px 14px; text-align: left; vertical-align: top; }
+  th { background-color: #f8fafc; font-weight: 600; color: #1e293b; border-bottom: 2px solid #cbd5e1; }
+  tr:nth-child(even) td { background-color: #fcfdfe; }
+  h1, h2, h3, h4 { color: #0369a1; margin-top: 28px; margin-bottom: 12px; font-weight: 600; }
+  h1 { border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 22px; margin-top: 10px; }
+  h2 { font-size: 17px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+  h3 { font-size: 15px; }
+  p { margin: 10px 0; color: #1e293b; }
+  strong { color: #0f172a; font-weight: 600; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+  blockquote { border-left: 4px solid #0284c7; margin: 16px 0; padding: 10px 18px; background: #f0f9ff; border-radius: 0 4px 4px 0; color: #334155; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; color: #0f172a; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 6px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #0f172a; }
+</style>
+</head>
+<body>
+  <div class="document-content">
+    ${htmlBody}
+  </div>
+</body>
+</html>`);
                 } else {
-                    res.writeHead(400, { 'Content-Type': 'text/plain' });
-                    res.end('Unsupported file format for preview');
+                    // Universal text/code fallback
+                    const raw = fs.readFileSync(filePath, 'utf8');
+                    const escaped = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                    res.end(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 100vh;
+  }
+  .document-content {
+    max-width: 900px;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 28px 36px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+    border-radius: 6px;
+    box-sizing: border-box;
+    overflow-x: auto;
+  }
+  pre {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 12px;
+    color: #0f172a;
+  }
+</style>
+</head>
+<body>
+  <div class="document-content">
+    <pre><code>${escaped}</code></pre>
+  </div>
+</body>
+</html>`);
                 }
             } catch (err) {
                 res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -862,15 +966,33 @@ module.exports = {
                                 const bm25IndexPath = path.join(getConceptsDir(caseDir), 'bm25_index.json');
 
                                 // Auto-relocate root companion .md to conversions/ folder if it exists
-                                if (ext !== '.md' && fs.existsSync(rootCompanionPath)) {
+                                if (ext !== '.md') {
                                     try {
                                         fs.mkdirSync(conversionsDir, { recursive: true });
+                                        if (fs.existsSync(rootCompanionPath)) {
+                                            if (!fs.existsSync(conversionCompanionPath)) {
+                                                fs.renameSync(rootCompanionPath, conversionCompanionPath);
+                                                console.log(`[File Statuses API] Relocated root companion .md to conversions/: ${conversionCompanionPath}`);
+                                            } else if (path.resolve(rootCompanionPath) !== path.resolve(conversionCompanionPath)) {
+                                                fs.unlinkSync(rootCompanionPath);
+                                                console.log(`[File Statuses API] Cleaned up stale duplicate root companion: ${rootCompanionPath}`);
+                                            }
+                                        }
+
+                                        // If companion is missing at conversionCompanionPath, search base conversions root or old subfolders
                                         if (!fs.existsSync(conversionCompanionPath)) {
-                                            fs.renameSync(rootCompanionPath, conversionCompanionPath);
-                                            console.log(`[File Statuses API] Relocated root companion .md to conversions/: ${conversionCompanionPath}`);
-                                        } else if (path.resolve(rootCompanionPath) !== path.resolve(conversionCompanionPath)) {
-                                            fs.unlinkSync(rootCompanionPath);
-                                            console.log(`[File Statuses API] Cleaned up stale duplicate root companion: ${rootCompanionPath}`);
+                                            const baseConversionsDir = getConversionsDir(caseDir);
+                                            const rootConvFile = path.join(baseConversionsDir, `${cleanBase}.md`);
+                                            if (fs.existsSync(rootConvFile) && path.resolve(rootConvFile) !== path.resolve(conversionCompanionPath)) {
+                                                fs.renameSync(rootConvFile, conversionCompanionPath);
+                                                console.log(`[File Statuses API] Auto-relocated companion .md from root conversions to subfolder: ${conversionCompanionPath}`);
+                                                // Also move .footer sidecar if exists
+                                                const rootFooter = path.join(baseConversionsDir, `${cleanBase}.footer`);
+                                                const subFooter = path.join(conversionsDir, `${cleanBase}.footer`);
+                                                if (fs.existsSync(rootFooter)) {
+                                                    try { fs.renameSync(rootFooter, subFooter); } catch (_) {}
+                                                }
+                                            }
                                         }
                                     } catch (_) {}
                                 }
@@ -1605,12 +1727,34 @@ module.exports = {
                 res.end(JSON.stringify({ error: 'Missing path' }));
                 return;
             }
-            const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(docsRoot, filePath);
-            if (!fs.existsSync(absolutePath)) {
+            let targetPath = path.isAbsolute(filePath) ? filePath : path.join(docsRoot, filePath);
+            if (!fs.existsSync(targetPath)) {
+                // Self-healing: if an .md companion was requested directly, search case conversions folder
+                if (filePath.endsWith('.md')) {
+                    const baseName = path.basename(filePath);
+                    const parsedCase = parsedUrl.query.case || '';
+                    const caseDir = parsedCase ? resolveCaseDir(docsRoot, parsedCase) : (path.isAbsolute(filePath) ? path.dirname(filePath) : docsRoot);
+                    if (caseDir && fs.existsSync(caseDir)) {
+                        const convDir = getConversionsDir(caseDir);
+                        const possibleConversions = [
+                            path.join(convDir, baseName),
+                            path.join(convDir, path.basename(path.dirname(filePath)), baseName)
+                        ];
+                        for (const p of possibleConversions) {
+                            if (fs.existsSync(p)) {
+                                targetPath = p;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!fs.existsSync(targetPath)) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'File not found' }));
                 return;
             }
+            const absolutePath = targetPath;
             const ext = path.extname(absolutePath).toLowerCase();
             let contentType = 'text/plain; charset=utf-8';
             if (ext === '.html' || ext === '.htm') {
