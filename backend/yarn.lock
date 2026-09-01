@@ -406,6 +406,11 @@
   resolved "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.3.tgz"
   integrity sha512-D4y1vNeZrIIJCN+uHaWVtH86B+aCrdMYYjicy9pXHvbGZeGYLLSd3wdVuC37FxVXlU1ARsk84eKWfWMXGYEqvA==
 
+"@llamaindex/llama-cloud@^2.15.0":
+  version "2.15.0"
+  resolved "https://registry.yarnpkg.com/@llamaindex/llama-cloud/-/llama-cloud-2.15.0.tgz#95249ee47c30baf9b607f9b254f6e188d93788db"
+  integrity sha512-cC4p3evDD3mrOjakshCqF/hq5LWcBfEyG5Lmq898PRTrJ/bL0duzZCJfmUkqVWSR5APvnuo2W5reAvyDHKUnzg==
+
 "@mapbox/node-pre-gyp@^1.0.0":
   version "1.0.11"
   resolved "https://registry.npmjs.org/@mapbox/node-pre-gyp/-/node-pre-gyp-1.0.11.tgz"

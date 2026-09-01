@@ -666,6 +666,30 @@
           <code style="background: var(--input-bg); border: 1px solid var(--input-border); padding: 6px 12px; border-radius: 6px; display: inline-block; margin-top: 8px; font-size: 13px; color: var(--text-main);">brew install --cask libreoffice</code>
         </div>
       </div>
+
+      <div class="section-card" style="margin-top: 20px;">
+        <div class="section-header">⚡ Cloud OCR &amp; Scanned PDF Fallback (LlamaParse)</div>
+        <div class="section-desc">Configure LlamaParse cloud OCR for image-scanned PDFs. Data is only transmitted when explicitly approved via the user consent prompt.</div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">LlamaParse API Key</label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="password" id="txtLlamaApiKey" placeholder="llx-..." onchange="autoSaveSettings()" style="flex: 1; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; color: var(--text-main); font-family: monospace; font-size: 13px;">
+            <button type="button" onclick="toggleApiKeyVisibility()" class="btn" style="padding: 8px 12px; font-size: 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; color: var(--text-main);">👁️ Show</button>
+            <button type="button" onclick="testLlamaConnection()" id="btnTestLlama" class="btn" style="padding: 8px 16px; font-size: 12px; background: var(--accent-color); border: 1px solid var(--accent-color); border-radius: 6px; cursor: pointer; color: #fff; font-weight: 600;">⚡ Test Connection</button>
+          </div>
+          <div id="llamaStatusBadge" style="margin-top: 8px; font-size: 12px; font-weight: 600; display: none;"></div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Parsing Tier</label>
+          <select id="selLlamaTier" onchange="autoSaveSettings()" style="width: 100%; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; color: var(--text-main); font-size: 13px;">
+            <option value="agentic">Agentic (Recommended — multi-pass layout &amp; table extraction)</option>
+            <option value="cost_effective">Cost Effective (Balanced speed and extraction quality)</option>
+            <option value="fast">Fast (Basic text OCR)</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- ── TAB 4: License & Ecosystem ────────────────────────────────────── -->
@@ -894,10 +918,15 @@
       try {
         const chk = document.getElementById('chkLibreOfficeWarning');
         const remindLibreOffice = chk ? chk.checked : true;
+        const txtKey = document.getElementById('txtLlamaApiKey');
+        const llamaCloudApiKey = txtKey ? txtKey.value.trim() : '';
+        const selTier = document.getElementById('selLlamaTier');
+        const llamaCloudTier = selTier ? selTier.value : 'agentic';
+
         const res = await fetch('/api/hayagriva/settings/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ activeMode, activeDomain, remindLibreOffice, case: caseName })
+          body: JSON.stringify({ activeMode, activeDomain, remindLibreOffice, llamaCloudApiKey, llamaCloudTier, case: caseName })
         });
         const data = await res.json();
         if (data.success) {
@@ -908,6 +937,56 @@
         }
       } catch (err) {
         showToast('Failed to save settings', true);
+      }
+    }
+
+    function toggleApiKeyVisibility() {
+      const input = document.getElementById('txtLlamaApiKey');
+      if (input) {
+        input.type = input.type === 'password' ? 'text' : 'password';
+      }
+    }
+
+    async function testLlamaConnection() {
+      const input = document.getElementById('txtLlamaApiKey');
+      const apiKey = input ? input.value.trim() : '';
+      const badge = document.getElementById('llamaStatusBadge');
+      const btn = document.getElementById('btnTestLlama');
+
+      if (!apiKey) {
+        showToast('Please enter an API Key first', true);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Testing…';
+      badge.style.display = 'block';
+      badge.innerText = 'Connecting to LlamaParse…';
+      badge.style.color = 'var(--text-muted)';
+
+      try {
+        const res = await fetch('/api/hayagriva/llamaparse/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey })
+        });
+        const data = await res.json();
+        if (data.success) {
+          badge.innerText = `● Connected: ${data.message}`;
+          badge.style.color = 'var(--success-color)';
+          showToast('✓ LlamaParse API Key connected successfully!');
+        } else {
+          badge.innerText = `● Connection Failed: ${data.message || data.error}`;
+          badge.style.color = 'var(--danger-color)';
+          showToast(data.message || 'Connection failed', true);
+        }
+      } catch (err) {
+        badge.innerText = `● Network Error: ${err.message}`;
+        badge.style.color = 'var(--danger-color)';
+        showToast('Network error testing connection', true);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⚡ Test Connection';
       }
     }
 
@@ -1100,6 +1179,11 @@
           renderDomainTiles();
           const chk = document.getElementById('chkLibreOfficeWarning');
           if (chk) chk.checked = config.remindLibreOffice !== false;
+
+          const txtKey = document.getElementById('txtLlamaApiKey');
+          if (txtKey) txtKey.value = config.llamaCloudApiKey || '';
+          const selTier = document.getElementById('selLlamaTier');
+          if (selTier && config.llamaCloudTier) selTier.value = config.llamaCloudTier;
 
           const onboardingBanner = document.getElementById('domainOnboardingBanner');
           if (onboardingBanner) {

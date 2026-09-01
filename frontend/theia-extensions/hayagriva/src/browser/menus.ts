@@ -83,6 +83,20 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '0_preview'
     });
 
+    // Direct Preview Companion Markdown action
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:previewCompanionInMiddlePanel`,
+      label: '📖 Preview Companion Markdown',
+      order: '0_preview_companion'
+    });
+
+    // Direct OCR action on top of Navigator context menu
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:parseWithLlamaParse`,
+      label: '⚡ OCR with LlamaParse',
+      order: '0_ocr'
+    });
+
     // Navigator (File Explorer) right click sibling submenus
     const PIPELINE_SUBMENU = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_pipeline_submenu'];
     registry.registerSubmenu(PIPELINE_SUBMENU, 'Hayagriva (Pipeline)', { sortString: 'a_hayagriva_1' });
@@ -95,6 +109,18 @@ export class HayagrivaMenuContribution implements MenuContribution {
       commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
       label: '📄 Preview in Middle Panel',
       order: '0'
+    });
+
+    registry.registerMenuAction(PIPELINE_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:previewCompanionInMiddlePanel`,
+      label: '📖 Preview Companion Markdown',
+      order: '0_preview_companion'
+    });
+
+    registry.registerMenuAction(PIPELINE_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:parseWithLlamaParse`,
+      label: '⚡ OCR with LlamaParse',
+      order: '0_ocr'
     });
 
     registry.registerMenuAction(PIPELINE_SUBMENU, {

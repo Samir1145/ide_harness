@@ -97,6 +97,28 @@ async function generateClaimForm(caseDir, formType = 'c', customData = {}) {
     const month = now.toLocaleString('en-GB', { month: 'long' });
     const year = String(now.getFullYear());
 
+    let cleanPlace = 'New Delhi';
+    if (data.claimantAddress && !data.claimantAddress.startsWith('[')) {
+        const parts = data.claimantAddress.split(',').map(s => s.trim()).filter(Boolean);
+        if (parts.length > 0) {
+            const city = parts[parts.length - 1].replace(/\d+/g, '').replace(/[-–]/g, '').trim() || parts[0];
+            if (city.length > 1) cleanPlace = city;
+        }
+    }
+
+    let debtIncurredDetails = `Credit facility disbursed pursuant to Sanction Letter / Contracts. Date of default: ${data.dateOfDefault || '[Not Specified]'}. Outstanding contractual debt accrued up to ICD (${data.icdDate}).`;
+    
+    // Construct specialized Box 8 brief for Assured Return / Multi-Tranche Sale and Leaseback claims
+    if (data.tranches && data.tranches.length > 0) {
+        debtIncurredDetails = `1. **Integrated Sale-and-Leaseback Financing:** The Claimant invested total capital consideration of ₹${principalFormatted} across ${data.tranches.length} tranches for purchase of ${data.tranches.reduce((s, t) => s + (t.particleCount || 20), 0)} Cloud Storage Data Particles:\n`;
+        data.tranches.forEach((t, i) => {
+            debtIncurredDetails += `   * **Batch ${i + 1} (${t.debitDate}):** ₹${formatIndianCurrency(t.debitAmount)} paid towards ${t.serials} (${t.contractType}, Inv: ${t.invoice || 'N/A'}).\n`;
+        });
+        debtIncurredDetails += `2. **Connectedness & Single Economic Enterprise (Sec 5(24)):** Under Recital B and Clause 2 of the Asset Monetising Program Agreement (AMPA), the Corporate Debtor (Zebyte Infotech Pvt. Ltd.) expressly partnered with Vuenow Marketing Services Pvt. Ltd. to lease the Claimant's particles for minimum guaranteed monthly rentals of ₹53,550.00/month for 120 months.\n`;
+        debtIncurredDetails += `3. **Default Milestone:** The Corporate Debtor serviced regular monthly lease returns totaling ₹${formatIndianCurrency(data.totalInflow || 0)} until default on ${data.dateOfDefault || '01-Nov-2024'}.\n`;
+        debtIncurredDetails += `4. **Claim for Total Integrated Financial Debt:** Relying on *SBI v. Videocon Industries Ltd.* and Section 5(8)(f) of the Code, the Corporate Debtor is jointly and substantively liable for the refund of the capital principal of ₹${principalFormatted} along with accrued defaulted rentals.`;
+    }
+
     // Map template variables
     const replacements = {
         '{{CLAIM_DATE}}': data.claimDate || `${day} ${month} ${year}`,
@@ -122,15 +144,15 @@ async function generateClaimForm(caseDir, formType = 'c', customData = {}) {
         '{{GUARANTOR_SECURITY}}': 'N/A',
         '{{PRINCIPAL_BORROWER_NAME_ADDRESS}}': `${data.corporateDebtorName}, Reg. Office: ${data.corporateDebtorCin}`,
         '{{SEC_5_8_DETAILS}}': 'N/A',
-        '{{DEBT_INCURRED_DETAILS}}': `Credit facility disbursed pursuant to Sanction Letter / Contracts. Date of default: ${data.dateOfDefault || '[Not Specified]'}. Outstanding contractual debt accrued up to ICD (${data.icdDate}).`,
+        '{{DEBT_INCURRED_DETAILS}}': debtIncurredDetails,
         '{{MUTUAL_DEALINGS_SETOFF}}': 'Nil. No mutual credits, debts, or dealings available for set-off.',
         '{{SECURITY_DETAILS}}': data.securityDetails,
         '{{BANK_NAME}}': data.bankName,
         '{{BANK_ACCOUNT_NO}}': data.bankAccountNo,
         '{{BANK_IFSC}}': data.bankIfsc,
         '{{BANK_BRANCH}}': data.bankBranch,
-        '{{SUBSTANTIATING_DOCUMENTS}}': 'Sanction Letters, Loan Agreements, Invoices, Delivery Proofs, Account Ledgers, Demand Notices, and ROC Form CHG-1 Charge Certificates.',
-        '{{ATTACHED_DOCUMENTS_LIST}}': '1. Annexure-A: Copy of Sanction Letter / Invoices\n2. Annexure-B: Bank Account Ledger & Interest Calculation Sheet\n3. Annexure-C: ROC Charge Search Report (Form CHG-1)\n4. Annexure-D: Board Resolution / Letter of Authority\n5. Annexure-E: Affidavit & Verification',
+        '{{SUBSTANTIATING_DOCUMENTS}}': 'Asset Sale Agreements, Service Level Agreements, AMPA Lease Agreements, Reconciled Bank Statement, Invoices, and CLAIM_AUDIT.md Forensic Ledger.',
+        '{{ATTACHED_DOCUMENTS_LIST}}': '1. Annexure-A: Copy of Asset Sale Agreements & SLAs\n2. Annexure-B: Asset Monetising Program Agreements (AMPA)\n3. Annexure-C: 100% Reconciled Bank Ledger & CLAIM_AUDIT.md\n4. Annexure-D: Pleading of Single Economic Enterprise & IBC Sec 5(24)\n5. Annexure-E: Affidavit & Verification',
         '{{DISPUTE_DETAILS}}': data.disputeDetails,
         '{{SIGNATORY_NAME}}': data.signatoryName,
         '{{SIGNATORY_DESIGNATION}}': data.signatoryDesignation,
@@ -139,15 +161,24 @@ async function generateClaimForm(caseDir, formType = 'c', customData = {}) {
         '{{DECLARANT_ADDRESS}}': data.signatoryAddress,
         '{{VERIFIER_NAME}}': data.signatoryName,
         '{{SIGN_DATE}}': data.claimDate || `${day} ${month} ${year}`,
-        '{{SIGN_PLACE}}': data.claimantAddress.split(',')[0] || 'New Delhi',
-        '{{VERIFICATION_PLACE}}': data.claimantAddress.split(',')[0] || 'New Delhi',
+        '{{SIGN_PLACE}}': cleanPlace,
+        '{{VERIFICATION_PLACE}}': cleanPlace,
         '{{VERIFICATION_DAY}}': day,
         '{{VERIFICATION_MONTH}}': month,
         '{{VERIFICATION_YEAR}}': year,
         '{{IS_RELATED_PARTY_TEXT}}': data.isRelatedParty ? 'is' : 'is NOT',
         '{{IS_COC_ELIGIBLE_TEXT}}': data.isRelatedParty ? 'is NOT' : 'is',
         '{{ANNEXURE_LIST}}': '1. Sanction Letter & Credit Facility Agreements.\n2. Statement of Account / Invoices with Computation of Interest.\n3. Certificate of Registration of Charge (ROC CHG-1).',
-        '{{SETOFF_EXCEPTIONS}}': 'Nil. No satisfaction or security received save as disclosed in Item 5 & 9.'
+        '{{SETOFF_EXCEPTIONS}}': 'Nil. No satisfaction or security received save as disclosed in Item 5 & 9.',
+        '{{UNIT_NUMBER}}': data.unitNumber || data.flatNumber || '[Unit / Flat No.]',
+        '{{PROJECT_NAME}}': data.projectName || '[Project Name]',
+        '{{TOWER_BLOCK}}': data.towerBlock || '[Tower / Block]',
+        '{{AUTHORISED_REPRESENTATIVE_NAME}}': data.authorisedRepresentative || data.arName || '[Name of Insolvency Professional selected as AR]',
+        '{{SALARY_ARREARS}}': formatIndianCurrency(data.salaryArrears || data.principalAmount),
+        '{{GRATUITY_AMOUNT}}': formatIndianCurrency(data.gratuityAmount || 0),
+        '{{PF_AMOUNT}}': formatIndianCurrency(data.pfAmount || 0),
+        '{{EMPLOYMENT_START_DATE}}': data.employmentStartDate || '[Joining Date]',
+        '{{EMPLOYMENT_END_DATE}}': data.employmentEndDate || data.icdDate
     };
 
     let populated = template;

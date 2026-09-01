@@ -31,7 +31,9 @@ const DEFAULT_SETTINGS = {
     processingProfile: 'lite',
     activeMode: 'lite',
     activeDomain: 'insolvency',
-    remindLibreOffice: true
+    remindLibreOffice: true,
+    llamaCloudApiKey: 'llx-GYZ8XAQIJv5bzd4SA7pKd2af0BgqKgZ0ipPD7TNWxNPlCy1a',
+    llamaCloudTier: 'agentic'
 };
 
 let activeEngineDomain = 'legal';
@@ -994,6 +996,22 @@ module.exports = {
                                                 }
                                             }
                                         }
+
+                                        // Auto-relocate concept folder if it was generated at concepts root or another subfolder
+                                        if (!fs.existsSync(treePath)) {
+                                            const baseConceptsDir = getConceptsDir(caseDir);
+                                            const rootConceptDir = path.join(baseConceptsDir, cleanBase);
+                                            const rootTreeFile = path.join(rootConceptDir, 'pageindex_tree.json');
+                                            if (fs.existsSync(rootTreeFile) && path.resolve(rootConceptDir) !== path.resolve(conceptsDir)) {
+                                                try {
+                                                    fs.mkdirSync(path.dirname(conceptsDir), { recursive: true });
+                                                    fs.renameSync(rootConceptDir, conceptsDir);
+                                                    console.log(`[File Statuses API] Auto-relocated concept folder to subfolder: ${conceptsDir}`);
+                                                } catch (e) {
+                                                    console.warn(`[File Statuses API] Failed to relocate concept folder:`, e.message);
+                                                }
+                                            }
+                                        }
                                     } catch (_) {}
                                 }
 
@@ -1071,6 +1089,8 @@ module.exports = {
                                         } else {
                                             db.prepare('UPDATE documents SET status = ? WHERE filename = ?').run('indexed', relative);
                                         }
+                                        db.prepare('UPDATE document_sections SET filename = ? WHERE filename = ? OR filename = ?').run(relative, cleanBase, path.basename(filePath));
+                                        db.prepare('UPDATE document_vectors SET filename = ? WHERE filename = ? OR filename = ?').run(relative, cleanBase, path.basename(filePath));
                                     } catch (_) {}
                                 }
 
@@ -1187,7 +1207,8 @@ module.exports = {
                                     }
                                 };
 
-                                statuses[relative] = { dot1, dot2, dot3, error: errorMsg, files: filesAudit };
+                                const isScanned = (errorMsg && (errorMsg.includes('Fully scanned PDF') || errorMsg.includes('SCANNED_PDF_REJECTED'))) || (docStatus === 'failed_convert' && ext === '.pdf');
+                                statuses[relative] = { dot1, dot2, dot3, error: errorMsg, isScanned, files: filesAudit };
                             }
                         }
                     }
@@ -2816,10 +2837,14 @@ module.exports = {
                     const isWikiHtml = file.endsWith('.wiki.html');
                     const mdBaseName = path.basename(file).replace(/\.[a-zA-Z0-9]+$/, '.md');
                     const rootCompanionPath = path.join(path.dirname(file), mdBaseName);
-                    const conversionsCompanionPath = path.join(path.dirname(file), 'conversions', mdBaseName);
+                    const baseConversionsDir = getConversionsDir(caseDir);
+                    const conversionsCompanionPath = path.join(baseConversionsDir, mdBaseName);
+                    const subfolder = path.dirname(path.relative(caseDir, file));
+                    const subConversionsPath = subfolder !== '.' ? path.join(baseConversionsDir, subfolder, mdBaseName) : conversionsCompanionPath;
+                    const legacyConversionsPath = path.join(path.dirname(file), 'conversions', mdBaseName);
                     const companionPath = isWikiHtml
                         ? file
-                        : (fs.existsSync(conversionsCompanionPath) ? conversionsCompanionPath : rootCompanionPath);
+                        : (fs.existsSync(subConversionsPath) ? subConversionsPath : (fs.existsSync(conversionsCompanionPath) ? conversionsCompanionPath : (fs.existsSync(legacyConversionsPath) ? legacyConversionsPath : rootCompanionPath)));
                     
                     if (!fs.existsSync(companionPath)) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3755,6 +3780,151 @@ module.exports = {
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+        },
+
+        // ─── LlamaParse: Scanned PDF Cloud OCR ──────────────────────────────
+        '/api/hayagriva/llamaparse/parse': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const file = data.file || data.filename;
+
+                    if (!caseDir || !fs.existsSync(caseDir)) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Invalid or missing case directory' }));
+                        return;
+                    }
+
+                    if (!file) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Missing required field "file"' }));
+                        return;
+                    }
+
+                    const fullFilePath = path.isAbsolute(file) ? file : path.join(caseDir, file);
+                    const relative = path.relative(caseDir, fullFilePath);
+                    const ext = path.extname(fullFilePath);
+                    const cleanBase = path.basename(fullFilePath, ext);
+
+                    if (!fs.existsSync(fullFilePath)) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: `File not found: ${fullFilePath}` }));
+                        return;
+                    }
+
+                    // Load API key & tier from settings
+                    const settingsPath = path.join(caseDir, 'hayagriva_settings.json');
+                    let settings = { ...DEFAULT_SETTINGS };
+                    if (fs.existsSync(settingsPath)) {
+                        try {
+                            const saved = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+                            settings = { ...settings, ...saved };
+                        } catch (_) {}
+                    }
+
+                    const apiKey = data.apiKey || settings.llamaCloudApiKey || process.env.LLAMA_CLOUD_API_KEY || DEFAULT_SETTINGS.llamaCloudApiKey;
+                    const tier = data.tier || settings.llamaCloudTier || 'agentic';
+
+                    // Update status to 'converting' (Dot 1 turns blue)
+                    updateStatus(caseDir, relative, 'converting');
+
+                    const { parsePdfWithLlamaParse } = require('./pipeline/pdf/llamaparse-client');
+
+                    try {
+                        const result = await parsePdfWithLlamaParse(fullFilePath, { apiKey, tier });
+
+                        const conversionsDir = getConversionsDir(caseDir);
+                        const subfolder = path.dirname(relative);
+                        const destConversionsDir = subfolder === '.' ?
+                            conversionsDir :
+                            path.join(conversionsDir, subfolder);
+                        fs.mkdirSync(destConversionsDir, { recursive: true });
+                        const companionPath = path.join(destConversionsDir, `${cleanBase}.md`);
+                        const rootCompanionPath = subfolder === '.' ?
+                            path.join(caseDir, `${cleanBase}.md`) :
+                            path.join(caseDir, subfolder, `${cleanBase}.md`);
+
+                        // Clean up stale concept folders and vector records if re-parsing an existing file
+                        try {
+                            const conceptsRoot = getConceptsDir(caseDir);
+                            const conceptsDir = subfolder === '.' ?
+                                path.join(conceptsRoot, cleanBase) :
+                                path.join(conceptsRoot, subfolder, cleanBase);
+                            if (fs.existsSync(conceptsDir)) {
+                                fs.rmSync(conceptsDir, { recursive: true, force: true });
+                                console.log(`[LlamaParse] Cleaned up stale concepts folder: ${conceptsDir}`);
+                            }
+                        } catch (_) {}
+
+                        try {
+                            const { getDb } = require('./core/sqlite-store');
+                            const db = getDb(caseDir);
+                            db.prepare('DELETE FROM document_vectors WHERE filename = ?').run(relative);
+                            db.prepare('DELETE FROM document_sections WHERE filename = ?').run(relative);
+                        } catch (_) {}
+
+                        // Write Markdown companion directly to conversions directory
+                        fs.writeFileSync(companionPath, result.markdown, 'utf8');
+
+                        // Clean up duplicate companion in root if it exists
+                        if (fs.existsSync(rootCompanionPath) && path.resolve(rootCompanionPath) !== path.resolve(companionPath)) {
+                            try { fs.unlinkSync(rootCompanionPath); } catch (_) {}
+                        }
+
+                        // Clear .error sidecar if present
+                        const errorPath = subfolder === '.' ?
+                            path.join(conversionsDir, `${cleanBase}.error`) :
+                            path.join(conversionsDir, subfolder, `${cleanBase}.error`);
+                        if (fs.existsSync(errorPath)) {
+                            try { fs.unlinkSync(errorPath); } catch (_) {}
+                        }
+
+                        // Advance status to companion_ready (Dot 1 turns green, Dots 2/3 ready for fresh indexing)
+                        updateStatus(caseDir, relative, 'companion_ready');
+
+                        console.log(`[LlamaParse] Successfully generated companion ${companionPath} (${result.totalPages} pages)`);
+
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            success: true,
+                            message: `LlamaParse OCR complete (${result.totalPages} pages extracted)`,
+                            companionPath: path.relative(caseDir, companionPath),
+                            totalPages: result.totalPages
+                        }));
+                    } catch (parseErr) {
+                        console.error(`[LlamaParse] Parsing failed for ${relative}:`, parseErr.message);
+                        updateStatus(caseDir, relative, 'failed_convert', parseErr.message);
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: parseErr.message }));
+                    }
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        // ─── LlamaParse: Connection Test ────────────────────────────────────
+        '/api/hayagriva/llamaparse/test': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const apiKey = data.apiKey || process.env.LLAMA_CLOUD_API_KEY || DEFAULT_SETTINGS.llamaCloudApiKey;
+                    const { testLlamaParseConnection } = require('./pipeline/pdf/llamaparse-client');
+                    const result = await testLlamaParseConnection(apiKey);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, message: e.message }));
                 }
             });
         }

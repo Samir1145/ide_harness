@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBBI Statutory Claim Form Preview - Hayagriva</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-surface: #111827;
+            --border: rgba(255, 255, 255, 0.1);
+            --border-highlight: rgba(0, 240, 255, 0.3);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-cyan: #00f0ff;
+            --accent-emerald: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.6;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .badge-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00f0ff 0%, #3b82f6 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #000;
+        }
+
+        .logo-title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-title p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.85rem;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 9999px;
+            color: #34d399;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .doc-sheet {
+            background: #ffffff;
+            color: #1f2937;
+            border-radius: 12px;
+            padding: 3.5rem 4rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .doc-header {
+            text-align: center;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .doc-header h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: 0.05em;
+        }
+
+        .doc-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #374151;
+            margin-top: 0.25rem;
+        }
+
+        .doc-header p.sub {
+            font-size: 0.85rem;
+            font-style: italic;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            background: #f9fafb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .meta-col strong {
+            color: #111827;
+        }
+
+        .meta-col p {
+            margin-bottom: 0.35rem;
+            color: #4b5563;
+        }
+
+        .subject-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+            color: #1e40af;
+            font-weight: 500;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #111827;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 2rem 0 1rem 0;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+
+        .claim-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+
+        .claim-table th, .claim-table td {
+            border: 1px solid #d1d5db;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .claim-table th {
+            background: #f3f4f6;
+            color: #111827;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .claim-table td.idx {
+            text-align: center;
+            font-weight: 700;
+            width: 50px;
+            background: #f9fafb;
+        }
+
+        .claim-table td.field-name {
+            font-weight: 600;
+            color: #374151;
+            width: 35%;
+        }
+
+        .claim-table td.field-val {
+            color: #1f2937;
+        }
+
+        .amount-highlight {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #047857;
+        }
+
+        .code-box {
+            font-family: 'JetBrains Mono', monospace;
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #1f2937;
+        }
+
+        .declaration-box {
+            font-size: 0.875rem;
+            color: #374151;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        .declaration-box ol {
+            padding-left: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .declaration-box li {
+            margin-bottom: 0.5rem;
+        }
+
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .sig-block {
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+
+        .sig-line {
+            height: 1px;
+            background: #9ca3af;
+            margin: 2.5rem 0 0.5rem 0;
+        }
+
+        .verification-stamp {
+            margin-top: 2rem;
+            background: #f0fdf4;
+            border: 1px dashed #22c55e;
+            padding: 1.25rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-badge">
+                <div class="badge-icon">⚡</div>
+                <div class="logo-title">
+                    <h1>HAYAGRIVA CIRP ENGINE</h1>
+                    <p>Statutory Claim Auto-Extraction & Generation</p>
+                </div>
+            </div>
+            <div class="status-pill">
+                <div class="status-dot"></div>
+                <span>FORM-C (Financial Creditor) • Ready for Filing</span>
+            </div>
+        </div>
+
+        <div class="doc-sheet" id="claim-sheet">
+            <div class="doc-header">
+                <h2>FORM C</h2>
+                <h3>SUBMISSION OF CLAIM BY FINANCIAL CREDITORS</h3>
+                <p class="sub">(Under Regulation 8 of the Insolvency and Bankruptcy Board of India (Insolvency Resolution Process for Corporate Persons) Regulations, 2016)</p>
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-col">
+                    <p><strong>To:</strong> Interim Resolution Professional / RP</p>
+                    <p><strong>Address:</strong> [Office of the IRP/RP, IBBI Registration No.]</p>
+                    <p><strong>Email:</strong> <span class="code-box">rp@resolutionadvisors.in</span></p>
+                    <p><strong>Date:</strong> 31 August 2026</p>
+                </div>
+                <div class="meta-col">
+                    <p><strong>From:</strong> State Bank of India</p>
+                    <p><strong>Branch / Office:</strong> SAMB New Delhi, 11th Floor, Vijaya Building, Barakhamba Road, New Delhi - 110001</p>
+                    <p><strong>Email:</strong> <span class="code-box">samb.delhi@sbi.co.in</span></p>
+                    <p><strong>PAN:</strong> <span class="code-box">AAACS0529K</span></p>
+                </div>
+            </div>
+
+            <div class="subject-box">
+                <strong>Subject:</strong> Submission of proof of claim under Regulation 8 of the IBBI CIRP Regulations, 2016 in the matter of <strong>Apex Steel & Infrastructure Limited</strong> (Corporate Debtor, CIN: <span class="code-box">U27100DL2018PLC332140</span>).
+            </div>
+
+            <div class="section-title">PARTICULARS OF FINANCIAL DEBT</div>
+
+            <table class="claim-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">Sl.</th>
+                        <th style="width: 35%;">Particulars</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="idx">1.</td>
+                        <td class="field-name">Name of Financial Creditor</td>
+                        <td class="field-val"><strong>State Bank of India</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="idx">2.</td>
+                        <td class="field-name">Identification Number (CIN/PAN)</td>
+                        <td class="field-val"><span class="code-box">AAACS0529K</span></td>
+                    </tr>
+                    <tr>
+                        <td class="idx">3.</td>
+                        <td class="field-name">Address & Email for Correspondence</td>
+                        <td class="field-val">SAMB New Delhi, 11th Floor, Vijaya Building, Barakhamba Road, New Delhi - 110001<br>Email: <span class="code-box">samb.delhi@sbi.co.in</span></td>
+                    </tr>
+                    <tr>
+                        <td class="idx">4.</td>
+                        <td class="field-name">Total Amount of Claim (as on ICD)</td>
+                        <td class="field-val">
+                            <div class="amount-highlight">₹16,63,72,500.00</div>
+                            <small style="color: #4b5563;">(Principal: ₹12,45,00,000.00 | Accrued Contractual Interest: ₹4,18,72,500.00 | Penal Charges: ₹12,50,000.00)</small><br>
+                            <em>(Rupees Sixteen Crore Sixty Three Lakh Seventy Two Thousand Five Hundred Only)</em>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="idx">5.</td>
+                        <td class="field-name">Details of Claim as Principal Borrower</td>
+                        <td class="field-val">
+                            <strong>Claim Amount:</strong> ₹16,63,72,500.00<br>
+                            <strong>Security Interest:</strong> First pari-passu charge by way of hypothecation on all present and future movable fixed assets, plant & machinery, and rolling mill equipment installed at Plot 42, Sector 8, RIICO Industrial Area, Bhiwadi, Rajasthan. Duly registered with ROC under Form CHG-1 (Charge ID: ROC-DEL-CHG-1094827).<br>
+                            <strong>Guarantors:</strong> Personal Guarantees executed by Promoter Directors (Mr. Vikramaditya Singhania & Mrs. Sunita Singhania).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="idx">6.</td>
+                        <td class="field-name">Details of Claim as Guarantor</td>
+                        <td class="field-val">N/A (Claimed against Principal Borrower directly)</td>
+                    </tr>
+                    <tr>
+                        <td class="idx">7.</td>
+                        <td class="field-name">Financial Debt under Sec 5(8)(h)/(i)</td>
+                        <td class="field-val">N/A</td>
+                    </tr>
+                    <tr>
+                        <td class="idx">8.</td>
+                        <td class="field-name">How & When Debt Incurred</td>
+                        <td class="field-val">
+                            Term Loan Facility (TL-I) sanctioned vide letter dated 15 March 2021.<br>
+                            <strong>Date of Default / NPA Date:</strong> 15 October 2023.<br>
+                            <strong>Insolvency Commencement Date (ICD):</strong> 29 August 2026 (NCLT New Delhi Bench-II, CP (IB) No. 412/ND/2026).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="idx">9.</td>
+                        <td class="field-name">Mutual Dealings & Set-off</td>
+                        <td class="field-val">Nil. No mutual credits, debts, or dealings available for set-off.</td>
+                    </tr>
+                    <tr>
+                        <td class="idx">10.</td>
+                        <td class="field-name">Bank Account for Payouts / Resolution</td>
+                        <td class="field-val">
+                            <strong>Bank Name:</strong> State Bank of India<br>
+                            <strong>Account No:</strong> <span class="code-box">39845019284</span><br>
+                            <strong>IFSC Code:</strong> <span class="code-box">SBIN0000691</span><br>
+                            <strong>Branch:</strong> SAMB New Delhi, Barakhamba Road
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="idx">11.</td>
+                        <td class="field-name">List of Attached Documents</td>
+                        <td class="field-val">
+                            1. Annexure-A: Copy of Sanction Letter dated 15 March 2021.<br>
+                            2. Annexure-B: Bank Account Ledger & Interest Calculation Sheet.<br>
+                            3. Annexure-C: ROC Charge Search Report (Form CHG-1, Charge ID: ROC-DEL-CHG-1094827).<br>
+                            4. Annexure-D: Section 13(2) Demand Notice dated 10 November 2023.<br>
+                            5. Annexure-E: Affidavit & Verification.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="declaration-box">
+                <div class="section-title">DECLARATION & VERIFICATION</div>
+                <p>I, <strong>Rajesh Sharma</strong>, Chief Manager & Authorised Signatory, currently residing at SAMB New Delhi, Barakhamba Road, do hereby declare that:</p>
+                <ol>
+                    <li><strong>Apex Steel & Infrastructure Limited</strong> was, at the Insolvency Commencement Date, actually indebted to the Financial Creditor in the sum of <strong>₹16,63,72,500.00</strong>.</li>
+                    <li>The Financial Creditor <strong>is NOT</strong> a related party of the Corporate Debtor under Section 5(24) of the IBC, 2016.</li>
+                    <li>The Financial Creditor <strong>is</strong> eligible to join the Committee of Creditors (CoC) and cast voting share.</li>
+                </ol>
+            </div>
+
+            <div class="signatures">
+                <div class="sig-block">
+                    <p><strong>Date:</strong> 31 August 2026</p>
+                    <p><strong>Place:</strong> New Delhi</p>
+                    <div class="sig-line"></div>
+                    <p><strong>(Rajesh Sharma)</strong><br>Chief Manager & Authorised Representative<br>State Bank of India</p>
+                </div>
+                <div class="sig-block">
+                    <div class="verification-stamp">
+                        <strong>VERIFIED BY DEPONENT:</strong><br>
+                        Verified at New Delhi on 31 August 2026 that the contents of this proof of claim are true and correct to my knowledge and belief.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

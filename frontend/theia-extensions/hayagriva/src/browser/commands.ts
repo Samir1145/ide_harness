@@ -1,5 +1,5 @@
 import { injectable, inject } from '@theia/core/shared/inversify';
-import { CommandContribution, CommandRegistry, ILogger } from '@theia/core/lib/common';
+import { CommandContribution, CommandRegistry, ILogger, MessageService } from '@theia/core/lib/common';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import URI from '@theia/core/lib/common/uri';
@@ -24,6 +24,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     @inject(HayagrivaFrontendContribution) private readonly contribution: HayagrivaFrontendContribution,
     @inject(HayagrivaTreeDecorator) private readonly treeDecorator: HayagrivaTreeDecorator,
     @inject(SelectionService) private readonly selectionService: SelectionService,
+    @inject(MessageService) private readonly messageService: MessageService,
     @inject(ILogger) private readonly logger: ILogger
   ) {}
 
@@ -783,6 +784,65 @@ export class HayagrivaCommandContribution implements CommandContribution {
       }
     );
 
+    // ── LlamaParse Cloud OCR ──────────────────────────────────────────────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:parseWithLlamaParse`, label: '⚡ OCR with LlamaParse' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.messageService.error('No file selected for LlamaParse OCR');
+            return;
+          }
+          const rel = this.getRelativePath(resourceUri);
+          const caseName = this.getCasePath();
+          const apiPort = this.contribution.getApiPort();
+          const baseName = getBasename(rel);
+
+          // Check if document already has a companion markdown or green status
+          const statusObj = this.treeDecorator.statusCache ? this.treeDecorator.statusCache[rel] : null;
+          const isAlreadyProcessed = statusObj && (statusObj.dot1 === 'green' || statusObj.dot2 === 'green' || (statusObj.files && statusObj.files.companion && statusObj.files.companion.exists));
+
+          if (isAlreadyProcessed) {
+            const action = await this.messageService.warn(
+              `⚠️ Re-parse with LlamaParse? This will overwrite the existing companion Markdown for "${baseName}" with fresh LlamaParse OCR text and reset downstream AI indexing.`,
+              '⚡ Overwrite & Re-parse',
+              'Cancel'
+            );
+            if (action !== '⚡ Overwrite & Re-parse') {
+              return;
+            }
+          }
+
+          this.messageService.info(`⚡ Running LlamaParse OCR for ${baseName}...`);
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/llamaparse/parse`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: rel })
+            });
+            const data = await res.json();
+            if (data.success) {
+              this.messageService.info(`✓ ${data.message || `LlamaParse OCR completed for ${baseName}`}`);
+              this.treeDecorator.refresh();
+            } else {
+              this.messageService.error(`LlamaParse OCR failed for ${baseName}: ${data.error}`);
+              this.treeDecorator.refresh();
+            }
+          } catch (e: any) {
+            this.messageService.error(`Failed to execute LlamaParse: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: any) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return true;
+          const lower = decodeURIComponent(resolved.path.toString()).toLowerCase();
+          return lower.endsWith('.pdf');
+        },
+        isVisible: () => true
+      }
+    );
+
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:archiveCase`, label: 'Archive to Vault' },
       {
@@ -1147,6 +1207,50 @@ export class HayagrivaCommandContribution implements CommandContribution {
           if (!resolved) return false;
           const p = resolved.path.toString().toLowerCase();
           return p.endsWith('.md') || p.endsWith('.pdf') || p.endsWith('.docx') || p.endsWith('.doc') || p.endsWith('.xlsx') || p.endsWith('.xls') || p.endsWith('.txt');
+        },
+        isVisible: () => true
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:previewCompanionInMiddlePanel`, label: '📖 Preview Companion Markdown' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.messageService.error('No file selected for companion markdown preview');
+            return;
+          }
+          const originalPath = decodeURIComponent(resourceUri.path.toString());
+          const lower = originalPath.toLowerCase();
+          const caseDir = this.getCasePath();
+          const rel = this.getRelativePath(resourceUri);
+          const status = this.treeDecorator.statusCache ? this.treeDecorator.statusCache[rel] : null;
+
+          let companionPath = '';
+          if (lower.endsWith('.md') || lower.endsWith('.markdown')) {
+            companionPath = originalPath;
+          } else if (status?.files?.companion?.path) {
+            companionPath = status.files.companion.path.startsWith('/')
+              ? status.files.companion.path
+              : `${caseDir}/${status.files.companion.path}`;
+          } else {
+            const basename = getBasename(originalPath).replace(/\.[a-zA-Z0-9]+$/, '');
+            const caseName = caseDir.split(/[\\/]/).pop() || '';
+            const subfolder = rel.includes('/') || rel.includes('\\') ? rel.substring(0, Math.max(rel.lastIndexOf('/'), rel.lastIndexOf('\\'))) : '';
+            companionPath = subfolder
+              ? `${caseDir}/${caseName}_conversions_haya/${subfolder}/${basename}.md`
+              : `${caseDir}/${caseName}_conversions_haya/${basename}.md`;
+          }
+
+          const caseName = this.getCasePath();
+          await this.contribution.openOfficePreview(companionPath, caseName);
+        },
+        isEnabled: (uri?: any) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return true;
+          const p = decodeURIComponent(resolved.path.toString()).toLowerCase();
+          return p.endsWith('.pdf') || p.endsWith('.docx') || p.endsWith('.doc') || p.endsWith('.xlsx') || p.endsWith('.xls') || p.endsWith('.md');
         },
         isVisible: () => true
       }

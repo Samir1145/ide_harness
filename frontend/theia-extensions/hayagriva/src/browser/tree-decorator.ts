@@ -133,7 +133,38 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
               const baseName = key.split(/[\\/]/).pop() || key;
               // Dot 1: Companion MD extraction
               if (oldVal.dot1 !== 'red' && newVal.dot1 === 'red') {
-                this.messageService.error(`Extraction failed for ${baseName}: ${newVal.error || 'Unknown error'}`);
+                const isScanned = newVal.isScanned || (newVal.error && (newVal.error.includes('Fully scanned PDF') || newVal.error.includes('SCANNED_PDF_REJECTED')));
+                if (isScanned) {
+                  this.messageService.warn(
+                    `🔍 Scanned PDF Detected: "${baseName}" has no native text layer. Would you like to parse it with LlamaParse Cloud OCR?`,
+                    '⚡ OCR with LlamaParse',
+                    'Keep Offline'
+                  ).then(action => {
+                    if (action === '⚡ OCR with LlamaParse') {
+                      const caseName = this.resolveCaseName();
+                      const port = this.getApiPort();
+                      this.messageService.info(`⚡ Running LlamaParse OCR for ${baseName}...`);
+                      fetch(`http://127.0.0.1:${port}/api/hayagriva/llamaparse/parse`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ case: caseName, file: key })
+                      }).then(async res => {
+                        const data = await res.json();
+                        if (data.success) {
+                          this.messageService.info(`✓ ${data.message || `LlamaParse completed for ${baseName}`}`);
+                          this.reschedulePoll(500);
+                        } else {
+                          this.messageService.error(`LlamaParse failed for ${baseName}: ${data.error}`);
+                          this.reschedulePoll(500);
+                        }
+                      }).catch(err => {
+                        this.messageService.error(`Network error running LlamaParse: ${err.message}`);
+                      });
+                    }
+                  });
+                } else {
+                  this.messageService.error(`Extraction failed for ${baseName}: ${newVal.error || 'Unknown error'}`);
+                }
               } else if (oldVal.dot1 === 'blue' && (newVal.dot1 === 'green')) {
                 this.messageService.info(`✓ Text extraction complete for ${baseName}`);
               }
@@ -322,6 +353,10 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
     }
 
     return result;
+  }
+
+  public refresh(): void {
+    this.reschedulePoll(100);
   }
 
   private getUri(node: TreeNode): URI | undefined {
