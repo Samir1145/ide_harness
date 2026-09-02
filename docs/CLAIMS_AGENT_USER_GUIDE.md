@@ -1,37 +1,45 @@
 # 📖 Complete User Guide: Forensic Claims Agents Suite (`@claim_preparation` & `@claim_verification`)
 
 > **Hayagriva Legal Intelligence Platform**  
-> *Statutory Proof of Claim Preparation, Forensic Bank Ledger Reconciliation & IBC Compliance Engine*
+> *Autonomous Multi-Class Proof of Claim Preparation, Forensic Bank Ledger Reconciliation & IBBI Statutory Compliance Engine*
 
 ---
 
 ## 1. What Are the Claims Agents?
 
-The **Hayagriva Claims Agent Suite** is an autonomous, multi-agent legal engine designed specifically for Advocates, Resolution Professionals (IRPs/RPs), and Financial Creditors under the **Insolvency and Bankruptcy Code, 2016 (IBC)**.
+The **Hayagriva Claims Agent Suite** is an autonomous, multi-agent legal engine designed specifically for Advocates, Resolution Professionals (IRPs/RPs), and Financial/Operational Creditors under the **Insolvency and Bankruptcy Code, 2016 (IBC)** and **IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016**.
 
-Unlike naive text generators that blindly copy-paste text into forms, Hayagriva uses a **4-Tier Forensic Architecture**:
+Rather than relying on generic text templates or manual data entry, Hayagriva uses a **Modular Multi-Class Sub-Agent & 4-Tier Forensic Architecture**:
 
 ```mermaid
 graph TD
-    User["Advocate / User Prompt"] --> Master["@claim_preparation<br>(Master Coordinator)"]
+    User["Advocate / User Prompt<br/>(Single Client or Batch across Clients/)"] --> Master["@claim_preparation<br>(Master Coordinator & Intake Engine)"]
+    
+    Master --> Classifier["Claimant Classifier Engine"]
+    
+    Classifier -->|Cloud Particles / Sale & Leaseback / Allottees| Sub1["ClassOfCreditorsClaimSubAgent<br/>★ Primary: FORM CA (Regulation 8A)<br/>• Secondary: FORM C (Regulation 8)<br/>(23-Mo Default Arrears + Sec 5(8)(f) Brief)"]
+    Classifier -->|Banks / NBFCs / Term Loans| Sub2["FinancialClaimSubAgent<br/>★ Primary: FORM C (Regulation 8)"]
+    Classifier -->|Vendors / Suppliers / Trade Dues| Sub3["OperationalClaimSubAgent<br/>★ Primary: FORM B (Regulation 7)"]
+    Classifier -->|Employees / Salary / Wages| Sub4["WorkmenClaimSubAgent<br/>★ Primary: FORM D (Regulation 9)"]
+    Classifier -->|Tax / Customs / Statutory Dues| Sub5["OtherClaimSubAgent<br/>★ Primary: FORM F (Regulation 9A)"]
     
     subgraph "Forensic Verification Engine"
-        Master --> Verify["@claim_verification<br>(Forensic Auditor & Reconciler)"]
+        Master -.-> Verify["@claim_verification<br>(Forensic Auditor & Reconciler)"]
+        Verify --> Notice["Form A Public Notice Parser<br>(Corporate Debtor, CIN, ICD, IRP, AR)"]
         Verify --> Crawl["100% Bank Ledger Crawler<br>(Zero Row Omissions)"]
-        Verify --> Alias["Entity Alias Normalizer<br>(Clusters VMSPL vs Zebyte)"]
         Verify --> Sieve["Multi-Tranche Contract Sieve<br>(Matches Batch Serials & Debits)"]
         Verify --> Workpad["CLAIM_AUDIT.md Workpad<br>(Live Middle-Panel Reconciliation)"]
     end
     
-    subgraph "Legal Risk & Strategy"
-        Workpad --> Advisor["@advisor<br>(Privity & Related Party Sec 5(24))"]
-        Advisor --> Checkpoints["3-Gate Human Steering<br>(Interactive Validation in Chat)"]
-    end
-    
-    subgraph "Statutory Compilation"
-        Checkpoints --> Forms["@forms / claim-form-fill<br>(IBBI Regulatory Engine)"]
-        Forms --> FinalDoc["CLAIM_<NAME>_FORM_C.md<br>+ Supreme Court DOCX Export"]
-    end
+    Sub1 --> Outputs["Live Chat Preview & File Persistence"]
+    Sub2 --> Outputs
+    Sub3 --> Outputs
+    Sub4 --> Outputs
+    Sub5 --> Outputs
+
+    UserRefine["Conversational Refinements<br/>e.g. 'Change AR to Mr. X' or 'Set arrears to 20 mos'"] --> Master
+    Master --> RefineHandler["Sub-Agent handleModification() Engine"]
+    RefineHandler --> InPlaceUpdate["Instant In-Place Re-Draft & Chat Re-Render"]
 ```
 
 ---
@@ -40,15 +48,52 @@ graph TD
 
 | Agent Tag | Primary Role | When to Use | Typical Prompt |
 | :--- | :--- | :--- | :--- |
-| **`@claim_preparation`** | **Master Claim Builder & Drafter** | Use when preparing a new proof of claim from scratch using client documents (bank statements, purchase agreements, leases). | `@claim_preparation prepare claim for Savita Mittal` |
-| **`@claim_verification`** | **Forensic Auditor & Math Reconciler** | Use when scrutinizing an already filed claim, auditing bank ledger rows, or verifying limitation under Section 238A. | `@claim_verification audit ledger and calculate unrecovered principal` |
+| **`@claim_preparation`** | **Master Intake Coordinator & Multi-Class Sub-Agent Dispatcher** | Use when preparing a new proof of claim from scratch using client documents (bank statements, purchase agreements, leases, public announcements). Auto-dispatches to specialized sub-agents. | `@claim_preparation prepare claim for Savita Mittal` |
+| **`@claim_verification`** | **Forensic Auditor & Math Reconciler** | Use when scrutinizing an already filed claim, auditing bank ledger rows, checking limitation under Section 238A, or verifying charge registration (Form CHG-1). | `@claim_verification audit ledger and calculate unrecovered principal` |
 | **`@claims`** | **Portfolio & Registry Tracker** | Use to view all filed claims across a Corporate Debtor and update `claims_registry.md`. | `@claims list all admitted financial claims` |
 
 ---
 
-## 3. The 3-Surface Transparency Model (Where Information Appears)
+## 3. Specialized Multi-Class Sub-Agents & Form Hierarchy
 
-To eliminate black-box uncertainty, the claims engine outputs information across **three coordinated surfaces**:
+The coordinator automatically identifies the claimant category from files in the case workspace or from natural language prompts, routing execution to dedicated sub-agents:
+
+### A. Class of Creditors Sub-Agent (`ClassOfCreditorsClaimSubAgent`)
+* **Target Categories:** Cloud Particle Owners, Assured Return Sale-and-Leaseback investors, Real Estate Allottees, Homebuyers, Retail Debenture Holders.
+* **Document Hierarchy:**
+  * **★ Primary Statutory Document:** `CLAIM_<NAME>_FORM_CA.md` (*Regulation 8A*) with official Authorized Representative (AR) nomination.
+  * **• Secondary Supporting Document:** `CLAIM_<NAME>_FORM_C.md` (*Regulation 8*) safeguarding standard financial debt standing.
+* **Mathematical Calculation Engine:**
+  * **Principal Investment Consideration:** Reconciles 100% of capital debits across tranches (e.g. 41 Particles = ₹14,17,487.00).
+  * **Prior Realized Returns:** Sums all historic credits received (e.g. 24 payments up to 01-Oct-2024 = ₹10,90,710.47).
+  * **Contractual Default Arrears:** Accrues defaulted monthly payments from last payment to Insolvency Commencement Date ($23 \text{ months} \times ₹56,103 = \mathbf{₹12,90,369.00}$).
+  * **Total Admissible Claim:** $\mathbf{₹14,17,487.00} + \mathbf{₹12,90,369.00} = \mathbf{₹27,07,856.00}$.
+* **Specialized Legal Pleadings (Annexure E):**
+  * Invokes Section 5(8)(f) (*Pioneer Urban Land & Infrastructure Ltd. v. UOI*) establishing commercial effect of a borrowing.
+  * Paginates Section 5(24) Single Economic Enterprise connectedness between marketing/deposit entities (Vuenow) and lessee corporate debtors (Zebyte).
+
+### B. Financial Creditors Sub-Agent (`FinancialClaimSubAgent`)
+* **Target Categories:** Commercial Banks, NBFCs, Institutional Lenders, Inter-Corporate Loans.
+* **Primary Form:** `CLAIM_<NAME>_FORM_C.md` (*Regulation 8*).
+* **Particulars:** Disbursed facilities, contractual & penal interest calculations, ROC Charge Form CHG-1 registration numbers, and NeSL Record of Default.
+
+### C. Operational Creditors Sub-Agent (`OperationalClaimSubAgent`)
+* **Target Categories:** Vendors, Suppliers, Contractors, Landlords, Service Providers.
+* **Primary Form:** `CLAIM_<NAME>_FORM_B.md` (*Regulation 7*).
+* **Particulars:** Itemized unpaid invoices, purchase orders, delivery challans, and Section 8 Form 3/4 demand notices.
+
+### D. Workmen & Employees Sub-Agent (`WorkmenClaimSubAgent`)
+* **Target Categories:** Factory Workmen, Corporate Employees, Staff.
+* **Primary Form:** `CLAIM_<NAME>_FORM_D.md` (*Regulation 9*).
+* **Particulars:** Unpaid salary arrears, bonus, gratuity, provident fund, and Section 53(1)(b) 24-month priority ranking.
+
+### E. Other Creditors Sub-Agent (`OtherClaimSubAgent`)
+* **Target Categories:** Municipal authorities, State/Central Tax Departments (GST/Income Tax), Customs, Statutory Dues.
+* **Primary Form:** `CLAIM_<NAME>_FORM_F.md` (*Regulation 9A*).
+
+---
+
+## 4. The 3-Surface Transparency Model
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -59,166 +104,84 @@ To eliminate black-box uncertainty, the claims engine outputs information across
 │  │   Explorer & Tree     │  │  Live Claim Audit Workpad     │  │   Interactive Chat │  │
 │  │                       │  │     (CLAIM_AUDIT.md)          │  │     (@claim_prep)  │  │
 │  │ 📁 Case Folder        │  │                               │  │                    │  │
-│  │  📄 Bank Statement   │  │ 🔍 Entity Cluster Matrix       │  │ 💭 Thinking Stream │  │
-│  │  📄 ASA Agreement     │  │ 📊 Reconciled Ledger Table     │  │ 📋 Process Logs    │  │
-│  │  📄 AMPA Agreement    │  │ ⚠️ Ambiguity & Red Flag Radar  │  │ 🛑 Checkpoint Gate │  │
-│  │  📝 CLAIM_AUDIT.md ───┼──► [Clickable source references] │  │  (Approve/Redirect)│  │
+│  │  📄 Form A Public Ann.│  │ 🔍 Entity Cluster Matrix       │  │ 💭 Thinking Stream │  │
+│  │  📄 Bank Statement    │  │ 📊 Reconciled Ledger Table     │  │ 💰 Financial Math  │  │
+│  │  📄 ASA / SLA Contracts│ │ ⚠️ Ambiguity & Red Flag Radar  │  │ 🛑 3 Checkpoints   │  │
+│  │  📄 AMPA Lease        │  │ 🎯 Crystallized Claim Summary  │  │ 📄 Form CA & Form C│  │
+│  │  📝 CLAIM_AUDIT.md ───┼──► [Clickable source references] │  │ 💬 Refinement Gate │  │
 │  └───────────────────────┘  └───────────────────────────────┘  └────────────────────┘  │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 1. **Surface 1: Collapsible Thinking Stream (Chat):**  
-   Click `<details><summary>🔍 Forensic Verification Stream</summary></details>` to inspect every bank row parsed, debit matched, and entity alias resolved in real time.
+   Click `<details><summary>🔍 Forensic Verification Stream</summary></details>` to inspect every bank statement row parsed, debit matched, and entity alias resolved in real time.
 2. **Surface 2: Live Middle-Panel Workpad (`CLAIM_AUDIT.md`):**  
    A live Markdown sheet generated directly in the client folder detailing:
-   * The Red-Flag / Anomaly Register.
-   * Full 100% Reconciled Bank Statement Ledger (Outflows vs. Inflows).
-   * Exact Cloud Particle Serial Numbers.
-3. **Surface 3: The 3 Interactive Checkpoint Gates:**  
-   Before any court document is drafted, the agent pauses and asks you to confirm:
-   * **Checkpoint 1:** Particle Batches and Invoiced Amounts.
-   * **Checkpoint 2:** Total Inflow, Total Outflow, and Default Commencement Date.
-   * **Checkpoint 3:** Strategic Pleading Choice (Direct vs. Composite Claim).
+   * **Forensic Red-Flag & Ambiguity Register** (e.g. Bifurcated Entity Disconnect between Vuenow and Zebyte).
+   * **100% Reconciled Bank Statement Ledger** (Capital Outflows vs. Rental Inflows).
+   * **Cloud Particle Inventory** (Exact Serial Numbers, FSNs, and Batch counts).
+3. **Surface 3: Interactive Refinement & Steering:**  
+   Review the financial breakdown and instantly steer details in natural language directly in chat.
 
 ---
 
-## 4. Supported Statutory IBBI Claim Forms
+## 5. Conversational Refinements in Chat
 
-The agent supports all standardized IBBI proof of claim templates:
+You can conversationally refine any claim parameter at any time! The sub-agent parses natural language modifications, recalculates financial matrices, and updates files on disk:
 
-| Statutory Form | Creditor Category | Governing Regulation | Typical Documents Needed |
-| :--- | :--- | :--- | :--- |
-| **`FORM C`** | **Financial Creditors** | Regulation 8 | Bank Statements, Loan Agreements, Sale & Leaseback Contracts, Sanction Letters. |
-| **`FORM CA`** | **Creditors in a Class** (e.g. Homebuyers / Allottees) | Regulation 8A | Builder-Buyer Agreements (BBA), Allotment Letters, Payment Receipts. |
-| **`FORM B`** | **Operational Creditors** (Suppliers, Landlords) | Regulation 7 | Unpaid Invoices, Purchase Orders, Delivery Challans, Demand Notices (Form 3/4). |
-| **`FORM D`** | **Workmen & Employees** | Regulation 9 | Employment Contracts, Salary Slips, PF / Gratuity Records. |
-| **`FORM F`** | **Other Creditors** | Regulation 9A | Statutory dues, indemnities, unclassified obligations. |
-
----
-
-## 5. How to Run the Agent (Step-by-Step)
-
-### Scenario A: Working Inside a Single Client Folder
-
-1. **Step 1: Place Client Documents:**  
-   Drop all available PDFs (Bank Statements, Asset Sale Agreements, SLAs, Lease Agreements) into the client’s case directory.
-2. **Step 2: Start Pre-Flight Audit:**  
-   In the Chat box, type:
-   ```text
-   @claim_preparation prepare claim
-   ```
-3. **Step 3: Review the 3-Surface Audit:**  
-   * Expand the thought stream in chat.
-   * Review `CLAIM_AUDIT.md` in the Middle Panel.
-   * Confirm the numbers at Checkpoints 1 & 2.
-4. **Step 4: Execute Drafting:**  
-   Reply with:
-   ```text
-   Draft Composite Claim
-   ```
-   *The finalized `CLAIM_<NAME>_FORM_C.md` will be placed in the case folder.*
+* **Update Authorized Representative Nominee:**
+  ```text
+  Change AR to Mr. Rajesh Sharma
+  ```
+* **Adjust Default Duration or Arrears Calculation:**
+  ```text
+  Set default arrears to 20 months
+  ```
+* **Override Principal or Interest:**
+  ```text
+  Change principal amount to Rs. 14,00,000 and interest to Rs. 50,000
+  ```
+* **Combined Refinement:**
+  ```text
+  Change AR to Mr. Harmanjit Singh and set arrears to 23 months
+  ```
 
 ---
 
-### Scenario B: Batch Processing Multiple Client Folders
+## 6. Batch Processing Across `Clients/` Subfolders
 
-If you have a master folder containing dozens of claimant directories (e.g. `/Users/atulgrover/Desktop/Clients/`):
+When managing dozens of claimants across folders (e.g., `/Users/atulgrover/Desktop/Clients/`):
 
-1. **Run the Batch Command:**
+1. **Trigger Batch Mode:**
    ```text
    @claim_preparation batch process all claimant folders in /Users/atulgrover/Desktop/Clients
    ```
-2. **Automatic Idempotency (Safe Skip):**
-   * The agent will scan all folders.
-   * Any client folder that **already has a generated claim form is automatically skipped** to protect existing manual edits.
-   * Folders without claim forms are processed independently.
-3. **Master Summary Table:**
-   The agent outputs a centralized table showing the status, particle count, capital invested, and clickable links to every client's Form C.
+2. **Autonomous Multi-Client Workflow:**
+   * Scans each client subfolder independently.
+   * Auto-detects claimant class (Class of Creditors vs. Vendor vs. Bank).
+   * Delegates drafting to the matching Sub-Agent.
+   * Persists `CLAIM_<NAME>_FORM_CA.md` and `CLAIM_<NAME>_FORM_C.md` in each respective folder.
+   * Compiles a centralized master registry: [MASTER_CLAIMS_SUMMARY.md](file:///Users/atulgrover/Desktop/Clients/MASTER_CLAIMS_SUMMARY.md).
 
 ---
 
-## 6. Multi-Party Schemes & 10-Year Lock-In Damages
-
-### Handling Split-Entity Flows (e.g., Vuenow vs. Zebyte)
-In multi-party Sale-and-Leaseback schemes where **Entity A received the deposit** and **Entity B is the Corporate Debtor in CIRP**:
-1. **Section 5(24) Related Party Pleading:**  
-   The agent automatically constructs a specialized brief in **Form C Box 8** citing common platform (`mycloudparticles.com`), contract recitals (Recital B of AMPA), and *State Bank of India v. Videocon Industries Ltd.* to establish a **Single Economic Enterprise**.
-2. **10-Year Lock-In Damages (96 Unexpired Months = ₹51.41 Lakhs):**  
-   Under Clause 7 of the ASA and Clause 4 of the SLA, contracts mandate a non-terminable 10-year lock-in. The agent claims:
-   * **Tier 1 (Principal Consideration):** Full initial capital (e.g. ₹14.17 Lakhs).
-   * **Tier 2 (Unexpired Bargain Loss):** Remaining 96 months $\times$ ₹53,550/mo = **₹51,40,800.00** in Box 8 & **Annexure D**.
-
----
-
-## 7. Command Reference & Flags
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                              COMMAND & FLAG REFERENCE                                  │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### A. Core Execution Commands
+## 7. Command Reference & Prompts
 
 | Action | Prompt Syntax |
 | :--- | :--- |
-| **Interactive Pre-Flight Audit** | `@claim_preparation prepare claim` |
-| **Direct Composite Claim (Full Recovery)** | `@claim_preparation draft composite claim` |
-| **Direct Rental Arrears Claim (Conservative)** | `@claim_preparation draft direct rental claim` |
-| **Target Specific Form (e.g., Homebuyer)** | `@claim_preparation draft Form CA for [Name]` |
-| **Target Operational Form (e.g., Supplier)** | `@claim_preparation draft Form B for [Name]` |
+| **Prepare Full Statutory Package (Single Client)** | `@claim_preparation prepare claim` |
+| **Conversational AR Change** | `change AR to Mr. [Name]` |
+| **Conversational Arrears Change** | `set arrears to [N] months` |
+| **Batch Process All Client Folders** | `@claim_preparation batch process all claimants in [Directory]` |
+| **Force Batch Overwrite / Regenerate** | `@claim_preparation batch process all claimants in [Directory] --force` |
+| **Audit Claim Limitation & Charge** | `@claim_verification verify claim` |
+| **List Portfolio Registry** | `@claims list all claims` |
 
 ---
 
-### B. Command Flags & Modifiers
+## 8. Exporting for Court & NCLT Filing
 
-You can append explicit flags to your prompt to control agent behavior:
-
-#### 1. `--force` / `force` / `regenerate` *(Batch Overwrite Override)*
-* **Default Behavior:** By default, batch processing skips any folder that already has a `CLAIM_*_FORM_*.md` file.
-* **With Flag:** Forces the agent to re-crawl bank statements, re-audit contracts, and overwrite existing claim forms from scratch across all folders.
-* **Usage:**
-  ```text
-  @claim_preparation batch process all folders in /Users/atulgrover/Desktop/Clients --force
-  ```
-  *or:*
-  ```text
-  @claim_preparation batch process all claimants force
-  ```
-
----
-
-#### 2. `pathway composite` vs `pathway direct` *(Strategy Selector)*
-* **`composite` (Default):** Claims full capital deposit + 10-year lock-in contractual damages + Section 5(24) single economic unit brief.
-* **`direct`:** Restricts the claim strictly to defaulted monthly rental arrears from the date of default up to ICD.
-* **Usage:**
-  ```text
-  @claim_preparation draft claim pathway direct
-  ```
-  ```text
-  @claim_preparation draft claim pathway composite
-  ```
-
----
-
-#### 3. Custom Number & Date Overrides
-You can manually inject specific principal amounts or default dates in natural language:
-```text
-@claim_preparation draft Form C with principal Rs. 14,17,487 and default date 2024-11-01
-```
-
----
-
-## 8. Troubleshooting & Frequently Asked Questions (FAQ)
-
-### Q1: What if a bank statement is 50+ pages long? Will the agent miss rows?
-> **Answer:** No. The `@claim_verification` skill uses an exhaustive, line-by-line DOM table crawler (`auditBankLedger`) that parses 100% of all debit and credit rows without LLM sampling or text truncation.
-
-### Q2: Why is the claim placed in both the case root and `02_claims/`?
-> **Answer:** For maximum convenience:
-> * **Case Root (`CLAIM_<NAME>_FORM_C.md`):** Sits directly alongside your primary PDFs for immediate visibility.
-> * **Archive Folder (`02_claims/`):** Preserves the formal regulatory filing structure for CIRP data rooms.
-
-### Q3: How do I print or export the generated Form C for court submission?
-> **Answer:** Right-click `CLAIM_<NAME>_FORM_C.md` in the File Explorer and select:
-> * **⚡ Export Supreme Court DOCX** (formats margins, Times New Roman 14pt, 1.5 line spacing conforming to NCLT / Supreme Court rules).
+Every generated `.md` claim form can be exported to standard Supreme Court / NCLT formatting:
+1. Right-click `CLAIM_<NAME>_FORM_CA.md` or `CLAIM_<NAME>_FORM_C.md` in the Explorer.
+2. Select **⚡ Export Supreme Court DOCX**.
+3. The file is compiled to `.docx` with 4cm left margin, 14pt Times New Roman, 1.5 line spacing, and continuous line numbering ready for print and e-filing.

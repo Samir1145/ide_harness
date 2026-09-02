@@ -676,11 +676,41 @@ Return ONLY raw JSON object.`;
     return data;
 }
 
+/**
+ * Reads YAML frontmatter facts from case_facts.md in the case directory.
+ * @param {string} caseDir
+ * @returns {object}
+ */
+function readCaseFacts(caseDir) {
+    const facts = {};
+    if (!caseDir) return facts;
+    const factsPath = path.join(caseDir, 'case_facts.md');
+    if (fs.existsSync(factsPath)) {
+        try {
+            const content = fs.readFileSync(factsPath, 'utf8');
+            const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+            if (match) {
+                const lines = match[1].split('\n');
+                for (const line of lines) {
+                    const colonIdx = line.indexOf(':');
+                    if (colonIdx > 0) {
+                        const key = line.slice(0, colonIdx).trim();
+                        const val = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
+                        facts[key] = val;
+                    }
+                }
+            }
+        } catch (_) {}
+    }
+    return facts;
+}
+
 module.exports = {
     numberToIndianWords,
     formatIndianCurrency,
     calculateInterest,
     parseMarkdownFacts,
     extractFactsByRegex,
-    extractClaimantData
+    extractClaimantData,
+    readCaseFacts
 };

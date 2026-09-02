@@ -183,7 +183,13 @@ Refer to the following plans saved in the workspace:
   * Specialized in querying the 17,558 encrypted Supreme Court, NCLAT, and NCLT judgments vault with `/search` and `/ratio` modes.
 * **Monaco `/precedent` & `@precedent` Autocomplete Metadata**:
   * Enhanced `/precedent <query>`, `/case <query>`, and `@precedent` completion providers in `monaco-providers.ts` and `/api/hayagriva/learning-curves` route to parse frontmatter (`Case-Title`, `Issue`, `Citation`, `Date-of-Order`, `Court-Tribunal`) for rich inline preview cards and snippets.
-* **Electron Stop Script Wrapper Matching**:
-  * Added `Electron.bin` and `theia-electron-main.js` pattern matching in `stop.command` to prevent orphaned wrapped Electron binary processes from holding single-instance locks (`requestSingleInstanceLock`).
+* **Modular Multi-Class Claims Preparation Architecture (`@claim_preparation`)**:
+  * **Master Intake Coordinator**: Automatically parses case folder evidence (Form A public announcements, bank statements, purchase agreements, invoices, salary slips) or user intent to categorize claimants (`CLASS_OF_CREDITORS`, `FINANCIAL_CREDITOR`, `OPERATIONAL_CREDITOR`, `WORKMEN_EMPLOYEE`, `OTHER_CREDITOR`).
+  * **Specialized Sub-Agent Delegation**: Resolves matching sub-agent (`ClassOfCreditorsClaimSubAgent`, `FinancialClaimSubAgent`, `OperationalClaimSubAgent`, `WorkmenClaimSubAgent`, `OtherClaimSubAgent`).
+  * **Class of Creditors Hierarchy (Regulation 8A & 8)**: Treats `CLAIM_<NAME>_FORM_CA.md` as the **Primary Statutory Form** (with Authorized Representative nomination) and `CLAIM_<NAME>_FORM_C.md` as the **Secondary Supporting Form**.
+  * **Default Arrears Mathematical Engine**: Calculates unpaid default months from last received credit up to the Insolvency Commencement Date ($N \text{ months} \times \text{monthly rate} = \text{Arrears}$) and synthesizes the total admissible claim ($\text{Principal} + \text{Arrears}$).
+  * **Conversational Refinements in Chat**: `subAgent.handleModification()` parses natural language changes (e.g. *"Change AR to Mr. X"*, *"Set default arrears to 20 months"*, *"Update principal amount to ₹14,00,000"*), updates math, and re-drafts forms in place with live chat re-rendering.
+  * **Automated Batch Processing across `Clients/`**: Scans parent directory, auto-classifies each client subfolder independently, drafts respective forms, and compiles a centralized `MASTER_CLAIMS_SUMMARY.md` ledger.
+
 
 
