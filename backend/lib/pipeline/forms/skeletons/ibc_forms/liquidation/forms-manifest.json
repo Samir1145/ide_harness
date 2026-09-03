@@ -1,0 +1,170 @@
+{
+  "suiteId": "suite_liquidation",
+  "name": "Corporate Insolvency Liquidation Process (CILP)",
+  "regulation": "IBBI (Liquidation Process) Regulations, 2016",
+  "totalForms": 11,
+  "forms": [
+    {
+      "id": "form-h-compliance-certificate-2016",
+      "title": "FORM H",
+      "sourceFile": "FORM-H-COMPLIANCE-CERTIFICATE-2016.pdf",
+      "markdownFile": "form-h-compliance-certificate-2016.md",
+      "placeholdersCount": 6,
+      "placeholdersSample": [
+        "AFTER_EXPIRY_OF_ONE_YEAR",
+        "BEFORE_EXPIRY_OF_THE_PERIOD_OF_ONE_YEAR",
+        "NAME_OF_INSOLVENCY_PROFESSIONAL_AGENCY",
+        "NAME_OF_THE_CORPORATE_DEBTOR_CD",
+        "NAME_OF_THE_LIQUIDATOR",
+        "REGISTRATION_NUMBER"
+      ]
+    },
+    {
+      "id": "form-a-lp",
+      "title": "SCHEDULE II",
+      "sourceFile": "Form_A_LP.pdf",
+      "markdownFile": "form-a-lp.md",
+      "placeholdersCount": 0,
+      "placeholdersSample": []
+    },
+    {
+      "id": "form-b-lp",
+      "title": "FORM B",
+      "sourceFile": "Form_B_LP.pdf",
+      "markdownFile": "form-b-lp.md",
+      "placeholdersCount": 4,
+      "placeholdersSample": [
+        "DATE_OF_PASSING_OF_ORDER_OF_LIQUIDATION_UNDER_SECTION_33_OF_THE_CODE",
+        "INSERT_THE_DATE_FALLING_THIRTY_DAYS_FROM_THE_LIQUIDATION_COMMENCEMENT_DATE",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_CORPORATE_DEBTOR"
+      ]
+    },
+    {
+      "id": "form-c-lp",
+      "title": "SCHEDULE II",
+      "sourceFile": "Form_C_LP.pdf",
+      "markdownFile": "form-c-lp.md",
+      "placeholdersCount": 11,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_THE_PUBLIC_ANNOUNCEMENT",
+        "ADDRESS_OF_DEPONENT",
+        "DATE",
+        "INSERT_NAME_OF_COPARTNERS",
+        "NAME_AND_ADDRESS_OF_THE_OPERATIONAL_CREDITOR",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_DEPONENT",
+        "NAME_OF_THE_LIQUIDATOR",
+        "NAME_OF_THE_OPERATIONAL_CREDITOR",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_DEBT"
+      ]
+    },
+    {
+      "id": "form-d-lp",
+      "title": "SCHEDULE II",
+      "sourceFile": "Form_D_LP.pdf",
+      "markdownFile": "form-d-lp.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_THE_PUBLIC_ANNOUNCEMENT",
+        "ADDRESS_OF_DEPONENT",
+        "DATE",
+        "INSERT_NAME_OF_CO_PARTNERS",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_DEPONENT",
+        "NAME_OF_THE_FINANCIAL_CREDITOR",
+        "NAME_OF_THE_LIQUIDATOR",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_DEBT_AND_OF_NON_PAYMENT",
+        "PLEASE_STATE_CONSIDERATION"
+      ]
+    },
+    {
+      "id": "form-e-lp",
+      "title": "SCHEDULE II",
+      "sourceFile": "Form_E_LP.pdf",
+      "markdownFile": "form-e-lp.md",
+      "placeholdersCount": 11,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_PUBLIC_ANNOUNCEMENT",
+        "DATE",
+        "INSERT_ADDRESS",
+        "INSERT_AMOUNT_OF_CLAIM",
+        "INSERT_PLACE",
+        "NAME_AND_ADDRESS_OF_THE_WORKMAN_EMPLOYEE",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_DEPONENT",
+        "NAME_OF_THE_LIQUIDATOR",
+        "NAME_OF_THE_WORKMAN_EMPLOYEE"
+      ]
+    },
+    {
+      "id": "form-f-1-lp",
+      "title": "SCHEDULE II",
+      "sourceFile": "Form_F_1_LP.pdf",
+      "markdownFile": "form-f-1-lp.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_THE_PUBLIC_ANNOUNCEMENT",
+        "ADDRESS_OF_DULY_AUTHORISED_REPRESENTATIVE_OF_THE_WORKMEN_EMPLOYEES",
+        "DATE",
+        "INSERT_FULL_NAME_ADDRESS_AND_OCCUPATION_OF_DEPONENT",
+        "NAME_AND_ADDRESS_OF_THE_AUTHORISED_REPRESENTATIVE_OF_WORKMEN_EMPLOYEES",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_DULY_AUTHORISED_REPRESENTATIVE_OF_THE_WORKMEN_EMPLOYEES",
+        "NAME_OF_THE_LIQUIDATOR",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_PROOF",
+        "PLEASE_STATE_THE_NATURE_AND_DURATION_OF_EMPLOYMENT"
+      ]
+    },
+    {
+      "id": "form-g-lp",
+      "title": "SCHEDULE II",
+      "sourceFile": "Form_G_LP.pdf",
+      "markdownFile": "form-g-lp.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_THE_PUBLIC_ANNOUNCEMENT",
+        "DATE",
+        "INSERT_FULL_NAME_ADDRESS_AND_OCCUPATION_OF_DEPONENT_TO_BE_GIVEN",
+        "INSERT_NAME_OF_COPARTNER",
+        "NAME_AND_ADDRESS_OF_THE_OTHER_STAKEHOLDER",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_LIQUIDATOR",
+        "NAME_OF_THE_OTHER_STAKEHOLDER",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_PROOF",
+        "PLEASE_STATE_CONSIDERATION"
+      ]
+    },
+    {
+      "id": "form-i-lp",
+      "title": "FORM -I",
+      "sourceFile": "Form_I_LP.pdf",
+      "markdownFile": "form-i-lp.md",
+      "placeholdersCount": 0,
+      "placeholdersSample": []
+    },
+    {
+      "id": "form-j-lp",
+      "title": "FORM J",
+      "sourceFile": "Form_J_LP.pdf",
+      "markdownFile": "form-j-lp.md",
+      "placeholdersCount": 3,
+      "placeholdersSample": [
+        "INSERT_ADDRESS",
+        "NAME",
+        "NAME_OF_STAKEHOLDER"
+      ]
+    },
+    {
+      "id": "schedule-iii-lp",
+      "title": "SCHEDULE III",
+      "sourceFile": "Schedule_III_LP.pdf",
+      "markdownFile": "schedule-iii-lp.md",
+      "placeholdersCount": 2,
+      "placeholdersSample": [
+        "CORPORATE_LIQUIDATION_ACCOUNT",
+        "PROCEEDS"
+      ]
+    }
+  ]
+}

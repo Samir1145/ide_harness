@@ -190,6 +190,12 @@ Refer to the following plans saved in the workspace:
   * **Default Arrears Mathematical Engine**: Calculates unpaid default months from last received credit up to the Insolvency Commencement Date ($N \text{ months} \times \text{monthly rate} = \text{Arrears}$) and synthesizes the total admissible claim ($\text{Principal} + \text{Arrears}$).
   * **Conversational Refinements in Chat**: `subAgent.handleModification()` parses natural language changes (e.g. *"Change AR to Mr. X"*, *"Set default arrears to 20 months"*, *"Update principal amount to ₹14,00,000"*), updates math, and re-drafts forms in place with live chat re-rendering.
   * **Automated Batch Processing across `Clients/`**: Scans parent directory, auto-classifies each client subfolder independently, drafts respective forms, and compiles a centralized `MASTER_CLAIMS_SUMMARY.md` ledger.
-
-
-
+* **Anti-Bifurcation Defense Guardrail (Section 5(8)(f))**:
+  * **The IP Form F Downgrade Trap**: Resolution Professionals often suggest that retail or fractional investors (e.g. cloud storage particles, sale-and-leaseback assets, assured return properties) bifurcate claims into Form CA for lease rentals and Form F ("Other Creditors") for principal capital.
+  * **CoC Voting Suppression & Zero Recovery**: Form F creditors have zero seats and zero voting power in the Committee of Creditors (CoC) and sit at the bottom of the Section 53 / Regulation 38 liquidation waterfall, routinely receiving ₹0.
+  * **Supreme Court Shield (*Pioneer Urban Land* & *Nikhil Mehta*)**: Under Section 5(8)(f), sale-and-leaseback transactions with assured returns have the commercial effect of a borrowing and constitute an indivisible, composite financial debt.
+  * **Single Economic Unit Doctrine**: Under NCLAT precedent (*Videocon Industries*, *Amrapali*), the corporate veil between the selling vendor and corporate debtor lessee is pierced.
+  * **Proactive Interception & Fortified Form CA**: `@claims` and `@forms` proactively detect split suggestions, issue real-time tactical warnings, reject Form F downgrades, and automatically equip Form CA with Preemptive Aggressive Legal Riders claiming 100% of composite financial debt.
+* **Unified Statutory IBC Practice Suites (Tracks A & B)**:
+  * **5 Process Suites (51 Normalized Forms)**: CIRP (12 forms), CILP / Liquidation (11 forms), CIVLP / Voluntary Liquidation (9 forms), PPIRP (14 forms), and Personal Guarantor (5 forms).
+  * **Unified Statutory Drafting Engine (`statutory-drafting.js`)**: Dynamic template resolution, automatic case fact aliasing, milestone arithmetic ($T_0 + 14$ days, $T_0 + 180$ days), automated draft versioning (`draft_<form>.v1.md`), and court-ready Pandoc DOCX compilation.

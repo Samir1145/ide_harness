@@ -317,12 +317,26 @@ Typed in the **AI Chat Sidebar** or triggered via Explorer right-click menus to 
 
 ### ✅ `@claims` — Your Claims Verifier
 
-**What it does:** Reads all creditor documents and verifies claim amounts, cross-checking for discrepancies.
+**What it does:** Reads all creditor documents, audits claim figures, cross-checks for discrepancies, and acts as a **Tactical Shield against IP Form Downgrades**.
+
+**🛡️ Tactical Anti-Bifurcation Defense (The "IP Form F Trap"):**
+* **The Danger:** Resolution Professionals often suggest that retail or fractional investors (e.g. cloud storage particles, sale-and-leaseback assets, assured return properties) split their claims:
+  - *Lease / Rental Arrears $\rightarrow$ Form CA (Financial Debt in Class)*
+  - *Core Capital Investment $\rightarrow$ Form F (Other Creditors)*
+* **Why You Must Never Do This:**
+  - **Zero CoC Voting Rights:** Form F claimants have **no seats and no votes** in the Committee of Creditors (CoC). This cuts your collective voting leverage in half.
+  - **Near-Zero Recovery:** Under Regulation 38 and Section 53, "Other Creditors" sit at the bottom of the liquidation waterfall and routinely recover **₹0**.
+* **How `@claims` Protects You:**
+  - **Proactive Detection:** `@claims` and `@forms` intercept any mention of splitting claims or filing Form F for capital.
+  - **Supreme Court Law:** Equips your claim with *Pioneer Urban Land* and *Nikhil Mehta* precedents under **Section 5(8)(f)** (composite indivisible borrowing) and the Single Economic Unit doctrine.
+  - **Fortified Form CA:** Directs filing **ONLY Form CA for 100% of the claim** (Principal + Arrears) with embedded aggressive legal riders to compel full admission.
 
 **Example prompts to try:**
 
 ```
 @claims Verify all creditor claims in this case
+
+@claims The IP is asking me to file Form F for principal and Form CA for rent. Should I do that?
 
 @claims Is the financial creditor's claim amount consistent across documents?
 
@@ -337,11 +351,13 @@ Typed in the **AI Chat Sidebar** or triggered via Explorer right-click menus to 
 ```
 
 **What happens:**
+- Scans for IP bifurcation traps and issues real-time defense warnings
 - Runs 5 RAG queries across all documents for claim-related content
 - Extracts amounts, parties, and dates per document chunk
 - Cross-references amounts against `case_kv_dictionary.json`
 - Flags mismatches with ⚠️ MISMATCH
 - Writes all verified/flagged claims to `claims_registry.md`
+
 
 ---
 

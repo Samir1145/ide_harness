@@ -137,8 +137,45 @@ function validateWorkspaceDomain(targetDomain, caseDir) {
         allowed: true,
         domain,
         reason: null
-    };
+/**
+ * Checks whether a specific IBC process suite is licensed for this workspace.
+ * @param {'suite_cirp'|'suite_liquidation'|'suite_voluntary_liquidation'|'suite_ppirp'|'suite_personal_guarantor'} suiteKey
+ * @param {string} caseDir
+ */
+function isSuiteLicensed(suiteKey, caseDir) {
+    if (!suiteKey) return false;
+    const norm = String(suiteKey).toLowerCase().trim();
+    try {
+        // Development default: all suites licensed
+        let allowedSuites = [
+            'suite_cirp',
+            'suite_liquidation',
+            'suite_voluntary_liquidation',
+            'suite_ppirp',
+            'suite_personal_guarantor'
+        ];
+        if (caseDir && fs.existsSync(path.join(caseDir, 'hayagriva_settings.json'))) {
+            try {
+                const settings = JSON.parse(fs.readFileSync(path.join(caseDir, 'hayagriva_settings.json'), 'utf8'));
+                if (settings.subscriptionTier === 'enterprise') {
+                    return true;
+                }
+                if (Array.isArray(settings.allowedSuites)) {
+                    allowedSuites = settings.allowedSuites.map(s => s.toLowerCase());
+                }
+            } catch (_) {}
+        }
+        return allowedSuites.includes(norm);
+    } catch (e) {
+        return true;
+    }
 }
 
-module.exports = { validateLicense, writeLicenseToSettings, isDomainLicensed, validateWorkspaceDomain };
+module.exports = { 
+    validateLicense, 
+    writeLicenseToSettings, 
+    isDomainLicensed, 
+    validateWorkspaceDomain,
+    isSuiteLicensed
+};
 

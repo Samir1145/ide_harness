@@ -1,0 +1,215 @@
+{
+  "suiteId": "suite_ppirp",
+  "name": "Pre-packaged Insolvency Resolution Process for MSMEs (PPIRP)",
+  "regulation": "IBBI (Pre-packaged Insolvency Resolution Process) Regulations, 2021",
+  "totalForms": 14,
+  "forms": [
+    {
+      "id": "form-p1",
+      "title": "FORM P1**",
+      "sourceFile": "Form P1.docx",
+      "markdownFile": "form-p1.md",
+      "placeholdersCount": 7,
+      "placeholdersSample": [
+        "ADDRESS_OF_THE_INSOLVENCY_PROFESSIONAL_REGISTERED_WITH_THE_BOARD",
+        "DATE",
+        "NAME",
+        "NAME_OF_INSOLVENCY_PROFESSIONAL_AGENCY",
+        "NAME_OF_THE_CORPORATE_DEBTOR",
+        "NAME_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTRATION_NUMBER_OF_THE_INSOLVENCY_PROFESSIONAL"
+      ]
+    },
+    {
+      "id": "form-p10",
+      "title": "FORM P10**",
+      "sourceFile": "Form P10.docx",
+      "markdownFile": "form-p10.md",
+      "placeholdersCount": 2,
+      "placeholdersSample": [
+        "FOR_CORPORATE_DEBTOR",
+        "FOR_RESOLUTION_PROFESSIONAL"
+      ]
+    },
+    {
+      "id": "form-p11",
+      "title": "FORM P11**",
+      "sourceFile": "Form P11.docx",
+      "markdownFile": "form-p11.md",
+      "placeholdersCount": 0,
+      "placeholdersSample": []
+    },
+    {
+      "id": "form-p12",
+      "title": "FORM P12**",
+      "sourceFile": "Form P12.docx",
+      "markdownFile": "form-p12.md",
+      "placeholdersCount": 5,
+      "placeholdersSample": [
+        "NAME_OF_CD",
+        "NAME_OF_THE_CORPORATE_DEBTOR",
+        "NAME_OF_THE_RESOLUTION_PROFESSIONAL",
+        "STATE_THE_DATE_OF_MEETING",
+        "STATE_THE_NUMBER_OF_VOTES_BY_WHICH_RESOLUTION_PLAN_WAS_APPROVED_BY_COMMITTEE"
+      ]
+    },
+    {
+      "id": "form-p13",
+      "title": "FORM P13**",
+      "sourceFile": "Form P13.docx",
+      "markdownFile": "form-p13.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "CASE_NUMBER",
+        "DATE",
+        "DATE_OF_FILING",
+        "DIARY_NUMBER_CASE_NUMBER",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_CORPORATE_DEBTOR",
+        "NAME_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTERED_ADDRESS_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTRATION_NUMBER_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "UNDER_SECTION_54C"
+      ]
+    },
+    {
+      "id": "form-p14",
+      "title": "FORM P14**",
+      "sourceFile": "Form P14.docx",
+      "markdownFile": "form-p14.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "CASE_NUMBER",
+        "DATE",
+        "DATE_OF_FILING",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_CORPORATE_DEBTOR",
+        "NAME_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "PARTICULARS_OF_APPLICATION_HAVING_DIARY_NUMBER_CASE_NUMBER",
+        "REGISTERED_ADDRESS_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTRATION_NUMBER_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "UNDER_SECTION_54C"
+      ]
+    },
+    {
+      "id": "form-p2",
+      "title": "FORM P2**",
+      "sourceFile": "Form P2.docx",
+      "markdownFile": "form-p2.md",
+      "placeholdersCount": 3,
+      "placeholdersSample": [
+        "DATE",
+        "FOR_CORPORATE_APPLICANT",
+        "NAME_OF_CORPORATE_DEBTOR"
+      ]
+    },
+    {
+      "id": "form-p3",
+      "title": "FORM P3**",
+      "sourceFile": "Form P3.docx",
+      "markdownFile": "form-p3.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "DATE_OF_MEETING",
+        "DESIGNATION",
+        "NAME_IN_BLOCK_LETTERS",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_CREDITOR",
+        "NAME_OF_CREDITOR_S",
+        "NAME_OF_PROPOSED_RESOLUTION_PROFESSIONAL",
+        "REGISTRATION_NUMBER",
+        "TIME_OF_MEETING",
+        "VENUE_OF_MEETING"
+      ]
+    },
+    {
+      "id": "form-p4",
+      "title": "FORM P4**",
+      "sourceFile": "Form P4.docx",
+      "markdownFile": "form-p4.md",
+      "placeholdersCount": 7,
+      "placeholdersSample": [
+        "DATE_OF_MEETING",
+        "DESIGNATION",
+        "NAME_IN_BLOCK_LETTERS",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_CREDITOR",
+        "TIME_OF_MEETING",
+        "VENUE_OF_MEETING"
+      ]
+    },
+    {
+      "id": "form-p5",
+      "title": "FORM P5**",
+      "sourceFile": "Form P5.docx",
+      "markdownFile": "form-p5.md",
+      "placeholdersCount": 8,
+      "placeholdersSample": [
+        "NAME",
+        "NAME_OF_INSOLVENCY_PROFESSIONAL_AGENCY",
+        "NAME_OF_RESOLUTION_PROFESSIONAL",
+        "NAME_OF_THE_CORPORATE_DEBTOR",
+        "NAME_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTERED_ADDRESS_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTRATION_NUMBER_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "SPECIFY_CLASS"
+      ]
+    },
+    {
+      "id": "form-p6",
+      "title": "FORM P6**",
+      "sourceFile": "Form P6.docx",
+      "markdownFile": "form-p6.md",
+      "placeholdersCount": 7,
+      "placeholdersSample": [
+        "ADDRESS",
+        "DATE",
+        "DATE_OF_MEETING",
+        "INSERT_NUMBER_OF_DAYS",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_INSOLVENCY_PROFESSIONAL",
+        "REGISTRATION_NUMBER"
+      ]
+    },
+    {
+      "id": "form-p7",
+      "title": "FORM P7**",
+      "sourceFile": "Form P7.docx",
+      "markdownFile": "form-p7.md",
+      "placeholdersCount": 6,
+      "placeholdersSample": [
+        "ADDRESS",
+        "DATE",
+        "IDENTIFICATION_NUMBER",
+        "NAME",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_CORPORATE_DEBTOR"
+      ]
+    },
+    {
+      "id": "form-p8",
+      "title": "FORM P8**",
+      "sourceFile": "Form P8.docx",
+      "markdownFile": "form-p8.md",
+      "placeholdersCount": 4,
+      "placeholdersSample": [
+        "ATTACHMENT",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_INSOLVENCY_PROFESSIONAL",
+        "PERCENT"
+      ]
+    },
+    {
+      "id": "form-p9",
+      "title": "FORM P9**",
+      "sourceFile": "Form P9.docx",
+      "markdownFile": "form-p9.md",
+      "placeholdersCount": 3,
+      "placeholdersSample": [
+        "INSERT_DATE",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_CORPORATE_DEBTOR"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+SCHEDULE II  
+FORM A  
+PROFORMA FOR REPORTING CONSULTATIONS WITH STAKEHOLDERS  
+(Under Regulation 8 of the Insolvency and Bankruptcy Board of India (Liquidation Process) Regulations, 
+2016)  
+Separate proforma to be used for each stakeholder or group of homogenous stakeholders  
+ 
+NAME  AND  REGISTRATION  NO.  OF  
+LIQUIDATOR:   
+  
+NAME  OF CORPORATE DEBTOR  BEING 
+LIQUIDATED:  
+  
+LIQUIDATION CASE NO:    
+NAME OF THE STAKEHOLDER:   
+DATE OF CONSULTATION (IF HELD IN  
+PERSON):   
+NUMBER AND DATES OF COMMUNICATIONS 
+RECEIVED FROM STAKEHOLDER:   
+SUMMARY OF CONSULTATION:

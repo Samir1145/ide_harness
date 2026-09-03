@@ -1,0 +1,147 @@
+{
+  "suiteId": "suite_voluntary_liquidation",
+  "name": "Corporate Voluntary Liquidation Process (CIVLP)",
+  "regulation": "IBBI (Voluntary Liquidation Process) Regulations, 2017",
+  "totalForms": 9,
+  "forms": [
+    {
+      "id": "form-a-vl",
+      "title": "FORM A",
+      "sourceFile": "Form_A_VL.pdf",
+      "markdownFile": "form-a-vl.md",
+      "placeholdersCount": 4,
+      "placeholdersSample": [
+        "INSERT_THE_DATE_FALLING_THIRTY_DAYS_FROM_THE_LIQUIDATION_COMMENCEMENT_DATE",
+        "LIQUIDATION_COMMENCEMENT_DATE",
+        "NAME_OF_CORPORATE_PERSON",
+        "NAME_OF_THE_CORPORATE_PERSON"
+      ]
+    },
+    {
+      "id": "form-b-vl",
+      "title": "FORM B",
+      "sourceFile": "Form_B_VL.pdf",
+      "markdownFile": "form-b-vl.md",
+      "placeholdersCount": 11,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_THE_PUBLIC_ANNOUNCEMENT",
+        "ADDRESS_OF_DEPONENT",
+        "DATE",
+        "INSERT_NAME_OF_CO_PARTNERS",
+        "NAME_AND_ADDRESS_OF_THE_OPERATIONAL_CREDITOR",
+        "NAME_OF_CORPORATE_PERSON",
+        "NAME_OF_DEPONENT",
+        "NAME_OF_THE_LIQUIDATOR",
+        "NAME_OF_THE_OPERATIONAL_CREDITOR",
+        "PLEASE_LIST_OUT_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_DEBT"
+      ]
+    },
+    {
+      "id": "form-c-vl",
+      "title": "FORM C",
+      "sourceFile": "Form_C_VL.pdf",
+      "markdownFile": "form-c-vl.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_THE_PUBLIC_ANNOUNCEMENT",
+        "ADDRESS_OF_DEPONENT",
+        "DATE",
+        "INSERT_NAME_OF_CO_PARTNERS",
+        "NAME_OF_CORPORATE_PERSON",
+        "NAME_OF_DEPONENT",
+        "NAME_OF_THE_FINANCIAL_CREDITOR",
+        "NAME_OF_THE_LIQUIDATOR",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_DEBT_AND_OF_NON_PAYMENT",
+        "PLEASE_STATE_CONSIDERATION"
+      ]
+    },
+    {
+      "id": "form-d-vl",
+      "title": "FORM D",
+      "sourceFile": "Form_D_VL.pdf",
+      "markdownFile": "form-d-vl.md",
+      "placeholdersCount": 11,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_PUBLIC_ANNOUNCEMENT",
+        "DATE",
+        "INSERT_ADDRESS",
+        "INSERT_AMOUNT_OF_CLAIM",
+        "INSERT_PLACE",
+        "NAME_AND_ADDRESS_OF_THE_WORKMAN_EMPLOYEE",
+        "NAME_OF_CORPORATE_PERSON",
+        "NAME_OF_DEPONENT",
+        "NAME_OF_THE_LIQUIDATOR",
+        "NAME_OF_THE_WO_RKMAN_EMPLOYEE"
+      ]
+    },
+    {
+      "id": "form-e-vl",
+      "title": "FORM E",
+      "sourceFile": "Form_E_VL.pdf",
+      "markdownFile": "form-e-vl.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_THE_PUBLIC_ANNOUNCEMENT",
+        "ADDRESS_OF_DULY_AUTHORISED_REPRESENTATIVE_OF_THE_WORKMEN_EMPLOYEES",
+        "DATE",
+        "INSERT_FULL_NAME_ADDRESS_AND_OCCUPATION_OF_DEPONENT",
+        "NAME_AND_ADDRESS_OF_THE_AUTHORISED_REPRESENTATIVE_OF_WORKMEN_EMPLOYEES",
+        "NAME_OF_CORPORATE_PERSON",
+        "NAME_OF_DULY_AUTHORISED_REPRESENTATIVE_OF_THE_WORKMEN_EMPLOYEES",
+        "NAME_OF_THE_LIQUIDATOR",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_PROOF",
+        "PLEASE_STATE_THE_NATURE_AND_DURATION_OF_EMPLOYMENT"
+      ]
+    },
+    {
+      "id": "form-f-vl",
+      "title": "FORM F",
+      "sourceFile": "Form_F_VL.pdf",
+      "markdownFile": "form-f-vl.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_THE_PUBLIC_ANNOUNCEMENT",
+        "DATE",
+        "INSERT_FULL_NAME_ADDRESS_AND_OCCUPATION_OF_DEPONENT_TO_BE_GIVEN",
+        "INSERT_NAME_OF_CO_PARTNER",
+        "NAME_AND_ADDRESS_OF_THE_OTHER_STAKEHOLDER",
+        "NAME_OF_CORPORATE_PERSON",
+        "NAME_OF_THE_LIQUIDATOR",
+        "NAME_OF_THE_STAKEHOLDER",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_PROOF",
+        "PLEASE_STATE_CONSIDERATION"
+      ]
+    },
+    {
+      "id": "form-g-vl",
+      "title": "FORM-G",
+      "sourceFile": "Form_G_VL.pdf",
+      "markdownFile": "form-g-vl.md",
+      "placeholdersCount": 0,
+      "placeholdersSample": []
+    },
+    {
+      "id": "form-h-vl",
+      "title": "FORM-H",
+      "sourceFile": "Form_H_VL.pdf",
+      "markdownFile": "form-h-vl.md",
+      "placeholdersCount": 3,
+      "placeholdersSample": [
+        "INSERT_ADDRESS",
+        "NAME",
+        "NAME_OF_STAKEHOLDER"
+      ]
+    },
+    {
+      "id": "schedule-ii-vl",
+      "title": "SCHEDULE II",
+      "sourceFile": "Schedule_II_VL.pdf",
+      "markdownFile": "schedule-ii-vl.md",
+      "placeholdersCount": 2,
+      "placeholdersSample": [
+        "CORPORATE_VOLUNTARY_LIQUIDATION_ACCOUNT",
+        "PROCEEDS"
+      ]
+    }
+  ]
+}

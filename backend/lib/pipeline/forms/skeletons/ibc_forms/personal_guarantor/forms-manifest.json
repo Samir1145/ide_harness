@@ -1,0 +1,54 @@
+{
+  "suiteId": "suite_personal_guarantor",
+  "name": "Personal Guarantors to Corporate Debtors (IIRP & Bankruptcy)",
+  "regulation": "IBBI (Insolvency Resolution & Bankruptcy Process for Personal Guarantors) Regulations, 2019",
+  "totalForms": 5,
+  "forms": [
+    {
+      "id": "bankruptcy-reg-form-a",
+      "title": "FORM A**",
+      "sourceFile": "Bankruptcy Reg Form A.docx",
+      "markdownFile": "bankruptcy-reg-form-a.md",
+      "placeholdersCount": 1,
+      "placeholdersSample": [
+        "DATE"
+      ]
+    },
+    {
+      "id": "bankruptcy-reg-form-b",
+      "title": "FORM B**",
+      "sourceFile": "Bankruptcy Reg Form B.docx",
+      "markdownFile": "bankruptcy-reg-form-b.md",
+      "placeholdersCount": 0,
+      "placeholdersSample": []
+    },
+    {
+      "id": "iirp-reg-form-a",
+      "title": "FORM A**",
+      "sourceFile": "IIRP_Reg_Form_A.docx",
+      "markdownFile": "iirp-reg-form-a.md",
+      "placeholdersCount": 1,
+      "placeholdersSample": [
+        "DATE"
+      ]
+    },
+    {
+      "id": "iirp-reg-form-b",
+      "title": "FORM B**",
+      "sourceFile": "IIRP_Reg_Form_B.docx",
+      "markdownFile": "iirp-reg-form-b.md",
+      "placeholdersCount": 1,
+      "placeholdersSample": [
+        "INSERT_DESCRIPTION"
+      ]
+    },
+    {
+      "id": "iirp-reg-form-c",
+      "title": "FORM C**",
+      "sourceFile": "IIRP_Reg_Form_C.docx",
+      "markdownFile": "iirp-reg-form-c.md",
+      "placeholdersCount": 0,
+      "placeholdersSample": []
+    }
+  ]
+}

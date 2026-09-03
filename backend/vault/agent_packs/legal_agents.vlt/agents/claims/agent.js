@@ -17,7 +17,17 @@ class ClaimsVerificationAgent {
     async run(caseDir, userMessage, history = []) {
         console.log(`[Claims Verification Agent] Running verification...`);
 
+        // Proactive Guardrail: Check for IP Form F Bifurcation Trap
+        const { detectBifurcationTrap, getBifurcationWarning } = require('../../../../../lib/agents/skills/bifurcation-guard');
+        const trap = detectBifurcationTrap(userMessage);
+        if (trap) {
+            console.log(`[Claims Agent] 🚨 Intercepted potential Form F bifurcation trap query!`);
+            const warningBanner = getBifurcationWarning();
+            return `${warningBanner}\n\n### 🛡️ Recommended Strategy for Your Claim:\n1. **Do not file Form F.** Filing Form F forfeits your seat and voting share in the Committee of Creditors (CoC) and places your core capital at the bottom of the liquidation waterfall.\n2. **File Form CA for the entire composite amount** (including both your principal capital consideration and all contractual lease arrears accrued up to the Insolvency Commencement Date).\n3. **Include the Section 5(8)(f) Preemptive Legal Rider** directly in Form CA (Item 6 & Annexure-E) to judicially estop the IP from bifurcating your claim.\n\n*Type \`@forms draft Form CA\` to generate your protected, court-ready claim package.*`;
+        }
+
         // 1. Load existing claims_registry.md for known claims
+
         let registryData = '';
         const registryPath = path.join(caseDir, 'claims_registry.md');
         if (fs.existsSync(registryPath)) {

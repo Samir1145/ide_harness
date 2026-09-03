@@ -37,7 +37,6 @@ const VAULTS_ROOT = process.platform === 'win32'
 
 const KEYCHAIN_SERVICE = 'hayagriva';
 
-// Maps vault name → keychain account + reload function
 const VAULT_META = {
     laws:                       { account: 'vault-laws',                  reload: reloadVault },
     cases:                      { account: 'vault-cases',                 reload: reloadCasesVault },
@@ -46,7 +45,13 @@ const VAULT_META = {
     documents_corporate:        { account: 'vault-documents-corporate',  reload: null },
     documents_tax_conveyancing: { account: 'vault-documents-tax',        reload: null },
     forms:                      { account: 'vault-forms',                 reload: null },
+    suite_cirp:                 { account: 'vault-cirp',                  reload: null },
+    suite_liquidation:          { account: 'vault-cilp',                  reload: null },
+    suite_voluntary_liquidation:{ account: 'vault-civlp',                 reload: null },
+    suite_ppirp:                { account: 'vault-ppirp',                 reload: null },
+    suite_personal_guarantor:   { account: 'vault-pg',                    reload: null },
 };
+
 
 // ── EventEmitter for progress ─────────────────────────────────────
 const emitter = new EventEmitter();

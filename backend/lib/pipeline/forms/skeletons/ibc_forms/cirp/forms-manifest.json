@@ -1,0 +1,173 @@
+{
+  "suiteId": "suite_cirp",
+  "name": "Corporate Insolvency Resolution Process (CIRP)",
+  "regulation": "IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016",
+  "totalForms": 12,
+  "forms": [
+    {
+      "id": "form-a",
+      "title": "FORM A",
+      "sourceFile": "Form_A.docx",
+      "markdownFile": "form-a.md",
+      "placeholdersCount": 4,
+      "placeholdersSample": [
+        "INSOLVENCY_COMMENCEMENT_DATE",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_CORPORATE_DEBTOR",
+        "SPECIFY_CLASS"
+      ]
+    },
+    {
+      "id": "form-aa",
+      "title": "FORM AA",
+      "sourceFile": "Form_AA.docx",
+      "markdownFile": "form-aa.md",
+      "placeholdersCount": 8,
+      "placeholdersSample": [
+        "ADDRESS_OF_THE_INSOLVENCY_PROFESSIONAL_REGISTERED_WITH_THE_BOARD",
+        "DATE",
+        "NAME",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_INSOLVENCY_PROFESSIONAL_AGENCY",
+        "NAME_OF_THE_CORPORATE_DEBTOR",
+        "NAME_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTRATION_NUMBER_OF_THE_INSOLVENCY_PROFESSIONAL"
+      ]
+    },
+    {
+      "id": "form-ab",
+      "title": "FORM AB**",
+      "sourceFile": "Form_AB.docx",
+      "markdownFile": "form-ab.md",
+      "placeholdersCount": 9,
+      "placeholdersSample": [
+        "DATE",
+        "NAME",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_INSOLVENCY_PROFESSIONAL_AGENCY",
+        "NAME_OF_THE_CORPORATE_DEBTOR",
+        "NAME_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTERED_ADDRESS_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "REGISTRATION_NUMBER_OF_THE_INSOLVENCY_PROFESSIONAL",
+        "SPECIFY_CLASS"
+      ]
+    },
+    {
+      "id": "form-b",
+      "title": "FORM B",
+      "sourceFile": "Form_B.docx",
+      "markdownFile": "form-b.md",
+      "placeholdersCount": 1,
+      "placeholdersSample": [
+        "NAME"
+      ]
+    },
+    {
+      "id": "form-c",
+      "title": "FORM C**",
+      "sourceFile": "Form_C.docx",
+      "markdownFile": "form-c.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_PUBLIC_ANNOUNCEMENT",
+        "DATE",
+        "INSERT_ADDRESS",
+        "INSERT_AMOUNT_OF_CLAIM",
+        "NAME",
+        "NAME_OF_CLAIMANT",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_FINANCIAL_CREDITOR",
+        "NAME_OF_THE_INSOLVENCY_RESOLUTION_PROFESSIONAL_RESOLUTION_PROFESSIONAL",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_CLAIM"
+      ]
+    },
+    {
+      "id": "form-ca",
+      "title": "FORM CA",
+      "sourceFile": "Form_CA.docx",
+      "markdownFile": "form-ca.md",
+      "placeholdersCount": 10,
+      "placeholdersSample": [
+        "ADDRESS_AS_SET_OUT_IN_PUBLIC_ANNOUNCEMENT",
+        "DATE",
+        "INSERT_ADDRESS",
+        "INSERT_AMOUNT_OF_CLAIM",
+        "NAME",
+        "NAME_OF_CLAIMANT",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "NAME_OF_THE_FINANCIAL_CREDITOR",
+        "NAME_OF_THE_INSOLVENCY_RESOLUTION_PROFESSIONAL_RESOLUTION_PROFESSIONAL",
+        "PLEASE_LIST_THE_DOCUMENTS_RELIED_ON_AS_EVIDENCE_OF_CLAIM"
+      ]
+    },
+    {
+      "id": "form-d",
+      "title": "SCHEDULE",
+      "sourceFile": "Form_D.docx",
+      "markdownFile": "form-d.md",
+      "placeholdersCount": 1,
+      "placeholdersSample": [
+        "NAME"
+      ]
+    },
+    {
+      "id": "form-e",
+      "title": "FORM E",
+      "sourceFile": "Form_E.docx",
+      "markdownFile": "form-e.md",
+      "placeholdersCount": 1,
+      "placeholdersSample": [
+        "NAME"
+      ]
+    },
+    {
+      "id": "form-f",
+      "title": "FORM F**",
+      "sourceFile": "Form_F.docx",
+      "markdownFile": "form-f.md",
+      "placeholdersCount": 1,
+      "placeholdersSample": [
+        "NAME"
+      ]
+    },
+    {
+      "id": "form-fa",
+      "title": "FORM FA",
+      "sourceFile": "Form_FA.docx",
+      "markdownFile": "form-fa.md",
+      "placeholdersCount": 8,
+      "placeholdersSample": [
+        "CASE_NUMBER",
+        "DATE",
+        "DATE_OF_FILING",
+        "NAME_OF_APPLICANT",
+        "NAME_OF_CORPORATE_DEBTOR",
+        "PARTICULARS_OF_APPLICATION_I_E_DIARY_NUMBER_CASE_NUMBER",
+        "SECTION_7_SECTION_9_SECTION_10",
+        "THROUGH_THE_INTERIM_RESOLUTION_PROFESSIONAL_RESOLUTION_PROFESSIONAL"
+      ]
+    },
+    {
+      "id": "form-g",
+      "title": "FORM G**",
+      "sourceFile": "Form_G.docx",
+      "markdownFile": "form-g.md",
+      "placeholdersCount": 3,
+      "placeholdersSample": [
+        "INDUSTRY_TYPE",
+        "LOCATION_S",
+        "NAME_OF_CORPORATE_DEBTOR"
+      ]
+    },
+    {
+      "id": "form-h",
+      "title": "FORM H**",
+      "sourceFile": "Form_H.docx",
+      "markdownFile": "form-h.md",
+      "placeholdersCount": 1,
+      "placeholdersSample": [
+        "STRIKE_OFF_THE_PART_THAT_IS_NOT_RELEVANT"
+      ]
+    }
+  ]
+}

@@ -13,6 +13,24 @@ const { getChatResponse } = require('./llm-client');
 async function draftDocument(caseDir, formatId) {
     console.log(`[Drafting Engine] Generating draft for format "${formatId}"...`);
 
+    // Check if this is a statutory IBC form template
+    const { resolveStatutoryTemplate, draftStatutoryForm } = require('../pipeline/forms/statutory-drafting');
+    const statutoryTemplate = resolveStatutoryTemplate(formatId);
+    if (statutoryTemplate) {
+        console.log(`[Drafting Engine] Routing "${formatId}" to Statutory Drafting Engine (${statutoryTemplate.suiteName})...`);
+        const result = await draftStatutoryForm(caseDir, formatId);
+        return {
+            draftPath: result.draftMdPath,
+            docxPath: result.draftDocxPath,
+            suiteName: result.suiteName,
+            filledCount: result.filledCount,
+            unfilledCount: result.unfilledCount,
+            diagnostics: result.diagnostics,
+            version: 1,
+            unfilledPlaceholders: result.diagnostics.unfilled.map(u => u.variable)
+        };
+    }
+
     // 1. Resolve paths via unified skeleton skill
     const { loadSkeleton } = require('../agents/skills/skeleton-load');
     const REPO_ROOT = path.join(__dirname, '../../..');
@@ -24,6 +42,7 @@ async function draftDocument(caseDir, formatId) {
 
     const formatSkeleton = loaded.content;
     const draftingPrompt = `Draft a professional ${formatId} using the provided case context and placeholders.`;
+
 
 
     const { loadLlmConfig } = require('./llm-client');

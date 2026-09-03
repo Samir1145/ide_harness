@@ -6,17 +6,21 @@ const { validateForm } = require('../../../../../lib/agents/skills/form-validate
 const { appendToMarkdown } = require('../../../../../lib/agents/skills/md-append');
 const { buildLiteFallback } = require('../../../../../lib/agents/skills/lite-fallback');
 
+const { resolveStatutoryTemplate, draftStatutoryForm, listAvailableStatutoryForms } = require('../../../../../lib/pipeline/forms/statutory-drafting');
+
 // Detect form ID from user message
 function detectFormId(userMessage) {
     const msg = userMessage.toLowerCase();
-    if (msg.includes('aoc-4') || msg.includes('aoc4') || msg.includes('annual return'))         return 'aoc-4';
-    if (msg.includes('form a') || msg.includes('financial creditor claim'))                      return 'ibbi-form-a';
-    if (msg.includes('form b') || msg.includes('operational creditor claim'))                    return 'ibbi-form-b';
-    if (msg.includes('form f') || msg.includes('workman') || msg.includes('employee claim'))     return 'ibbi-form-f';
-    if (msg.includes('form h') || msg.includes('resolution plan compliance') || msg.includes('ibbi-h')) return 'ibbi-h';
-    // Explicit /fill command
-    const fillMatch = userMessage.match(/\/fill\s+([a-z0-9\-]+)/i);
+    
+    // Check explicit /fill command
+    const fillMatch = userMessage.match(/\/fill\s+([a-z0-9\-_]+)/i);
     if (fillMatch) return fillMatch[1].toLowerCase();
+
+    // Check specific form keywords
+    const statutory = resolveStatutoryTemplate(userMessage);
+    if (statutory) return statutory.formSlug;
+
+    if (msg.includes('aoc-4') || msg.includes('aoc4') || msg.includes('annual return')) return 'aoc-4';
     return null;
 }
 
@@ -29,6 +33,59 @@ class FormsAgent {
 
     async run(caseDir, userMessage, history = []) {
         console.log(`[Forms Agent] Processing: "${userMessage}"`);
+
+        // Proactive Guardrail: Check for IP Form F Bifurcation Trap
+        const { detectBifurcationTrap, getBifurcationWarning } = require('../../../../../lib/agents/skills/bifurcation-guard');
+        const trap = detectBifurcationTrap(userMessage);
+        if (trap) {
+            console.log(`[Forms Agent] 🚨 Intercepted potential Form F bifurcation trap query!`);
+            const warningBanner = getBifurcationWarning();
+            return `${warningBanner}\n\n### 🛡️ Recommended Strategy for Your Claim:\n1. **Do not file Form F.** Filing Form F forfeits your seat and voting share in the Committee of Creditors (CoC) and places your core capital at the bottom of the liquidation waterfall.\n2. **File Form CA for the entire composite amount** (including both your principal capital consideration and all contractual lease arrears accrued up to the Insolvency Commencement Date).\n3. **Include the Section 5(8)(f) Preemptive Legal Rider** directly in Form CA (Item 6 & Annexure-E) to judicially estop the IP from bifurcating your claim.\n\n*Type \`@forms draft Form CA\` to generate your protected, court-ready claim package.*`;
+        }
+
+        // Check if user is requesting a statutory IBC form
+        const statutory = resolveStatutoryTemplate(userMessage) || (detectFormId(userMessage) ? resolveStatutoryTemplate(detectFormId(userMessage)) : null);
+        if (statutory) {
+            console.log(`[Forms Agent] Drafting Statutory Form: ${statutory.formSlug} (${statutory.suiteName})`);
+            try {
+                const res = await draftStatutoryForm(caseDir, statutory.formSlug);
+
+                const draftRelMd = path.relative(caseDir, res.draftMdPath);
+                const draftRelDocx = res.draftDocxPath ? path.relative(caseDir, res.draftDocxPath) : null;
+
+                let output = `### 📋 Statutory Form Drafted: ${res.formSlug.toUpperCase()} (${res.suiteName})\n\n`;
+                output += `- **Draft Document:** [\`${draftRelMd}\`](file://${res.draftMdPath})\n`;
+                if (res.draftDocxPath) {
+                    output += `- **DOCX Export:** [\`${draftRelDocx}\`](file://${res.draftDocxPath})\n`;
+                }
+                output += `- **Field Completion:** ${res.filledCount} filled / ${res.unfilledCount} unfilled\n\n`;
+
+                if (res.diagnostics.filled.length > 0) {
+                    output += `#### ✅ Auto-Populated Fields:\n`;
+                    output += `| Variable | Extracted Value |\n| :--- | :--- |\n`;
+                    for (const f of res.diagnostics.filled) {
+                        output += `| \`${f.variable}\` | ${f.value} |\n`;
+                    }
+                    output += `\n`;
+                }
+
+                if (res.diagnostics.unfilled.length > 0) {
+                    output += `#### ⚠️ Needs Practitioner Review:\n`;
+                    output += res.diagnostics.unfilled.map(u => `- \`{{ ${u.variable} }}\``).join('\n') + `\n\n`;
+                }
+
+                output += `> 💡 *Edit the draft directly in Monaco editor. Saved changes update the central KV dictionary automatically.*`;
+
+                // Audit trail
+                appendToMarkdown(caseDir, 'case_facts.md', '## Forms Agent Audit',
+                    `- **${res.formSlug}** drafted — ${res.filledCount} fields populated, ${res.unfilledCount} unfilled. Export: [${draftRelDocx || draftRelMd}]`,
+                    this.name);
+
+                return output;
+            } catch (err) {
+                console.error(`[Forms Agent] Statutory drafting failed:`, err.message);
+            }
+        }
 
         const formId = detectFormId(userMessage);
         let context = '';
@@ -52,7 +109,7 @@ class FormsAgent {
                     }
                 } catch (e) { /* No schema rules for this form yet */ }
 
-                // Step 3: Export JSON schema for iPIE (saved alongside form data)
+                // Step 3: Export JSON schema for iPIE
                 try {
                     const jsonExport = {};
                     for (const [k, v] of Object.entries(formData.fields)) {
@@ -75,10 +132,20 @@ class FormsAgent {
                 console.error(`[Forms Agent] Form fill failed:`, e.message);
             }
         } else {
-            // No form detected: show available forms + ask for clarification
-            const forms = listForms().map(f => `- \`${f.id}\` — ${f.label}`).join('\n');
-            context = `[Forms Agent — No form detected]\nAvailable IBBI/MCA forms:\n${forms}\n\nTip: Use "/fill <form-id>" or mention the form name (e.g. "Fill Form A for financial creditor").`;
+            // No form detected: show available statutory forms + MCA forms
+            const statForms = listAvailableStatutoryForms();
+            const suitesMap = {};
+            for (const f of statForms) {
+                if (!suitesMap[f.suiteName]) suitesMap[f.suiteName] = [];
+                suitesMap[f.suiteName].push(`\`${f.formId}\``);
+            }
+            let formsList = '';
+            for (const [sName, fList] of Object.entries(suitesMap)) {
+                formsList += `**${sName}**:\n${fList.slice(0, 8).join(', ')} ...\n\n`;
+            }
+            context = `[Forms Agent — No specific form identified]\n\nAvailable Statutory IBC Suites:\n\n${formsList}\nTip: Type "@forms draft Form A", "@forms Form C", or "@forms Form B_LP".`;
         }
+
 
         // Build LLM prompt
         const messages = [{ role: 'system', content: this.instructions }];
