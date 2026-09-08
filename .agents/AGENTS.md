@@ -199,3 +199,10 @@ Refer to the following plans saved in the workspace:
 * **Unified Statutory IBC Practice Suites (Tracks A & B)**:
   * **5 Process Suites (51 Normalized Forms)**: CIRP (12 forms), CILP / Liquidation (11 forms), CIVLP / Voluntary Liquidation (9 forms), PPIRP (14 forms), and Personal Guarantor (5 forms).
   * **Unified Statutory Drafting Engine (`statutory-drafting.js`)**: Dynamic template resolution, automatic case fact aliasing, milestone arithmetic ($T_0 + 14$ days, $T_0 + 180$ days), automated draft versioning (`draft_<form>.v1.md`), and court-ready Pandoc DOCX compilation.
+* **Native ONNX Cross-Encoder Reranker (`ms-marco-MiniLM-L-6-v2`)**:
+  * **Elimination of Slow LLM Reranking**: Replaced the legacy ~4,000ms prompt-based LLM reranker with a native in-process ONNX cross-encoder executing in **~15-25ms on CPU**.
+  * **Zero Python Footprint**: Operates directly inside Node.js via bundled `@xenova/transformers` (`^2.17.2`) and `onnxruntime-node` (`1.14.0`), eliminating any Python virtual environment or `pip install flashrank` subprocess dependencies.
+  * **Full Lite-Mode Parity**: Runs 100% offline without requiring `llama-server` or `LegalParam-2.9B`, providing deep cross-attention semantic reranking ($P(\text{relevance} | \text{query}, \text{passage})$) even in Lite Mode.
+  * **Memory Hygiene (5m Idle TTL)**: Features automated idle TTL monitoring (`RERANKER_IDLE_TTL_MS = 5 * 60 * 1000`) that disposes the ~22 MB model pipeline from RAM after 5 minutes of search inactivity.
+  * **Asset Packaging**: Model assets (`model_quantized.onnx`, `config.json`, `tokenizer.json`) are maintained in `backend/models/reranker/ms-marco-MiniLM-L-6-v2/` and download reproducibly via `backend/scripts/download-reranker.js`.
+

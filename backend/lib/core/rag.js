@@ -467,53 +467,22 @@ Hypothetical Answer:`;
         });
     }
     
-    // 3. LLM Reranking (Optional: defaults to off on CPU setups)
+    // 3. High-Precision ONNX Cross-Encoder Reranking (ms-marco-MiniLM-L-6-v2, ~22MB)
     let topCandidates = candidateSnippets.slice(0, 5); // default fallback
-    const enableRerank = process.env.ENABLE_RAG_RERANK === 'true' || process.env.ENABLE_RAG_RERANK === '1';
-    if (enableRerank && candidateSnippets.length > 1) {
+    const disableRerank = process.env.DISABLE_RAG_RERANK === 'true' || process.env.DISABLE_RAG_RERANK === '1';
+    if (!disableRerank && candidateSnippets.length > 1) {
         try {
-            console.log(`[RAG] Reranking ${candidateSnippets.length} candidates using LLM...`);
-            const candidatesListText = candidateSnippets.map((c, idx) => {
-                const cleanSnippet = c.body.replace(/\s+/g, ' ').substring(0, 250);
-                return `[Index: ${idx}] Title: ${c.docName} / ${c.title}\nSnippet: ${cleanSnippet}`;
-            }).join('\n\n');
-            
-            const prompt = `You are a search reranker. Below is a list of candidate documents with their indices (0 to ${candidateSnippets.length - 1}).
-Identify the top 5 most relevant documents to answer the query: "${queryText}".
-Return their indices as a comma-separated list of numbers in order of relevance (highest relevance first). Do not write any other explanation or words.
-
-Candidates:
-${candidatesListText}
-
-Indices list (e.g. 2,0,4,1,3):`;
-            
-            const rerankResponse = await getChatResponse([{ role: 'user', content: prompt }], { timeout: 35000, caseDir: caseDir });
-            console.log(`[RAG] Reranker response: "${rerankResponse.trim()}"`);
-            
-            const rankedIndices = rerankResponse.split(',')
-                .map(idxStr => parseInt(idxStr.trim(), 10))
-                .filter(idx => !isNaN(idx) && idx >= 0 && idx < candidateSnippets.length);
-                
-            if (rankedIndices.length > 0) {
-                const mapped = [];
-                for (const idx of rankedIndices) {
-                    if (!mapped.includes(candidateSnippets[idx])) {
-                        mapped.push(candidateSnippets[idx]);
-                    }
-                }
-                for (const cand of candidateSnippets) {
-                    if (!mapped.includes(cand)) {
-                        mapped.push(cand);
-                    }
-                }
-                topCandidates = mapped.slice(0, 5);
-                console.log(`[RAG] Successful LLM reranking of candidates: ${topCandidates.map(c => `${c.docName}::${c.title}`).join(', ')}`);
-            }
-        } catch (e) {
-            console.log('[RAG] Skipping LLM reranking:', e.message);
+            const { rerankCandidates } = require('./reranker');
+            // Take top 16 candidates from hybrid RRF and re-rank with joint attention
+            const candidatesToScore = candidateSnippets.slice(0, 16);
+            topCandidates = await rerankCandidates(queryText, candidatesToScore, { topK: 5 });
+            console.log(`[RAG] Native ONNX cross-encoder reranking completed: ${topCandidates.map(c => `${c.docName}::${c.title} (score: ${c.rerankerScore ? c.rerankerScore.toFixed(3) : 'n/a'})`).join(', ')}`);
+        } catch (rerankErr) {
+            console.warn('[RAG] Native ONNX reranker failed, falling back to RRF rank order:', rerankErr.message);
+            topCandidates = candidateSnippets.slice(0, 5);
         }
     } else {
-        console.log('[RAG] direct BM25 candidates returned (LLM Reranker bypassed to increase response speed)');
+        console.log('[RAG] Direct RRF candidates returned (Reranker bypassed via DISABLE_RAG_RERANK)');
     }
     
     return topCandidates.map(c => ({
@@ -522,7 +491,8 @@ Indices list (e.g. 2,0,4,1,3):`;
         page_number: c.hit ? c.hit.page_number : 1,
         content: expandContextUsingTree(caseDir, c.docName, c.title, c.body),
         tags: c.tags,
-        links: c.links
+        links: c.links,
+        score: c.rerankerScore !== undefined ? c.rerankerScore : (c.hit ? c.hit.score : 0)
     }));
 }
 
