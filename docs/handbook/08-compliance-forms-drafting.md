@@ -173,3 +173,30 @@ HAYAGRIVA/
 | `GET` | `/api/formats/registry` | N/A | List available document templates |
 | `POST` | `/api/formats/draft` | `{ case, formatId }` | Trigger LLM document drafting |
 | `POST` | `/api/agents/chat` | `{ case, message, history }` | Call the Agent Coordinator chat stream |
+
+
+---
+
+## 6. Master Precedents & Legal Templates Library (1,997 Templates)
+
+The drafting engine integrates with the unified **Master Legal Documents Factory** containing **1,997 production-grade templates and precedents** persisted in PostgreSQL (`ibclaw_db.public.ibc_templates`) and packaged into encrypted offline vaults (`documents_vault_2026-W37.zip`):
+
+### 6.1 Category Distribution
+- **Pleadings & Petitions (461)**: Civil/criminal pleadings, writ petitions, NCLT applications, notices, and powers of attorney.
+- **Corporate & Commercial (426)**: Shareholder agreements, board resolutions, M&A notes, guarantees, and asset leasing contracts.
+- **Tax, Conveyancing & Private Client (384)**: Real estate deeds, wills, trusts, and Income Tax/GST compliance representations.
+- **IBC & Insolvency Precedents (307)**:
+  - 63 Phase-by-Phase Liquidation Instruments (`inst-1` through `inst-63`).
+  - CIRP Resolution Plan Instruments 44–55 & PRA Undertakings 49A–49S.
+  - Personal Guarantor Part III Compendiums & Sec 94/95 Repayment Plans.
+  - Unprescribed Compendium Cards (C1–C14, L1–L12, G1–G12, V1–V11).
+  - Practice Notes: Digital signing under CIRP, delay jurisprudence, SEBI compliance for listed debtors.
+- **Statutory Specializations (419)**: Arbitration, banking & finance, intellectual property, labor laws, and consumer court.
+
+### 6.2 Database Persistence & Disaster Recovery
+All templates are mirrored in PostgreSQL with SHA-256 integrity hashes. If any template is accidentally deleted or damaged on disk, execute:
+```bash
+python3 scripts/sync_templates_to_db.py --restore
+```
+This restores all 1,997 Markdown files directly into the workspace in seconds.
+
