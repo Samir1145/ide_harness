@@ -222,8 +222,36 @@ async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
             };
         }
 
+        case 'schedulewake':
+        case 'schedule_wake':
+        case 'sleep_until': {
+            const wakeScheduler = require('../../daemon/wake-scheduler');
+            let fireAt = args.fireAt;
+            if (!fireAt && typeof args.days === 'number') {
+                fireAt = new Date(Date.now() + (args.days * 86400000)).toISOString();
+            } else if (!fireAt && typeof args.hours === 'number') {
+                fireAt = new Date(Date.now() + (args.hours * 3600000)).toISOString();
+            } else if (!fireAt && typeof args.minutes === 'number') {
+                fireAt = new Date(Date.now() + (args.minutes * 60000)).toISOString();
+            }
+            const wake = wakeScheduler.addTimerWake(caseDir, {
+                sessionId: sessionContext.sessionId || 'agent_session',
+                fireAt,
+                note: args.note || 'Scheduled agent resumption',
+                actionPayload: args.payload || {}
+            });
+            return {
+                tool: 'scheduleWake',
+                wakeId: wake.id,
+                fireAt: wake.fireAt,
+                note: wake.note,
+                status: 'scheduled',
+                _riskClass: decision.riskClass
+            };
+        }
+
         default:
-            throw new Error(`Unknown tool "${toolName}". Available tools: retrieveContexts, getKVValue, getAllKV, writeKV, queryTimeline, vaultLookup, checkCrossReference, lintDraft, mdAppend, saveArtifact, exportSC, mcaPortalSubmit.`);
+            throw new Error(`Unknown tool "${toolName}". Available tools: retrieveContexts, getKVValue, getAllKV, writeKV, queryTimeline, vaultLookup, checkCrossReference, lintDraft, mdAppend, saveArtifact, exportSC, mcaPortalSubmit, scheduleWake.`);
     }
 }
 

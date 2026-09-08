@@ -44,6 +44,7 @@ const PRIORITY_ORDER = [
     'risk_classification.test.js',
     'context_auto_compaction.test.js',
     'case_inbox_lifecycle.test.js',
+    'self_wake_scheduler.test.js',
     'comprehensive_sanity.test.js'
 ];
 
