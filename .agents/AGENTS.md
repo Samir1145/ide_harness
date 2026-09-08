@@ -29,6 +29,10 @@ Refer to the following plans saved in the workspace:
 * **Plan 5 (Map-Reduce Multi-Query RAG):** Generates parallelized sub-queries to query SQLite FTS5/vector indices concurrently and synthesizes a single unified response. (Roadmap #27)
 * **Plan 6 (LibreOffice PDF OCR Fallback):** Auto-detects `soffice`, converts complex sheets to headless PDFs, renders pages, and transcribes visual cell layouts using Gemini Pro vision prompting. (Roadmap #3)
 * **Plan 7 (Dual-Vector Search Loop):** Enables hybrid cases containing both legal files and financial sheets to run parallel retrievals against the correct model's vector subsets. (Roadmap #31)
+* **Plan 8 (Enterprise Risk-Tiered Tool Classification):** Formalizes tool classification into `READ`, `WRITE_LOCAL`, `EXEC`, and `EXTERNAL` risk tiers to enforce path validation, snapshotting, and human authorization. (Roadmap #32)
+* **Plan 9 (Case Action Inbox / Non-Blocking HITL):** Implements an asynchronous attention queue (`case_inbox.json` + Theia activity bar widget) for agent-suspended approvals and clarifications, replacing disruptive modal popups. (Roadmap #33)
+* **Plan 10 (Mathematical Context Auto-Compaction):** Automatically compacts multi-turn conversational history to fit the strict 2,048-token local LLM budget (25% working memory + top 40 user prompts + 400-char tool truncation + bridging synthesis) while preserving immutable on-disk audit logs. (Roadmap #34)
+* **Plan 11 (Zero-Idle Self-Wake State Machine):** Schedules statutory CIRP milestones and event-driven agent resumptions without continuous CPU polling, keeping background agent footprint at 0% CPU and 0 MB RAM when idle. (Roadmap #35)
 
 
 ---
