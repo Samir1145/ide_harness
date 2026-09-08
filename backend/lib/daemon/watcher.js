@@ -1021,49 +1021,41 @@ async function startLazyWorker() {
         }
 
         try {
-            console.log(`[Lazy Worker] [Step 1] Starting LLM Summary for node "${targetNode.title}"...`);
-            // 1. Generate LLM Summary
-            const summaryPrompt = `You are a legal document indexing assistant. Summarise the following text in exactly one concise sentence (maximum 40 words). Do not write any intro or explanation.
- 
+            console.log(`[Lazy Worker] [Step 1] Starting Rich Legal Summary for node "${targetNode.title}"...`);
+            // 1. Generate Rich 2-3 Sentence Legal Summary (capturing rules, figures/dates, and exceptions/remedies)
+            const summaryPrompt = `You are a legal document indexing assistant. Summarise the following text in 2 to 3 concise sentences (maximum 80 words). Focus on:
+1. Core legal subject and key obligations or rights established.
+2. Specific figures, monetary amounts, percentages, deadlines, or dates.
+3. Key conditions, consequences of default/breach, or statutory provisos.
+Do not write any introduction, metadata, or extra explanation.
+
 Text:
 ${targetNode.content}`;
             const summaryText = await getChatResponse([{ role: 'user', content: summaryPrompt }], { timeout: 240000 });
-            console.log(`[Lazy Worker] [Step 1] Summary complete: "${summaryText.trim().substring(0, 60)}..."`);
+            console.log(`[Lazy Worker] [Step 1] Rich Summary complete: "${summaryText.trim().substring(0, 80)}..."`);
 
-            console.log(`[Lazy Worker] [Step 2] Starting Doc2Query questions generation...`);
-            // 2. Generate Doc2Query Questions
-            const qPrompt = `You are a document indexing assistant. Read the document text below and generate 4 diverse hypothetical questions that this text answers. Format them as a list of bullet points starting with "- ". Do not write any introduction, metadata, or extra explanation.
- 
-Text:
-${targetNode.content}`;
-            const questionsText = await getChatResponse([{ role: 'user', content: qPrompt }], { timeout: 240000 });
-            console.log(`[Lazy Worker] [Step 2] Questions generated.`);
-
-            // 3. Update the Tree JSON node
-            console.log(`[Lazy Worker] [Step 3] Updating pageindex_tree.json summariesGenerated counter...`);
+            // 2. Update the Tree JSON node
+            console.log(`[Lazy Worker] [Step 2] Updating pageindex_tree.json summariesGenerated counter...`);
             targetNode.summary = summaryText.trim();
             targetNode.metadata.llmSummary = true;
             treeData.summariesGenerated++;
             fs.writeFileSync(treePath, JSON.stringify(treeData, null, 4), 'utf8');
 
-            // 4. Update the Markdown card
-            console.log(`[Lazy Worker] [Step 4] Reading and updating companion markdown card...`);
+            // 3. Update the Markdown card (Clean frontmatter & body, strip legacy Q&A blocks)
+            console.log(`[Lazy Worker] [Step 3] Reading and updating companion markdown card...`);
             const safeTitle = getSafeFilename(targetNode.title);
             const mdPath = path.join(conceptsDir, `${safeTitle}.md`);
             if (fs.existsSync(mdPath)) {
                 let cardContent = fs.readFileSync(mdPath, 'utf8');
-                console.log(`[Lazy Worker] [Step 4] Card file exists at ${mdPath}. Parsing frontmatter...`);
+                console.log(`[Lazy Worker] [Step 3] Card file exists at ${mdPath}. Parsing frontmatter...`);
                 const parsed = parseMarkdownWithFrontmatter(cardContent);
                 
-                // Update frontmatter summary
+                // Update frontmatter summary with rich 2-3 sentence summary
                 parsed.frontmatter.summary = targetNode.summary;
                 
-                // Append questions to card body
+                // Clean body: strip any legacy auto-generated hypothetical questions
                 let cleanBody = parsed.body.split(/\n\n### Hypothetical Questions \(Auto-Generated\):/)[0];
                 let body = cleanBody.trim();
-                if (questionsText && questionsText.trim()) {
-                    body += `\n\n### Hypothetical Questions (Auto-Generated):\n${questionsText.trim()}`;
-                }
 
                 const updatedMd = formatMarkdownWithFrontmatter({
                     title: parsed.frontmatter.title || targetNode.title,
@@ -1076,58 +1068,25 @@ ${targetNode.content}`;
                     sourceDocument: parsed.frontmatter.sourceDocument || null
                 });
                 fs.writeFileSync(mdPath, updatedMd, 'utf8');
-                console.log(`[Lazy Worker] [Step 4] Companion markdown card updated.`);
+                console.log(`[Lazy Worker] [Step 3] Companion markdown card updated with clean legal summary.`);
 
-                // 5. Update BM25 Search Index
-                console.log(`[Lazy Worker] [Step 5] Adding to BM25 search index...`);
+                // 4. Update BM25 Search Index with rich summary + body
+                console.log(`[Lazy Worker] [Step 4] Updating BM25 search index...`);
                 const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
                 if (fs.existsSync(bm25IndexFile)) {
                     const bm25Index = bm25.loadIndex(bm25IndexFile);
                     bm25.addDocument(bm25Index, {
                         id: `${basename}::${targetNode.title}`,
-                        text: body
+                        text: `${targetNode.summary}\n\n${body}`
                      });
                     bm25.saveIndex(bm25Index, bm25IndexFile);
                 }
-                console.log(`[Lazy Worker] [Step 5] BM25 search index updated.`);
+                console.log(`[Lazy Worker] [Step 4] BM25 search index updated.`);
             } else {
-                console.warn(`[Lazy Worker] [Step 4 Warning] Companion markdown card NOT found at ${mdPath}`);
+                console.warn(`[Lazy Worker] [Step 3 Warning] Companion markdown card NOT found at ${mdPath}`);
             }
 
-            // 6. Write Q&A Wiki Cards
-            console.log(`[Lazy Worker] [Step 6] Writing Q&A wiki cards...`);
-            const qnaDir = path.join(getWikiDir(caseDir), 'qna');
-            if (!fs.existsSync(qnaDir)) {
-                fs.mkdirSync(qnaDir, { recursive: true });
-            }
-
-            const questions = questionsText.split('\n').map(q => q.replace(/^-\s*/, '').trim()).filter(Boolean);
-            console.log(`[Lazy Worker] [Step 6] Found ${questions.length} questions to write...`);
-            for (const q of questions) {
-                const safeQTitle = getSafeFilename(q);
-                const qPath = path.join(qnaDir, `${safeQTitle}.md`);
-                
-                const pageStart = targetNode.pageStart || 1;
-                const pageEnd = targetNode.pageEnd || pageStart;
-                const citationText = `[[concepts/${basename}/${safeTitle}]] (Page ${pageStart}${pageEnd !== pageStart ? '-' + pageEnd : ''})`;
-
-                const qnaContent = formatMarkdownWithFrontmatter({
-                    title: q,
-                    type: "qna",
-                    sourceDocument: basename,
-                    sourceChunk: targetNode.title,
-                    pageIndex: pageStart,
-                    pageEnd: pageEnd,
-                    tags: ["qna", basename, safeTitle].filter(Boolean),
-                    links: [`concepts/${basename}/${safeTitle}`],
-                    content: `# ${q}\n\n**Source Citation**: ${citationText}\n\n### Answer (Auto-Drafted):\n${targetNode.summary}\n`
-                });
-
-                fs.writeFileSync(qPath, qnaContent, 'utf8');
-            }
-            console.log(`[Lazy Worker] [Step 6] Q&A cards written successfully.`);
-
-            console.log(`[Lazy Worker] Node "${targetNode.title}" processed successfully.`);
+            console.log(`[Lazy Worker] Node "${targetNode.title}" processed successfully (high-density 2-3 sentence legal summary).`);
 
         } catch (err) {
             console.error(`[Lazy Worker] Failed to process node "${targetNode.title}":`, err.message);
