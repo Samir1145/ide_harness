@@ -45,6 +45,8 @@ const PRIORITY_ORDER = [
     'context_auto_compaction.test.js',
     'case_inbox_lifecycle.test.js',
     'self_wake_scheduler.test.js',
+    'tool_pairing_repair.test.js',
+    'run_grants.test.js',
     'comprehensive_sanity.test.js'
 ];
 

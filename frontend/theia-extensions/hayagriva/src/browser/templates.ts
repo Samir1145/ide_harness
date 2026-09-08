@@ -2627,6 +2627,7 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
             actionsHtml = \`
               <div class="card-actions">
                 <button class="btn-allow" onclick="resolveItem('\${item.id}', 'allow')">✓ Allow</button>
+                <button class="btn-allow" style="background: rgba(99,102,241,0.25); border-color: rgba(99,102,241,0.5); color: #a5b4fc;" onclick="resolveItem('\${item.id}', 'this_run')">⚡ Allow for Task</button>
                 <button class="btn-deny" onclick="resolveItem('\${item.id}', 'deny')">✕ Decline</button>
               </div>
             \`;

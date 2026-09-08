@@ -400,6 +400,119 @@ async function compactHistory(messages, options = {}, summarizerFn = null) {
     };
 }
 
+/**
+ * Reorders messages so every tool result immediately follows its call,
+ * and synthesizes placeholder results for interrupted/orphaned calls.
+ * 
+ * Adapted from OpenWorker (commit 1789a0f).
+ * 
+ * Invariants:
+ * 1. Moves a real tool result found later in the thread to sit right after its call.
+ * 2. Synthesizes a placeholder result for a call with no matching tool message,
+ *    BUT ONLY when the thread has moved past the call (i.e. not a trailing call).
+ * 3. Trailing calls without results are left untouched as pending calls for the engine to resume.
+ * 4. Interleaved user messages are pushed after the completed tool-call block.
+ * 5. Idempotent: well-formed threads pass through unchanged.
+ * 
+ * @param {Array<Object>} messages 
+ * @returns {Array<Object>} Repaired message array
+ */
+function repairToolPairing(messages) {
+    if (!Array.isArray(messages) || messages.length === 0) return messages || [];
+
+    // Collect tool_call ids from assistant messages
+    const pendingCalls = new Map(); // callId -> index of assistant msg
+    for (let i = 0; i < messages.length; i++) {
+        const m = messages[i];
+        if (m && m.role === 'assistant' && Array.isArray(m.tool_calls)) {
+            for (const tc of m.tool_calls) {
+                const callId = tc && tc.id;
+                if (callId) pendingCalls.set(callId, i);
+            }
+        }
+    }
+
+    if (pendingCalls.size === 0) {
+        return messages; // no tool calls at all
+    }
+
+    // Find tool results and where they sit relative to their calls
+    const foundResults = new Map(); // callId -> index of tool result message
+    for (let i = 0; i < messages.length; i++) {
+        const m = messages[i];
+        if (m && m.role === 'tool') {
+            const callId = m.tool_call_id;
+            if (callId && pendingCalls.has(callId)) {
+                if (!foundResults.has(callId)) {
+                    foundResults.set(callId, i);
+                }
+            }
+        }
+    }
+
+    // Determine which calls are trailing (assistant block is the last message)
+    const lastMsgIdx = messages.length - 1;
+    const trailingCalls = new Set();
+    for (const [callId, callIdx] of pendingCalls.entries()) {
+        if (callIdx === lastMsgIdx) {
+            trailingCalls.add(callId);
+        }
+    }
+
+    // Check if repair is actually needed
+    let needsRepair = false;
+    for (const [callId, callIdx] of pendingCalls.entries()) {
+        if (trailingCalls.has(callId) && !foundResults.has(callId)) {
+            continue; // pending call at the end of thread - engine will resume
+        }
+        if (foundResults.has(callId)) {
+            const resultIdx = foundResults.get(callId);
+            if (resultIdx !== callIdx + 1) {
+                needsRepair = true;
+            }
+        } else {
+            needsRepair = true; // missing result on a completed turn
+        }
+    }
+
+    if (!needsRepair) {
+        return messages; // already well-formed
+    }
+
+    const consumedResultIndices = new Set();
+    const repaired = [];
+
+    for (let i = 0; i < messages.length; i++) {
+        const m = messages[i];
+        if (m && m.role === 'assistant' && Array.isArray(m.tool_calls)) {
+            repaired.push(m);
+            for (const tc of m.tool_calls) {
+                const callId = tc && tc.id;
+                if (!callId) continue;
+                if (foundResults.has(callId)) {
+                    const resultIdx = foundResults.get(callId);
+                    if (!consumedResultIndices.has(resultIdx)) {
+                        repaired.push(messages[resultIdx]);
+                        consumedResultIndices.add(resultIdx);
+                    }
+                } else if (!trailingCalls.has(callId)) {
+                    repaired.push({
+                        role: 'tool',
+                        tool_call_id: callId,
+                        content: JSON.stringify({ error: 'tool result was lost during an interrupted turn' })
+                    });
+                }
+            }
+        } else if (consumedResultIndices.has(i)) {
+            continue; // already moved up
+        } else {
+            repaired.push(m);
+        }
+    }
+
+    return repaired;
+}
+
 module.exports = {
     DEFAULT_CONTEXT_WINDOW,
     DEFAULT_THRESHOLD_PCT,
@@ -417,5 +530,7 @@ module.exports = {
     clipStaleToolOutputs,
     buildCompactedBlock,
     deterministicFallbackSummary,
-    compactHistory
+    compactHistory,
+    repairToolPairing
 };
+

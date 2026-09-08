@@ -27,6 +27,43 @@ const ExecutionMode = Object.freeze({
     AUTO: 'auto'        // Autonomous agent execution; writes & exec allowed, external gated
 });
 
+const ApprovalGrant = Object.freeze({
+    ONCE: 'once',
+    THIS_RUN: 'this_run',
+    ALWAYS: 'always'
+});
+
+// In-memory ephemeral run grants: runId -> Set<normalizedToolName>
+// Auto-cleared at the run boundary (finish, interrupt, or error)
+const _runGrants = new Map();
+
+function grantRunAllowance(runId, toolName) {
+    if (!runId || !toolName) return;
+    const norm = normalizeToolName(toolName);
+    if (!_runGrants.has(runId)) {
+        _runGrants.set(runId, new Set());
+    }
+    _runGrants.get(runId).add(norm);
+    _runGrants.get(runId).add(norm.replace(/_/g, ''));
+}
+
+function isRunAllowed(runId, toolName) {
+    if (!runId || !toolName) return false;
+    const grants = _runGrants.get(runId);
+    if (!grants) return false;
+    const norm = normalizeToolName(toolName);
+    const compact = norm.replace(/_/g, '');
+    return grants.has(norm) || grants.has(compact) || grants.has('*');
+}
+
+function clearRunGrants(runId) {
+    if (!runId) {
+        _runGrants.clear();
+    } else {
+        _runGrants.delete(runId);
+    }
+}
+
 // Built-in tool classifications by name
 const TOOL_RISK_MAP = {
     // READ tools
@@ -224,6 +261,50 @@ function evaluateToolCall(caseDir, toolName, args = {}, sessionContext = {}) {
         };
     }
 
+    // Ephemeral run grants (THIS_RUN) permit consequential/external actions for the remainder of the current task run
+    const norm = normalizeToolName(toolName);
+    const runId = sessionContext.runId;
+    const hasRunGrant = (sessionContext.runGrants && (
+        (sessionContext.runGrants instanceof Set && (sessionContext.runGrants.has(norm) || sessionContext.runGrants.has('*'))) ||
+        (Array.isArray(sessionContext.runGrants) && (sessionContext.runGrants.includes(norm) || sessionContext.runGrants.includes('*')))
+    )) || (runId && isRunAllowed(runId, norm));
+
+    if (hasRunGrant) {
+        // Enforce path containment even when run grant exists
+        if (risk === RiskClass.WRITE_LOCAL) {
+            const pathFields = ['path', 'filePath', 'targetFile', 'targetPath', 'filename', 'file', 'dest'];
+            const resolvedPaths = {};
+            for (const field of pathFields) {
+                if (args && args[field] && typeof args[field] === 'string') {
+                    try {
+                        resolvedPaths[field] = assertPathWithinWorkspace(caseDir, args[field]);
+                    } catch (err) {
+                        return {
+                            allowed: false,
+                            riskClass: risk,
+                            needsApproval: false,
+                            reason: err.message
+                        };
+                    }
+                }
+            }
+            return {
+                allowed: true,
+                riskClass: risk,
+                needsApproval: false,
+                reason: `Allowed by ephemeral run grant (THIS_RUN) for "${norm}"`,
+                resolvedPaths
+            };
+        }
+
+        return {
+            allowed: true,
+            riskClass: risk,
+            needsApproval: false,
+            reason: `Allowed by ephemeral run grant (THIS_RUN) for "${norm}"`
+        };
+    }
+
     // 3. EXTERNAL actions require explicit approval or token confirmation
     if (risk === RiskClass.EXTERNAL) {
         if (sessionContext.allowExternal === true || sessionContext.acknowledgedRisk === true) {
@@ -245,7 +326,6 @@ function evaluateToolCall(caseDir, toolName, args = {}, sessionContext = {}) {
     if (risk === RiskClass.EXEC) {
         // Allowed in AUTO mode or if specifically allowlisted
         const allowedExecs = sessionContext.allowedExecs || ['exportsc', 'export_sc', 'export_supreme_court', 'runpandoc'];
-        const norm = normalizeToolName(toolName);
         if (mode === ExecutionMode.AUTO || allowedExecs.includes(norm)) {
             return {
                 allowed: true,
@@ -301,10 +381,14 @@ function evaluateToolCall(caseDir, toolName, args = {}, sessionContext = {}) {
 module.exports = {
     RiskClass,
     ExecutionMode,
+    ApprovalGrant,
     TOOL_RISK_MAP,
     classify,
     isConsequential,
     assertPathWithinWorkspace,
     evaluateToolCall,
-    normalizeToolName
+    normalizeToolName,
+    grantRunAllowance,
+    isRunAllowed,
+    clearRunGrants
 };

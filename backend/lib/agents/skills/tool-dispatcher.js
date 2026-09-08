@@ -32,7 +32,8 @@ async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
                     title: `Approve execution of tool "${toolName}"`,
                     body: decision.reason || `Tool ${toolName} requires authorization.`,
                     riskClass: decision.riskClass,
-                    data: { toolName, args }
+                    data: { toolName, args },
+                    metadata: { toolName, args, runId: sessionContext.runId || null }
                 });
                 return {
                     tool: toolName,

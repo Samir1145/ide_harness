@@ -103,7 +103,8 @@ function createItem(caseDir, payload = {}) {
         createdAt: now,
         resolvedAt: null,
         options: Array.isArray(payload.options) ? payload.options : [],
-        data: payload.data && typeof payload.data === 'object' ? payload.data : {}
+        data: payload.data && typeof payload.data === 'object' ? payload.data : {},
+        metadata: payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : (payload.data || {})
     };
 
     store.items.unshift(item); // Prepend so newest is first
@@ -175,9 +176,20 @@ function resolveItem(caseDir, itemId, resolution, resolvedBy = 'lawyer') {
     }
 
     item.state = STATE_RESOLVED;
-    item.resolution = String(resolution);
+    item.resolution = typeof resolution === 'object' ? JSON.stringify(resolution) : String(resolution);
     item.resolvedBy = String(resolvedBy);
     item.resolvedAt = new Date().toISOString();
+
+    // If resolved with ephemeral THIS_RUN grant, register in risk-engine
+    const isThisRun = resolution === 'this_run' || resolution === 'allow_this_run' ||
+        (typeof resolution === 'object' && (resolution.action === 'this_run' || resolution.grant === 'this_run'));
+    const meta = item.metadata || item.data || {};
+    const toolName = meta.toolName || item.toolName;
+    if (isThisRun && toolName) {
+        const { grantRunAllowance } = require('./risk-engine');
+        const runId = meta.runId || item.runId || item.sessionId || 'current_run';
+        grantRunAllowance(runId, toolName);
+    }
 
     saveInbox(caseDir, store);
 

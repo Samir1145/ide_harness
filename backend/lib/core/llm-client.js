@@ -3,6 +3,7 @@ const https = require('https');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+const { repairToolPairing } = require('./history-compactor');
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 const DEFAULT_OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:latest';
@@ -526,10 +527,13 @@ async function getEmbedding(text, options = {}) {
 
 async function* streamChat(messages, opts = {}) {
     const config = loadLlmConfig(opts);
-    const { compactHistory, shouldCompact, estimateTokens } = require('./history-compactor');
+    const { compactHistory, shouldCompact, estimateTokens, repairToolPairing } = require('./history-compactor');
+
+    // Self-healing: ensure all tool calls and results are paired and sequenced correctly
+    // Prevents unrecoverable HTTP 400 Bad Request provider errors on interrupted turns
+    let outboundMessages = repairToolPairing(messages);
 
     // Mathematical context auto-compaction before outbound model dispatch
-    let outboundMessages = messages;
     if (shouldCompact(outboundMessages, 2048)) {
         const est = estimateTokens(outboundMessages);
         console.log(`[LLM Client] Context window threshold reached (~${est} tokens). Auto-compacting outbound history...`);
@@ -589,5 +593,5 @@ async function getChatResponse(messages, opts = {}) {
     return Promise.race([fetchPromise, timeoutPromise]);
 }
 
-module.exports = { streamChat, getChatResponse, getEmbedding, detectDocumentVectorType, warmupEmbeddingPipeline, checkLlamafileHealth, streamLlamafile, checkOllamaHealth, streamOllama, streamGemini, streamOpenAI, streamOpenRouter, loadLlmConfig };
+module.exports = { streamChat, getChatResponse, getEmbedding, detectDocumentVectorType, warmupEmbeddingPipeline, checkLlamafileHealth, streamLlamafile, checkOllamaHealth, streamOllama, streamGemini, streamOpenAI, streamOpenRouter, loadLlmConfig, repairToolPairing };
 
