@@ -42,6 +42,7 @@ const PRIORITY_ORDER = [
     'multimodal_merge.test.js',
     'statutory_linter.test.js',
     'risk_classification.test.js',
+    'context_auto_compaction.test.js',
     'comprehensive_sanity.test.js'
 ];
 

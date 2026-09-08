@@ -526,9 +526,22 @@ async function getEmbedding(text, options = {}) {
 
 async function* streamChat(messages, opts = {}) {
     const config = loadLlmConfig(opts);
+    const { compactHistory, shouldCompact, estimateTokens } = require('./history-compactor');
+
+    // Mathematical context auto-compaction before outbound model dispatch
+    let outboundMessages = messages;
+    if (shouldCompact(outboundMessages, 2048)) {
+        const est = estimateTokens(outboundMessages);
+        console.log(`[LLM Client] Context window threshold reached (~${est} tokens). Auto-compacting outbound history...`);
+        const result = await compactHistory(outboundMessages, { contextWindow: 2048 });
+        if (result.compacted) {
+            console.log(`[LLM Client] Context auto-compacted: ${result.originalTokens} tokens -> ${result.compactedTokens} tokens (Boundary: Turn ${result.boundaryIndex})`);
+            outboundMessages = result.messages;
+        }
+    }
+
     // Strict 1,500 token input budget pre-flight check
-    const totalChars = messages.reduce((acc, m) => acc + (m.content ? m.content.length : 0), 0);
-    const approxTokens = Math.ceil(totalChars / 4);
+    const approxTokens = estimateTokens(outboundMessages);
     if (approxTokens > 1500) {
         console.warn(`[LLM Client] Warning: Prompt size (~${approxTokens} tokens) exceeds LegalParam context budget (1,500 tokens max).`);
         const err = new Error(`⚠️ Context Window Exceeded: LegalParam context budget is 2,048 tokens (~1,500 tokens max). Please refine selection or shorten prompt.`);
@@ -549,7 +562,7 @@ async function* streamChat(messages, opts = {}) {
     if (isLlamafileRunning) {
         console.log(`[LLM Client] Routing query to local Llamafile server (${targetEndpoint})`);
         try {
-            yield* streamLlamafile(messages, targetEndpoint);
+            yield* streamLlamafile(outboundMessages, targetEndpoint);
             return;
         } catch (e) {
             console.error('[LLM Client] Llamafile stream failed:', e.message);
@@ -577,3 +590,4 @@ async function getChatResponse(messages, opts = {}) {
 }
 
 module.exports = { streamChat, getChatResponse, getEmbedding, detectDocumentVectorType, warmupEmbeddingPipeline, checkLlamafileHealth, streamLlamafile, checkOllamaHealth, streamOllama, streamGemini, streamOpenAI, streamOpenRouter, loadLlmConfig };
+
