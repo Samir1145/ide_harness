@@ -104,8 +104,21 @@ async function executeTool(caseDir, toolName, args = {}) {
             };
         }
 
+        case 'lintdraft':
+        case 'lint_draft':
+        case 'statutorylinter':
+        case 'statutory_linter': {
+            const text = args.text || args.content || args.draft || '';
+            const { lintDraft } = require('../../core/statutory-linter');
+            const lintReport = lintDraft(text, args.options || {});
+            return {
+                tool: 'lintDraft',
+                report: lintReport
+            };
+        }
+
         default:
-            throw new Error(`Unknown tool "${toolName}". Available tools: retrieveContexts, getKVValue, getAllKV, writeKV, queryTimeline, vaultLookup, checkCrossReference.`);
+            throw new Error(`Unknown tool "${toolName}". Available tools: retrieveContexts, getKVValue, getAllKV, writeKV, queryTimeline, vaultLookup, checkCrossReference, lintDraft.`);
     }
 }
 

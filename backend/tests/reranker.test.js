@@ -62,7 +62,11 @@ async function runTests() {
     console.log('=== All Reranker Tests Passed! ===');
 }
 
-runTests().catch(err => {
-    console.error('Test failed:', err);
-    process.exit(1);
-});
+if (require.main === module) {
+    runTests().catch(err => {
+        console.error('Test failed:', err);
+        process.exit(1);
+    });
+}
+
+module.exports = { run: runTests, runTests };

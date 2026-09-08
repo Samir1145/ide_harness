@@ -29,7 +29,11 @@ async function testLazySummaryEnrichment() {
     console.log('\n=== All Lazy Summary Tests Passed Successfully! ===');
 }
 
-testLazySummaryEnrichment().catch(err => {
-    console.error('Test failed:', err);
-    process.exit(1);
-});
+if (require.main === module) {
+    testLazySummaryEnrichment().catch(err => {
+        console.error('Test failed:', err);
+        process.exit(1);
+    });
+}
+
+module.exports = { run: testLazySummaryEnrichment, runTests: testLazySummaryEnrichment };

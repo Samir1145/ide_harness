@@ -63,7 +63,11 @@ async function runTests() {
     console.log('🎉 ALL 5 TESTS PASSED SUCCESSFULLY!');
 }
 
-runTests().catch(err => {
-    console.error('❌ Test execution failed:', err);
-    process.exit(1);
-});
+if (require.main === module) {
+    runTests().catch(err => {
+        console.error('❌ Test execution failed:', err);
+        process.exit(1);
+    });
+}
+
+module.exports = { run: runTests, runTests };

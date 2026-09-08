@@ -28,6 +28,7 @@ export class HayagrivaMonacoProviders {
     this.registerLinkProvider();
     this.registerLawCompletion(getCaseNameFn);
     this.registerLawHoverProvider();
+    this.registerDraftLinterProvider();
   }
 
   // ─── 1. Citation Link Provider ─────────────────────────────────────────────
@@ -505,6 +506,123 @@ export class HayagrivaMonacoProviders {
       }
 
     this.logger.info('[HAYAGRIVA] Law hover preview provider registered for markdown and plaintext.');
+  }
+
+  // ─── 4. In-Process Statutory & Antecedent Basis Drafting Linter ─────────────
+  registerDraftLinterProvider(): void {
+    if (!monaco || !monaco.editor) return;
+
+    const VAGUE_TERMS_MAP: Record<string, string> = {
+      'approximately': 'Indefinite variance. Specify an explicit numerical tolerance.',
+      'substantially': 'Subjective qualifier. Specify concrete physical parameters or boundaries.',
+      'about': 'Ambiguous numerical bound. Define the exact boundary value or allowable variance.',
+      'similar to': 'Lacks technical/legal specificity. Detail the precise shared characteristics.',
+      'user-friendly': 'Subjective marketing term. Define the specific interface metric or usability standard.',
+      'reasonable period': 'Indefinite timeline. Specify an exact duration in calendar or business days.',
+      'reasonable time': 'Ambiguous deadline. Replace with a definitive timeframe (e.g. 30 days).',
+      'as mutually agreed': 'Agreement to agree. Define an objective default fallback mechanism.',
+      'best efforts': 'Ambiguous performance standard. Define concrete measurable deliverables.',
+      'from time to time': 'Indefinite recurrence. Specify the periodic audit frequency or schedule.'
+    };
+
+    const EXEMPTIONS = new Set([
+      'claim', 'claims', 'invention', 'code', 'act', 'rules', 'regulation', 'regulations',
+      'tribunal', 'court', 'bench', 'board', 'applicant', 'respondent', 'corporate', 'debtor',
+      'petitioner', 'plaintiff', 'defendant', 'resolution', 'professional', 'liquidator',
+      'committee', 'creditors', 'insolvency', 'bankruptcy', 'adjudicating', 'authority',
+      'present', 'instant', 'foregoing', 'following', 'undersigned', 'parties', 'agreement',
+      'contract', 'schedule', 'annexure', 'exhibit', 'section', 'article', 'sub-section',
+      'clause', 'order', 'judgment', 'record', 'matter', 'case', 'dispute', 'evidence'
+    ]);
+
+    const debounceTimers = new Map<string, any>();
+
+    const lintModel = (model: any) => {
+      if (!model || model.isDisposed()) return;
+      const text: string = model.getValue();
+      if (!text || text.length > 500000) return; // Skip very large files
+
+      const markers: any[] = [];
+      const lines = text.split(/\r?\n/);
+      const introducedTerms = new Set<string>();
+
+      for (const ex of EXEMPTIONS) {
+        introducedTerms.add(ex.toLowerCase());
+      }
+
+      lines.forEach((line, lineIdx) => {
+        const cleanLine = line.replace(/^[#\-*>\d.]+\s*/, ' ');
+
+        // 1. Discover newly introduced nouns
+        const introRegex = /\b(?:a|an)\s+([a-zA-Z]{3,})\b/gi;
+        let introMatch: RegExpExecArray | null;
+        while ((introMatch = introRegex.exec(cleanLine)) !== null) {
+          introducedTerms.add(introMatch[1].toLowerCase());
+        }
+
+        // 2. Scan for missing antecedent references
+        const refRegex = /\b(?:the|said)\s+([a-zA-Z]{3,})\b/gi;
+        let refMatch: RegExpExecArray | null;
+        while ((refMatch = refRegex.exec(cleanLine)) !== null) {
+          const word = refMatch[1].toLowerCase();
+          if (!introducedTerms.has(word)) {
+            const startCol = refMatch.index + 1;
+            const endCol = startCol + refMatch[0].length;
+            markers.push({
+              severity: monaco.MarkerSeverity.Warning,
+              message: `Lacks antecedent basis: '${refMatch[0]}' used without prior introduction ('a ${refMatch[1]}' or 'an ${refMatch[1]}').`,
+              startLineNumber: lineIdx + 1,
+              startColumn: startCol,
+              endLineNumber: lineIdx + 1,
+              endColumn: endCol
+            });
+          }
+        }
+
+        // 3. Scan for vague / indefinite terms
+        for (const [vagueWord, suggestion] of Object.entries(VAGUE_TERMS_MAP)) {
+          const regex = new RegExp(`\\b${vagueWord.replace(/ /g, '\\s+')}\\b`, 'gi');
+          let match: RegExpExecArray | null;
+          while ((match = regex.exec(line)) !== null) {
+            const startCol = match.index + 1;
+            const endCol = startCol + match[0].length;
+            markers.push({
+              severity: monaco.MarkerSeverity.Info,
+              message: `Indefinite term '${match[0]}': ${suggestion}`,
+              startLineNumber: lineIdx + 1,
+              startColumn: startCol,
+              endLineNumber: lineIdx + 1,
+              endColumn: endCol
+            });
+          }
+        }
+      });
+
+      monaco.editor.setModelMarkers(model, 'hayagriva-linter', markers);
+    };
+
+    const scheduleLint = (model: any) => {
+      const uriStr = model.uri ? model.uri.toString() : '';
+      if (debounceTimers.has(uriStr)) {
+        clearTimeout(debounceTimers.get(uriStr));
+      }
+      debounceTimers.set(uriStr, setTimeout(() => lintModel(model), 400));
+    };
+
+    if (monaco.editor.getModels) {
+      for (const m of monaco.editor.getModels()) {
+        scheduleLint(m);
+      }
+    }
+
+    if (monaco.editor.onDidCreateModel) {
+      monaco.editor.onDidCreateModel((model: any) => {
+        scheduleLint(model);
+        model.onDidChangeContent(() => scheduleLint(model));
+      });
+    }
+
+    this.logger.info('[HAYAGRIVA] In-process statutory & antecedent basis drafting linter registered.');
   }
 }
 
