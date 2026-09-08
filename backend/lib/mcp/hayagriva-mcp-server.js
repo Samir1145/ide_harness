@@ -11,6 +11,7 @@ function getMcpToolDefinitions() {
         {
             name: 'hayagriva_search_rag',
             description: 'Performs semantic & keyword hybrid RAG retrieval over case files using InLegal-SBERT or Finance-Embeddings.',
+            riskClass: 'read',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -24,6 +25,7 @@ function getMcpToolDefinitions() {
         {
             name: 'hayagriva_get_kv_fact',
             description: 'Fetches verified case facts (e.g. corporate debtor name, default date, admitted claim amounts) from the case KV dictionary.',
+            riskClass: 'read',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -36,6 +38,7 @@ function getMcpToolDefinitions() {
         {
             name: 'hayagriva_query_timeline',
             description: 'Queries the reconstructed case chronology events and CIRP statutory timeline milestones (T0 -> T330).',
+            riskClass: 'read',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -47,6 +50,7 @@ function getMcpToolDefinitions() {
         {
             name: 'hayagriva_vault_lookup',
             description: 'Queries the encrypted Indian Law & Precedent Vault for statutory sections, tribunal rules, and Supreme Court ratios.',
+            riskClass: 'read',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -59,6 +63,7 @@ function getMcpToolDefinitions() {
         {
             name: 'hayagriva_cross_reference',
             description: 'Cross-checks factual statements against case evidence to identify corroborating records or contradicting documents.',
+            riskClass: 'read',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -66,6 +71,32 @@ function getMcpToolDefinitions() {
                     statement: { type: 'string', description: 'The factual claim or assertion to cross-verify against case documents.' }
                 },
                 required: ['caseDir', 'statement']
+            }
+        },
+        {
+            name: 'hayagriva_lint_draft',
+            description: 'Analyzes legal drafts for antecedent basis flaws, vague statutory terms, and atomic limitation clarity.',
+            riskClass: 'read',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    text: { type: 'string', description: 'The drafting content to lint.' }
+                },
+                required: ['text']
+            }
+        },
+        {
+            name: 'hayagriva_write_kv',
+            description: 'Persists a verified case fact into the case KV dictionary and database.',
+            riskClass: 'write_local',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    caseDir: { type: 'string', description: 'Absolute path to the case directory.' },
+                    key: { type: 'string', description: 'Fact key identifier.' },
+                    value: { type: 'string', description: 'Fact value to persist.' }
+                },
+                required: ['caseDir', 'key', 'value']
             }
         }
     ];
@@ -144,6 +175,12 @@ async function handleMcpRequest(req) {
                         break;
                     case 'hayagriva_cross_reference':
                         toolResult = await executeTool(caseDir, 'checkCrossReference', args);
+                        break;
+                    case 'hayagriva_lint_draft':
+                        toolResult = await executeTool(caseDir, 'lintDraft', args);
+                        break;
+                    case 'hayagriva_write_kv':
+                        toolResult = await executeTool(caseDir, 'writeKV', args);
                         break;
                     default:
                         return {

@@ -41,6 +41,7 @@ const PRIORITY_ORDER = [
     'inlegal_sbert_llamafile.test.js',
     'multimodal_merge.test.js',
     'statutory_linter.test.js',
+    'risk_classification.test.js',
     'comprehensive_sanity.test.js'
 ];
 

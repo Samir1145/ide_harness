@@ -3412,13 +3412,26 @@ module.exports = {
                     const data = JSON.parse(body);
                     const caseDir = resolveCaseDir(docsRoot, data.case || '');
                     const { executeTool } = require('./agents/skills/tool-dispatcher');
-                    const result = await executeTool(caseDir, data.tool, data.args || {});
+                    const sessionContext = {
+                        mode: data.mode || 'auto',
+                        allowExternal: Boolean(data.allowExternal),
+                        acknowledgedRisk: Boolean(data.acknowledgedRisk),
+                        metadata: data.metadata || null
+                    };
+                    const result = await executeTool(caseDir, data.tool, data.args || {}, sessionContext);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, result }));
                 } catch (err) {
                     console.error('[API Server] Tool execute failed:', err.message);
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: false, error: err.message }));
+                    const statusCode = err.code === 'ERR_PERMISSION_REQUIRED' ? 403 : (err.code === 'ERR_PERMISSION_DENIED' || err.code === 'ERR_PATH_TRAVERSAL' ? 400 : 500);
+                    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: false,
+                        error: err.message,
+                        code: err.code || 'ERR_TOOL_EXECUTION',
+                        needsApproval: Boolean(err.needsApproval),
+                        riskClass: err.riskClass || null
+                    }));
                 }
             });
         },

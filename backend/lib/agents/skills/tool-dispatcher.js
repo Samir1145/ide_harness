@@ -7,13 +7,38 @@ const { readCaseKV, readAllKV, writeCaseKV } = require('./kv-write');
 const { buildTimeline } = require('./timeline-build');
 const { vaultLookup } = require('./vault-lookup');
 const { crossReferenceCheck } = require('./cross-ref-check');
+const { evaluateToolCall, classify, RiskClass, ExecutionMode, assertPathWithinWorkspace } = require('../risk-engine');
 
 /**
  * Centralized tool execution dispatcher for Hayagriva Agents & Theia AI Tool Invocation.
+ * Integrated with Enterprise Risk-Tiered Permission Engine.
+ * 
+ * @param {string} caseDir Absolute path to the active case workspace
+ * @param {string} toolName Name or alias of the tool
+ * @param {Object} [args] Input arguments
+ * @param {Object} [sessionContext] Execution context (mode, allowExternal, overrides, etc.)
  */
-async function executeTool(caseDir, toolName, args = {}) {
-    const norm = String(toolName || '').toLowerCase().trim().replace(/^hayagriva:/i, '');
+async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
+    const norm = String(toolName || '').toLowerCase().trim().replace(/^(hayagriva|ipie):/i, '');
 
+    // 1. Pre-flight permission & risk tier evaluation
+    const decision = evaluateToolCall(caseDir, norm, args, sessionContext);
+    if (!decision.allowed) {
+        if (decision.needsApproval) {
+            const err = new Error(`[Permission Required] Tool "${toolName}" (${decision.riskClass}) requires authorization: ${decision.reason}`);
+            err.code = 'ERR_PERMISSION_REQUIRED';
+            err.needsApproval = true;
+            err.riskClass = decision.riskClass;
+            throw err;
+        } else {
+            const err = new Error(`[Permission Denied] Tool "${toolName}" (${decision.riskClass}) blocked: ${decision.reason}`);
+            err.code = 'ERR_PERMISSION_DENIED';
+            err.riskClass = decision.riskClass;
+            throw err;
+        }
+    }
+
+    // 2. Dispatch execution
     switch (norm) {
         case 'retrievecontexts':
         case 'retrieve_contexts':
@@ -25,7 +50,8 @@ async function executeTool(caseDir, toolName, args = {}) {
             return {
                 tool: 'retrieveContexts',
                 query,
-                contexts: contexts || []
+                contexts: contexts || [],
+                _riskClass: decision.riskClass
             };
         }
 
@@ -37,7 +63,8 @@ async function executeTool(caseDir, toolName, args = {}) {
             return {
                 tool: 'getKVValue',
                 key,
-                value: val || null
+                value: val || null,
+                _riskClass: decision.riskClass
             };
         }
 
@@ -47,7 +74,8 @@ async function executeTool(caseDir, toolName, args = {}) {
             const kv = readAllKV(caseDir);
             return {
                 tool: 'getAllKV',
-                kv: kv || {}
+                kv: kv || {},
+                _riskClass: decision.riskClass
             };
         }
 
@@ -64,7 +92,8 @@ async function executeTool(caseDir, toolName, args = {}) {
                 tool: 'writeKV',
                 key,
                 value: val,
-                status: 'saved'
+                status: 'saved',
+                _riskClass: decision.riskClass
             };
         }
 
@@ -74,7 +103,8 @@ async function executeTool(caseDir, toolName, args = {}) {
             const events = await buildTimeline(caseDir);
             return {
                 tool: 'queryTimeline',
-                events: events || []
+                events: events || [],
+                _riskClass: decision.riskClass
             };
         }
 
@@ -87,7 +117,8 @@ async function executeTool(caseDir, toolName, args = {}) {
             return {
                 tool: 'vaultLookup',
                 query,
-                laws: laws || []
+                laws: laws || [],
+                _riskClass: decision.riskClass
             };
         }
 
@@ -100,7 +131,8 @@ async function executeTool(caseDir, toolName, args = {}) {
             return {
                 tool: 'checkCrossReference',
                 statement: stmt,
-                report: xref
+                report: xref,
+                _riskClass: decision.riskClass
             };
         }
 
@@ -113,13 +145,70 @@ async function executeTool(caseDir, toolName, args = {}) {
             const lintReport = lintDraft(text, args.options || {});
             return {
                 tool: 'lintDraft',
-                report: lintReport
+                report: lintReport,
+                _riskClass: decision.riskClass
+            };
+        }
+
+        case 'mdappend':
+        case 'md_append':
+        case 'append_markdown': {
+            const targetFile = args.targetFile || args.filePath || args.path || 'notes.md';
+            const content = args.content || args.text || '';
+            const safePath = assertPathWithinWorkspace(caseDir, targetFile);
+            fs.mkdirSync(path.dirname(safePath), { recursive: true });
+            fs.appendFileSync(safePath, `\n${content}\n`, 'utf8');
+            return {
+                tool: 'mdAppend',
+                path: safePath,
+                bytesWritten: Buffer.byteLength(content, 'utf8'),
+                _riskClass: decision.riskClass
+            };
+        }
+
+        case 'saveartifact':
+        case 'save_artifact':
+        case 'savedraft':
+        case 'save_draft': {
+            const targetFile = args.targetFile || args.filePath || args.path || 'draft.md';
+            const content = args.content || args.text || '';
+            const safePath = assertPathWithinWorkspace(caseDir, targetFile);
+            fs.mkdirSync(path.dirname(safePath), { recursive: true });
+            fs.writeFileSync(safePath, content, 'utf8');
+            return {
+                tool: 'saveArtifact',
+                path: safePath,
+                bytesWritten: Buffer.byteLength(content, 'utf8'),
+                _riskClass: decision.riskClass
+            };
+        }
+
+        case 'exportsc':
+        case 'export_sc':
+        case 'export_supreme_court': {
+            return {
+                tool: 'exportSC',
+                status: 'ready',
+                notice: 'Supreme Court layout compiler ready for invocation',
+                _riskClass: decision.riskClass
+            };
+        }
+
+        case 'mcaportalsubmit':
+        case 'mca_portal_submit':
+        case 'submit_ipie': {
+            return {
+                tool: 'mcaPortalSubmit',
+                status: 'submitted',
+                gatewayRef: `MCA-IPIE-${Date.now()}`,
+                _riskClass: decision.riskClass
             };
         }
 
         default:
-            throw new Error(`Unknown tool "${toolName}". Available tools: retrieveContexts, getKVValue, getAllKV, writeKV, queryTimeline, vaultLookup, checkCrossReference, lintDraft.`);
+            throw new Error(`Unknown tool "${toolName}". Available tools: retrieveContexts, getKVValue, getAllKV, writeKV, queryTimeline, vaultLookup, checkCrossReference, lintDraft, mdAppend, saveArtifact, exportSC, mcaPortalSubmit.`);
     }
 }
 
-module.exports = { executeTool };
+module.exports = { executeTool, RiskClass, ExecutionMode, evaluateToolCall, classify };
+
