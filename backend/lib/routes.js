@@ -3468,6 +3468,62 @@ module.exports = {
             }
         },
 
+        '/api/hayagriva/inbox': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || '';
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            const inboxManager = require('./agents/inbox-manager');
+
+            if (req.method === 'GET') {
+                try {
+                    const filters = {
+                        state: parsedUrl.query.state || undefined,
+                        kind: parsedUrl.query.kind || undefined
+                    };
+                    const result = inboxManager.listItems(caseDir, filters);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, ...result }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            } else if (req.method === 'POST') {
+                let body = '';
+                req.on('data', chunk => body += chunk);
+                req.on('end', () => {
+                    try {
+                        const data = JSON.parse(body);
+                        const targetCaseDir = resolveCaseDir(docsRoot, data.case || caseParam);
+                        const item = inboxManager.createItem(targetCaseDir, data);
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, item }));
+                    } catch (e) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: e.message }));
+                    }
+                });
+            }
+        },
+
+        '/api/hayagriva/inbox/resolve': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body);
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const inboxManager = require('./agents/inbox-manager');
+                    const result = inboxManager.resolveItem(caseDir, data.itemId, data.resolution, data.resolvedBy);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, ...result }));
+                } catch (e) {
+                    const status = e.code === 'ERR_INBOX_ITEM_NOT_FOUND' ? 404 : 500;
+                    res.writeHead(status, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
         '/api/lsp/completions': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);

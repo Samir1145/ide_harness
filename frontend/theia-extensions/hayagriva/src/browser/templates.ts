@@ -2315,3 +2315,402 @@ export function citationPreviewPanelHtml(docName: string, pageNum: number, conte
 </body>
 </html>`;
 }
+
+export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+    font-size: var(--theia-ui-font-size1, 13px);
+    margin: 0;
+    padding: 12px;
+    background: var(--theia-layout-color1, #1e1e1e);
+    color: var(--theia-ui-font-color1, #cccccc);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--theia-border-color, #333);
+  }
+  .title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .title {
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.4);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.alert {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+  .btn-refresh {
+    background: transparent;
+    border: 1px solid var(--theia-border-color, #444);
+    color: var(--theia-ui-font-color1, #ccc);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 6px 4px;
+    font-size: 11px;
+    color: var(--theia-ui-font-color2, #888);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+  }
+  .tab-btn.active {
+    color: var(--theia-brand-color1, #0ea5e9);
+    border-bottom-color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .items-container {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .item-card {
+    background: var(--theia-layout-color2, #252526);
+    border: 1px solid var(--theia-border-color, #333);
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.15s ease;
+  }
+  .item-card:hover {
+    border-color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .item-card.resolved {
+    opacity: 0.6;
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-kind {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .kind-approval {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+  }
+  .kind-question {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.4);
+  }
+  .kind-plan {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+  }
+  .card-title {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--theia-ui-font-color1, #fff);
+  }
+  .card-body {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--theia-ui-font-color2, #bbb);
+  }
+  .card-data {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 11px;
+    max-height: 60px;
+    overflow-y: auto;
+  }
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .btn-allow {
+    background: #10b981;
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .btn-allow:hover {
+    background: #059669;
+  }
+  .btn-deny {
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .btn-deny:hover {
+    background: #dc2626;
+  }
+  .option-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .pill-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--theia-border-color, #444);
+    color: var(--theia-ui-font-color1, #eee);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .pill-btn:hover {
+    background: var(--theia-brand-color1, #0ea5e9);
+    color: #fff;
+    border-color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .input-row {
+    display: flex;
+    gap: 6px;
+  }
+  .text-input {
+    flex: 1;
+    background: var(--theia-input-background, #1e1e1e);
+    border: 1px solid var(--theia-input-border, #3c3c3c);
+    color: var(--theia-input-foreground, #ccc);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  .resolution-stamp {
+    font-size: 11px;
+    font-style: italic;
+    color: #10b981;
+  }
+  .empty-state {
+    text-align: center;
+    color: var(--theia-ui-font-color2, #777);
+    padding: 40px 10px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title-area">
+      <span class="title">Action Inbox</span>
+      <span id="pending-badge" class="badge">0 Pending</span>
+    </div>
+    <button class="btn-refresh" onclick="loadInbox()">↻ Refresh</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setTab('pending', this)">Pending</button>
+    <button class="tab-btn" onclick="setTab('all', this)">All</button>
+    <button class="tab-btn" onclick="setTab('resolved', this)">Resolved</button>
+  </div>
+
+  <div id="items-list" class="items-container">
+    <div class="empty-state">Loading inbox items…</div>
+  </div>
+
+  <script>
+    let activeTab = 'pending';
+    let currentCase = '${caseName}';
+    const apiPort = ${apiPort};
+
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'select-case' && event.data.caseName) {
+        currentCase = event.data.caseName;
+        loadInbox();
+      }
+    });
+
+    function setTab(tab, btn) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderItems();
+    }
+
+    let allItems = [];
+
+    async function loadInbox() {
+      if (!currentCase) return;
+      try {
+        const res = await fetch(\`http://127.0.0.1:\${apiPort}/api/hayagriva/inbox?case=\${encodeURIComponent(currentCase)}\`);
+        if (!res.ok) throw new Error('Failed to load inbox');
+        const data = await res.json();
+        allItems = data.items || [];
+        
+        const badge = document.getElementById('pending-badge');
+        const count = data.pendingCount || 0;
+        badge.textContent = count + ' Pending';
+        badge.className = 'badge' + (count > 0 ? ' alert' : '');
+        
+        renderItems();
+      } catch (e) {
+        document.getElementById('items-list').innerHTML = '<div class="empty-state">Inbox offline or unavailable.</div>';
+      }
+    }
+
+    function renderItems() {
+      const container = document.getElementById('items-list');
+      let filtered = allItems;
+      if (activeTab === 'pending') {
+        filtered = allItems.filter(i => i.state === 'pending');
+      } else if (activeTab === 'resolved') {
+        filtered = allItems.filter(i => i.state === 'resolved');
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">No ' + activeTab + ' actions for this case.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const isPending = item.state === 'pending';
+        let actionsHtml = '';
+
+        if (isPending) {
+          if (item.kind === 'approval') {
+            actionsHtml = \`
+              <div class="card-actions">
+                <button class="btn-allow" onclick="resolveItem('\${item.id}', 'allow')">✓ Allow</button>
+                <button class="btn-deny" onclick="resolveItem('\${item.id}', 'deny')">✕ Decline</button>
+              </div>
+            \`;
+          } else if (item.kind === 'question') {
+            const pills = (item.options || []).map(opt => \`
+              <button class="pill-btn" onclick="resolveItem('\${item.id}', '\${opt}')">\${opt}</button>
+            \`).join('');
+
+            actionsHtml = \`
+              <div class="option-pills">\${pills}</div>
+              <div class="input-row">
+                <input type="text" id="input-\${item.id}" class="text-input" placeholder="Type answer…" onkeydown="if(event.key==='Enter') submitText('\${item.id}')">
+                <button class="btn-allow" onclick="submitText('\${item.id}')">Send</button>
+              </div>
+            \`;
+          } else if (item.kind === 'plan') {
+            actionsHtml = \`
+              <div class="card-actions">
+                <button class="btn-allow" onclick="resolveItem('\${item.id}', 'approve_plan')">✓ Approve Strategy</button>
+                <button class="btn-deny" onclick="resolveItem('\${item.id}', 'request_changes')">Request Revision</button>
+              </div>
+            \`;
+          } else {
+            actionsHtml = \`
+              <div class="card-actions">
+                <button class="btn-allow" onclick="resolveItem('\${item.id}', 'dismiss')">Mark Read</button>
+              </div>
+            \`;
+          }
+        } else {
+          actionsHtml = \`<div class="resolution-stamp">✓ Resolved: "\${item.resolution || 'completed'}" (by \${item.resolvedBy || 'user'})</div>\`;
+        }
+
+        const riskPill = item.riskClass ? \`<span class="badge">\${item.riskClass}</span>\` : '';
+        const dataSnippet = item.data && Object.keys(item.data).length > 0 
+          ? \`<div class="card-data">\${JSON.stringify(item.data, null, 1)}</div>\` 
+          : '';
+
+        return \`
+          <div class="item-card \${item.state}">
+            <div class="card-top">
+              <span class="card-kind kind-\${item.kind}">\${item.kind}</span>
+              \${riskPill}
+            </div>
+            <div class="card-title">\${item.title}</div>
+            <div class="card-body">\${item.body}</div>
+            \${dataSnippet}
+            \${actionsHtml}
+          </div>
+        \`;
+      }).join('');
+    }
+
+    async function resolveItem(itemId, resolution) {
+      try {
+        await fetch(\`http://127.0.0.1:\${apiPort}/api/hayagriva/inbox/resolve\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            case: currentCase,
+            itemId: itemId,
+            resolution: resolution,
+            resolvedBy: 'Advocate'
+          })
+        });
+        loadInbox();
+      } catch (e) {
+        console.error('Failed to resolve item:', e);
+      }
+    }
+
+    function submitText(itemId) {
+      const input = document.getElementById('input-' + itemId);
+      if (input && input.value.trim()) {
+        resolveItem(itemId, input.value.trim());
+      }
+    }
+
+    // Initial fetch and 4s poll
+    loadInbox();
+    setInterval(loadInbox, 4000);
+  </script>
+</body>
+</html>`;
+}
+
+

@@ -25,6 +25,23 @@ async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
     const decision = evaluateToolCall(caseDir, norm, args, sessionContext);
     if (!decision.allowed) {
         if (decision.needsApproval) {
+            if (sessionContext.parkInInbox && caseDir) {
+                const inboxManager = require('../inbox-manager');
+                const item = inboxManager.createItem(caseDir, {
+                    kind: 'approval',
+                    title: `Approve execution of tool "${toolName}"`,
+                    body: decision.reason || `Tool ${toolName} requires authorization.`,
+                    riskClass: decision.riskClass,
+                    data: { toolName, args }
+                });
+                return {
+                    tool: toolName,
+                    status: 'parked_in_inbox',
+                    inboxItemId: item.id,
+                    notice: `Action parked in Case Inbox awaiting approval.`,
+                    _riskClass: decision.riskClass
+                };
+            }
             const err = new Error(`[Permission Required] Tool "${toolName}" (${decision.riskClass}) requires authorization: ${decision.reason}`);
             err.code = 'ERR_PERMISSION_REQUIRED';
             err.needsApproval = true;

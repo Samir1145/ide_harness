@@ -21,7 +21,7 @@ import { HayagrivaLspClient } from './lsp-client';
 import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
 
-const { wikiExplorerHtml, conceptsExplorerHtml } = require('./templates');
+const { wikiExplorerHtml, conceptsExplorerHtml, inboxExplorerHtml } = require('./templates');
 
 export const hayagrivaPreferenceSchema: PreferenceSchema = {
   properties: {
@@ -54,6 +54,7 @@ export class HayagrivaFrontendContribution
 
   protected wikiWidget?: Widget;
   protected conceptsWidget?: Widget;
+  protected inboxWidget?: Widget;
   protected uploadModalElement?: HTMLElement;
 
   constructor(
@@ -156,6 +157,7 @@ export class HayagrivaFrontendContribution
 
     this.initializeWikiExplorerWidget();
     this.initializeConceptsExplorerWidget();
+    this.initializeInboxExplorerWidget();
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
     this.startBackendMonitor();
 
@@ -185,7 +187,7 @@ export class HayagrivaFrontendContribution
     const leftWidgets = this.shell.getWidgets('left');
     for (const widget of leftWidgets) {
       const id = widget.id.toLowerCase();
-      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer') {
+      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer' && id !== 'hayagriva-inbox-explorer') {
         widget.close();
       }
     }
@@ -586,6 +588,28 @@ export class HayagrivaFrontendContribution
     this.shell.addWidget(conceptsExplorer, { area: 'left', rank: 550 });
   }
 
+  initializeInboxExplorerWidget(): void {
+    if (this.inboxWidget) return;
+
+    const initialCase = this.getActiveCaseName();
+    const inboxExplorer = new Widget();
+    inboxExplorer.id = 'hayagriva-inbox-explorer';
+    inboxExplorer.title.label = 'Inbox';
+    inboxExplorer.title.caption = 'Case Action Inbox & Approvals';
+    inboxExplorer.title.iconClass = 'fa fa-inbox';
+    inboxExplorer.title.closable = false;
+
+    const inboxIframe = document.createElement('iframe');
+    inboxIframe.style.width = '100%';
+    inboxIframe.style.height = '100%';
+    inboxIframe.style.border = 'none';
+    inboxIframe.srcdoc = inboxExplorerHtml(initialCase, this.getApiPort());
+    inboxExplorer.node.appendChild(inboxIframe);
+
+    this.inboxWidget = inboxExplorer;
+    this.shell.addWidget(inboxExplorer, { area: 'left', rank: 540 });
+  }
+
   updateSidebarCase(caseName: string): void {
     if (this.uploadModalElement) {
       const iframe = this.uploadModalElement.querySelector('iframe');
@@ -601,6 +625,12 @@ export class HayagrivaFrontendContribution
     }
     if (this.conceptsWidget) {
       const iframe = this.conceptsWidget.node.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
+      }
+    }
+    if (this.inboxWidget) {
+      const iframe = this.inboxWidget.node.querySelector('iframe');
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
       }

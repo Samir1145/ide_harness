@@ -43,6 +43,7 @@ const PRIORITY_ORDER = [
     'statutory_linter.test.js',
     'risk_classification.test.js',
     'context_auto_compaction.test.js',
+    'case_inbox_lifecycle.test.js',
     'comprehensive_sanity.test.js'
 ];
 
