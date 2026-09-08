@@ -48,3 +48,13 @@ if (hit.docId.startsWith('wiki::')) {
 When a new Wiki card is saved, the webview sends a `refresh-wiki-explorer` message to the parent extension:
 * The extension dispatches a `select-case` event to the Wiki Explorer iframe.
 * The iframe queries `GET /api/hayagriva/wiki-cards?case=Case_Alpha` to reload the cards list instantly.
+
+---
+
+## 3. Compounding LLM-Wiki Knowledge Integration
+
+Following the **Karpathy-style Compounding LLM-Wiki** philosophy, the case knowledge base is treated as an organized, cumulative digital memory rather than a throwaway scratchpad:
+* **PageIndex Tree Alignment**: When documents are ingested, `pageindex_tree.json` maintains structured, 2–3 sentence legal summaries (Legal Triads) for every node.
+* **Curated Human & Agent Synthesis**: Rather than flooding the wiki directory with synthetic question/answer pairs, the Wiki directory (`/wiki/`) is reserved for high-value human-curated cards and agent synthesis outputs.
+* **Deterministic Blending**: During retrieval, curated wiki cards receive an automatic priority boost in the hybrid search pipeline, ensuring verified case notes and distilled holdings take precedence while maintaining full grounding in primary source documents.
+

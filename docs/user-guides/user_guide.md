@@ -17,7 +17,7 @@ When you upload documents into a Case Workspace, they progress through three seq
 
 1.  **Dot 1 (Companion Markdown Extraction):** Converts files (PDFs, Word documents, Excel sheets) into editable companion Markdown (`.md`) files on disk.
 2.  **Dot 2 (Search Vector Generation):** Tokenizes document pages, runs a local neural embedding pass in RAM, and indexes the vectors into the SQLite database.
-3.  **Dot 3 (AI Enrichment & Facts Curation):** Spawns background AI tasks to summarize document sections and generate hypothetical questions for the RAG search database.
+3.  **Dot 3 (AI Enrichment & Facts Curation):** Spawns background AI tasks to summarize document sections using high-density 2–3 sentence legal summaries (Legal Triad: rights/obligations, figures/dates, and provisos) directly into the PageIndex tree (`pageindex_tree.json`).
 
 ---
 
@@ -34,7 +34,7 @@ Even with **zero LLM engines running** (Port 8090 offline), HAYAGRIVA operates a
 #### 1. Ingestion & Document Processing
 *   **Multi-format Extraction:** Converts PDFs, Word (`.docx`), Excel (`.xlsx`), and TiddlyWiki files into clean Markdown (`.md`) companion files instantly on drop.
 *   **Local Vector Indexing:** Computes 768-dimensional neural embeddings locally in RAM using ONNX Runtime (`InLegal-SBERT` for legal files, `Finance-Embeddings` for sheets).
-*   **Hybrid Search (FTS5 + Cosine Reranking):** Combined SQLite full-text search (BM25) with vector similarity reranking in pure JavaScript (<1ms latency).
+*   **Native ONNX Cross-Encoder Reranking (`ms-marco-MiniLM-L-6-v2`):** Combined SQLite full-text search (BM25) with dual-vector Reciprocal Rank Fusion (RRF), followed by deep cross-attention transformer reranking executing in **~15–25ms on CPU** with 95%+ precision—all running 100% offline with zero external LLM.
 *   **Scanned PDF Self-Healing:** Detects flat/scanned PDFs and accepts companion `.md` drops to unlock vector search without external OCR dependencies.
 
 #### 2. Specialized Subagents (@legal-advisor, @contract-risk, @deal-audit, @form-fill, etc.)

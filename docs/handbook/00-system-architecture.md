@@ -46,11 +46,12 @@ This chapter outlines the modular design of the HAYAGRIVA platform. The system i
   - `hayagriva/lib/pipeline/wiki/upload.js` (JSON store blocks scraper)
 
 ### 3. Context Management System (CMS)
-* **Description:** Manages text chunking (parent-child splits), pageindex tree layouts, and RAG retrieval pipelines.
+* **Description:** Manages text chunking (parent-child splits), pageindex tree layouts (`pageindex_tree.json`), compounding 2–3 sentence legal summaries, and 4-stage hybrid RAG retrieval (FTS5 + Dual Embeddings + RRF + Native ONNX Cross-Encoder Reranking).
 * **Key Files:**
-  - `hayagriva/lib/core/rag.js` (Keyword/semantic vector retrievers)
-  - `hayagriva/lib/pipeline/common/helper.js` (Tree layouts parser)
-  - `concepts/bm25_index.json` (Inverted BM25 term index)
+  - `backend/lib/core/rag.js` (4-stage hybrid retriever: SQLite FTS5, bi-encoder embeddings, RRF fusion, and cross-encoder reranking)
+  - `backend/lib/core/reranker.js` (Native ONNX cross-encoder using `ms-marco-MiniLM-L-6-v2` with 5m TTL memory eviction)
+  - `backend/lib/pipeline/common/helper.js` (PageIndex Flash hierarchical tree parser & parent-child chunk splitter)
+  - `concepts/pageindex_tree.json` (Compounding legal tree structure with section summaries)
 
 ### 4. Vault Management System (VMS)
 * **Description:** Manages encrypted statutory databases, RAM decryption/decompression pipelines, user overlays, Monaco completion providers, and relational case maps.
