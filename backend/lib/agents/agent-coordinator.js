@@ -1,7 +1,24 @@
 const fs = require('fs');
 const path = require('path');
+const Module = require('module');
 const { getChatResponse } = require('../core/llm-client');
 const agentLogger = require('./agent-logger');
+
+// Dynamically resolve engine libraries for decoupled/symlinked agent packs
+const origResolveFilename = Module._resolveFilename;
+const engineBackendLib = path.resolve(__dirname, '..');
+Module._resolveFilename = function(request, parent, isMain, options) {
+    if (parent && parent.filename && (parent.filename.includes('agent_packs') || parent.filename.includes('ide_agents') || parent.filename.includes('haya_agents') || parent.filename.includes('.vlt')) && request.includes('/lib/')) {
+        const match = request.match(/(?:^|\/)lib\/(.+)$/);
+        if (match) {
+            const candidate = path.join(engineBackendLib, match[1]);
+            if (fs.existsSync(candidate) || fs.existsSync(candidate + '.js') || fs.existsSync(candidate + '/index.js')) {
+                return origResolveFilename.call(this, candidate, parent, isMain, options);
+            }
+        }
+    }
+    return origResolveFilename.call(this, request, parent, isMain, options);
+};
 
 class AgentCoordinator {
     constructor() {
@@ -102,7 +119,13 @@ Prompt: "${message}"`;
 
         const { orchestratorRegistry } = require('./orchestrator-coordinator');
         const { resolvePromptVariables, buildMemoryContext } = require('./skills/memory-injector');
-        const target = (targetAgentName || '').trim().toLowerCase().replace(/^@/, '');
+        let target = (targetAgentName || '').trim().toLowerCase().replace(/^@/, '');
+        if (!target) {
+            const atMatch = userMessage.trim().match(/^@([a-zA-Z0-9_\-]+)/);
+            if (atMatch) {
+                target = atMatch[1].toLowerCase();
+            }
+        }
         const reqId = (options && options.requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         
         agentLogger.startContext(reqId);

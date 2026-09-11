@@ -21,9 +21,10 @@ vault/.obsidian/workspaces.json
 vault/.obsidian/cache/
 vault/.obsidian/appearance.json
 
-# Local binaries and model weights
+# Local binaries, symlinked model weights and agent packs
 bin/
-models/
+models
+vault/agent_packs
 
 # Python Virtual Environments
 .venv/

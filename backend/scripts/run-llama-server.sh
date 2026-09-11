@@ -6,14 +6,25 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PAT
 ENGINE="${1:-legal}" # Defaults to 'legal', options: 'legal' or 'finance'
 PORT="8090"
 
+MODELS_BASE="${HAYA_MODELS_PATH:-}"
+if [ -z "$MODELS_BASE" ]; then
+    if [ -d "/Users/atulgrover/Desktop/haya_models/weights/llm" ]; then
+        MODELS_BASE="/Users/atulgrover/Desktop/haya_models/weights/llm"
+    elif [ -d "$HOME/Desktop/haya_models/weights/llm" ]; then
+        MODELS_BASE="$HOME/Desktop/haya_models/weights/llm"
+    else
+        MODELS_BASE="$(dirname "$0")/../models/llm"
+    fi
+fi
+
 if [ "$ENGINE" = "finance" ]; then
-    MODEL_FILE="$(dirname "$0")/../models/llm/llamafile/financeparam/financeparam-2.9b.gguf"
+    MODEL_FILE="${MODELS_BASE}/llamafile/financeparam/financeparam-2.9b.gguf"
     MODEL_NAME="FinanceParam 2.9B"
 elif [ "$ENGINE" = "saul" ]; then
-    MODEL_FILE="$(dirname "$0")/../models/llm/saul/Saul-Instruct-v1.Q4_K_M.gguf"
+    MODEL_FILE="${MODELS_BASE}/saul/Saul-Instruct-v1.Q4_K_M.gguf"
     MODEL_NAME="SaulLM 7B Instruct"
 else
-    MODEL_FILE="$(dirname "$0")/../models/llm/llamafile/legalparam/legalparam-2.9b.gguf"
+    MODEL_FILE="${MODELS_BASE}/llamafile/legalparam/legalparam-2.9b.gguf"
     MODEL_NAME="LegalParam 2.9B"
 fi
 
