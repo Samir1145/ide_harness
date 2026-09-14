@@ -1,0 +1,962 @@
+{
+  "generatedAt": "2026-09-13T10:54:19.825Z",
+  "caseMeta": {
+    "companyName": "New Pearl Vitrified Private Limited",
+    "cin": "U26914GJ2017PTC098234",
+    "icdDate": "15.04.2024",
+    "caseNo": "CP(IB) No. 412/AHM/2023"
+  },
+  "metrics": {
+    "totalTransactions": 23,
+    "grossDebits": 19590450,
+    "grossCredits": 8173000,
+    "contraVolume": 3000000,
+    "netExternalDebits": 16590450,
+    "netExternalCredits": 5173000,
+    "totalCashWithdrawn": 2000000,
+    "cashTxnCount": 2,
+    "uniqueCounterparties": 20,
+    "distressMetrics": {
+      "totalDishonoredCount": 2,
+      "totalDishonoredFees": 1250,
+      "earliestDishonorDate": "2023-11-20",
+      "dishonoredEvents": [
+        {
+          "date": "2023-11-20",
+          "rawDate": "20/11/2023",
+          "bank": "HDFC Bank",
+          "accountNo": "50200091028371",
+          "amount": 500,
+          "narration": "NACH RET INSUFFICIENT FUNDS LOAN EMI",
+          "chqRef": "UTR991122"
+        },
+        {
+          "date": "2023-11-22",
+          "rawDate": "22/11/2023",
+          "bank": "HDFC Bank",
+          "accountNo": "50200091028371",
+          "amount": 750,
+          "narration": "CHQ RTN CHARGES UNPAID CHQ 1029",
+          "chqRef": "CHQ1029"
+        }
+      ]
+    }
+  },
+  "balanceProof": {
+    "openingBalance": 16200000,
+    "closingBalance": 4782550,
+    "calculatedClosing": 4782550,
+    "variance": 0,
+    "isBalanced": true,
+    "accountReconciliation": {
+      "Bank of Baroda_01920200001029": {
+        "openingBalance": 100000,
+        "lastBalance": 105000,
+        "totalDr": 45000,
+        "totalCr": 50000
+      },
+      "HDFC Bank_50200091028371": {
+        "openingBalance": 500000,
+        "lastBalance": 248750,
+        "totalDr": 3251250,
+        "totalCr": 3000000
+      },
+      "State Bank of India_39120481999": {
+        "openingBalance": 100000,
+        "lastBalance": 98800,
+        "totalDr": 24200,
+        "totalCr": 23000
+      },
+      "State Bank of India_39120481920": {
+        "openingBalance": 15000000,
+        "lastBalance": 3650000,
+        "totalDr": 16150000,
+        "totalCr": 4800000
+      },
+      "Unknown Bank_SCBL0099881122": {
+        "openingBalance": 500000,
+        "lastBalance": 680000,
+        "totalDr": 120000,
+        "totalCr": 300000
+      }
+    }
+  },
+  "categoryTotals": {
+    "STATUTORY_DUES": {
+      "label": "Statutory & Tax Remittances",
+      "total": 25000,
+      "count": 1,
+      "statutorySection": "§53(1)(e)"
+    },
+    "UTILITIES_DISCOMS": {
+      "label": "Industrial Utilities & Power/Gas",
+      "total": 650000,
+      "count": 1,
+      "statutorySection": "Essential Operational Costs"
+    },
+    "LENDERS_AND_ARCS": {
+      "label": "Financial Creditors & ARCs",
+      "total": 0,
+      "count": 0,
+      "statutorySection": "§53(1)(b)/(d)"
+    },
+    "INVESTMENT_SPECULATION": {
+      "label": "Speculative Outflows & Capital Markets",
+      "total": 2701200,
+      "count": 3,
+      "statutorySection": "§66 (Diversion of Loan Funds)"
+    },
+    "PERSONAL_PROMOTER_PERKS": {
+      "label": "Promoter Perks & Luxury Expenses",
+      "total": 450000,
+      "count": 1,
+      "statutorySection": "§45 (Undervalued) / §66"
+    },
+    "CASH_DRAIN": {
+      "label": "Physical Cash & Bearer Withdrawals",
+      "total": 800000,
+      "count": 1,
+      "statutorySection": "§66 / PMLA Inquest"
+    },
+    "LIQUIDITY_DISTRESS_AND_DISHONOR": {
+      "label": "Dishonored Instruments & Penalties",
+      "total": 1250,
+      "count": 2,
+      "statutorySection": "§43(4) (Twilight Insolvency Anchor) & NI Act §138"
+    },
+    "RELATED_PARTY": {
+      "label": "AS-18 Related Entities & KMPs",
+      "total": 5500000,
+      "count": 1,
+      "statutorySection": "§43 (Preference) / §45 (Undervalued)"
+    },
+    "TRADE_OPERATIONAL": {
+      "label": "Trade Operational Suppliers & Vendors",
+      "total": 6463000,
+      "count": 7,
+      "statutorySection": "General Operational Dues"
+    }
+  },
+  "redFlags": [
+    {
+      "type": "RELATED_PARTY_SIPHONING",
+      "severity": "CRITICAL",
+      "statutorySection": "§43 (Preference) / §45 (Undervalued) / §66 (Fraud)",
+      "title": "High Outflow to Related Entity: [Pearl Ceramic Tiles Private Limited]",
+      "description": "Company transferred ₹55.00L to verified AS-18 related entity (Associate Company / Common Director Holding) across 1 debit transactions without verified operational consideration.",
+      "entity": "Pearl Ceramic Tiles Private Limited",
+      "totalVolume": 5500000
+    },
+    {
+      "type": "SPECULATIVE_DIVERSION",
+      "severity": "CRITICAL",
+      "statutorySection": "§66 (Fraudulent Trading / Diversion of Loan Funds)",
+      "title": "Unsanctioned Capital Market & Speculative Outflows",
+      "description": "Identified ₹27.01 Lakhs routed to brokers, mutual funds, crypto, or bullion jewellers from company accounts, constituting prima facie diversion of corporate debtor liquidity.",
+      "entity": "Capital Market / Speculative Brokers",
+      "totalVolume": 2701200
+    },
+    {
+      "type": "PROMOTER_PERSONAL_PERKS",
+      "severity": "HIGH",
+      "statutorySection": "§45 (Undervalued Transactions) / §66",
+      "title": "Promoter Luxury & Personal Expense Discharges",
+      "description": "Company funds totaling ₹4.50 Lakhs discharged towards luxury hotels, airlines, golf clubs, or promoter life insurance policies not justified by business operations.",
+      "entity": "Hospitality / Luxury Merchants",
+      "totalVolume": 450000
+    },
+    {
+      "type": "HIGH_VELOCITY_CASH_DRAIN",
+      "severity": "HIGH",
+      "statutorySection": "§66 (Fraudulent Trading) / PMLA Inquest",
+      "title": "Extensive Cash Withdrawals (Self/ATM/Bearer)",
+      "description": "Total cash withdrawals of ₹20.00 Lakhs across 2 transactions. Physical cash drainage prior to default is a primary indicator of asset diversion.",
+      "entity": "Self / Bearer Instruments",
+      "totalVolume": 2000000
+    },
+    {
+      "type": "COMMERCIAL_INSOLVENCY_DISHONOR",
+      "severity": "HIGH",
+      "statutorySection": "§43(4) (Twilight Insolvency Default Anchor) & NI Act §138",
+      "title": "Banking Liquidity Distress: 2 Dishonored Instrument(s) / Return Penalties",
+      "description": "Earliest recorded cheque bounce or NACH/ECS return occurred on 2023-11-20. Cumulative return penalties and bounced instruments total ₹0.01 Lakhs across 2 instances. This prima facie establishes commercial insolvency and default prior to formal CIRP admission, legally anchoring the lookback period for Section 43 Preferential avoidance petitions.",
+      "entity": "Banking Clearing Systems",
+      "totalVolume": 1250,
+      "earliestDishonorDate": "2023-11-20"
+    },
+    {
+      "type": "PDF_TAMPERING_SUSPECTED",
+      "severity": "CRITICAL",
+      "statutorySection": "§66 (Fraudulent Statements / Concealment) & IPC §463/§465 (Document Forgery)",
+      "title": "PDF Statement Manipulation Risk: sbi_tampered_statement.pdf (HIGH_RISK_TAMPERED)",
+      "description": "Automated byte-level forensics on 'sbi_tampered_statement.pdf' identified document alteration risk (Risk Score: 1). Indicators: Statement was produced or modified using consumer graphic editing software 'photoshop'.; PDF contains 3 incremental revision trailers (%%EOF markers), indicating post-generation alteration.; PDF modification timestamp differs from original creation timestamp.",
+      "entity": "Canva Online PDF Editor",
+      "totalVolume": 0,
+      "forensicDetails": {
+        "filename": "sbi_tampered_statement.pdf",
+        "verdict": "HIGH_RISK_TAMPERED",
+        "riskScore": 1,
+        "isTampered": true,
+        "creationDate": "D:20231101120000",
+        "modificationDate": "D:20240315183000",
+        "producer": "Canva Online PDF Editor",
+        "creator": "Photoshop 24.0",
+        "revisionCount": 3,
+        "fontsCount": 1,
+        "findings": [
+          {
+            "category": "SOFTWARE_PROVENANCE",
+            "severity": "HIGH",
+            "description": "Statement was produced or modified using consumer graphic editing software 'photoshop'.",
+            "evidence": "Producer: 'Canva Online PDF Editor', Creator: 'Photoshop 24.0'"
+          },
+          {
+            "category": "REVISION_TREE",
+            "severity": "HIGH",
+            "description": "PDF contains 3 incremental revision trailers (%%EOF markers), indicating post-generation alteration.",
+            "evidence": "Found 3 EOF trailers"
+          },
+          {
+            "category": "METADATA_DRIFT",
+            "severity": "LOW",
+            "description": "PDF modification timestamp differs from original creation timestamp.",
+            "evidence": "Creation: 'D:20231101120000', Modified: 'D:20240315183000'"
+          }
+        ]
+      }
+    }
+  ],
+  "distressMetrics": {
+    "totalDishonoredCount": 2,
+    "totalDishonoredFees": 1250,
+    "earliestDishonorDate": "2023-11-20",
+    "dishonoredEvents": [
+      {
+        "date": "2023-11-20",
+        "rawDate": "20/11/2023",
+        "bank": "HDFC Bank",
+        "accountNo": "50200091028371",
+        "amount": 500,
+        "narration": "NACH RET INSUFFICIENT FUNDS LOAN EMI",
+        "chqRef": "UTR991122"
+      },
+      {
+        "date": "2023-11-22",
+        "rawDate": "22/11/2023",
+        "bank": "HDFC Bank",
+        "accountNo": "50200091028371",
+        "amount": 750,
+        "narration": "CHQ RTN CHARGES UNPAID CHQ 1029",
+        "chqRef": "CHQ1029"
+      }
+    ]
+  },
+  "accounts": [
+    {
+      "file": "bob_ca_1029.csv",
+      "bank": "Bank of Baroda",
+      "accountNo": "01920200001029",
+      "openingBalance": null,
+      "closingBalance": null,
+      "txnCount": 4
+    },
+    {
+      "file": "hdfc_od_9102.csv",
+      "bank": "HDFC Bank",
+      "accountNo": "50200091028371",
+      "openingBalance": null,
+      "closingBalance": null,
+      "txnCount": 6
+    },
+    {
+      "file": "sbi_ca_split_year_999.csv",
+      "bank": "State Bank of India",
+      "accountNo": "39120481999",
+      "openingBalance": null,
+      "closingBalance": null,
+      "txnCount": 4
+    },
+    {
+      "file": "sbi_current_4819.xlsx",
+      "bank": "State Bank of India",
+      "accountNo": "39120481920",
+      "openingBalance": null,
+      "closingBalance": null,
+      "txnCount": 7
+    },
+    {
+      "file": "scb_mt940_statement.sta",
+      "bank": "Unknown Bank",
+      "accountNo": "SCBL0099881122",
+      "openingBalance": 500000,
+      "closingBalance": 680000,
+      "txnCount": 2
+    }
+  ],
+  "topDebits": [
+    {
+      "canonicalName": "NEFT HDFC001 PEARL CERAMIC TILES",
+      "sampleNarration": "NEFT HDFC001 PEARL CERAMIC TILES PVT LTD",
+      "category": "RELATED_PARTY",
+      "categoryLabel": "AS-18 Related Party / Connected Person",
+      "isRelatedParty": true,
+      "relatedPartyDetails": {
+        "name": "Pearl Ceramic Tiles Private Limited",
+        "canonicalName": "PEARL CERAMIC TILES",
+        "relationship": "Associate Company / Common Director Holding",
+        "amount": 10300000
+      },
+      "totalDebits": 5500000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-15"
+      ]
+    },
+    {
+      "canonicalName": "RTGS PUNB012 SHREE GANESH RAW MAT",
+      "sampleNarration": "RTGS PUNB012 SHREE GANESH RAW MAT",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 4500000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-05"
+      ]
+    },
+    {
+      "canonicalName": "NEFT INDB001 CERAMIC CLAY SUPPLIERS",
+      "sampleNarration": "NEFT INDB001 CERAMIC CLAY SUPPLIERS",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 1800000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-12"
+      ]
+    },
+    {
+      "canonicalName": "NEFT HDFC001 ZERODHA BROKING",
+      "sampleNarration": "NEFT HDFC001 ZERODHA BROKING LTD",
+      "category": "INVESTMENT_SPECULATION",
+      "categoryLabel": "Speculative Outflows & Capital Markets (Suspect Siphoning)",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 1500000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-14"
+      ]
+    },
+    {
+      "canonicalName": "SELF CASH WITHDRAWAL FOR EXPENSES",
+      "sampleNarration": "SELF CASH WITHDRAWAL FOR EXPENSES",
+      "category": "INVESTMENT_SPECULATION",
+      "categoryLabel": "Speculative Outflows & Capital Markets (Suspect Siphoning)",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 1200000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-25"
+      ]
+    },
+    {
+      "canonicalName": "TO CASH WITHDRAWAL SELF",
+      "sampleNarration": "TO CASH WITHDRAWAL SELF",
+      "category": "CASH_DRAIN",
+      "categoryLabel": "Physical Cash & Bearer Withdrawals",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 800000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-18"
+      ]
+    },
+    {
+      "canonicalName": "GUJARAT GAS",
+      "sampleNarration": "GUJARAT GAS LTD",
+      "category": "UTILITIES_DISCOMS",
+      "categoryLabel": "Industrial Utilities & State Power/Gas",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 650000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-14"
+      ]
+    },
+    {
+      "canonicalName": "TAJ HOTEL MUMBAI V",
+      "sampleNarration": "TAJ HOTEL MUMBAI V",
+      "category": "PERSONAL_PROMOTER_PERKS",
+      "categoryLabel": "Promoter Personal Perks & Luxury Expenses",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 450000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-12"
+      ]
+    },
+    {
+      "canonicalName": "EREF SCBLUTR9911 BENM GLOBAL LOGISTICS SERVICES REMI EXPORT FREIGHT CHARGES TRF 001",
+      "sampleNarration": "EREF SCBLUTR9911 BENM GLOBAL LOGISTICS SERVICES REMI EXPORT FREIGHT CHARGES TRF 001",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 120000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-10"
+      ]
+    },
+    {
+      "canonicalName": "CHALLAN GST PAYMENT",
+      "sampleNarration": "CHALLAN GST PAYMENT",
+      "category": "STATUTORY_DUES",
+      "categoryLabel": "Statutory & Tax Remittances",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 25000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-05"
+      ]
+    },
+    {
+      "canonicalName": "IDENTICAL VENDOR PAYMENT",
+      "sampleNarration": "IDENTICAL VENDOR PAYMENT",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 20000,
+      "totalCredits": 0,
+      "txnCount": 2,
+      "debitCount": 2,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-06",
+        "2023-11-06"
+      ]
+    },
+    {
+      "canonicalName": "AMAZON INDIA RAW MATERIALS",
+      "sampleNarration": "AMAZON INDIA RAW MATERIALS",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 15000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-12-20"
+      ]
+    },
+    {
+      "canonicalName": "FLIPKART LOGISTICS",
+      "sampleNarration": "FLIPKART LOGISTICS",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 8000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-12-28"
+      ]
+    },
+    {
+      "canonicalName": "LOCAL TRANSPORT EXPENSES",
+      "sampleNarration": "LOCAL TRANSPORT EXPENSES",
+      "category": "INVESTMENT_SPECULATION",
+      "categoryLabel": "Speculative Outflows & Capital Markets (Suspect Siphoning)",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 1200,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2024-01-08"
+      ]
+    },
+    {
+      "canonicalName": "CHQ RTN CHARGES UNPAID CHQ 1029",
+      "sampleNarration": "CHQ RTN CHARGES UNPAID CHQ 1029",
+      "category": "LIQUIDITY_DISTRESS_AND_DISHONOR",
+      "categoryLabel": "Dishonored Instruments & Liquidity Penalties",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 750,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-22"
+      ]
+    },
+    {
+      "canonicalName": "NACH RET INSUFFICIENT FUNDS LOAN EMI",
+      "sampleNarration": "NACH RET INSUFFICIENT FUNDS LOAN EMI",
+      "category": "LIQUIDITY_DISTRESS_AND_DISHONOR",
+      "categoryLabel": "Dishonored Instruments & Liquidity Penalties",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 500,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-20"
+      ]
+    },
+    {
+      "canonicalName": "INFLOW CUSTOMER",
+      "sampleNarration": "INFLOW CUSTOMER",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 0,
+      "totalCredits": 50000,
+      "txnCount": 1,
+      "debitCount": 0,
+      "creditCount": 1,
+      "dates": [
+        "2023-11-15"
+      ]
+    },
+    {
+      "canonicalName": "EREF SCBLUTR9922 ORDP OVERSEAS BUYER REMI ADVANCE PAYMENT TRF 001",
+      "sampleNarration": "EREF SCBLUTR9922 ORDP OVERSEAS BUYER CORP REMI ADVANCE PAYMENT TRF 001",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 0,
+      "totalCredits": 300000,
+      "txnCount": 1,
+      "debitCount": 0,
+      "creditCount": 1,
+      "dates": [
+        "2023-11-15"
+      ]
+    },
+    {
+      "canonicalName": "RTGS HDFC001 PEARL CERAMIC TILES",
+      "sampleNarration": "RTGS HDFC001 PEARL CERAMIC TILES PVT LTD",
+      "category": "RELATED_PARTY",
+      "categoryLabel": "AS-18 Related Party / Connected Person",
+      "isRelatedParty": true,
+      "relatedPartyDetails": {
+        "name": "Pearl Ceramic Tiles Private Limited",
+        "canonicalName": "PEARL CERAMIC TILES",
+        "relationship": "Associate Company / Common Director Holding",
+        "amount": 10300000
+      },
+      "totalDebits": 0,
+      "totalCredits": 4800000,
+      "txnCount": 1,
+      "debitCount": 0,
+      "creditCount": 1,
+      "dates": [
+        "2023-11-20"
+      ]
+    },
+    {
+      "canonicalName": "CUSTOMER ADVANCE",
+      "sampleNarration": "CUSTOMER ADVANCE",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 0,
+      "totalCredits": 23000,
+      "txnCount": 1,
+      "debitCount": 0,
+      "creditCount": 1,
+      "dates": [
+        "2024-01-03"
+      ]
+    }
+  ],
+  "topCredits": [
+    {
+      "canonicalName": "RTGS HDFC001 PEARL CERAMIC TILES",
+      "sampleNarration": "RTGS HDFC001 PEARL CERAMIC TILES PVT LTD",
+      "category": "RELATED_PARTY",
+      "categoryLabel": "AS-18 Related Party / Connected Person",
+      "isRelatedParty": true,
+      "relatedPartyDetails": {
+        "name": "Pearl Ceramic Tiles Private Limited",
+        "canonicalName": "PEARL CERAMIC TILES",
+        "relationship": "Associate Company / Common Director Holding",
+        "amount": 10300000
+      },
+      "totalDebits": 0,
+      "totalCredits": 4800000,
+      "txnCount": 1,
+      "debitCount": 0,
+      "creditCount": 1,
+      "dates": [
+        "2023-11-20"
+      ]
+    },
+    {
+      "canonicalName": "EREF SCBLUTR9922 ORDP OVERSEAS BUYER REMI ADVANCE PAYMENT TRF 001",
+      "sampleNarration": "EREF SCBLUTR9922 ORDP OVERSEAS BUYER CORP REMI ADVANCE PAYMENT TRF 001",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 0,
+      "totalCredits": 300000,
+      "txnCount": 1,
+      "debitCount": 0,
+      "creditCount": 1,
+      "dates": [
+        "2023-11-15"
+      ]
+    },
+    {
+      "canonicalName": "INFLOW CUSTOMER",
+      "sampleNarration": "INFLOW CUSTOMER",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 0,
+      "totalCredits": 50000,
+      "txnCount": 1,
+      "debitCount": 0,
+      "creditCount": 1,
+      "dates": [
+        "2023-11-15"
+      ]
+    },
+    {
+      "canonicalName": "CUSTOMER ADVANCE",
+      "sampleNarration": "CUSTOMER ADVANCE",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 0,
+      "totalCredits": 23000,
+      "txnCount": 1,
+      "debitCount": 0,
+      "creditCount": 1,
+      "dates": [
+        "2024-01-03"
+      ]
+    },
+    {
+      "canonicalName": "CHALLAN GST PAYMENT",
+      "sampleNarration": "CHALLAN GST PAYMENT",
+      "category": "STATUTORY_DUES",
+      "categoryLabel": "Statutory & Tax Remittances",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 25000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-05"
+      ]
+    },
+    {
+      "canonicalName": "RTGS PUNB012 SHREE GANESH RAW MAT",
+      "sampleNarration": "RTGS PUNB012 SHREE GANESH RAW MAT",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 4500000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-05"
+      ]
+    },
+    {
+      "canonicalName": "IDENTICAL VENDOR PAYMENT",
+      "sampleNarration": "IDENTICAL VENDOR PAYMENT",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 20000,
+      "totalCredits": 0,
+      "txnCount": 2,
+      "debitCount": 2,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-06",
+        "2023-11-06"
+      ]
+    },
+    {
+      "canonicalName": "EREF SCBLUTR9911 BENM GLOBAL LOGISTICS SERVICES REMI EXPORT FREIGHT CHARGES TRF 001",
+      "sampleNarration": "EREF SCBLUTR9911 BENM GLOBAL LOGISTICS SERVICES REMI EXPORT FREIGHT CHARGES TRF 001",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 120000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-10"
+      ]
+    },
+    {
+      "canonicalName": "NEFT INDB001 CERAMIC CLAY SUPPLIERS",
+      "sampleNarration": "NEFT INDB001 CERAMIC CLAY SUPPLIERS",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 1800000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-12"
+      ]
+    },
+    {
+      "canonicalName": "TAJ HOTEL MUMBAI V",
+      "sampleNarration": "TAJ HOTEL MUMBAI V",
+      "category": "PERSONAL_PROMOTER_PERKS",
+      "categoryLabel": "Promoter Personal Perks & Luxury Expenses",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 450000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-12"
+      ]
+    },
+    {
+      "canonicalName": "GUJARAT GAS",
+      "sampleNarration": "GUJARAT GAS LTD",
+      "category": "UTILITIES_DISCOMS",
+      "categoryLabel": "Industrial Utilities & State Power/Gas",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 650000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-14"
+      ]
+    },
+    {
+      "canonicalName": "NEFT HDFC001 ZERODHA BROKING",
+      "sampleNarration": "NEFT HDFC001 ZERODHA BROKING LTD",
+      "category": "INVESTMENT_SPECULATION",
+      "categoryLabel": "Speculative Outflows & Capital Markets (Suspect Siphoning)",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 1500000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-14"
+      ]
+    },
+    {
+      "canonicalName": "NEFT HDFC001 PEARL CERAMIC TILES",
+      "sampleNarration": "NEFT HDFC001 PEARL CERAMIC TILES PVT LTD",
+      "category": "RELATED_PARTY",
+      "categoryLabel": "AS-18 Related Party / Connected Person",
+      "isRelatedParty": true,
+      "relatedPartyDetails": {
+        "name": "Pearl Ceramic Tiles Private Limited",
+        "canonicalName": "PEARL CERAMIC TILES",
+        "relationship": "Associate Company / Common Director Holding",
+        "amount": 10300000
+      },
+      "totalDebits": 5500000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-15"
+      ]
+    },
+    {
+      "canonicalName": "TO CASH WITHDRAWAL SELF",
+      "sampleNarration": "TO CASH WITHDRAWAL SELF",
+      "category": "CASH_DRAIN",
+      "categoryLabel": "Physical Cash & Bearer Withdrawals",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 800000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-18"
+      ]
+    },
+    {
+      "canonicalName": "NACH RET INSUFFICIENT FUNDS LOAN EMI",
+      "sampleNarration": "NACH RET INSUFFICIENT FUNDS LOAN EMI",
+      "category": "LIQUIDITY_DISTRESS_AND_DISHONOR",
+      "categoryLabel": "Dishonored Instruments & Liquidity Penalties",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 500,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-20"
+      ]
+    },
+    {
+      "canonicalName": "CHQ RTN CHARGES UNPAID CHQ 1029",
+      "sampleNarration": "CHQ RTN CHARGES UNPAID CHQ 1029",
+      "category": "LIQUIDITY_DISTRESS_AND_DISHONOR",
+      "categoryLabel": "Dishonored Instruments & Liquidity Penalties",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 750,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-22"
+      ]
+    },
+    {
+      "canonicalName": "SELF CASH WITHDRAWAL FOR EXPENSES",
+      "sampleNarration": "SELF CASH WITHDRAWAL FOR EXPENSES",
+      "category": "INVESTMENT_SPECULATION",
+      "categoryLabel": "Speculative Outflows & Capital Markets (Suspect Siphoning)",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 1200000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-11-25"
+      ]
+    },
+    {
+      "canonicalName": "AMAZON INDIA RAW MATERIALS",
+      "sampleNarration": "AMAZON INDIA RAW MATERIALS",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 15000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-12-20"
+      ]
+    },
+    {
+      "canonicalName": "FLIPKART LOGISTICS",
+      "sampleNarration": "FLIPKART LOGISTICS",
+      "category": "TRADE_OPERATIONAL",
+      "categoryLabel": "Trade Operational Outflow / Creditors",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 8000,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2023-12-28"
+      ]
+    },
+    {
+      "canonicalName": "LOCAL TRANSPORT EXPENSES",
+      "sampleNarration": "LOCAL TRANSPORT EXPENSES",
+      "category": "INVESTMENT_SPECULATION",
+      "categoryLabel": "Speculative Outflows & Capital Markets (Suspect Siphoning)",
+      "isRelatedParty": false,
+      "relatedPartyDetails": null,
+      "totalDebits": 1200,
+      "totalCredits": 0,
+      "txnCount": 1,
+      "debitCount": 1,
+      "creditCount": 0,
+      "dates": [
+        "2024-01-08"
+      ]
+    }
+  ]
+}

@@ -60,5 +60,15 @@
   "workbench.editor.enablePreview": true,
   "workbench.editor.limit.enabled": true,
   "workbench.editor.limit.value": 2,
-  "workbench.editor.closeOnFileDelete": true
+  "workbench.editor.closeOnFileDelete": true,
+  "theia.ai.mcpServers": {
+    "resolution_bazaar": {
+      "url": "http://127.0.0.1:8000/mcp/sse",
+      "transport": "sse",
+      "headers": {
+        "X-API-Key": "rbz_live_test_ip_key_2026"
+      },
+      "description": "Resolution Bazaar Enterprise Diligence Hub (11.2M Records: Section 29A, CIBIL, MCA RoD, eCourts)"
+    }
+  }
 }

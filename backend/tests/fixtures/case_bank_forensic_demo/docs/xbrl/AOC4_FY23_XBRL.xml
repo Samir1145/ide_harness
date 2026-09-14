@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xbrli:xbrl xmlns:in-gaap="http://www.mca.gov.in/xbrl/2012-04-30/in-gaap">
+    <in-gaap:NameOfRelatedParty>Pearl Ceramic Tiles Private Limited</in-gaap:NameOfRelatedParty>
+    <in-gaap:NatureOfRelationship>Associate Company / Common Director Holding</in-gaap:NatureOfRelationship>
+    <in-gaap:AmountOfTransactionWithRelatedParty>10300000.00</in-gaap:AmountOfTransactionWithRelatedParty>
+
+    <in-gaap:NameOfRelatedParty>Pravinbhai Patel</in-gaap:NameOfRelatedParty>
+    <in-gaap:NatureOfRelationship>Managing Director & Promoter</in-gaap:NatureOfRelationship>
+
+    <in-gaap:NameOfBankOrFinancialInstitution>State Bank of India</in-gaap:NameOfBankOrFinancialInstitution>
+    <in-gaap:NameOfBankOrFinancialInstitution>HDFC Bank</in-gaap:NameOfBankOrFinancialInstitution>
+    <in-gaap:NameOfBankOrFinancialInstitution>Bank of Baroda</in-gaap:NameOfBankOrFinancialInstitution>
+
+    <in-gaap:HasCompanyDefaultedInRepaymentOfLoansOrBorrowings>Yes, default of Rs. 42.15 Crores to Consortium</in-gaap:HasCompanyDefaultedInRepaymentOfLoansOrBorrowings>
+    <in-gaap:DetailsOfFraudByCompanyOrItsEmployeesReported>Nil</in-gaap:DetailsOfFraudByCompanyOrItsEmployeesReported>
+</xbrli:xbrl>

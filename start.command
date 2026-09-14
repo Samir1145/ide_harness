@@ -179,7 +179,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../../../../../../.." && pwd)"
 
 if [ ! -f "$ROOT_DIR/start.command" ]; then
-    ROOT_DIR="/Users/atulgrover/Desktop/HAYAGRIVA"
+    ROOT_DIR="/Users/atulgrover/Desktop/ide_harness"
 fi
 
 if [ "$#" -eq 0 ]; then

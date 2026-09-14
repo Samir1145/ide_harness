@@ -8,7 +8,13 @@ PORT="8090"
 
 MODELS_BASE="${HAYA_MODELS_PATH:-}"
 if [ -z "$MODELS_BASE" ]; then
-    if [ -d "/Users/atulgrover/Desktop/haya_models/weights/llm" ]; then
+    if [ -d "$(dirname "$0")/../models/llm" ]; then
+        MODELS_BASE="$(dirname "$0")/../models/llm"
+    elif [ -d "/Users/atulgrover/Desktop/ide_models/weights/llm" ]; then
+        MODELS_BASE="/Users/atulgrover/Desktop/ide_models/weights/llm"
+    elif [ -d "$HOME/Desktop/ide_models/weights/llm" ]; then
+        MODELS_BASE="$HOME/Desktop/ide_models/weights/llm"
+    elif [ -d "/Users/atulgrover/Desktop/haya_models/weights/llm" ]; then
         MODELS_BASE="/Users/atulgrover/Desktop/haya_models/weights/llm"
     elif [ -d "$HOME/Desktop/haya_models/weights/llm" ]; then
         MODELS_BASE="$HOME/Desktop/haya_models/weights/llm"

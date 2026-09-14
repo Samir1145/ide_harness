@@ -3,6 +3,7 @@ const path = require('path');
 const Module = require('module');
 const { getChatResponse } = require('../core/llm-client');
 const agentLogger = require('./agent-logger');
+const BankAnalyzerSubAgent = require('./subagents/bank-analyzer');
 
 // Dynamically resolve engine libraries for decoupled/symlinked agent packs
 const origResolveFilename = Module._resolveFilename;
@@ -25,6 +26,7 @@ class AgentCoordinator {
         // Dynamic Vault Agent Packs Registry (.vlt)
         this.vaultAgents = {};
         this.loadVaultPacks();
+        this.bankAnalyzer = new BankAnalyzerSubAgent();
     }
 
     loadVaultPacks() {
@@ -87,7 +89,7 @@ class AgentCoordinator {
 2. "forms"    — statutory forms, compliance fields, math auditing.
 3. "document" — drafting documents, petitions, replies, resolutions.
 
-Output ONLY the category name in lowercase. Do not add explanations.
+Output ONLY the category name in lowercase. If the query asks to analyze bank statements, cash flows, or bank accounts, output "bank_analyzer". Do not add explanations.
 
 Prompt: "${message}"`;
 
@@ -97,7 +99,7 @@ Prompt: "${message}"`;
                 { role: 'user', content: prompt }
             ], { caseDir });
             const cleaned = (response || '').trim().toLowerCase();
-            if (['advisor', 'forms', 'document'].includes(cleaned)) return cleaned;
+            if (['advisor', 'forms', 'document', 'bank_analyzer'].includes(cleaned)) return cleaned;
         } catch (e) {
             console.error('[Agent Coordinator] Classification failed:', e.message);
         }
@@ -114,7 +116,11 @@ Prompt: "${message}"`;
     async run(caseDir, userMessage, history = [], targetAgentName = '', options = {}) {
         const agentMap = {
             // Dynamic Vault .vlt Agent Packs (legal_agents.vlt, coding_agents.vlt, finance_agents.vlt)
-            ...this.vaultAgents
+            ...this.vaultAgents,
+            'bank_analyzer': this.bankAnalyzer,
+            'bank-analyzer': this.bankAnalyzer,
+            'bank_forensic': this.bankAnalyzer,
+            'cashflow_agent': this.bankAnalyzer
         };
 
         const { orchestratorRegistry } = require('./orchestrator-coordinator');
