@@ -497,6 +497,21 @@ module.exports = {
             }
         },
 
+        '/api/hayagriva/license/status': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const { getLicenseStatus, checkAgentAccess } = require('./core/license-manager');
+                const status = getLicenseStatus();
+                const access = checkAgentAccess(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, license: status, access }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
         '/api/hayagriva/documents': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
@@ -4112,27 +4127,47 @@ module.exports = {
                 try {
                     const { licenseKey, case: caseName } = JSON.parse(body || '{}');
                     const caseDir = resolveCaseDir(docsRoot, caseName);
-                    const { validateLicense, writeLicenseToSettings } = require('./utils/license-validator');
+                    const { activateLicense } = require('./core/license-manager');
+                    const { writeLicenseToSettings } = require('./utils/license-validator');
 
-                    const result = validateLicense(licenseKey);
-                    if (!result.valid) {
+                    const result = activateLicense(licenseKey, caseDir);
+                    if (!result.success) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ success: false, error: result.error }));
                         return;
                     }
 
                     if (caseDir && fs.existsSync(caseDir)) {
-                        writeLicenseToSettings(caseDir, result.tier, result.payload);
+                        writeLicenseToSettings(caseDir, result.tier, {
+                            sub: result.licensee,
+                            expiresAt: result.valid_until
+                        });
                     }
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({
                         success: true,
                         tier: result.tier,
-                        licensedTo: result.payload?.sub,
-                        expiresAt: result.payload?.expiresAt,
-                        warning: result.warning || null
+                        licensedTo: result.licensee,
+                        expiresAt: result.valid_until
                     }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/license/reanchor': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const { serverUtcTimestamp } = JSON.parse(body || '{}');
+                    const { reanchorFromNetwork } = require('./core/license-manager');
+                    const result = reanchorFromNetwork(serverUtcTimestamp || Date.now());
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, result }));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: e.message }));

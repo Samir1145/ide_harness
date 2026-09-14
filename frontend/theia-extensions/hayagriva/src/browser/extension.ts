@@ -776,6 +776,36 @@ export class HayagrivaFrontendContribution
           this.updateStatusBarStyle('lite');
         }
 
+        // Tamper-Resistant Agentic License Status Bar Element
+        try {
+          const licRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/license/status?case=${encodeURIComponent(caseName)}`);
+          if (licRes.ok) {
+            const licData = await licRes.json();
+            const access = licData.access || {};
+            const lic = licData.license || {};
+            if (!access.allowed) {
+              const icon = access.status === 'TAMPERED' ? '$(fa-warning)' : '$(fa-lock)';
+              const label = access.status === 'TAMPERED' ? 'Clock Altered' : 'Lease Expired';
+              this.statusBar.setElement('hayagriva-license-item', {
+                text: `${icon} Agentic: ${label}`,
+                alignment: StatusBarAlignment.LEFT,
+                color: '#f59e0b',
+                tooltip: `Agentic AI drafting is paused (${access.reason || 'License expired'}). Left & middle editor tools remain 100% active. Click to activate.`,
+                priority: 140,
+                onclick: () => this.commandRegistry.executeCommand('hayagriva.license.activate')
+              });
+            } else {
+              this.statusBar.setElement('hayagriva-license-item', {
+                text: `$(fa-shield) ${lic.tier || 'Enterprise'}`,
+                alignment: StatusBarAlignment.LEFT,
+                tooltip: `Agentic Lease: Active for ${lic.licensee || 'User'} (${lic.turns_used}/${lic.max_agent_turns} turns, ${lic.active_hours_used} hrs used).`,
+                priority: 140,
+                onclick: () => this.commandRegistry.executeCommand('hayagriva.license.activate')
+              });
+            }
+          }
+        } catch (_) {}
+
         // Resolution Bazaar Billing Status Bar Element
         try {
           const billRes = await fetch(`http://127.0.0.1:${apiPort}/api/billing/case-summary?case=${encodeURIComponent(caseName)}`);

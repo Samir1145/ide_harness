@@ -1276,5 +1276,36 @@ export class HayagrivaCommandContribution implements CommandContribution {
         }
       }
     );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}.license.activate`, label: 'Hayagriva: Enter Agentic License Key' },
+      {
+        execute: async () => {
+          const apiPort = 3210;
+          const caseName = this.getCasePath().split(/[\\/]/).pop() || '';
+          let key = '';
+          if (typeof window !== 'undefined') {
+            key = window.prompt('Enter your Hayagriva / Resolution Bazaar Agentic License Key (e.g. HAYG...):', '') || '';
+          }
+          if (!key.trim()) return;
+
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/license/activate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ licenseKey: key.trim(), case: caseName })
+            });
+            const data = await res.json();
+            if (data.success) {
+              this.messageService.info(`✓ License activated for ${data.licensedTo || 'Practitioner'} (${data.tier || 'Enterprise'}). Agentic drafting unlocked!`);
+            } else {
+              this.messageService.error(`License activation failed: ${data.error}`);
+            }
+          } catch (err: any) {
+            this.messageService.error(`Failed to activate license: ${err.message}`);
+          }
+        }
+      }
+    );
   }
 }

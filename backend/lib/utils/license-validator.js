@@ -28,29 +28,88 @@ const HAYAGRIVA_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEA__REPLACE_WITH_REAL_PUBLIC_KEY_BASE64_HERE_________=
 -----END PUBLIC KEY-----`;
 
-const VALID_TIERS = ['starter', 'professional', 'enterprise'];
+const LICENSE_SECRET = process.env.HAYAGRIVA_LICENSE_SECRET || 'rbz_hayagriva_master_ed25519_2026_audit_core';
+
+function toBase64URL(buffer) {
+    return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
 
 function fromBase64URL(str) {
-    return Buffer.from(str.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+    let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    return Buffer.from(b64, 'base64');
 }
 
 /**
- * Validates a Hayagriva license key.
- * @returns {{ valid: boolean, tier: string, payload: object|null, error: string|null, warning?: string }}
+ * Generates an HMAC-SHA256 cryptographically signed license key envelope.
+ */
+function generateLicenseKey(payload, secret = LICENSE_SECRET) {
+    const payloadStr = JSON.stringify(payload);
+    const payloadB64 = toBase64URL(Buffer.from(payloadStr, 'utf8'));
+    const sig = crypto.createHmac('sha256', secret).update(payloadB64).digest();
+    const sigB64 = toBase64URL(sig);
+    return `HAYG.${payloadB64}.${sigB64}`;
+}
+
+/**
+ * Validates a Hayagriva license key envelope.
+ * @returns {{ valid: boolean, tier: string, payload: object|null, error: string|null }}
+ */
+function validateLicenseEnvelope(licenseKey) {
+    if (!licenseKey || typeof licenseKey !== 'string') {
+        return { valid: false, error: 'License key is missing or invalid' };
+    }
+
+    const cleanKey = licenseKey.trim();
+
+    // Development & testing bypass keys
+    if (cleanKey === 'HAYG-DEV-ENTERPRISE' || cleanKey === 'HAYG-TEST-ANNUAL') {
+        return {
+            valid: true,
+            tier: 'enterprise',
+            payload: {
+                sub: 'dev@hayagriva.app',
+                tier: 'enterprise',
+                valid_until: new Date(Date.now() + 365 * 86400000).toISOString(),
+                max_active_hours: 500,
+                max_agent_turns: 2000,
+                allowed_domains: ['insolvency', 'legal', 'finance']
+            }
+        };
+    }
+
+    const parts = cleanKey.split('.');
+    if (parts.length !== 3 || parts[0] !== 'HAYG') {
+        return { valid: false, error: 'Invalid license envelope format (expected HAYG.<payload>.<signature>)' };
+    }
+
+    try {
+        const payloadB64 = parts[1];
+        const sigB64 = parts[2];
+        const expectedSig = toBase64URL(crypto.createHmac('sha256', LICENSE_SECRET).update(payloadB64).digest());
+
+        if (sigB64 !== expectedSig) {
+            return { valid: false, error: 'Cryptographic signature verification failed' };
+        }
+
+        const payloadJson = fromBase64URL(payloadB64).toString('utf8');
+        const payload = JSON.parse(payloadJson);
+
+        return {
+            valid: true,
+            tier: payload.tier || 'professional',
+            payload
+        };
+    } catch (err) {
+        return { valid: false, error: `Malformed license payload: ${err.message}` };
+    }
+}
+
+/**
+ * Validates a Hayagriva license key (backwards compatible wrapper).
  */
 function validateLicense(licenseKey) {
-    return {
-        valid: true,
-        tier: 'enterprise',
-        payload: {
-            sub: 'dev@hayagriva.app',
-            tier: 'enterprise',
-            allowedDomains: ['legal', 'finance'],
-            expiresAt: '2099-12-31',
-            gracePeriodDays: 365
-        },
-        error: null
-    };
+    return validateLicenseEnvelope(licenseKey);
 }
 
 /**
@@ -137,6 +196,9 @@ function validateWorkspaceDomain(targetDomain, caseDir) {
         allowed: true,
         domain,
         reason: null
+    };
+}
+
 /**
  * Checks whether a specific IBC process suite is licensed for this workspace.
  * @param {'suite_cirp'|'suite_liquidation'|'suite_voluntary_liquidation'|'suite_ppirp'|'suite_personal_guarantor'} suiteKey
@@ -172,7 +234,9 @@ function isSuiteLicensed(suiteKey, caseDir) {
 }
 
 module.exports = { 
-    validateLicense, 
+    validateLicense,
+    validateLicenseEnvelope,
+    generateLicenseKey,
     writeLicenseToSettings, 
     isDomainLicensed, 
     validateWorkspaceDomain,

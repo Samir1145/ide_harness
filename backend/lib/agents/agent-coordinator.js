@@ -137,6 +137,28 @@ Prompt: "${message}"`;
         agentLogger.startContext(reqId);
         agentLogger.log(reqId, 'AgentCoordinator', 'INIT', `Received query: "${userMessage}"`);
 
+        // Gate Right-Panel Agentic Execution via Tamper-Resistant License Manager
+        const { checkAgentAccess, recordAgentTurn } = require('../core/license-manager');
+        const access = checkAgentAccess(caseDir);
+        if (!access.allowed) {
+            agentLogger.log(reqId, 'AgentCoordinator', 'LICENSE_GATED', `Agent access denied: ${access.reason}`);
+            const title = access.status === 'TAMPERED' ? '⚠️ System Clock Alteration Detected' : '🔒 Agentic Assistance Lease Expired';
+            const advice = access.status === 'TAMPERED'
+                ? 'Your local system clock does not match the tamper-evident ledger. Re-sync with Resolution Bazaar or contact support.'
+                : (access.message || 'Your agentic lease for autonomous drafting has reached its limit.');
+
+            const fallbackNotice = `### ${title}\n\n${advice}\n\n` +
+                `> **Workspace Immunity Notice:** Your Left Panel (case browser, concepts matrix, inbox, ledger) and Middle Panel (Monaco document editor, PDF horizontally-fitted previewer, local RAG search) remain **100% functional and unlocked**.\n\n` +
+                `To activate or renew autonomous agent drafting, open **Settings → License** or visit the [Resolution Bazaar Billing Portal](http://127.0.0.1:8000/portal/billing).`;
+
+            if (options && options.returnObject) {
+                return { response: fallbackNotice, logs: agentLogger.endContext(reqId) };
+            }
+            return fallbackNotice;
+        }
+
+        const hrStart = process.hrtime.bigint();
+
         // Track 2: Dynamic Template Resolution & Memory Context Injection
         const enrichedMessage = resolvePromptVariables(caseDir, userMessage, options.activeFile);
         let memoryContext = '';
@@ -188,6 +210,12 @@ Prompt: "${message}"`;
                 throw e;  // Real errors still propagate
             }
         }
+
+        try {
+            const hrEnd = process.hrtime.bigint();
+            const elapsedSecs = Number(hrEnd - hrStart) / 1e9;
+            recordAgentTurn(caseDir, elapsedSecs);
+        } catch (_) {}
 
         agentLogger.log(reqId, 'AgentCoordinator', 'COMPLETE', 'Agent execution completed successfully');
         const logs = agentLogger.endContext(reqId);
