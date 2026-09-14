@@ -21,7 +21,7 @@ import { HayagrivaLspClient } from './lsp-client';
 import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
 
-const { wikiExplorerHtml, conceptsExplorerHtml, inboxExplorerHtml } = require('./templates');
+const { wikiExplorerHtml, conceptsExplorerHtml, inboxExplorerHtml, billingExplorerHtml } = require('./templates');
 
 export const hayagrivaPreferenceSchema: PreferenceSchema = {
   properties: {
@@ -55,6 +55,7 @@ export class HayagrivaFrontendContribution
   protected wikiWidget?: Widget;
   protected conceptsWidget?: Widget;
   protected inboxWidget?: Widget;
+  protected billingWidget?: Widget;
   protected uploadModalElement?: HTMLElement;
 
   constructor(
@@ -158,6 +159,7 @@ export class HayagrivaFrontendContribution
     this.initializeWikiExplorerWidget();
     this.initializeConceptsExplorerWidget();
     this.initializeInboxExplorerWidget();
+    this.initializeBillingExplorerWidget();
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
     this.startBackendMonitor();
 
@@ -187,7 +189,7 @@ export class HayagrivaFrontendContribution
     const leftWidgets = this.shell.getWidgets('left');
     for (const widget of leftWidgets) {
       const id = widget.id.toLowerCase();
-      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer' && id !== 'hayagriva-inbox-explorer') {
+      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer' && id !== 'hayagriva-inbox-explorer' && id !== 'hayagriva-billing-explorer') {
         widget.close();
       }
     }
@@ -610,6 +612,34 @@ export class HayagrivaFrontendContribution
     this.shell.addWidget(inboxExplorer, { area: 'left', rank: 540 });
   }
 
+  initializeBillingExplorerWidget(): void {
+    if (this.billingWidget) return;
+
+    const initialCase = this.getActiveCaseName();
+    const billingExplorer = new Widget();
+    billingExplorer.id = 'hayagriva-billing-explorer';
+    billingExplorer.title.label = 'Billing';
+    billingExplorer.title.caption = 'Resolution Bazaar Diligence Ledger & Settlement';
+    billingExplorer.title.iconClass = 'fa fa-credit-card';
+    billingExplorer.title.closable = false;
+
+    const billingIframe = document.createElement('iframe');
+    billingIframe.style.width = '100%';
+    billingIframe.style.height = '100%';
+    billingIframe.style.border = 'none';
+    billingIframe.srcdoc = billingExplorerHtml(initialCase, this.getApiPort());
+    billingExplorer.node.appendChild(billingIframe);
+
+    this.billingWidget = billingExplorer;
+    this.shell.addWidget(billingExplorer, { area: 'left', rank: 535 });
+  }
+
+  openBillingExplorer(): void {
+    if (this.billingWidget) {
+      this.shell.activateWidget(this.billingWidget.id);
+    }
+  }
+
   updateSidebarCase(caseName: string): void {
     if (this.uploadModalElement) {
       const iframe = this.uploadModalElement.querySelector('iframe');
@@ -631,6 +661,12 @@ export class HayagrivaFrontendContribution
     }
     if (this.inboxWidget) {
       const iframe = this.inboxWidget.node.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
+      }
+    }
+    if (this.billingWidget) {
+      const iframe = this.billingWidget.node.querySelector('iframe');
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
       }
@@ -739,6 +775,26 @@ export class HayagrivaFrontendContribution
           });
           this.updateStatusBarStyle('lite');
         }
+
+        // Resolution Bazaar Billing Status Bar Element
+        try {
+          const billRes = await fetch(`http://127.0.0.1:${apiPort}/api/billing/case-summary?case=${encodeURIComponent(caseName)}`);
+          if (billRes.ok) {
+            const billData = await billRes.json();
+            const ledger = billData.ledger || {};
+            const totalDue = (ledger.total_due_inr !== undefined) ? ledger.total_due_inr : 0;
+            const pendingCount = ledger.pending_approval_count || 0;
+            const pendingStr = pendingCount > 0 ? ` (${pendingCount} pending)` : '';
+            this.statusBar.setElement('hayagriva-billing-item', {
+              text: `$(fa-credit-card) RBZ: ₹${totalDue.toFixed(2)}${pendingStr}`,
+              alignment: StatusBarAlignment.RIGHT,
+              tooltip: `Resolution Bazaar Diligence Ledger: ₹${totalDue.toFixed(2)} due. Click to view ledger and invoices.`,
+              priority: 95,
+              onclick: () => this.commandRegistry.executeCommand('hayagriva.billing.open')
+            });
+          }
+        } catch (_) {}
+
         return;
       }
       throw new Error('Non-ok response');

@@ -448,6 +448,55 @@ module.exports = {
             res.end(JSON.stringify({ port: null }));
         },
 
+        '/api/billing/case-summary': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                if (!caseDir) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Case directory not specified or not found' }));
+                    return;
+                }
+                const { getCaseLedger } = require('./core/case-billing-store');
+                const ledger = getCaseLedger(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, ledger }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/billing/rate-card': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const { DEFAULT_TOOL_RATES } = require('./core/case-billing-store');
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, rateCard: DEFAULT_TOOL_RATES, currency: 'INR' }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/billing/verify-integrity': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                if (!caseDir) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Case directory not specified or not found' }));
+                    return;
+                }
+                const { verifyLedgerIntegrity } = require('./core/case-billing-store');
+                const integrity = verifyLedgerIntegrity(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, integrity }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
         '/api/hayagriva/documents': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
@@ -2216,6 +2265,167 @@ module.exports = {
     },
 
     POST: {
+        '/api/billing/record-pending': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    if (!caseDir) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Case directory not found' }));
+                        return;
+                    }
+                    const { recordPendingTask } = require('./core/case-billing-store');
+                    const task = recordPendingTask(caseDir, data.task || data);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, task }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/billing/authorize-task': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    if (!caseDir) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Case directory not found' }));
+                        return;
+                    }
+                    const { markTaskAuthorized } = require('./core/case-billing-store');
+                    const taskId = data.taskId || data.task_id;
+                    markTaskAuthorized(caseDir, taskId, data.authorizedBy || 'user');
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, taskId }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/billing/record-executed': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    if (!caseDir) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Case directory not found' }));
+                        return;
+                    }
+                    const { markTaskExecuted } = require('./core/case-billing-store');
+                    const taskId = data.taskId || data.task_id;
+                    const result = markTaskExecuted(caseDir, taskId, data.serverResult || data);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, result }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/billing/cancel-task': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    if (!caseDir) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Case directory not found' }));
+                        return;
+                    }
+                    const { cancelTask } = require('./core/case-billing-store');
+                    const taskId = data.taskId || data.task_id;
+                    cancelTask(caseDir, taskId);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, taskId }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/billing/sync-server': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    if (!caseDir) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Case directory not found' }));
+                        return;
+                    }
+                    const caseId = path.basename(caseDir);
+                    const serverUrl = data.serverUrl || 'http://127.0.0.1:8000';
+                    const http = require('http');
+
+                    const fetchUrl = `${serverUrl}/api/v1/billing/case-summary?case_id=${encodeURIComponent(caseId)}`;
+                    const serverData = await new Promise((resolve) => {
+                        http.get(fetchUrl, (srvRes) => {
+                            let raw = '';
+                            srvRes.on('data', c => raw += c);
+                            srvRes.on('end', () => {
+                                try {
+                                    resolve(JSON.parse(raw));
+                                } catch (e) {
+                                    resolve({ error: e.message, raw });
+                                }
+                            });
+                        }).on('error', err => resolve({ error: err.message, offline: true }));
+                    });
+
+                    const { getCaseLedger, updateSettlementStatus } = require('./core/case-billing-store');
+                    if (serverData && serverData.invoices && Array.isArray(serverData.invoices)) {
+                        for (const inv of serverData.invoices) {
+                            if (inv.payment_status === 'PAID') {
+                                updateSettlementStatus(
+                                    caseDir,
+                                    inv.invoice_id,
+                                    inv.invoice_number,
+                                    inv.total_inr,
+                                    inv.gateway_payment_id || 'SERVER_SYNC',
+                                    'WEBHOOK_SYNC'
+                                );
+                            }
+                        }
+                    }
+
+                    const localLedger = getCaseLedger(caseDir);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        serverOnline: !serverData.offline && !serverData.error,
+                        serverData,
+                        localLedger
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
         '/api/hayagriva/engine/start': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);

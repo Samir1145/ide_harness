@@ -2714,4 +2714,579 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
 </html>`;
 }
 
+export function billingExplorerHtml(caseName: string, apiPort: number = 3210): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    --bg-primary: var(--theia-layout-color1, #14161a);
+    --bg-card: #1c1e24;
+    --bg-card-hover: #232730;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --text-primary: #f3f4f6;
+    --text-muted: #9ca3af;
+    --accent-blue: #38bdf8;
+    --accent-emerald: #10b981;
+    --accent-amber: #f59e0b;
+    --accent-purple: #a855f7;
+    --accent-rose: #f43f5e;
+  }
+  body {
+    font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    font-size: 12px;
+    margin: 0;
+    padding: 12px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .title {
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #e2e8f0;
+  }
+  .balance-card {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .balance-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .balance-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .balance-amount {
+    font-size: 20px;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: -0.5px;
+  }
+  .balance-breakdown {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  }
+  .action-buttons {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .btn-pay {
+    flex: 1.2;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-weight: 600;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    transition: all 0.15s ease;
+  }
+  .btn-pay:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
+  }
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.15s ease;
+  }
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px;
+    border-radius: 6px;
+  }
+  .tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 5px 4px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+  }
+  .tab-badge {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 1px 5px;
+    font-size: 9.5px;
+    margin-left: 3px;
+  }
+  .tab-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 2px;
+  }
+  .task-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 9px 10px;
+    transition: border-color 0.15s ease;
+  }
+  .task-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+  .task-tool {
+    font-weight: 600;
+    font-size: 11.5px;
+    color: #e2e8f0;
+    word-break: break-word;
+  }
+  .task-rate {
+    font-weight: 700;
+    font-size: 12px;
+    color: #38bdf8;
+    white-space: nowrap;
+  }
+  .task-target {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .task-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+  .badge-status {
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .status-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+  .status-executed { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+  .status-settled { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .btn-auth {
+    flex: 1;
+    background: #059669;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-auth:hover { background: #047857; }
+  .btn-discard {
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 10.5px;
+    cursor: pointer;
+  }
+  .btn-discard:hover { background: rgba(239, 68, 68, 0.1); }
+  .empty-state {
+    text-align: center;
+    padding: 24px 12px;
+    color: #64748b;
+    font-size: 11px;
+  }
+  .rate-card-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .rate-card-table th {
+    text-align: left;
+    color: #94a3b8;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .rate-card-table td {
+    padding: 6px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .integrity-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #10b981;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.1);
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <span class="title">Resolution Bazaar</span>
+      <span class="integrity-pill" id="integrity-badge" title="Cryptographic SHA-256 Chained Ledger">⛓️ SHA-256</span>
+    </div>
+    <button class="btn-secondary" onclick="syncServer()" title="Sync with Server">🔄 Sync</button>
+  </div>
+
+  <div class="balance-card">
+    <div class="balance-top">
+      <span class="balance-label">Total Accrued Due</span>
+      <span class="balance-amount" id="total-due">₹0.00</span>
+    </div>
+    <div class="balance-breakdown">
+      <span id="unbilled-subtotal">Subtotal: ₹0.00</span>
+      <span id="gst-amount">GST (18%): ₹0.00</span>
+    </div>
+    <div class="action-buttons">
+      <button class="btn-pay" onclick="openPaymentPortal()">
+        💳 Pay on Resolution Bazaar
+      </button>
+      <button class="btn-secondary" onclick="verifyIntegrity()" title="Verify SQLite Hash Chain">
+        🛡️ Audit
+      </button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pending')" id="tab-btn-pending">
+      Approvals <span class="tab-badge" id="badge-pending">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('executed')" id="tab-btn-executed">
+      Executed <span class="tab-badge" id="badge-executed">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('receipts')" id="tab-btn-receipts">
+      Receipts <span class="tab-badge" id="badge-receipts">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('rates')" id="tab-btn-rates">
+      Rate Card
+    </button>
+  </div>
+
+  <div class="tab-content" id="content-pending">
+    <div class="empty-state">Loading pending approvals…</div>
+  </div>
+  <div class="tab-content" id="content-executed" style="display: none;">
+    <div class="empty-state">Loading executed diligence tasks…</div>
+  </div>
+  <div class="tab-content" id="content-receipts" style="display: none;">
+    <div class="empty-state">Loading settlement receipts…</div>
+  </div>
+  <div class="tab-content" id="content-rates" style="display: none;">
+    <table class="rate-card-table">
+      <thead>
+        <tr>
+          <th>Statutory Diligence Module</th>
+          <th style="text-align: right;">Rate (INR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Section 29A Entity Screening</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">₹250</td></tr>
+        <tr><td>CIBIL Defaulters Inquest</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">₹75</td></tr>
+        <tr><td>Director MCA RoD Status</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">₹50</td></tr>
+        <tr><td>eCourts Litigation Search</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">₹150</td></tr>
+        <tr><td>Plan Verification Dossier</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">₹1,500</td></tr>
+      </tbody>
+    </table>
+    <div style="font-size: 10px; color: #64748b; margin-top: 10px; line-height: 1.4;">
+      * Zero-Cost Hard Floor Guarantee: Unapproved tasks incur ₹0 cost. Rates are charged per executed API transaction with 18% GST itemized.
+    </div>
+  </div>
+
+  <script>
+    let currentCase = "${caseName}";
+    const apiPort = ${apiPort};
+    let activeTab = 'pending';
+    let cachedLedger = null;
+
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'select-case' && event.data.caseName) {
+        currentCase = event.data.caseName;
+        loadLedger();
+      }
+    });
+
+    function switchTab(tab) {
+      activeTab = tab;
+      ['pending', 'executed', 'receipts', 'rates'].forEach(t => {
+        const btn = document.getElementById('tab-btn-' + t);
+        const content = document.getElementById('content-' + t);
+        if (btn && content) {
+          if (t === tab) {
+            btn.classList.add('active');
+            content.style.display = 'flex';
+          } else {
+            btn.classList.remove('active');
+            content.style.display = 'none';
+          }
+        }
+      });
+      if (cachedLedger) {
+        renderLedger(cachedLedger);
+      }
+    }
+
+    async function loadLedger() {
+      if (!currentCase) return;
+      try {
+        const res = await fetch(\`http://127.0.0.1:\${apiPort}/api/billing/case-summary?case=\${encodeURIComponent(currentCase)}\`);
+        if (!res.ok) throw new Error('Failed to load ledger');
+        const data = await res.json();
+        if (data.success && data.ledger) {
+          cachedLedger = data.ledger;
+          renderLedger(data.ledger);
+        }
+      } catch (err) {
+        console.error('Error loading billing ledger:', err);
+      }
+    }
+
+    function renderLedger(ledger) {
+      document.getElementById('total-due').textContent = '₹' + (ledger.total_due_inr || 0).toFixed(2);
+      document.getElementById('unbilled-subtotal').textContent = 'Subtotal: ₹' + (ledger.unbilled_subtotal_inr || 0).toFixed(2);
+      document.getElementById('gst-amount').textContent = 'GST (18%): ₹' + (ledger.gst_18_pct_inr || 0).toFixed(2);
+      document.getElementById('badge-pending').textContent = ledger.pending_approval_count || 0;
+      document.getElementById('badge-executed').textContent = ledger.unbilled_count || 0;
+      document.getElementById('badge-receipts').textContent = (ledger.receipts || []).length;
+
+      // 1. Pending tasks
+      const pendingContainer = document.getElementById('content-pending');
+      const pendingTasks = ledger.pending_tasks || [];
+      if (pendingTasks.length === 0) {
+        pendingContainer.innerHTML = '<div class="empty-state">No tasks awaiting approval. Hard floor secure (₹0 cost).</div>';
+      } else {
+        pendingContainer.innerHTML = pendingTasks.map(t => \`
+          <div class="task-card">
+            <div class="task-header">
+              <div class="task-tool">\${formatToolName(t.tool_name)}</div>
+              <div class="task-rate">₹\${t.rate_inr.toFixed(2)}</div>
+            </div>
+            <div class="task-target">Target: \${t.target_name || t.target_identifier || 'Entity'}</div>
+            <div class="task-meta">
+              <span>\${formatDate(t.created_at)}</span>
+              <span class="badge-status status-pending">Pending Approval</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn-auth" onclick="authorizeTask('\${t.task_id}')">Authorize & Run</button>
+              <button class="btn-discard" onclick="cancelTask('\${t.task_id}')">Discard</button>
+            </div>
+          </div>
+        \`).join('');
+      }
+
+      // 2. Executed tasks
+      const executedContainer = document.getElementById('content-executed');
+      const executedTasks = ledger.executed_tasks || [];
+      if (executedTasks.length === 0) {
+        executedContainer.innerHTML = '<div class="empty-state">No diligence tasks executed yet.</div>';
+      } else {
+        executedContainer.innerHTML = executedTasks.map(t => \`
+          <div class="task-card">
+            <div class="task-header">
+              <div class="task-tool">\${formatToolName(t.tool_name)}</div>
+              <div class="task-rate">₹\${t.rate_inr.toFixed(2)}</div>
+            </div>
+            <div class="task-target">Target: \${t.target_name || t.target_identifier || 'Entity'}</div>
+            <div class="task-meta">
+              <span>\${formatDate(t.executed_at || t.created_at)}</span>
+              <span class="badge-status \${t.payment_status === 'SETTLED' ? 'status-settled' : 'status-executed'}">
+                \${t.payment_status}
+              </span>
+            </div>
+          </div>
+        \`).join('');
+      }
+
+      // 3. Receipts
+      const receiptsContainer = document.getElementById('content-receipts');
+      const receipts = ledger.receipts || [];
+      if (receipts.length === 0) {
+        receiptsContainer.innerHTML = '<div class="empty-state">No settlement receipts found. Click "Pay on Resolution Bazaar" to settle.</div>';
+      } else {
+        receiptsContainer.innerHTML = receipts.map(r => \`
+          <div class="task-card">
+            <div class="task-header">
+              <div class="task-tool">\${r.invoice_number}</div>
+              <div class="task-rate" style="color: #10b981;">₹\${r.total_inr.toFixed(2)}</div>
+            </div>
+            <div class="task-target">Gateway Ref: \${r.gateway_payment_id}</div>
+            <div class="task-meta">
+              <span>\${formatDate(r.paid_at)}</span>
+              <span class="badge-status status-settled">PAID</span>
+            </div>
+          </div>
+        \`).join('');
+      }
+    }
+
+    async function authorizeTask(taskId) {
+      try {
+        await fetch(\`http://127.0.0.1:\${apiPort}/api/billing/authorize-task\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: currentCase, taskId, authorizedBy: 'Advocate' })
+        });
+        loadLedger();
+      } catch (err) {
+        alert('Error authorizing task: ' + err.message);
+      }
+    }
+
+    async function cancelTask(taskId) {
+      try {
+        await fetch(\`http://127.0.0.1:\${apiPort}/api/billing/cancel-task\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: currentCase, taskId })
+        });
+        loadLedger();
+      } catch (err) {
+        alert('Error cancelling task: ' + err.message);
+      }
+    }
+
+    async function syncServer() {
+      try {
+        const res = await fetch(\`http://127.0.0.1:\${apiPort}/api/billing/sync-server\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: currentCase })
+        });
+        const data = await res.json();
+        if (data.localLedger) {
+          cachedLedger = data.localLedger;
+          renderLedger(data.localLedger);
+        }
+      } catch (err) {
+        alert('Sync failed: ' + err.message);
+      }
+    }
+
+    async function verifyIntegrity() {
+      try {
+        const res = await fetch(\`http://127.0.0.1:\${apiPort}/api/billing/verify-integrity?case=\${encodeURIComponent(currentCase)}\`);
+        const data = await res.json();
+        if (data.integrity && data.integrity.valid) {
+          alert('✔ SHA-256 Ledger Audit PASSED! All ' + data.integrity.rows_verified + ' records cryptographically intact.');
+        } else {
+          alert('⚠️ Warning: Ledger validation alert: ' + JSON.stringify(data.integrity));
+        }
+      } catch (err) {
+        alert('Audit check failed: ' + err.message);
+      }
+    }
+
+    function openPaymentPortal() {
+      window.open(\`http://127.0.0.1:8000/portal/billing?case_id=\${encodeURIComponent(currentCase)}\`, '_blank');
+    }
+
+    function formatToolName(name) {
+      if (!name) return 'Diligence Check';
+      return name
+        .replace(/^screen_section_29a_entity$/, 'Section 29A Screening')
+        .replace(/^query_cibil_defaulters$/, 'CIBIL Defaulters Inquest')
+        .replace(/^check_director_mca_status$/, 'Director MCA RoD Status')
+        .replace(/^execute_ecourts_litigation_search$/, 'eCourts Litigation Search')
+        .replace(/^generate_plan_verification_dossier$/, 'Plan Verification Dossier')
+        .replace(/_/g, ' ');
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      } catch (_) {
+        return dateStr;
+      }
+    }
+
+    loadLedger();
+    setInterval(loadLedger, 5000);
+  </script>
+</body>
+</html>`;
+}
+
+
 

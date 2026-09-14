@@ -1255,5 +1255,26 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isVisible: () => true
       }
     );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}.billing.open`, label: 'Resolution Bazaar: Open Billing & Diligence Ledger' },
+      {
+        execute: () => {
+          this.contribution.openBillingExplorer();
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}.billing.pay`, label: 'Resolution Bazaar: Pay & Settle Diligence Invoices' },
+      {
+        execute: () => {
+          const caseName = this.getCasePath().split(/[\\/]/).pop() || '';
+          if (typeof window !== 'undefined') {
+            window.open(`http://127.0.0.1:8000/portal/billing?case_id=${encodeURIComponent(caseName)}`, '_blank');
+          }
+        }
+      }
+    );
   }
 }

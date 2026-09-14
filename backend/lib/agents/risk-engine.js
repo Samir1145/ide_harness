@@ -119,7 +119,7 @@ const TOOL_RISK_MAP = {
     'convert_document': RiskClass.EXEC,
     'run_shell': RiskClass.EXEC,
 
-    // EXTERNAL tools
+    // EXTERNAL tools (Off-machine network calls requiring Human-in-the-loop authorization)
     'mcaportalsubmit': RiskClass.EXTERNAL,
     'mca_portal_submit': RiskClass.EXTERNAL,
     'submit_ipie': RiskClass.EXTERNAL,
@@ -127,7 +127,19 @@ const TOOL_RISK_MAP = {
     'dispatch_notice': RiskClass.EXTERNAL,
     'sendemailnotice': RiskClass.EXTERNAL,
     'send_email_notice': RiskClass.EXTERNAL,
-    'send_message': RiskClass.EXTERNAL
+    'send_message': RiskClass.EXTERNAL,
+
+    // Resolution Bazaar Diligence Hub (Billable MCP Tools)
+    'screen_section_29a_entity': RiskClass.EXTERNAL,
+    'screensection29aentity': RiskClass.EXTERNAL,
+    'query_cibil_defaulters': RiskClass.EXTERNAL,
+    'querycibildefaulters': RiskClass.EXTERNAL,
+    'check_director_mca_status': RiskClass.EXTERNAL,
+    'checkdirectormcastatus': RiskClass.EXTERNAL,
+    'execute_ecourts_litigation_search': RiskClass.EXTERNAL,
+    'executeecourtslitigationsearch': RiskClass.EXTERNAL,
+    'generate_plan_verification_dossier': RiskClass.EXTERNAL,
+    'generateplanverificationdossier': RiskClass.EXTERNAL
 };
 
 /**
@@ -135,7 +147,7 @@ const TOOL_RISK_MAP = {
  */
 function normalizeToolName(toolName) {
     if (!toolName) return '';
-    return String(toolName).toLowerCase().trim().replace(/^(hayagriva|ipie):/i, '');
+    return String(toolName).toLowerCase().trim().replace(/^(hayagriva|ipie|resolution_bazaar|rbz):/i, '');
 }
 
 /**
