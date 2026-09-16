@@ -309,11 +309,59 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
         new Date(now).toISOString()
     );
 
+    // Persist active license entitlements (allowed packs and LightRAG cloud key)
+    try {
+        const home = process.env.HOME || process.env.USERPROFILE || '.';
+        const entitlementsDir = path.join(home, '.hayagriva');
+        if (!fs.existsSync(entitlementsDir)) fs.mkdirSync(entitlementsDir, { recursive: true });
+        const entitlementsPath = path.join(entitlementsDir, 'active_license_entitlements.json');
+        const entitlementsData = {
+            licensee: payload.sub || 'Licensed Practitioner',
+            tier: payload.tier || 'professional',
+            allowed_packs: payload.allowed_packs || payload.allowedPacks || [
+                'suite_cirp', 'suite_finance', 'suite_liquidation', 'suite_msme', 'suite_guarantor', 'suite_litigation'
+            ],
+            lightrag_api_key: payload.lightrag_api_key || payload.lightragApiKey || '',
+            valid_until: payload.valid_until || payload.expiresAt || new Date(now + 365 * 86400000).toISOString(),
+            activated_at: new Date(now).toISOString()
+        };
+        fs.writeFileSync(entitlementsPath, JSON.stringify(entitlementsData, null, 2), 'utf8');
+
+        // If LightRAG API key provided, bind it to environment/runtime
+        if (entitlementsData.lightrag_api_key) {
+            process.env.LIGHTRAG_API_KEY = entitlementsData.lightrag_api_key;
+        }
+    } catch (err) {
+        console.error('[LicenseManager] Failed to persist entitlements:', err.message);
+    }
+
     return {
         success: true,
         licensee: payload.sub,
         tier: payload.tier,
+        allowed_packs: payload.allowed_packs || payload.allowedPacks || [],
+        lightrag_api_key: payload.lightrag_api_key || payload.lightragApiKey ? 'Configured' : 'None',
         valid_until: payload.valid_until || payload.expiresAt
+    };
+}
+
+/**
+ * Returns active license entitlements (allowed packs & cloud features).
+ */
+function getActiveEntitlements() {
+    try {
+        const home = process.env.HOME || process.env.USERPROFILE || '.';
+        const entitlementsPath = path.join(home, '.hayagriva', 'active_license_entitlements.json');
+        if (fs.existsSync(entitlementsPath)) {
+            return JSON.parse(fs.readFileSync(entitlementsPath, 'utf8'));
+        }
+    } catch (e) {}
+    return {
+        licensee: 'Evaluation User',
+        tier: 'trial',
+        allowed_packs: [],
+        lightrag_api_key: '',
+        valid_until: null
     };
 }
 
@@ -347,5 +395,6 @@ module.exports = {
     recordAgentTurn,
     reanchorFromNetwork,
     activateLicense,
-    getLicenseStatus
+    getLicenseStatus,
+    getActiveEntitlements
 };

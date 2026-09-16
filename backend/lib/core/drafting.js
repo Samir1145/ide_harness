@@ -72,10 +72,22 @@ async function draftDocument(caseDir, formatId) {
         flatKV[k] = kvDict[k].value;
     }
 
+    // 1.5 Query Precedents from LightRAG Cloud API if available
+    let precedentsContext = '';
+    try {
+        const lightRagClient = require('./lightrag-client');
+        if (lightRagClient && typeof lightRagClient.isConfigured === 'function' && lightRagClient.isConfigured()) {
+            const lrRes = await lightRagClient.queryPrecedents(`Binding Supreme Court and NCLAT precedents for ${formatId}`, { mode: 'hybrid', top_k: 3 });
+            if (lrRes && lrRes.success && lrRes.answer) {
+                precedentsContext = `\nAUTHORITATIVE BINDING PRECEDENTS (From LightRAG Knowledge Graph):\n${lrRes.answer}\n`;
+            }
+        }
+    } catch (_) {}
+
     // 2. Draft using LLM
     const userPrompt = `DRAFTING INSTRUCTIONS & RULES:
 ${draftingPrompt}
-
+${precedentsContext}
 TEMPLATE LAYOUT (format.md):
 ${formatSkeleton}
 

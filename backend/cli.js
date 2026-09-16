@@ -2,12 +2,18 @@
 
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { createWatcher, ingestFile, registerUnprocessedFile, updateStatus } = require('./lib/daemon/watcher');
 const { readIndex } = require('./lib/core/indexer');
 const { query } = require('./lib/core/rag');
 const { loadVault } = require('./lib/utils/vault-loader');
 const { loadCasesVault } = require('./lib/utils/cases-vault-loader');
 const { getConceptsDir, getConversionsDir, getWikiDir } = require('./lib/pipeline/common/helper');
+
+function getDocumentsDir() {
+    const home = process.env.USERPROFILE || process.env.HOME || os.homedir() || '.';
+    return path.resolve(home, 'Documents');
+}
 
 const BINARY_EXTS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'];
 
@@ -25,7 +31,7 @@ Options:
 async function bootstrapCase(caseDir) {
     if (!caseDir) return;
     const resolved = path.resolve(caseDir);
-    const docsRoot = path.resolve(process.env.HOME || '', 'Documents');
+    const docsRoot = getDocumentsDir();
     if (resolved === docsRoot) return;
 
     // Dynamically write/update .theia/settings.json and .vscode/settings.json to hide 'wiki' and 'concepts' database folders from File Explorer
@@ -244,7 +250,7 @@ async function main() {
     }
 
     if (command === 'list') {
-        const parent = caseArg || path.join(process.env.HOME || '', 'Documents');
+        const parent = caseArg || getDocumentsDir();
         const SYSTEM_DIRS = ['concepts', 'conversions', 'wiki', 'drafts', 'exports', 'reviews', 'node_modules'];
         const dirs = fs.readdirSync(parent).filter(f => {
             const p = path.join(parent, f);
@@ -254,7 +260,7 @@ async function main() {
         process.exit(0);
     }
 
-    const docsRoot = path.resolve(caseArg || path.join(process.env.HOME || '', 'Documents'));
+    const docsRoot = path.resolve(caseArg || getDocumentsDir());
 
     if (watchAll) {
         await runWatchAll(docsRoot);

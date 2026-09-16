@@ -12,8 +12,41 @@ const { ragRetrieve } = require('./rag-retrieve');
 const { readAllKV } = require('./kv-write');
 const { getChatResponse } = require('../../core/llm-client');
 
+const os = require('os');
+
 // DMS skeletons directory (relative to repo root)
 const SKELETONS_SUBPATH = path.join('backend', 'lib', 'pipeline', 'forms', 'skeletons');
+
+function getSkeletonSearchDirs(repoRoot) {
+    const dirs = [];
+    if (repoRoot) {
+        dirs.push(path.join(repoRoot, SKELETONS_SUBPATH));
+    }
+    dirs.push(path.join(__dirname, '..', '..', 'pipeline', 'forms', 'skeletons'));
+
+    const candidatePacksDirs = [
+        process.env.HAYAGRIVA_AGENTS_PATH,
+        path.join(os.homedir(), 'Desktop', 'ide_agents', 'packs'),
+        path.join(os.homedir(), 'Desktop', 'ide_agents', 'suites', 'ibc_forms'),
+        path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'agents')
+    ].filter(Boolean);
+
+    for (const pDir of candidatePacksDirs) {
+        if (!fs.existsSync(pDir)) continue;
+        dirs.push(pDir);
+        try {
+            const entries = fs.readdirSync(pDir);
+            for (const entry of entries) {
+                const packForms = path.join(pDir, entry, 'forms');
+                if (fs.existsSync(packForms)) {
+                    dirs.push(packForms);
+                }
+            }
+        } catch (_) {}
+    }
+
+    return [...new Set(dirs)].filter(d => fs.existsSync(d));
+}
 
 function getAllSkeletonFiles(dir) {
     let results = [];
@@ -31,50 +64,65 @@ function getAllSkeletonFiles(dir) {
 }
 
 /**
- * Locates and reads a skeleton template by name.
+ * Locates and reads a skeleton template by name across all search directories.
  * Tries exact match first, then fuzzy match.
  *
- * @param {string} templateName - e.g. 'sec7-petition', 'b4-avoidance-application'
+ * @param {string} templateName - e.g. 'sec7-petition', 'cirp-form-c'
  * @param {string} repoRoot     - Absolute path to repo root
  * @returns {{ name: string, content: string, filePath: string } | null}
  */
 function loadSkeleton(templateName, repoRoot) {
-    const skeletonDir = path.join(repoRoot, SKELETONS_SUBPATH);
-
-    if (!fs.existsSync(skeletonDir)) {
-        console.warn(`[Skill:skeletonLoad] Skeletons directory not found: ${skeletonDir}`);
-        return null;
+    const searchDirs = getSkeletonSearchDirs(repoRoot);
+    let allFiles = [];
+    for (const dir of searchDirs) {
+        allFiles = allFiles.concat(getAllSkeletonFiles(dir));
     }
 
-    const allFiles = getAllSkeletonFiles(skeletonDir);
+    // Deduplicate by name preferring earlier matches
+    const seen = new Set();
+    const uniqueFiles = [];
+    for (const f of allFiles) {
+        if (!seen.has(f.name)) {
+            seen.add(f.name);
+            uniqueFiles.push(f);
+        }
+    }
+
     const targetName = templateName.endsWith('.md') ? templateName : `${templateName}.md`;
 
     // Exact match
-    const exact = allFiles.find(f => f.name === targetName);
+    const exact = uniqueFiles.find(f => f.name === targetName);
     if (exact) {
         return { name: exact.name, content: fs.readFileSync(exact.filePath, 'utf8'), filePath: exact.filePath };
     }
 
     // Fuzzy match
     const slug = templateName.toLowerCase().replace(/[\s_]/g, '-');
-    const fuzzy = allFiles.find(f => f.name.toLowerCase().includes(slug));
+    const fuzzy = uniqueFiles.find(f => f.name.toLowerCase().includes(slug));
     if (fuzzy) {
         return { name: fuzzy.name, content: fs.readFileSync(fuzzy.filePath, 'utf8'), filePath: fuzzy.filePath };
     }
 
-    console.warn(`[Skill:skeletonLoad] Template "${templateName}" not found. Available: ${allFiles.map(f => f.name.replace('.md', '')).join(', ')}`);
+    console.warn(`[Skill:skeletonLoad] Template "${templateName}" not found. Available count: ${uniqueFiles.length}`);
     return null;
 }
 
 /**
- * Returns a list of all available skeleton template names.
+ * Returns a list of all available skeleton template names across all packs.
  * @param {string} repoRoot
  * @returns {string[]}
  */
 function listSkeletons(repoRoot) {
-    const skeletonDir = path.join(repoRoot, SKELETONS_SUBPATH);
-    if (!fs.existsSync(skeletonDir)) return [];
-    return getAllSkeletonFiles(skeletonDir).map(f => f.name.replace('.md', ''));
+    const searchDirs = getSkeletonSearchDirs(repoRoot);
+    let allFiles = [];
+    for (const dir of searchDirs) {
+        allFiles = allFiles.concat(getAllSkeletonFiles(dir));
+    }
+    const seen = new Set();
+    for (const f of allFiles) {
+        seen.add(f.name.replace('.md', ''));
+    }
+    return Array.from(seen);
 }
 
 

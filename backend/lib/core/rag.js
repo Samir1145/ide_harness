@@ -274,7 +274,7 @@ Hypothetical Answer:`;
     }
 
     let vectorHits = [];
-    const hasQueryVec = (legalQueryVec && legalQueryVec.length > 0) || (financeQueryVec && financeQueryVec.length > 0);
+    const hasQueryVec = (legalQueryVec && legalQueryVec.some(v => v !== 0)) || (financeQueryVec && financeQueryVec.some(v => v !== 0));
     if (hasQueryVec) {
         try {
             const db = getDb(caseDir);

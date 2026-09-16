@@ -1,20 +1,31 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const Module = require('module');
 const { getChatResponse } = require('../core/llm-client');
 const agentLogger = require('./agent-logger');
-const BankAnalyzerSubAgent = require('./subagents/bank-analyzer');
 
-// Dynamically resolve engine libraries for decoupled/symlinked agent packs
+// Dynamically resolve engine libraries & node_modules for decoupled/symlinked agent packs
 const origResolveFilename = Module._resolveFilename;
 const engineBackendLib = path.resolve(__dirname, '..');
+const engineBackendNodeModules = path.resolve(__dirname, '..', '..', 'node_modules');
+
 Module._resolveFilename = function(request, parent, isMain, options) {
-    if (parent && parent.filename && (parent.filename.includes('agent_packs') || parent.filename.includes('ide_agents') || parent.filename.includes('haya_agents') || parent.filename.includes('.vlt')) && request.includes('/lib/')) {
-        const match = request.match(/(?:^|\/)lib\/(.+)$/);
-        if (match) {
-            const candidate = path.join(engineBackendLib, match[1]);
-            if (fs.existsSync(candidate) || fs.existsSync(candidate + '.js') || fs.existsSync(candidate + '/index.js')) {
-                return origResolveFilename.call(this, candidate, parent, isMain, options);
+    if (parent && parent.filename && (parent.filename.includes('agent_packs') || parent.filename.includes('ide_agents') || parent.filename.includes('haya_agents') || parent.filename.includes('.vlt') || parent.filename.includes('skills'))) {
+        if (request.includes('/lib/')) {
+            const match = request.match(/(?:^|\/)lib\/(.+)$/);
+            if (match) {
+                const candidate = path.join(engineBackendLib, match[1]);
+                if (fs.existsSync(candidate) || fs.existsSync(candidate + '.js') || fs.existsSync(candidate + '/index.js')) {
+                    return origResolveFilename.call(this, candidate, parent, isMain, options);
+                }
+            }
+        }
+        // Fallback resolution to backend/node_modules for shared dependencies like 'xlsx'
+        if (!request.startsWith('.') && !request.startsWith('/')) {
+            const candidateModule = path.join(engineBackendNodeModules, request);
+            if (fs.existsSync(candidateModule)) {
+                return origResolveFilename.call(this, candidateModule, parent, isMain, options);
             }
         }
     }
@@ -26,52 +37,100 @@ class AgentCoordinator {
         // Dynamic Vault Agent Packs Registry (.vlt)
         this.vaultAgents = {};
         this.loadVaultPacks();
-        this.bankAnalyzer = new BankAnalyzerSubAgent();
+        
+        // Optional local bank analyzer fallback if pack is absent
+        this.bankAnalyzer = this.vaultAgents['bank_analyzer'] || null;
+        if (!this.bankAnalyzer) {
+            try {
+                const LocalBankAgent = require('./subagents/bank-analyzer');
+                this.bankAnalyzer = new LocalBankAgent();
+            } catch (_) {
+                // Pack is not installed locally; handled gracefully on request
+            }
+        }
+    }
+
+    findAgentPacksDirs() {
+        const candidates = [
+            process.env.HAYAGRIVA_AGENTS_PATH,
+            path.join(os.homedir(), 'Desktop', 'ide_agents', 'packs'),
+            path.join(__dirname, '..', '..', 'vault', 'agent_packs'),
+            path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'agents')
+        ].filter(Boolean);
+
+        const validDirs = [];
+        for (const dir of candidates) {
+            if (fs.existsSync(dir) && !validDirs.includes(dir)) {
+                validDirs.push(dir);
+            }
+        }
+        return validDirs;
     }
 
     loadVaultPacks() {
         try {
-            const packsDir = path.join(__dirname, '..', '..', 'vault', 'agent_packs');
-            if (!fs.existsSync(packsDir)) return;
+            const packsDirs = this.findAgentPacksDirs();
+            if (packsDirs.length === 0) {
+                console.log('[AgentCoordinator] Core IDE running in standalone mode (no external agent packs directory connected).');
+                return;
+            }
 
-            const packEntries = fs.readdirSync(packsDir);
-            for (const packName of packEntries) {
-                const packPath = path.join(packsDir, packName);
-                const pluginPath = path.join(packPath, 'plugin.json');
-                const manifestPath = path.join(packPath, 'manifest.json');
-                
-                const targetFile = fs.existsSync(pluginPath) ? pluginPath : (fs.existsSync(manifestPath) ? manifestPath : null);
-                if (targetFile) {
+            for (const packsDir of packsDirs) {
+                let packEntries = [];
+                try {
+                    packEntries = fs.readdirSync(packsDir);
+                } catch (_) {
+                    continue;
+                }
+
+                for (const packName of packEntries) {
+                    const packPath = path.join(packsDir, packName);
                     try {
-                        const manifest = JSON.parse(fs.readFileSync(targetFile, 'utf8'));
-                        if (Array.isArray(manifest.agents)) {
-                            for (const agentDef of manifest.agents) {
-                                const agentFilePath = path.join(packPath, 'agents', agentDef.id, 'agent.js');
-                                if (fs.existsSync(agentFilePath)) {
-                                    const AgentClass = require(agentFilePath);
-                                    const instance = new AgentClass();
-                                    instance.pluginMeta = agentDef;
-                                    const { resolveAgentPrompt } = require('./prompt-resolver');
-                                    instance.getPrompt = (variant = 'default') => resolveAgentPrompt(instance, null, variant);
-                                    instance.getPromptForCase = (caseDir, variant = 'default') => resolveAgentPrompt(instance, caseDir, variant);
-                                    const tag = (agentDef.tag || agentDef.id).toLowerCase();
-                                    this.vaultAgents[tag] = instance;
-                                    this.vaultAgents[tag.replace(/_/g, '-')] = instance;
-                                    this.vaultAgents[tag.replace(/-/g, '_')] = instance;
-                                    if (Array.isArray(agentDef.aliases)) {
-                                        for (const alias of agentDef.aliases) {
-                                            const cleanAlias = alias.toLowerCase();
-                                            this.vaultAgents[cleanAlias] = instance;
-                                            this.vaultAgents[cleanAlias.replace(/_/g, '-')] = instance;
-                                            this.vaultAgents[cleanAlias.replace(/-/g, '_')] = instance;
+                        if (!fs.statSync(packPath).isDirectory()) continue;
+                    } catch (_) {
+                        continue;
+                    }
+
+                    const pluginPath = path.join(packPath, 'plugin.json');
+                    const manifestPath = path.join(packPath, 'manifest.json');
+                    
+                    const targetFile = fs.existsSync(pluginPath) ? pluginPath : (fs.existsSync(manifestPath) ? manifestPath : null);
+                    if (targetFile) {
+                        try {
+                            const manifest = JSON.parse(fs.readFileSync(targetFile, 'utf8'));
+                            if (Array.isArray(manifest.agents)) {
+                                for (const agentDef of manifest.agents) {
+                                    const agentFilePath = path.join(packPath, 'agents', agentDef.id, 'agent.js');
+                                    if (fs.existsSync(agentFilePath)) {
+                                        try {
+                                            const AgentClass = require(agentFilePath);
+                                            const instance = new AgentClass();
+                                            instance.pluginMeta = agentDef;
+                                            const { resolveAgentPrompt } = require('./prompt-resolver');
+                                            instance.getPrompt = (variant = 'default') => resolveAgentPrompt(instance, null, variant);
+                                            instance.getPromptForCase = (caseDir, variant = 'default') => resolveAgentPrompt(instance, caseDir, variant);
+                                            const tag = (agentDef.tag || agentDef.id).toLowerCase();
+                                            this.vaultAgents[tag] = instance;
+                                            this.vaultAgents[tag.replace(/_/g, '-')] = instance;
+                                            this.vaultAgents[tag.replace(/-/g, '_')] = instance;
+                                            if (Array.isArray(agentDef.aliases)) {
+                                                for (const alias of agentDef.aliases) {
+                                                    const cleanAlias = alias.toLowerCase();
+                                                    this.vaultAgents[cleanAlias] = instance;
+                                                    this.vaultAgents[cleanAlias.replace(/_/g, '-')] = instance;
+                                                    this.vaultAgents[cleanAlias.replace(/-/g, '_')] = instance;
+                                                }
+                                            }
+                                            console.log(`[AgentCoordinator] Loaded Vault Agent: @${tag} (${manifest.id || manifest.packId})`);
+                                        } catch (agentErr) {
+                                            console.warn(`[AgentCoordinator] Skipped agent ${agentDef.id} in ${packName}:`, agentErr.message);
                                         }
                                     }
-                                    console.log(`[AgentCoordinator] Loaded Vault Agent: @${tag} (${manifest.id || manifest.packId})`);
                                 }
                             }
+                        } catch (err) {
+                            console.warn(`[AgentCoordinator] Failed to load agent pack ${packName}:`, err.message);
                         }
-                    } catch (err) {
-                        console.warn(`[AgentCoordinator] Failed to load agent pack ${packName}:`, err.message);
                     }
                 }
             }
@@ -187,17 +246,26 @@ Prompt: "${message}"`;
             } else if (target && agentMap[target]) {
                 agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Direct routing → agent: "${target}"`);
                 result = await agentMap[target].run(caseDir, enrichedMessage, history, agentOptions);
+            } else if (target) {
+                agentLogger.log(reqId, 'AgentCoordinator', 'UNAVAILABLE', `Requested agent @${target} is not installed`);
+                const available = Object.keys(agentMap).filter(k => !k.includes('-')).map(k => '@' + k).join(', ');
+                result = `### ⚠️ Agent Not Installed: @${target}\n\n` +
+                    `The specialized agent **@${target}** is part of an external Agent Pack and is not currently loaded.\n\n` +
+                    `**To enable this agent:**\n` +
+                    `1. Ensure **\`~/Desktop/ide_agents\`** is present on your Mac (or configure \`HAYAGRIVA_AGENTS_PATH\`).\n` +
+                    `2. Agent packs include \`legal_agents.vlt\`, \`finance_agents.vlt\`, and \`coding_agents.vlt\`.\n\n` +
+                    (available ? `**Currently Available Agents:** ${available}\n\n` : '') +
+                    `*The Core IDE continues operating in Sovereign Standalone Mode (Document Ingestion & Local BM25 RAG).*`;
             } else {
-                if (target && !agentMap[target]) {
-                    agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Unknown agent "${target}", falling back to intent classification.`);
-                }
                 const intent = await this.classifyIntent(caseDir, enrichedMessage);
                 agentLogger.log(reqId, 'AgentCoordinator', 'CLASSIFY', `Classified intent: "${intent}"`);
                 const matchedAgent = agentMap[intent] || agentMap['advisor'];
                 if (matchedAgent) {
                     result = await matchedAgent.run(caseDir, enrichedMessage, history, agentOptions);
                 } else {
-                    result = `Agent @${intent} is currently unavailable. Installed Vault agents: ${Object.keys(agentMap).map(k => '@' + k).join(', ')}`;
+                    const { query } = require('../core/rag');
+                    const ragRes = await query(caseDir, enrichedMessage, { caseDir });
+                    result = ragRes.answer || `Core IDE: No specialized agent installed for intent "${intent}". Ingested case facts and documents remain fully searchable.`;
                 }
             }
         } catch (e) {

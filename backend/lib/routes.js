@@ -2276,6 +2276,70 @@ module.exports = {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: e.message }));
             }
+        },
+
+        // ─── Marketplace & Suites Catalog (GET) ──────────────────────────────
+        '/api/hayagriva/marketplace/suites-metadata': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const { getSuitesCatalog } = require('./core/suites-catalog');
+                const catalog = getSuitesCatalog();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, totalCount: (catalog.suites || []).length, ...catalog }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        // ─── Model Downloader & Status (GET) ─────────────────────────────────
+        '/api/hayagriva/models/check': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const modelDownloader = require('./core/model-downloader');
+                const status = modelDownloader.checkModelsStatus();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, ...status }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/models/download-status': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const domain = parsedUrl.query.domain || null;
+                const modelDownloader = require('./core/model-downloader');
+                const status = modelDownloader.getStatus(domain);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, status }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        // ─── License Activation Callback (GET Redirect from Browser) ─────────
+        '/api/hayagriva/license/activate': (req, res, parsedUrl, docsRoot) => {
+            const token = parsedUrl.query.token || parsedUrl.query.key || '';
+            const caseName = parsedUrl.query.case || '';
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            const { activateLicense } = require('./core/license-manager');
+            const { writeLicenseToSettings } = require('./utils/license-validator');
+
+            const result = activateLicense(token, caseDir);
+            if (!result.success) {
+                res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+                res.end(`<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="background:#1e293b;padding:32px;border-radius:12px;border:1px solid #ef4444;max-width:440px;text-align:center;"><h2 style="color:#ef4444;margin-top:0;">License Activation Failed</h2><p style="color:#94a3b8;font-size:14px;">${result.error || 'Invalid signature'}</p></div></body></html>`);
+                return;
+            }
+
+            if (caseDir && fs.existsSync(caseDir)) {
+                writeLicenseToSettings(caseDir, token);
+            }
+
+            const allowedBadges = (result.allowed_packs || []).map(p => `<span style="display:inline-block;padding:3px 10px;margin:3px;background:rgba(16,185,129,0.2);color:#34d399;border-radius:20px;font-size:12px;font-weight:700;">✓ ${p}</span>`).join(' ');
+
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(`<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="background:#1e293b;padding:36px;border-radius:16px;border:1px solid #10b981;max-width:480px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.5);"><div style="font-size:48px;margin-bottom:12px;">🎉</div><h2 style="color:#10b981;margin:0 0 10px;">License Activated in Hayagriva IDE</h2><p style="color:#cbd5e1;font-size:14px;margin-bottom:16px;">Welcome <strong>${result.licensee || 'Practitioner'}</strong> (${result.tier || 'pro'}).</p><div style="margin-bottom:20px;">${allowedBadges}</div><p style="color:#64748b;font-size:12px;">You can now close this tab and return to your IDE.</p></div></body></html>`);
         }
     },
 
@@ -2447,7 +2511,7 @@ module.exports = {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body || '{}');
-                    const engine = data.engine === 'finance' ? 'finance' : (data.engine === 'saul' ? 'saul' : 'legal');
+                    const engine = (data.engine === 'finance' || data.engine === 'hayafinance') ? 'finance' : ((data.engine === 'saul' || data.engine === 'hayapro') ? 'saul' : 'legal');
                     activeEngineDomain = engine;
                     const { spawn } = require('child_process');
                     
@@ -2778,15 +2842,33 @@ module.exports = {
                         }
                     }
 
+                    const lightragApiKey = data.lightragApiKey !== undefined ? data.lightragApiKey : (data.advisoryApiKey || existing.lightragApiKey || existing.advisoryApiKey || '');
+                    const lightragApiUrl = data.lightragApiUrl !== undefined ? data.lightragApiUrl : (existing.lightragApiUrl || 'http://localhost:8020');
+
                     const savedConfig = {
                         ...existing,
                         processingProfile: activeMode === 'lite' ? 'lite' : 'standard',
                         activeMode: activeMode,
                         activeDomain: activeDomain,
-                        remindLibreOffice: remindLibreOffice
+                        remindLibreOffice: remindLibreOffice,
+                        lightragApiKey: lightragApiKey,
+                        advisoryApiKey: lightragApiKey,
+                        lightragApiUrl: lightragApiUrl
                     };
 
                     fs.writeFileSync(settingsPath, JSON.stringify(savedConfig, null, 2), 'utf8');
+
+                    // Also mirror to user global settings directory (~/.gemini/)
+                    try {
+                        const globalDir = path.join(require('os').homedir(), '.gemini');
+                        if (!fs.existsSync(globalDir)) fs.mkdirSync(globalDir, { recursive: true });
+                        const globalSettingsFile = path.join(globalDir, 'hayagriva_settings.json');
+                        let globalExisting = {};
+                        if (fs.existsSync(globalSettingsFile)) {
+                            try { globalExisting = JSON.parse(fs.readFileSync(globalSettingsFile, 'utf8')); } catch (_) {}
+                        }
+                        fs.writeFileSync(globalSettingsFile, JSON.stringify({ ...globalExisting, ...savedConfig }, null, 2), 'utf8');
+                    } catch (_) {}
 
                     // Mirror activeDomain into case_manifest.json and bootstrap domain folder taxonomy
                     const conversionsDir = getConversionsDir(caseDir);
@@ -4119,43 +4201,183 @@ module.exports = {
             });
         },
 
-        // ─── Marketplace: License Activation ──────────────────────────────────
-        '/api/hayagriva/license/activate': (req, res, parsedUrl, docsRoot) => {
+        // ─── Marketplace & Suites Catalog ──────────────────────────────────────
+        '/api/hayagriva/marketplace/suites-metadata': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const { getSuitesCatalog } = require('./core/suites-catalog');
+                const catalog = getSuitesCatalog();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, ...catalog }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        // ─── Model Downloader & Status ─────────────────────────────────────────
+        '/api/hayagriva/models/check': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const modelDownloader = require('./core/model-downloader');
+                const status = modelDownloader.checkModelsStatus();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, ...status }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/models/download': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
                 try {
-                    const { licenseKey, case: caseName } = JSON.parse(body || '{}');
-                    const caseDir = resolveCaseDir(docsRoot, caseName);
-                    const { activateLicense } = require('./core/license-manager');
-                    const { writeLicenseToSettings } = require('./utils/license-validator');
+                    const data = JSON.parse(body || '{}');
+                    const domain = data.domain || 'legal';
+                    const customUrl = data.url || null;
+                    const modelDownloader = require('./core/model-downloader');
+                    const result = modelDownloader.startDownload(domain, customUrl);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
 
-                    const result = activateLicense(licenseKey, caseDir);
-                    if (!result.success) {
+        '/api/hayagriva/models/download-status': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const domain = parsedUrl.query.domain || null;
+                const modelDownloader = require('./core/model-downloader');
+                const status = modelDownloader.getStatus(domain);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, status }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/models/download-cancel': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const domain = data.domain || 'legal';
+                    const modelDownloader = require('./core/model-downloader');
+                    const result = modelDownloader.cancelDownload(domain);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        // ─── Marketplace: License Activation (GET Callback & POST) ────────────
+        '/api/hayagriva/license/activate': (req, res, parsedUrl, docsRoot) => {
+            const handleActivation = (licenseKey, caseName, isHtmlPreferred) => {
+                const caseDir = resolveCaseDir(docsRoot, caseName || '');
+                const { activateLicense } = require('./core/license-manager');
+                const { writeLicenseToSettings } = require('./utils/license-validator');
+
+                const result = activateLicense(licenseKey, caseDir);
+                if (!result.success) {
+                    if (isHtmlPreferred) {
+                        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+                        res.end(`
+                            <!DOCTYPE html>
+                            <html>
+                            <head><title>Activation Failed</title><style>body { font-family: sans-serif; background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .card { background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #ef4444; max-width: 450px; text-align: center; } h2 { color: #ef4444; margin-top: 0; } button { background: #38bdf8; border: none; padding: 10px 20px; color: #000; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 15px; }</style></head>
+                            <body>
+                              <div class="card">
+                                <h2>❌ License Activation Failed</h2>
+                                <p>${result.error || 'The provided license token is invalid or corrupted.'}</p>
+                                <button onclick="window.close()">Close Window</button>
+                              </div>
+                            </body>
+                            </html>
+                        `);
+                    } else {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ success: false, error: result.error }));
-                        return;
                     }
+                    return;
+                }
 
-                    if (caseDir && fs.existsSync(caseDir)) {
-                        writeLicenseToSettings(caseDir, result.tier, {
-                            sub: result.licensee,
-                            expiresAt: result.valid_until
-                        });
-                    }
+                if (caseDir && fs.existsSync(caseDir)) {
+                    writeLicenseToSettings(caseDir, result.tier, {
+                        sub: result.licensee,
+                        expiresAt: result.valid_until,
+                        allowed_packs: result.allowed_packs
+                    });
+                }
 
+                if (isHtmlPreferred) {
+                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                    res.end(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head><title>License Activated</title><style>body { font-family: sans-serif; background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .card { background: #1e293b; padding: 36px; border-radius: 14px; border: 1px solid #10b981; max-width: 500px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); } h2 { color: #10b981; margin-top: 0; } .badge { display: inline-block; background: rgba(16,185,129,0.15); color: #10b981; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 13px; margin: 4px; } .sub { color: #94a3b8; font-size: 14px; margin-bottom: 20px; } button { background: #38bdf8; border: none; padding: 12px 24px; color: #0f172a; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 15px; }</style></head>
+                        <body>
+                          <div class="card">
+                            <h2>✨ License Activated Successfully!</h2>
+                            <p class="sub">Welcome, <strong>${result.licensee}</strong>. Your Hayagriva IDE is now unlocked.</p>
+                            <div style="margin-bottom: 20px;">
+                              <div>Tier: <span class="badge">${result.tier.toUpperCase()}</span></div>
+                              <div style="margin-top: 8px;">Active Suites:</div>
+                              <div>
+                                ${(result.allowed_packs || []).map(p => `<span class="badge">✓ ${p}</span>`).join(' ') || '<span class="badge">All Suites</span>'}
+                              </div>
+                            </div>
+                            <p style="font-size: 13px; color: #94a3b8;">You can now close this browser window and return to Hayagriva IDE.</p>
+                            <button onclick="window.close()">Return to Hayagriva IDE</button>
+                          </div>
+                          <script>
+                            setTimeout(() => { try { window.close(); } catch(e){} }, 4000);
+                          </script>
+                        </body>
+                        </html>
+                    `);
+                } else {
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({
                         success: true,
                         tier: result.tier,
                         licensedTo: result.licensee,
+                        allowed_packs: result.allowed_packs,
                         expiresAt: result.valid_until
                     }));
-                } catch (e) {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: e.message }));
                 }
-            });
+            };
+
+            if (req.method === 'GET') {
+                const token = parsedUrl.query.token || parsedUrl.query.licenseKey;
+                const caseName = parsedUrl.query.case || '';
+                const accepts = req.headers['accept'] || '';
+                const isHtmlPreferred = accepts.includes('text/html');
+                if (!token) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Missing token in query parameter' }));
+                    return;
+                }
+                handleActivation(token, caseName, isHtmlPreferred);
+            } else {
+                let body = '';
+                req.on('data', chunk => body += chunk);
+                req.on('end', () => {
+                    try {
+                        const { licenseKey, token, case: caseName } = JSON.parse(body || '{}');
+                        handleActivation(licenseKey || token, caseName, false);
+                    } catch (e) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: e.message }));
+                    }
+                });
+            }
         },
 
         '/api/hayagriva/license/reanchor': (req, res, parsedUrl, docsRoot) => {
@@ -4316,6 +4538,27 @@ module.exports = {
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+        },
+
+        // ─── LightRAG Precedents: Connection & Health Test ────────────────────
+        '/api/hayagriva/lightrag/test': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const lightRagClient = require('./core/lightrag-client');
+                    if (data.apiUrl) lightRagClient.config.apiUrl = data.apiUrl.replace(/\/+$/, '');
+                    if (data.apiKey) lightRagClient.config.apiKey = data.apiKey;
+                    
+                    const health = await lightRagClient.checkHealth(4000);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(health));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ online: false, error: e.message }));
                 }
             });
         }

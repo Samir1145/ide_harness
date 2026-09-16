@@ -85,14 +85,55 @@ fi
 
 
 
+# Calculate hashes representing dependency locks and extensions for change detection
+calculate_checksum() {
+    (
+        cat "$HAYAGRIVA_DIR/package.json" 2>/dev/null
+        cat "$HAYAGRIVA_DIR/yarn.lock" 2>/dev/null
+        cat "$THEIA_DIR/package.json" 2>/dev/null
+        cat "$THEIA_DIR/yarn.lock" 2>/dev/null
+        find "$ROOT_DIR/frontend/theia-extensions/hayagriva/src" -type f -exec cat {} + 2>/dev/null
+        find "$ROOT_DIR/frontend/theia-extensions/product/src" -type f 2>/dev/null
+        find "$ROOT_DIR/branding" -type f -not -path "*/node_modules/*" 2>/dev/null
+    ) | md5
+}
+
+# ── DEPENDENCY & BUILD SYNCHRONIZATION ──────────────────────────────────────
+CHECKSUM_FILE="$THEIA_DIR/.last-launch-build-checksum"
+CURRENT_HASH=$(calculate_checksum)
+
+if [ ! -d "$HAYAGRIVA_DIR/node_modules" ] || [ ! -d "$THEIA_DIR/node_modules" ] || [ ! -f "$CHECKSUM_FILE" ] || [ "$(cat "$CHECKSUM_FILE" 2>/dev/null)" != "$CURRENT_HASH" ]; then
+    log "Synchronizing dependencies and building frontend bundle..."
+    
+    # Sync backend dependencies first
+    cd "$HAYAGRIVA_DIR"
+    yarn install --frozen-lockfile || yarn install
+    
+    # Sync frontend extensions and rebuild bundle
+    cd "$ROOT_DIR/frontend/theia-extensions/product"
+    yarn build
+
+    cd "$ROOT_DIR/frontend/theia-extensions/hayagriva"
+    yarn build
+    
+    cd "$THEIA_DIR"
+    yarn install --frozen-lockfile || yarn install
+    yarn build
+    
+    # Save new checksum to tracking file
+    echo "$CURRENT_HASH" > "$CHECKSUM_FILE"
+    log "Frontend bundle and dependencies verified successfully."
+fi
+# ─────────────────────────────────────────────────────────────────────────────
+
 # Check if hayagriva proxy is already running
 PORT=3210
 if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1 ; then
     log "Hayagriva proxy already running on port $PORT"
 else
-    log "Starting Hayagriva proxy..."
+    log "Starting Hayagriva proxy in Lite / Sovereign mode..."
     cd "$HAYAGRIVA_DIR"
-    node scripts/download-onnx.js
+    node scripts/download-onnx.js || true
     nohup node cli.js --watch-all >> "$LOGFILE" 2>&1 &
     HAYAGRIVA_PID=$!
     log "Hayagriva proxy started (PID: $HAYAGRIVA_PID)"
@@ -125,48 +166,6 @@ log "Auto-healing backend watchdog active (PID: $WATCHDOG_PID)"
 
 log "App started in Lite Mode. LLM engines (Port 8090/8091) remain offline until manually started in Settings."
 
-# Calculate hashes representing dependency locks and extensions for change detection
-calculate_checksum() {
-    (
-        cat "$HAYAGRIVA_DIR/package.json" 2>/dev/null
-        cat "$HAYAGRIVA_DIR/yarn.lock" 2>/dev/null
-        cat "$THEIA_DIR/package.json" 2>/dev/null
-        cat "$THEIA_DIR/yarn.lock" 2>/dev/null
-        find "$ROOT_DIR/frontend/theia-extensions/hayagriva/src" -type f -exec cat {} + 2>/dev/null
-        find "$ROOT_DIR/frontend/theia-extensions/product/src" -type f 2>/dev/null
-        find "$ROOT_DIR/branding" -type f -not -path "*/node_modules/*" 2>/dev/null
-    ) | md5
-}
-
-# ── DOWNSTREAM UPDATE CHECK ──────────────────────────────────────────────────
-CHECKSUM_FILE="$THEIA_DIR/.last-launch-build-checksum"
-CURRENT_HASH=$(calculate_checksum)
-
-if [ ! -f "$CHECKSUM_FILE" ] || [ "$(cat "$CHECKSUM_FILE")" != "$CURRENT_HASH" ]; then
-    log "Downstream updates or extension modifications detected."
-    log "Auto-synchronizing dependencies and rebuilding frontend bundle. Please wait..."
-    
-    # Sync backend dependencies
-    cd "$HAYAGRIVA_DIR"
-    yarn install --frozen-lockfile || yarn install
-    
-    # Sync frontend extensions and rebuild bundle
-    cd "$ROOT_DIR/frontend/theia-extensions/product"
-    yarn build
-
-    cd "$ROOT_DIR/frontend/theia-extensions/hayagriva"
-    yarn build
-    
-    cd "$THEIA_DIR"
-    yarn install --frozen-lockfile || yarn install
-    yarn build
-    
-    # Save new checksum to tracking file
-    echo "$CURRENT_HASH" > "$CHECKSUM_FILE"
-    log "Frontend bundle and dependencies updated successfully."
-fi
-# ─────────────────────────────────────────────────────────────────────────────
-
 # Ensure Electron Dock launcher wrapper is installed
 ELECTRON_MAC_DIR="$ROOT_DIR/frontend/node_modules/electron/dist/Electron.app/Contents/MacOS"
 if [ -d "$ELECTRON_MAC_DIR" ]; then
@@ -179,7 +178,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../../../../../../.." && pwd)"
 
 if [ ! -f "$ROOT_DIR/start.command" ]; then
-    ROOT_DIR="/Users/atulgrover/Desktop/ide_harness"
+    ROOT_DIR="${HOME}/Desktop/ide_harness"
 fi
 
 if [ "$#" -eq 0 ]; then

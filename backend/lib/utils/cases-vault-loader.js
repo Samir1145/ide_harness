@@ -21,11 +21,23 @@ const USER_CASES_DIR = process.platform === 'win32'
   ? path.join(process.env.APPDATA || os.homedir(), 'Hayagriva', 'vaults', 'cases')
   : path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'vaults', 'cases');
 
+const DESKTOP_VAULTS_DIRS = [
+  process.env.HAYAGRIVA_VAULTS_PATH,
+  path.join(os.homedir(), 'Desktop', 'ide_vaults', 'output', 'client_vaults', 'dist'),
+  path.join(os.homedir(), 'Desktop', 'ide_vaults', 'output'),
+  path.join(os.homedir(), 'Desktop', 'ide_vaults')
+].filter(Boolean);
+
 const BUNDLED_CASES_DIR = path.join(__dirname, '..', '..', 'vault', 'data_vaults', 'cases');
 
 function resolveCasesDir() {
   if (fs.existsSync(path.join(USER_CASES_DIR, 'cases-manifest.json'))) {
     return USER_CASES_DIR;
+  }
+  for (const vDir of DESKTOP_VAULTS_DIRS) {
+    if (fs.existsSync(path.join(vDir, 'cases-manifest.json'))) {
+      return vDir;
+    }
   }
   if (fs.existsSync(path.join(BUNDLED_CASES_DIR, 'cases-manifest.json'))) {
     return BUNDLED_CASES_DIR;

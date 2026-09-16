@@ -124,8 +124,12 @@ function writeLicenseToSettings(caseDir, tier, payload) {
         }
         settings.subscriptionTier = tier;
         settings.licensedTo = (payload && payload.sub) || null;
-        settings.licenseExpiresAt = (payload && payload.expiresAt) || null;
+        settings.licenseExpiresAt = (payload && (payload.expiresAt || payload.valid_until)) || null;
         settings.allowedDomains = (payload && payload.allowedDomains) || ['legal', 'finance'];
+        settings.allowedPacks = (payload && (payload.allowed_packs || payload.allowedPacks)) || [];
+        if (payload && (payload.lightrag_api_key || payload.lightragApiKey)) {
+            settings.lightragApiKey = payload.lightrag_api_key || payload.lightragApiKey;
+        }
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
 
         // Mirror tier into case_manifest.json inside conversions/

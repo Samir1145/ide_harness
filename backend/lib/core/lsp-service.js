@@ -501,16 +501,49 @@ async function getCompletions(caseDir, docUri, docContent, position) {
 
     const completions = await service.getCompletionItems(doc, position, {
         triggerCharacter: '/'
-    }, NO_CANCEL_TOKEN);
-    return completions;
+    }, NO_CANCEL_TOKEN) || { items: [] };
+
+    const items = Array.isArray(completions) ? completions : (completions.items || []);
+
+    // Check if line before position has a trigger like #sec, /sec, or @@
+    const lineStartOffset = doc.offsetAt({ line: position.line, character: 0 });
+    const currentOffset = doc.offsetAt(position);
+    const linePrefix = docContent.substring(lineStartOffset, currentOffset);
+    const secTriggerMatch = linePrefix.match(/(?:#|\/|@@)(sec\w*|\d+.*)$/i);
+    
+    if (secTriggerMatch) {
+        let queryTerm = secTriggerMatch[1];
+        if (/^sec\d+/i.test(queryTerm)) {
+            queryTerm = queryTerm.replace(/^sec/i, 'Section ');
+        }
+        const { searchLaws, loadVault } = require('../utils/vault-loader');
+        loadVault();
+        try {
+            const lawHits = await searchLaws(queryTerm, 10);
+            for (const hit of lawHits) {
+                items.push({
+                    label: hit.title || hit.section || hit.id,
+                    kind: 14, // Keyword / Reference
+                    detail: `Bare Act / Precedent (${hit.section || 'Statute'})`,
+                    documentation: {
+                        kind: 'markdown',
+                        value: hit.text ? hit.text.substring(0, 500) : (hit.title || '')
+                    },
+                    insertText: hit.text ? `\n> **${hit.title}**\n> ${hit.text.replace(/\n/g, '\n> ')}\n` : hit.title
+                });
+            }
+        } catch (_) {}
+    }
+
+    return Array.isArray(completions) ? items : { ...completions, items };
 }
 
 async function getHover(caseDir, docUri, docContent, position) {
     const doc = TextDocument.create(docUri, 'markdown', Date.now(), docContent);
     const offset = doc.offsetAt(position);
     
-    // Check custom statutory reference @@ citations
-    const { getLawText } = require('../utils/vault-loader');
+    // 1. Check custom statutory reference @@ citations
+    const { getLawText, searchLaws, loadVault } = require('../utils/vault-loader');
     const citationRegex = /@@([\w-]+)\/([\w/.-]+)/g;
     let match;
     while ((match = citationRegex.exec(docContent)) !== null) {
@@ -525,8 +558,36 @@ async function getHover(caseDir, docUri, docContent, position) {
                     const cleanText = resolved.replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
                     return {
                         contents: {
-                             kind: 'markdown',
+                            kind: 'markdown',
                             value: `**Law Reference:** \`${lawCode}/${secPath}\`\n\n${cleanText}`
+                        },
+                        range: {
+                            start: doc.positionAt(start),
+                            end: doc.positionAt(end)
+                        }
+                    };
+                }
+            } catch (_) {}
+        }
+    }
+
+    // 2. Check Section references like "Section 7", "Section 9", "Section 12A", "Section 43", "Section 66"
+    const sectionRegex = /\b(?:Section|Sec\.?)\s*(\d+[A-Z]?(?:\(\d+\))?)\b/gi;
+    let secMatch;
+    while ((secMatch = sectionRegex.exec(docContent)) !== null) {
+        const start = secMatch.index;
+        const end = start + secMatch[0].length;
+        if (offset >= start && offset <= end) {
+            const secNum = secMatch[1];
+            loadVault();
+            try {
+                const lawHits = await searchLaws(`Section ${secNum}`, 1);
+                if (lawHits && lawHits.length > 0 && lawHits[0].text) {
+                    const cleanText = lawHits[0].text.replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+                    return {
+                        contents: {
+                            kind: 'markdown',
+                            value: `⚖️ **Statutory Bare Act Reference:** \`${lawHits[0].title || secMatch[0]}\`\n\n${cleanText.substring(0, 600)}...`
                         },
                         range: {
                             start: doc.positionAt(start),

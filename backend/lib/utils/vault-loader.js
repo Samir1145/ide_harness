@@ -25,19 +25,35 @@ const USER_VAULTS_DIR  = process.platform === 'win32'
   ? path.join(process.env.APPDATA || os.homedir(), 'Hayagriva', 'vaults', 'laws')
   : path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'vaults', 'laws');
 
+const DESKTOP_VAULTS_DIRS = [
+  process.env.HAYAGRIVA_VAULTS_PATH,
+  path.join(os.homedir(), 'Desktop', 'ide_vaults', 'output', 'client_vaults', 'dist'),
+  path.join(os.homedir(), 'Desktop', 'ide_vaults', 'output'),
+  path.join(os.homedir(), 'Desktop', 'ide_vaults')
+].filter(Boolean);
+
 const BUNDLED_DATA_VAULT_DIR = path.join(__dirname, '..', '..', 'vault', 'data_vaults', 'laws');
 const BUNDLED_VAULT_DIR      = path.join(__dirname, '..', '..', 'vault');
 
 function resolveVaultDir() {
-  // 1. Prefer user-downloaded vault if manifest exists there
+  // 1. User-downloaded vault in Application Support
   if (fs.existsSync(path.join(USER_VAULTS_DIR, 'laws-manifest.json'))) {
     return { dir: USER_VAULTS_DIR, prefix: 'laws-' };
   }
-  // 2. Bundled data_vaults directory (new modular distribution format)
+  // 2. External ide_vaults repository
+  for (const vDir of DESKTOP_VAULTS_DIRS) {
+    if (fs.existsSync(path.join(vDir, 'laws-manifest.json'))) {
+      return { dir: vDir, prefix: 'laws-' };
+    }
+    if (fs.existsSync(path.join(vDir, 'manifest.json'))) {
+      return { dir: vDir, prefix: '' };
+    }
+  }
+  // 3. Bundled data_vaults directory
   if (fs.existsSync(path.join(BUNDLED_DATA_VAULT_DIR, 'laws-manifest.json'))) {
     return { dir: BUNDLED_DATA_VAULT_DIR, prefix: 'laws-' };
   }
-  // 3. Bundled fallback (original root layout)
+  // 4. Bundled fallback
   return { dir: BUNDLED_VAULT_DIR, prefix: '' };
 }
 
@@ -195,40 +211,162 @@ function loadOverlays() {
     }
 }
 
+function loadPackVaults() {
+    if (!_index) _index = [];
+    const candidatePacksDirs = [
+        process.env.HAYAGRIVA_AGENTS_PATH,
+        path.join(os.homedir(), 'Desktop', 'ide_agents', 'packs'),
+        path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'agents')
+    ].filter(Boolean);
+
+    let packEntriesCount = 0;
+    for (const pDir of candidatePacksDirs) {
+        if (!fs.existsSync(pDir)) continue;
+        try {
+            const packNames = fs.readdirSync(pDir);
+            for (const pName of packNames) {
+                const vaultSubdir = path.join(pDir, pName, 'vault');
+                if (!fs.existsSync(vaultSubdir)) continue;
+
+                const scanDir = (dir) => {
+                    const entries = fs.readdirSync(dir, { withFileTypes: true });
+                    for (const entry of entries) {
+                        const fullPath = path.join(dir, entry.name);
+                        if (entry.isDirectory()) {
+                            scanDir(fullPath);
+                        } else if (entry.name.endsWith('.json')) {
+                            try {
+                                const data = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+                                if (Array.isArray(data.standards)) {
+                                    for (const st of data.standards) {
+                                        const entryId = `${pName}_${(st.citation || '').replace(/[^a-zA-Z0-9]/g, '_')}`;
+                                        const text = `${st.citation || ''}: ${st.heading || ''}\n${st.summary || ''}`;
+                                        _overlays.set(entryId, text);
+                                        _index.push({
+                                            id: entryId,
+                                            title: `${st.citation || ''} - ${st.heading || ''}`,
+                                            section: st.citation || '',
+                                            tokens: tokenize(text),
+                                            offset: -1,
+                                            length: -1
+                                        });
+                                        packEntriesCount++;
+                                    }
+                                }
+                            } catch (_) {}
+                        } else if (entry.name.endsWith('.md') && !entry.name.includes('manifest')) {
+                            try {
+                                const content = fs.readFileSync(fullPath, 'utf8');
+                                const entryId = `${pName}_${entry.name.replace('.md', '')}`;
+                                _overlays.set(entryId, content);
+
+                                // Extract YAML frontmatter title and citation if present
+                                let title = entry.name.replace('.md', '').replace(/[-_]/g, ' ');
+                                let section = entry.name.replace('.md', '');
+                                const titleMatch = content.match(/^title:\s*["']?([^"'\r\n]+)["']?/m);
+                                const citMatch = content.match(/^citation:\s*["']?([^"'\r\n]+)["']?/m);
+                                if (titleMatch && titleMatch[1]) {
+                                    title = titleMatch[1].trim();
+                                    if (citMatch && citMatch[1]) title += ` [${citMatch[1].trim()}]`;
+                                    section = titleMatch[1].trim();
+                                }
+
+                                _index.push({
+                                    id: entryId,
+                                    title: title,
+                                    section: section,
+                                    tokens: tokenize(content),
+                                    offset: -1,
+                                    length: -1
+                                });
+                                packEntriesCount++;
+                            } catch (_) {}
+                        }
+                    }
+                };
+                scanDir(vaultSubdir);
+            }
+        } catch (_) {}
+    }
+
+    // Also scan bundled sample_precedents (Free Tier Landmark Judgments)
+    const bundledPrecedentsDir = path.join(__dirname, '..', '..', 'vault', 'sample_precedents');
+    if (fs.existsSync(bundledPrecedentsDir)) {
+        try {
+            const pFiles = fs.readdirSync(bundledPrecedentsDir);
+            for (const pf of pFiles) {
+                if (!pf.endsWith('.md')) continue;
+                const fullPath = path.join(bundledPrecedentsDir, pf);
+                try {
+                    const content = fs.readFileSync(fullPath, 'utf8');
+                    const entryId = `precedent_${pf.replace('.md', '')}`;
+                    _overlays.set(entryId, content);
+
+                    let title = pf.replace('.md', '').replace(/[-_]/g, ' ');
+                    let section = 'Supreme Court Landmark';
+                    const titleMatch = content.match(/^title:\s*["']?([^"'\r\n]+)["']?/m);
+                    const citMatch = content.match(/^citation:\s*["']?([^"'\r\n]+)["']?/m);
+                    if (titleMatch && titleMatch[1]) {
+                        title = titleMatch[1].trim();
+                        if (citMatch && citMatch[1]) title += ` [${citMatch[1].trim()}]`;
+                        section = titleMatch[1].trim();
+                    }
+
+                    _index.push({
+                        id: entryId,
+                        title: title,
+                        section: section,
+                        tokens: tokenize(content),
+                        offset: -1,
+                        length: -1
+                    });
+                    packEntriesCount++;
+                } catch (_) {}
+            }
+        } catch (_) {}
+    }
+
+    if (_index.length > 0) {
+        _ready = true;
+    }
+    if (packEntriesCount > 0) {
+        console.log(`[VaultLoader] Loaded ${packEntriesCount} targeted statutory provisions and sample precedents into in-memory vault`);
+    }
+}
+
 function loadVault() {
     _resolvePaths();
 
-    if (!fs.existsSync(_manifestPath)) {
-        console.warn(`[VaultLoader] No manifest found at ${_manifestPath} — law completion disabled.`);
-        return false;
-    }
-
-    const envKey = process.env.VAULT_KEY || '';
-    if (envKey.length === 64) {
-        try {
-            _index = JSON.parse(fs.readFileSync(_manifestPath, 'utf8'));
-            loadOverlays();
-            if (fs.existsSync(_verPath)) {
-                try { _version = JSON.parse(fs.readFileSync(_verPath, 'utf8')); } catch (_) {}
+    if (fs.existsSync(_manifestPath)) {
+        const envKey = process.env.VAULT_KEY || '';
+        if (envKey.length === 64) {
+            try {
+                _index = JSON.parse(fs.readFileSync(_manifestPath, 'utf8'));
+                loadOverlays();
+                if (fs.existsSync(_verPath)) {
+                    try { _version = JSON.parse(fs.readFileSync(_verPath, 'utf8')); } catch (_) {}
+                }
+                _ready = true;
+                console.log(`[VaultLoader] ✓ ${_index.length} law entries loaded synchronously from ${_vaultDir}`);
+            } catch (e) {
+                console.error('[VaultLoader] Error during synchronous vault load:', e.message);
             }
-            _ready = true;
-            console.log(`[VaultLoader] ✓ ${_index.length} law entries loaded synchronously from ${_vaultDir}`);
-            return true;
-        } catch (e) {
-            console.error('[VaultLoader] Error during synchronous vault load:', e.message);
-            return false;
         }
     }
 
-    // Without a valid 64-character VAULT_KEY, vault completion is disabled
-    console.warn('[VaultLoader] VAULT_KEY not available — law completion disabled.');
-    return false;
+    // Always load targeted pack vaults (works 100% key-free)
+    loadPackVaults();
+    return _ready;
 }
 
 async function _getVaultKeyAndFinish() {
+    loadPackVaults();
+
     const vaultKeyHex = await getVaultKey();
     if (!vaultKeyHex) {
-        console.warn('[VaultLoader] VAULT_KEY not available (no Keychain entry, no env var) — law completion disabled.');
+        if (!_ready) {
+            console.warn('[VaultLoader] VAULT_KEY not available (no Keychain entry, no env var) — law completion disabled.');
+        }
         return;
     }
 
@@ -348,14 +486,13 @@ async function searchLaws(query, topN = 5, customIndex = null) {
                 semantic = cosineSimilarity(queryVector, e.vector);
             }
             
-            // Hybrid Formula: 50% BM25, 50% Semantic
-            // Give a massive boost if BM25 finds an exact section match
-            let score = (normalizedBm25 * 0.4) + (semantic * 0.6);
+            // Hybrid Formula: 50% BM25, 50% Semantic (or 100% BM25 when neural models are offline)
+            let score = queryVector ? ((normalizedBm25 * 0.4) + (semantic * 0.6)) : normalizedBm25;
             if (bm25 > 20) score += 2.0; 
 
             return { e, score, semantic, bm25 };
         })
-        .filter(x => x.score > 0.1) // Noise threshold
+        .filter(x => x.score > 0.01) // Noise threshold
         .sort((a, b) => b.score - a.score)
         .slice(0, topN)
         .map(({ e }) => ({

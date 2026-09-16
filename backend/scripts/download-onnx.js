@@ -11,8 +11,8 @@ async function main() {
         await pipeline('feature-extraction', 'inlegal-sbert', { quantized: false });
         console.log('[ONNX Setup] ✓ Local InLegal-SBERT model files verified and ready.');
     } catch (err) {
-        console.error('[ONNX Setup] Error verifying local InLegal-SBERT model:', err.message);
-        process.exit(1);
+        console.warn('[ONNX Setup] Local InLegal-SBERT model not found. Core IDE will operate in Pure BM25 RAG mode.');
+        process.exit(0);
     }
 }
 

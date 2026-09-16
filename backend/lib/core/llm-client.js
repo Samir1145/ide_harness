@@ -478,6 +478,21 @@ function detectDocumentVectorType(filename, caseManifest = null) {
     return 'legal';
 }
 
+function resolveEmbeddingModelDir(domain) {
+    const os = require('os');
+    const candidates = [
+        process.env.HAYA_MODELS_PATH ? path.join(process.env.HAYA_MODELS_PATH, 'embeddings', domain) : null,
+        path.join(os.homedir(), 'Desktop', 'ide_models', 'weights', 'embeddings', domain),
+        path.join(__dirname, '..', '..', 'models', 'embeddings', domain),
+        path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'models', 'embeddings', domain)
+    ].filter(Boolean);
+
+    for (const c of candidates) {
+        if (fs.existsSync(c)) return c;
+    }
+    return path.join(__dirname, '..', '..', 'models', 'embeddings', domain);
+}
+
 async function getEmbedding(text, options = {}) {
     _lastEmbeddingAccess = Date.now();
     let vectorType = 'legal';
@@ -500,10 +515,10 @@ async function getEmbedding(text, options = {}) {
         env.allowLocalModels = true;
         env.allowRemoteModels = false;
 
-        // 2. Load the appropriate model pipeline
+        // Load the appropriate model pipeline
         if (vectorType === 'finance') {
             if (!_financePipeline) {
-                env.localModelPath = path.join(__dirname, '..', '..', 'models', 'embeddings', 'finance');
+                env.localModelPath = resolveEmbeddingModelDir('finance');
                 console.log(`[LLM Client] Loading local Finance ONNX embedding model (768d)...`);
                 _financePipeline = await pipeline('feature-extraction', 'finance-embeddings-investopedia', { quantized: false });
             }
@@ -511,7 +526,7 @@ async function getEmbedding(text, options = {}) {
             return Array.from(output.data);
         } else {
             if (!_legalPipeline) {
-                env.localModelPath = path.join(__dirname, '..', '..', 'models', 'embeddings', 'legal');
+                env.localModelPath = resolveEmbeddingModelDir('legal');
                 console.log(`[LLM Client] Loading local Legal ONNX embedding model (InLegal-SBERT 768d)...`);
                 _legalPipeline = await pipeline('feature-extraction', 'inlegal-sbert', { quantized: false });
             }
@@ -519,9 +534,8 @@ async function getEmbedding(text, options = {}) {
             return Array.from(output.data);
         }
     } catch (err) {
-        console.error(`[LLM Client] Local ONNX embedding failed for ${vectorType}: ${err.message}`);
-        // Return 768d zero vector fallback
-        return new Array(768).fill(0);
+        // When local neural models are offline, return null so RAG runs cleanly in Pure BM25 mode
+        return null;
     }
 }
 
