@@ -114,9 +114,9 @@ function loadCasesVault() {
     _verPath      = path.join(dir, 'cases-version.json');
 
     if (!fs.existsSync(_manifestPath)) {
-        console.warn('[CasesVaultLoader] No manifest — cases vault not downloaded yet.');
         return false;
     }
+
     _loadAsync();
     return true;
 }

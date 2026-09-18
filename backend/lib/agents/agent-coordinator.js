@@ -54,8 +54,10 @@ class AgentCoordinator {
         const candidates = [
             process.env.HAYAGRIVA_AGENTS_PATH,
             path.join(os.homedir(), 'Desktop', 'ide_agents', 'packs'),
-            path.join(__dirname, '..', '..', 'vault', 'agent_packs'),
-            path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'agents')
+            path.join(__dirname, '..', '..', '..', 'ide_agents', 'packs'),
+            path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'agents'),
+            path.join(process.env.APPDATA || os.homedir(), 'Hayagriva', 'agents'),
+            path.join(__dirname, '..', '..', 'vault', 'agent_packs')
         ].filter(Boolean);
 
         const validDirs = [];
@@ -152,13 +154,17 @@ Output ONLY the category name in lowercase. If the query asks to analyze bank st
 
 Prompt: "${message}"`;
 
+        if (/\b(precedent|precedents|case law|judgment|judgments|ruling|rulings|citation|citations)\b/i.test(message)) {
+            return 'precedent';
+        }
+
         try {
             const response = await getChatResponse([
-                { role: 'system', content: 'You are a precise classifier. Return only: advisor, forms, or document.' },
+                { role: 'system', content: 'You are a precise classifier. Return only: advisor, forms, document, bank_analyzer, or precedent.' },
                 { role: 'user', content: prompt }
             ], { caseDir });
             const cleaned = (response || '').trim().toLowerCase();
-            if (['advisor', 'forms', 'document', 'bank_analyzer'].includes(cleaned)) return cleaned;
+            if (['advisor', 'forms', 'document', 'bank_analyzer', 'precedent'].includes(cleaned)) return cleaned;
         } catch (e) {
             console.error('[Agent Coordinator] Classification failed:', e.message);
         }
@@ -173,14 +179,30 @@ Prompt: "${message}"`;
      * @param {string} targetAgentName - Explicit agent name (bypasses classification)
      */
     async run(caseDir, userMessage, history = [], targetAgentName = '', options = {}) {
+        const precedentAgent = require('./subagents/precedent-agent');
         const agentMap = {
             // Dynamic Vault .vlt Agent Packs (legal_agents.vlt, coding_agents.vlt, finance_agents.vlt)
             ...this.vaultAgents,
             'bank_analyzer': this.bankAnalyzer,
             'bank-analyzer': this.bankAnalyzer,
             'bank_forensic': this.bankAnalyzer,
-            'cashflow_agent': this.bankAnalyzer
+            'cashflow_agent': this.bankAnalyzer,
+            'precedent': {
+                run: async (cDir, msg, hist, opts) => {
+                    const cleanMsg = msg.replace(/^@precedents?\s*/i, '').trim();
+                    const res = await precedentAgent.query(cleanMsg, { caseDir: cDir });
+                    return res.formattedDossier;
+                }
+            },
+            'precedents': {
+                run: async (cDir, msg, hist, opts) => {
+                    const cleanMsg = msg.replace(/^@precedents?\s*/i, '').trim();
+                    const res = await precedentAgent.query(cleanMsg, { caseDir: cDir });
+                    return res.formattedDossier;
+                }
+            }
         };
+
 
         const { orchestratorRegistry } = require('./orchestrator-coordinator');
         const { resolvePromptVariables, buildMemoryContext } = require('./skills/memory-injector');

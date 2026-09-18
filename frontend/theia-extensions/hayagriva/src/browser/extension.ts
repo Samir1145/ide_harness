@@ -834,7 +834,7 @@ export class HayagrivaFrontendContribution
         text: '$(fa-warning) Hayagriva Server: Offline',
         alignment: StatusBarAlignment.RIGHT,
         color: '#ff4d4d',
-        tooltip: 'The Hayagriva Node.js backend is offline. Run ./start.command to start it.',
+        tooltip: 'The Hayagriva Node.js backend is offline. Run ./launchers/start.command to start it.',
         priority: 100
       });
       this.statusBar.setElement('hayagriva-mode-item', {
@@ -848,9 +848,10 @@ export class HayagrivaFrontendContribution
       if (this.showOfflineWarning) {
         this.showOfflineWarning = false;
         setTimeout(() => {
-          this.messageService.error('Hayagriva backend server is offline. Please launch it using ./start.command');
+          this.messageService.error('Hayagriva backend server is offline. Please launch it using ./launchers/start.command');
         }, 3000);
       }
+
     }
   }
 

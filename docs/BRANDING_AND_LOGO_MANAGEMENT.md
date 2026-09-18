@@ -41,8 +41,9 @@ yarn --cwd frontend/applications/electron build
 ### Step 4: Restart the Application
 Restart the application:
 ```bash
-./start.command
+./launchers/start.command
 ```
+
 
 ---
 

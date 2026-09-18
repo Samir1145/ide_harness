@@ -422,6 +422,7 @@ function loadLlmConfig(opts) {
     return config;
 }
 
+let _defaultPipeline = null;
 let _legalPipeline = null;
 let _financePipeline = null;
 let _lastEmbeddingAccess = Date.now();
@@ -431,8 +432,9 @@ const EMBEDDING_IDLE_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
 setInterval(() => {
     const idleTime = Date.now() - _lastEmbeddingAccess;
     if (idleTime >= EMBEDDING_IDLE_TTL_MS) {
-        if (_legalPipeline || _financePipeline) {
+        if (_defaultPipeline || _legalPipeline || _financePipeline) {
             console.log('[LLM Client] Idle TTL reached (5m). Evicting in-process ONNX embedding models from RAM...');
+            _defaultPipeline = null;
             _legalPipeline = null;
             _financePipeline = null;
             if (global.gc) {
@@ -445,7 +447,7 @@ setInterval(() => {
 async function warmupEmbeddingPipeline(vectorType = 'legal') {
     try {
         console.log(`[LLM Client] Asynchronously pre-warming ONNX embedding model (${vectorType})...`);
-        await getEmbedding('warmup text', vectorType);
+        await getEmbedding('warmup text', { vectorType, isQuery: true });
         console.log(`[LLM Client] ✓ Pre-warmup complete for ${vectorType} embedding model.`);
     } catch (e) {
         console.warn(`[LLM Client] Pre-warmup notice: ${e.message}`);
@@ -478,24 +480,64 @@ function detectDocumentVectorType(filename, caseManifest = null) {
     return 'legal';
 }
 
-function resolveEmbeddingModelDir(domain) {
+function resolveEmbeddingModel(vectorType) {
+    const defaultEmbeddingsBase = path.join(__dirname, '..', '..', 'models', 'default', 'embeddings');
+    const defaultNomic = path.join(defaultEmbeddingsBase, 'nomic-embed-text-v1.5');
+    const hasDefault = fs.existsSync(path.join(defaultNomic, 'tokenizer.json')) ||
+                       fs.existsSync(path.join(defaultNomic, 'config.json'));
+
+    if (vectorType === 'default' || vectorType === 'core') {
+        if (hasDefault) {
+            return {
+                basePath: defaultEmbeddingsBase,
+                modelName: 'nomic-embed-text-v1.5',
+                isSpecialized: false,
+                quantized: true
+            };
+        }
+    }
+
     const os = require('os');
-    const candidates = [
+    const domain = vectorType === 'finance' ? 'finance' : 'legal';
+    const modelName = domain === 'finance' ? 'finance-embeddings-investopedia' : 'inlegal-sbert';
+
+    const candidateBases = [
         process.env.HAYA_MODELS_PATH ? path.join(process.env.HAYA_MODELS_PATH, 'embeddings', domain) : null,
         path.join(os.homedir(), 'Desktop', 'ide_models', 'weights', 'embeddings', domain),
-        path.join(__dirname, '..', '..', 'models', 'embeddings', domain),
         path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'models', 'embeddings', domain)
     ].filter(Boolean);
 
-    for (const c of candidates) {
-        if (fs.existsSync(c)) return c;
+    for (const base of candidateBases) {
+        const fullModelPath = path.join(base, modelName);
+        if (fs.existsSync(path.join(fullModelPath, 'tokenizer.json')) ||
+            fs.existsSync(path.join(fullModelPath, 'config.json'))) {
+            return {
+                basePath: base,
+                modelName: modelName,
+                isSpecialized: true,
+                quantized: false
+            };
+        }
     }
-    return path.join(__dirname, '..', '..', 'models', 'embeddings', domain);
+
+    // Default core fallback: nomic-embed-text-v1.5
+    if (hasDefault) {
+        return {
+            basePath: defaultEmbeddingsBase,
+            modelName: 'nomic-embed-text-v1.5',
+            isSpecialized: false,
+            quantized: true
+        };
+    }
+
+    return null;
 }
 
 async function getEmbedding(text, options = {}) {
     _lastEmbeddingAccess = Date.now();
     let vectorType = 'legal';
+    let isQuery = false;
+
     if (typeof options === 'string') {
         if (options === 'finance' || options === 'legal') {
             vectorType = options;
@@ -508,33 +550,58 @@ async function getEmbedding(text, options = {}) {
         } else if (options.filename) {
             vectorType = detectDocumentVectorType(options.filename);
         }
+        if (options.isQuery !== undefined) {
+            isQuery = !!options.isQuery;
+        }
     }
 
     try {
+        const resolved = resolveEmbeddingModel(vectorType);
+        if (!resolved) {
+            console.warn('[LLM Client] No local embedding model found.');
+            return null;
+        }
+
         const { pipeline, env } = await import('@xenova/transformers');
         env.allowLocalModels = true;
         env.allowRemoteModels = false;
+        env.localModelPath = resolved.basePath;
 
-        // Load the appropriate model pipeline
-        if (vectorType === 'finance') {
-            if (!_financePipeline) {
-                env.localModelPath = resolveEmbeddingModelDir('finance');
-                console.log(`[LLM Client] Loading local Finance ONNX embedding model (768d)...`);
-                _financePipeline = await pipeline('feature-extraction', 'finance-embeddings-investopedia', { quantized: false });
+        if (resolved.isSpecialized) {
+            if (vectorType === 'finance') {
+                if (!_financePipeline) {
+                    console.log(`[LLM Client] Loading specialized Finance ONNX embedding model (768d)...`);
+                    env.localModelPath = resolved.basePath;
+                    _financePipeline = await pipeline('feature-extraction', resolved.modelName, { quantized: resolved.quantized });
+                }
+                const output = await _financePipeline(text, { pooling: 'mean', normalize: true });
+                return Array.from(output.data);
+            } else {
+                if (!_legalPipeline) {
+                    console.log(`[LLM Client] Loading specialized Legal ONNX embedding model (InLegal-SBERT 768d)...`);
+                    env.localModelPath = resolved.basePath;
+                    _legalPipeline = await pipeline('feature-extraction', resolved.modelName, { quantized: resolved.quantized });
+                }
+                const output = await _legalPipeline(text, { pooling: 'mean', normalize: true });
+                return Array.from(output.data);
             }
-            const output = await _financePipeline(text, { pooling: 'mean', normalize: true });
-            return Array.from(output.data);
         } else {
-            if (!_legalPipeline) {
-                env.localModelPath = resolveEmbeddingModelDir('legal');
-                console.log(`[LLM Client] Loading local Legal ONNX embedding model (InLegal-SBERT 768d)...`);
-                _legalPipeline = await pipeline('feature-extraction', 'inlegal-sbert', { quantized: false });
+            if (!_defaultPipeline) {
+                console.log(`[LLM Client] Loading embedded Core ONNX embedding model (nomic-embed-text-v1.5, 768d, 8k)...`);
+                env.localModelPath = resolved.basePath;
+                _defaultPipeline = await pipeline('feature-extraction', resolved.modelName, { quantized: resolved.quantized });
             }
-            const output = await _legalPipeline(text, { pooling: 'mean', normalize: true });
+
+            // Format with task prefix for optimal Nomic retrieval
+            const prefix = isQuery ? 'search_query: ' : 'search_document: ';
+            const formattedText = text.startsWith('search_query: ') || text.startsWith('search_document: ')
+                ? text
+                : `${prefix}${text}`;
+            const output = await _defaultPipeline(formattedText, { pooling: 'mean', normalize: true });
             return Array.from(output.data);
         }
     } catch (err) {
-        // When local neural models are offline, return null so RAG runs cleanly in Pure BM25 mode
+        console.warn(`[LLM Client] Embedding generation failed: ${err.message}`);
         return null;
     }
 }

@@ -127,9 +127,13 @@ function writeLicenseToSettings(caseDir, tier, payload) {
         settings.licenseExpiresAt = (payload && (payload.expiresAt || payload.valid_until)) || null;
         settings.allowedDomains = (payload && payload.allowedDomains) || ['legal', 'finance'];
         settings.allowedPacks = (payload && (payload.allowed_packs || payload.allowedPacks)) || [];
-        if (payload && (payload.lightrag_api_key || payload.lightragApiKey)) {
-            settings.lightragApiKey = payload.lightrag_api_key || payload.lightragApiKey;
+        if (payload && (payload.lightrag_api_key || payload.lightragApiKey || payload.resolutionbazaar_key)) {
+            settings.lightragApiKey = payload.lightrag_api_key || payload.lightragApiKey || payload.resolutionbazaar_key;
         }
+        if (payload && (payload.resolutionbazaar_url || payload.lightrag_url || payload.lightragApiUrl)) {
+            settings.lightragApiUrl = payload.resolutionbazaar_url || payload.lightrag_url || payload.lightragApiUrl;
+        }
+
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
 
         // Mirror tier into case_manifest.json inside conversions/
@@ -237,6 +241,65 @@ function isSuiteLicensed(suiteKey, caseDir) {
     }
 }
 
+/**
+ * Inspects active license status, checking expiration, device lock, and days remaining.
+ */
+function getLicenseStatus(caseDir) {
+    const { getMachineId, verifyMachineLock } = require('./machine-fingerprint');
+    const { PRICING_PLANS } = require('../config/pricing-plans');
+    const currentMachineId = getMachineId();
+
+    let settings = {};
+    const localSettingsPath = caseDir ? path.join(caseDir, 'hayagriva_settings.json') : null;
+    const globalSettingsPath = path.join(require('os').homedir(), '.gemini', 'hayagriva_settings.json');
+
+    if (localSettingsPath && fs.existsSync(localSettingsPath)) {
+        try { settings = JSON.parse(fs.readFileSync(localSettingsPath, 'utf8')); } catch (_) {}
+    } else if (fs.existsSync(globalSettingsPath)) {
+        try { settings = JSON.parse(fs.readFileSync(globalSettingsPath, 'utf8')); } catch (_) {}
+    }
+
+    const licenseObj = settings.license || {};
+    const licensedTo = settings.licensedTo || licenseObj.licensedTo || null;
+    const planId = licenseObj.planId || (settings.subscriptionTier === 'enterprise' ? 'enterprise_pilot' : (settings.subscriptionTier === 'professional' ? 'pro_pilot' : 'free_core_6m'));
+    const expiresAt = settings.licenseExpiresAt || licenseObj.expiresAt || null;
+    const deviceId = licenseObj.deviceId || settings.deviceId || null;
+
+    let daysRemaining = null;
+    let isExpired = false;
+    let needsRenewal = false;
+
+    if (expiresAt) {
+        const diffMs = new Date(expiresAt).getTime() - Date.now();
+        daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        if (daysRemaining <= 0) {
+            isExpired = true;
+            daysRemaining = 0;
+        } else if (daysRemaining <= 15) {
+            needsRenewal = true;
+        }
+    }
+
+    const isDeviceMismatch = !!(deviceId && deviceId !== currentMachineId);
+    const isActivated = !!licensedTo && !isExpired && !isDeviceMismatch;
+
+    return {
+        activated: isActivated,
+        tier: settings.subscriptionTier || licenseObj.tier || (isActivated ? 'lite' : 'unverified'),
+        planId: planId,
+        planDetails: PRICING_PLANS[planId] || PRICING_PLANS.free_core_6m,
+        licensedTo: typeof licensedTo === 'object' ? licensedTo : { name: licensedTo },
+        deviceId: currentMachineId,
+        registeredDeviceId: deviceId,
+        isDeviceMismatch,
+        expiresAt,
+        daysRemaining,
+        isExpired,
+        needsRenewal,
+        availablePlans: PRICING_PLANS
+    };
+}
+
 module.exports = { 
     validateLicense,
     validateLicenseEnvelope,
@@ -244,6 +307,8 @@ module.exports = {
     writeLicenseToSettings, 
     isDomainLicensed, 
     validateWorkspaceDomain,
-    isSuiteLicensed
+    isSuiteLicensed,
+    getLicenseStatus
 };
+
 

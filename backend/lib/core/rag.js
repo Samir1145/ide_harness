@@ -265,13 +265,13 @@ Hypothetical Answer:`;
     let legalQueryVec = null;
     let financeQueryVec = null;
     try {
-        [legalQueryVec, financeQueryVec] = await Promise.all([
-            getEmbedding(queryText, 'legal'),
-            getEmbedding(queryText, 'finance')
-        ]);
+        legalQueryVec = await getEmbedding(queryText, { vectorType: 'legal', isQuery: true });
+        financeQueryVec = await getEmbedding(queryText, { vectorType: 'finance', isQuery: true });
     } catch (e) {
         console.warn('[RAG] Failed to generate dual query embeddings:', e.message);
     }
+
+
 
     let vectorHits = [];
     const hasQueryVec = (legalQueryVec && legalQueryVec.some(v => v !== 0)) || (financeQueryVec && financeQueryVec.some(v => v !== 0));
@@ -531,10 +531,13 @@ function buildLiteResponse(queryText, contexts) {
     });
 
     const answer = [
-        `> ⚡ **Lite Mode — Semantic Passage Search:** *"${queryText}"*`,
-        `> Showing top ${contexts.length} ranked excerpts. Switch to Standard mode for AI-generated answers.`,
+        `> ⚡ **Lite Mode — Verbatim Semantic Passage Search:** *"${queryText}"*`,
+        `> Showing top ${contexts.length} ranked excerpts with 100% factual fidelity.`,
         '',
-        ...cards
+        ...cards,
+        '',
+        `---`,
+        `> 💡 **Tip:** To synthesize these excerpts into an argument brief or legal memo, click **Start Engine** in Settings.`
     ].join('\n\n');
 
     return { answer, sources: Array.from(new Set(contexts.map(c => c.docName))), liteMode: true };

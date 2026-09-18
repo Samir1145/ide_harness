@@ -28,8 +28,11 @@ const USER_VAULTS_DIR  = process.platform === 'win32'
 const DESKTOP_VAULTS_DIRS = [
   process.env.HAYAGRIVA_VAULTS_PATH,
   path.join(os.homedir(), 'Desktop', 'ide_vaults', 'output', 'client_vaults', 'dist'),
+  path.join(__dirname, '..', '..', '..', 'ide_vaults', 'output', 'client_vaults', 'dist'),
   path.join(os.homedir(), 'Desktop', 'ide_vaults', 'output'),
-  path.join(os.homedir(), 'Desktop', 'ide_vaults')
+  path.join(__dirname, '..', '..', '..', 'ide_vaults', 'output'),
+  path.join(os.homedir(), 'Desktop', 'ide_vaults'),
+  path.join(__dirname, '..', '..', '..', 'ide_vaults')
 ].filter(Boolean);
 
 const BUNDLED_DATA_VAULT_DIR = path.join(__dirname, '..', '..', 'vault', 'data_vaults', 'laws');

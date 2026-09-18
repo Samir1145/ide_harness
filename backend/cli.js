@@ -15,6 +15,21 @@ function getDocumentsDir() {
     return path.resolve(home, 'Documents');
 }
 
+const repoRoot = path.resolve(__dirname, '..');
+
+function isProjectRepoRoot(dir) {
+    if (!dir) return false;
+    try {
+        const resolved = path.resolve(dir);
+        if (resolved === repoRoot) return true;
+        if (fs.existsSync(path.join(resolved, 'frontend', 'applications', 'electron')) &&
+            fs.existsSync(path.join(resolved, 'backend', 'package.json'))) {
+            return true;
+        }
+    } catch (_) {}
+    return false;
+}
+
 const BINARY_EXTS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls'];
 
 const HELP = `Usage: hayagriva <case-path>
@@ -32,7 +47,7 @@ async function bootstrapCase(caseDir) {
     if (!caseDir) return;
     const resolved = path.resolve(caseDir);
     const docsRoot = getDocumentsDir();
-    if (resolved === docsRoot) return;
+    if (resolved === docsRoot || isProjectRepoRoot(resolved)) return;
 
     // Dynamically write/update .theia/settings.json and .vscode/settings.json to hide 'wiki' and 'concepts' database folders from File Explorer
     const configDirs = ['.theia', '.vscode'];
@@ -215,11 +230,10 @@ async function main() {
         }
     }
 
-    // Load encrypted law vault into RAM (no decrypted content ever touches disk)
+    // Load statutory bare acts vault into RAM (IBC 2016, Companies Act, NCLAT Rules)
     loadVault();
+    // Precedent case research is handled dynamically via @Precedent on ResolutionBazaar LightRAG
 
-    // Load cases vault (judgment summaries) — silently skipped if not yet downloaded
-    loadCasesVault();
 
 
     const argv = process.argv.slice(2);
@@ -267,24 +281,15 @@ async function main() {
         return;
     }
 
-const repoRoot = path.resolve(__dirname, '..');
-
-function isProjectRepoRoot(dir) {
-    if (!dir) return false;
-    try {
-        const resolved = path.resolve(dir);
-        if (resolved === repoRoot) return true;
-        if (fs.existsSync(path.join(resolved, 'frontend/applications/electron')) &&
-            fs.existsSync(path.join(resolved, 'backend/package.json'))) {
-            return true;
-        }
-    } catch (_) {}
-    return false;
-}
-
     // Single case mode
-    const caseDir = fs.realpathSync(caseArg || process.cwd());
-    if (!isProjectRepoRoot(caseDir)) {
+    let caseDir = fs.realpathSync(caseArg || process.cwd());
+    if (isProjectRepoRoot(caseDir)) {
+        console.warn(`[hayagriva] ⚠️ Refusing to treat IDE repository root as a case directory: ${caseDir}`);
+        const defaultCase = path.join(getDocumentsDir(), 'Demo_Case');
+        if (!fs.existsSync(defaultCase)) fs.mkdirSync(defaultCase, { recursive: true });
+        caseDir = defaultCase;
+        console.log(`[hayagriva] Defaulted active case to: ${caseDir}`);
+    } else {
         getConceptsDir(caseDir);
     }
 

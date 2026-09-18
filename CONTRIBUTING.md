@@ -1,51 +1,60 @@
-# Contributing to Hayagriva
+# Contributing to HAYAGRIVA
 
-## Three-Layer Architecture
+## 🏛️ Architecture & Separation of Concerns
 
+HAYAGRIVA follows a clean, decoupled architecture:
+
+```text
+Layer 1 — Core Host Engine (backend/)
+  Node.js daemon handling document ingestion, SQLite FTS5/Vector search,
+  local LLM integration, IPC server (port 3210), and dynamic plugin dispatching.
+  → Edit here to: enhance RAG pipelines, add daemon routes, or optimize local search.
+
+Layer 2 — IDE Extensions (frontend/theia-extensions/)
+  Custom TypeScript extensions for Eclipse Theia:
+  • hayagriva: Sidebar panels, Monaco slash commands (/law, /case), hover providers.
+  • product: Custom branding, window titles, splash screens.
+  → Edit here to: add new editor widgets, keybindings, or custom Monaco completions.
+
+Layer 3 — Desktop Shell (frontend/applications/electron/)
+  The Eclipse Theia Electron wrapper application.
+  → Upstream platform container. Do not modify directly except for dependencies.
 ```
-Layer 1 — Backend (hayagriva/)
-  Node.js server that handles document ingestion, search, LLM calls, and forms.
-  Edit here to: add new document formats, improve search, add API endpoints.
 
-Layer 2 — IDE Extension (hayagriva-extension/)
-  Standalone TypeScript Theia extension — sidebar panels, commands, menus.
-  Edit here to: add new sidebar views, keyboard shortcuts, IDE-level features.
+---
 
-Layer 3 — IDE Shell (ide/)
-  The Eclipse Theia Electron app with branding applied.
-  Do NOT edit this folder. It is build infrastructure only.
-```
+## 🌐 Modular Satellite Repositories
 
-## Backend Structure (`hayagriva/lib/`)
+Domain logic and heavy data assets are intentionally externalized from `ide_harness`:
 
-```
-lib/
+- **`ide_agents/`**: Domain subagents (`advisor`, `forms`, `claims`, `document`), statutory prompt suites, and specialized skills.
+- **`ide_vaults/`**: Statutory crawlers, scrapers, Atticus dataset extractors, and AES-256 compiled `.vlt` vaults.
+- **`ide_models/`**: Offline GGUF neural weights (`LegalParam-2.9B`, `FinanceParam-2.9B`) and ONNX embeddings.
+- **`ide_formats/`**: Statutory court templates, Supreme Court petitions, and corporate filing skeletons.
+- **User Cases**: Live matter workspaces live strictly in `~/Documents/Hayagriva_Cases/<CaseName>`, never in the repository root.
+
+---
+
+## 🛠️ Backend Structure (`backend/lib/`)
+
+```text
+backend/lib/
 ├── core/       ← Core services: bm25, rag, llm-client, splitter, indexer, converter, drafting
-├── daemon/     ← Background daemons: watcher (filesystem), lazy_pdf_worker (PDF queue)
-├── utils/      ← Small utilities: okf, vault-loader, multimodal_parser, window-list
-├── pipeline/   ← Per-format document pipeline
-│   ├── pdf/    ← upload.js, ingest.js, split.js
-│   ├── docx/   ← upload.js, ingest.js, split.js
-│   ├── xls/    ← upload.js, ingest.js, split.js
-│   ├── wiki/   ← upload.js, ingest.js, split.js
-│   ├── forms/  ← mapper.js, rules_validator.js, exporter.js
-│   └── common/ ← helper.js, extract.js, text_ingest.js
-├── agents/     ← AI agents: advisor, document, forms
+├── daemon/     ← Background daemons: watcher (filesystem), pdf pipeline
+├── utils/      ← Utilities: vault-loader, cases-vault-loader, multimodal_parser
+├── pipeline/   ← Format-specific ingestion pipelines (pdf, docx, xls, wiki, common)
+├── agents/     ← Generic Agent Coordinator, inbox manager, risk engine, dynamic skill-resolver
 ├── api-server.js
 └── routes.js
 ```
 
-## Adding a New Document Format
+---
 
-1. Create `lib/pipeline/<format>/upload.js` — converter
-2. Create `lib/pipeline/<format>/split.js` — chunker
-3. Create `lib/pipeline/<format>/ingest.js` — BM25 indexer
-4. Export the `ingest<Format>` function from `lib/pipeline/index.js`
-5. Add the file extension to `watcher.js` DOC_EXTENSIONS list
+## 🧪 Running Tests
 
-## Running Tests
+To run the complete automated test suite:
 
 ```bash
-cd hayagriva
-npm test
+cd backend
+node tests/run_all_tests.js
 ```

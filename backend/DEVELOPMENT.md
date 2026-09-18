@@ -1,6 +1,6 @@
 # hayagriva — Development Notes
 
-Notes for anyone working on hayagriva. End-user docs are in [README.md](README.md).
+Notes for anyone working on hayagriva backend. End-user docs are in [README.md](../README.md).
 
 ---
 
@@ -8,53 +8,38 @@ Notes for anyone working on hayagriva. End-user docs are in [README.md](README.m
 
 ```bash
 # Start the hayagriva backend server (watches ~/Documents/ by default)
-cd hayagriva/
-source .env
+cd backend/
+source .env 2>/dev/null || true
 node cli.js --watch-all
 
 # Server binds on http://127.0.0.1:3210
-# IDE (Theia) is started separately via start.command
+# Full IDE is started via launchers/start.command (or start.bat / start.sh)
 ```
 
 ---
 
 ## Repo Layout
 
-```
-TWILLM-OKF-PAGED/
-├── hayagriva/                      # Backend Node.js server
+```text
+ide_harness/
+├── backend/                        # Backend Node.js daemon
 │   ├── cli.js                      # Entry point: bootstraps cases, starts watcher + API
-│   ├── .env                        # OPENROUTER_API_KEY, VAULT_KEY, etc.
+│   ├── .env                        # Local dev environment secrets (ignored by git)
 │   └── lib/
-│       ├── watcher.js              # File watcher, ingestFile(), PDF background daemon
-│       ├── api-server.js           # HTTP API (port 3210)
-│       ├── llm-client.js           # LLM routing: OpenRouter / Ollama / Gemini / OpenAI
-│       ├── converter.js            # PDF→MD orchestrator (pdfexcavator)
-│       ├── rag.js                  # BM25 retrieval + prompt builder
-│       ├── bm25.js                 # Inverted index: load/save/query
-│       ├── indexer.js              # index.json read/write/upsert
-│       ├── okf.js                  # Markdown/frontmatter parser
-│       ├── vault-loader.js         # Encrypted law vault (AES-256-GCM)
-│       ├── upload-file/            # Phase 1: format converters
-│       │   ├── pdf_upload.js       # PDF text extraction
-│       │   ├── docx_upload.js      # Mammoth Word converter
-│       │   ├── xls_upload.js       # Excel→Markdown grid tables
-│       │   ├── wiki_upload.js      # TiddlyWiki HTML scraper
-│       │   ├── pdf2png             # Compiled Cocoa binary (macOS PDFKit renderer)
-│       │   └── pdf2png.m           # Objective-C source for pdf2png
-│       ├── splitting-file/         # Format-specific chunk segmenters
-│       │   └── *_splitter.js
-│       └── ingestion-file/         # Phase 2: BM25 + concept coordinators
-│           └── *_ingest.js
-├── ide/                            # Theia IDE workspace
-│   └── theia-extensions/hayagriva/
-│       └── src/browser/
-│           ├── templates.ts        # Sidebar, upload panel, concepts panel HTML
-│           └── hayagriva-contribution.ts
-└── docs/
-    ├── handbook/                   # User & developer handbook
-    └── archive/                    # Work session logs
+│       ├── daemon/                 # File watcher, ingestFile(), background daemons
+│       ├── api-server.js           # HTTP API (port 3210) & routes.js
+│       ├── core/                   # RAG, LLM client, splitter, indexer, SQLite store
+│       ├── utils/                  # Dynamic vault loader, multimodal parser
+│       ├── pipeline/               # Multi-format converters (PDF, DOCX, XLS, Wiki)
+│       └── agents/                 # AgentCoordinator, inbox-manager, dynamic skill-resolver
+├── frontend/                       # Theia IDE monorepo
+│   ├── theia-extensions/           # Custom Hayagriva & product branding extensions
+│   └── applications/electron/      # Electron packaging & startup scripts
+├── launchers/                      # Cross-platform startup scripts (start.command, start.bat, start.sh)
+├── branding/                       # Application icons, logos, splashes
+└── docs/                           # Architectural guides & handbooks
 ```
+
 
 ---
 

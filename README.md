@@ -86,24 +86,27 @@ While Legal Counsel is the initial active module, Hayagriva's 6 core systems eas
 
 ### 2. Launch Application
 To launch the Hayagriva backend server and Electron desktop shell:
-```bash
-./start.command
-```
+- **macOS:** `./launchers/start.command` (or double-click in Finder)
+- **Windows:** `launchers\start.bat`
+- **Linux:** `./launchers/start.sh`
 
 To stop all background processes cleanly:
-```bash
-./stop.command
-```
+- **macOS:** `./launchers/stop.command`
+- **Windows:** `launchers\stop.bat`
+- **Linux:** `./launchers/stop.sh`
+
 
 ### 3. Rebuilding Frontend Extensions
-If modifying code in `ide/theia-extensions/hayagriva`:
+If modifying code in `frontend/theia-extensions/`:
 ```bash
-# 1. Compile TypeScript extension
-yarn --cwd ide/theia-extensions/hayagriva build
+# 1. Compile product & Hayagriva extensions
+yarn --cwd frontend/theia-extensions/product build
+yarn --cwd frontend/theia-extensions/hayagriva build
 
 # 2. Package Electron distribution bundle
-yarn --cwd ide/applications/electron build
+yarn --cwd frontend/applications/electron build
 ```
+
 
 ---
 

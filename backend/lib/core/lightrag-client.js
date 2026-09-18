@@ -20,26 +20,43 @@ class LightRagClient {
         this.config = this._loadConfig();
     }
 
-    _loadConfig() {
+    _loadConfig(caseDir = null) {
         let apiUrl = process.env.LIGHTRAG_API_URL || 'http://localhost:8020';
         let apiKey = process.env.LIGHTRAG_API_KEY || '';
 
-        // Read settings overrides if present
+        // Read case settings overrides if present
+        if (caseDir && fs.existsSync(path.join(caseDir, 'hayagriva_settings.json'))) {
+            try {
+                const cs = JSON.parse(fs.readFileSync(path.join(caseDir, 'hayagriva_settings.json'), 'utf8'));
+                if (cs.lightragApiUrl || cs.resolutionbazaar_url) apiUrl = cs.lightragApiUrl || cs.resolutionbazaar_url;
+                if (cs.lightragApiKey || cs.resolutionbazaar_key || cs.advisoryApiKey) {
+                    apiKey = cs.lightragApiKey || cs.resolutionbazaar_key || cs.advisoryApiKey;
+                }
+            } catch (_) {}
+        }
+
+        // Read global settings overrides if present
         const settingsPath = path.join(os.homedir(), '.gemini', 'hayagriva_settings.json');
         if (fs.existsSync(settingsPath)) {
             try {
                 const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-                if (s.lightragApiUrl) apiUrl = s.lightragApiUrl;
-                if (s.lightragApiKey || s.advisoryApiKey) apiKey = s.lightragApiKey || s.advisoryApiKey;
+                if (s.lightragApiUrl || s.resolutionbazaar_url) apiUrl = s.lightragApiUrl || s.resolutionbazaar_url;
+                if (s.lightragApiKey || s.resolutionbazaar_key || s.advisoryApiKey) {
+                    apiKey = s.lightragApiKey || s.resolutionbazaar_key || s.advisoryApiKey;
+                }
             } catch (_) {}
         }
 
         return { apiUrl: apiUrl.replace(/\/+$/, ''), apiKey };
     }
 
-    reloadConfig() {
-        this.config = this._loadConfig();
+    reloadConfig(caseDir = null) {
+        this.config = this._loadConfig(caseDir);
         return this.config;
+    }
+
+    refreshConfig(caseDir = null) {
+        return this.reloadConfig(caseDir);
     }
 
     isConfigured() {

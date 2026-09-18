@@ -23,14 +23,16 @@ vault/.obsidian/appearance.json
 
 # Local binaries, symlinked model weights and agent packs
 bin/
-models
+models/
+*.onnx
 vault/agent_packs
 
 # Python Virtual Environments
 .venv/
 __pycache__/
 
-# Temporary folders
-tmp_extract/
+# Exclude dynamic precedent cases vault (routed to ResolutionBazaar LightRAG)
+vault/data_vaults/cases/
+data_vaults/cases/
 
 

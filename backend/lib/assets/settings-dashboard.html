@@ -2,1893 +2,2121 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hayagriva Command Center &amp; Settings</title>
   <style>
     :root {
-      --bg-color: #0f172a;
+      --bg-color: #0b1120;
+      --surface-bg: #131d33;
       --card-bg: #1e293b;
       --card-border: #334155;
-      --card-bg-active: rgba(56, 189, 248, 0.12);
-      --card-border-active: #38bdf8;
+      --card-border-focus: #38bdf8;
+      --card-bg-active: rgba(56, 189, 248, 0.08);
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
-      --accent-color: #0284c7;
-      --accent-hover: #0369a1;
-      --success-color: #10b981;
-      --warning-color: #f59e0b;
-      --danger-color: #ef4444;
-      --input-bg: #0f172a;
+      --text-subtle: #64748b;
+      --accent-blue: #0284c7;
+      --accent-blue-hover: #0369a1;
+      --accent-cyan: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #8b5cf6;
+      --input-bg: #0b1120;
       --input-border: #334155;
+      --glass-bg: rgba(30, 41, 59, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --badge-bg: rgba(255, 255, 255, 0.06);
     }
 
     [data-theme="light"] {
-      --bg-color: #f8fafc;
+      --bg-color: #f1f5f9;
+      --surface-bg: #ffffff;
       --card-bg: #ffffff;
       --card-border: #cbd5e1;
-      --card-bg-active: #f0f9ff;
-      --card-border-active: #0284c7;
+      --card-border-focus: #0284c7;
+      --card-bg-active: rgba(2, 132, 199, 0.06);
       --text-main: #0f172a;
       --text-muted: #475569;
-      --accent-color: #0284c7;
-      --accent-hover: #0369a1;
-      --success-color: #059669;
-      --warning-color: #d97706;
-      --danger-color: #dc2626;
-      --input-bg: #ffffff;
+      --text-subtle: #94a3b8;
+      --accent-blue: #0284c7;
+      --accent-blue-hover: #0369a1;
+      --accent-cyan: #0284c7;
+      --accent-emerald: #059669;
+      --accent-amber: #d97706;
+      --accent-rose: #e11d48;
+      --accent-purple: #7c3aed;
+      --input-bg: #f8fafc;
       --input-border: #cbd5e1;
+      --glass-bg: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(0, 0, 0, 0.08);
+      --badge-bg: rgba(0, 0, 0, 0.05);
     }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      margin: 0;
-      padding: 0 0 40px 0;
-      line-height: 1.6;
+      line-height: 1.5;
       font-size: 14px;
+      padding-bottom: 60px;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     .container {
-      max-width: 960px;
+      max-width: 1080px;
       margin: 0 auto;
       padding: 24px 20px;
     }
 
-    /* ── Header & Telemetry Bar ────────────────────────────────────────── */
-    .header {
+    /* ── Sticky Top Bar & Telemetry ────────────────────────────────────────── */
+    .header-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid var(--card-border);
-      padding-bottom: 20px;
-      margin-bottom: 16px;
+      padding: 16px 20px;
+      background: var(--surface-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
       gap: 16px;
       flex-wrap: wrap;
     }
-    .header-left {
+
+    .brand-section {
       display: flex;
       align-items: center;
       gap: 14px;
     }
-    .header-logo {
-      width: 38px;
-      height: 38px;
-      object-fit: contain;
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0284c7, #8b5cf6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+      color: #fff;
     }
-    .header-title {
-      font-size: 20px;
+
+    .brand-title {
+      font-size: 19px;
       font-weight: 700;
-      letter-spacing: -0.5px;
-      margin: 0;
+      letter-spacing: -0.3px;
       color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .header-subtitle {
-      font-size: 13px;
+
+    .mode-pill {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      letter-spacing: 0.5px;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
       color: var(--text-muted);
       margin-top: 2px;
     }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .telemetry-pill {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 24px;
-      padding: 8px 16px;
-      font-size: 12px;
-      font-weight: 600;
+
+    .telemetry-group {
       display: flex;
       align-items: center;
       gap: 14px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    }
-    .ram-bar-bg {
-      width: 80px;
-      height: 8px;
-      background: var(--input-border);
-      border-radius: 4px;
-      overflow: hidden;
-      display: inline-block;
-      vertical-align: middle;
-      margin: 0 6px;
-    }
-    .ram-bar-fill {
-      height: 100%;
-      background: var(--accent-color);
-      width: 0%;
-      transition: width 0.4s ease;
-    }
-    .btn-slash-ref {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--card-border);
-      color: var(--text-main);
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-    .btn-slash-ref:hover {
-      background: var(--card-bg-active);
-      border-color: var(--accent-color);
-      color: var(--accent-color);
+      flex-wrap: wrap;
     }
 
-    /* ── Sticky Main Navigation Tabs (4 Core Pillars) ─────────────────── */
-    .nav-tabs-wrapper {
-      position: sticky;
-      top: 0;
-      z-index: 100;
+    .telemetry-card {
       background: var(--bg-color);
-      padding: 10px 0 16px 0;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--card-border);
-    }
-    .nav-tabs {
-      display: flex;
-      gap: 8px;
-      background: var(--card-bg);
       border: 1px solid var(--card-border);
-      padding: 6px;
-      border-radius: 12px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+      border-radius: 24px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 600;
     }
-    .nav-tab-btn {
-      flex: 1;
-      background: none;
-      border: none;
-      color: var(--text-muted);
+
+    .telemetry-bar-outer {
+      width: 70px;
+      height: 6px;
+      background: var(--input-border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .telemetry-bar-inner {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-emerald), var(--accent-amber));
+      border-radius: 3px;
+      transition: width 0.4s ease;
+      width: 25%;
+    }
+
+    .btn-header {
+      padding: 8px 16px;
+      border-radius: 8px;
       font-size: 13px;
       font-weight: 600;
-      padding: 10px 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: var(--accent-blue-hover);
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border-color: var(--card-border);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background: var(--card-bg);
+      border-color: var(--text-muted);
+    }
+
+    .btn-theme {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 7px 12px;
       border-radius: 8px;
       cursor: pointer;
-      transition: all 0.15s ease;
+      font-size: 14px;
+    }
+
+    /* ── Section Titles & Badges ───────────────────────────────────────── */
+    .pillar-section {
+      margin-bottom: 32px;
+    }
+
+    .pillar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pillar-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pillar-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      font-weight: 800;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-    }
-    .nav-tab-btn:hover {
-      color: var(--text-main);
-    }
-    .nav-tab-btn.active {
-      background: var(--accent-color);
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
-    }
-
-    /* ── Tab Views Container ───────────────────────────────────────────── */
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .section-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 24px 28px;
-      margin-bottom: 24px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-    }
-    .section-header {
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      color: var(--text-main);
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .section-desc {
-      margin-top: 0;
-      color: var(--text-muted);
       font-size: 13px;
-      line-height: 1.5;
-      margin-bottom: 18px;
     }
 
-    /* ── Multi-Row Grids ────────────────────────────────────────────────── */
-    .mode-grid-2col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-    }
-    .domain-grid-3col {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-    }
-
-    @media (max-width: 768px) {
-      .mode-grid-2col, .domain-grid-3col {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .mode-tile {
-      background: var(--card-bg);
-      border: 2px solid var(--card-border);
-      border-radius: 10px;
-      padding: 20px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .mode-tile:hover {
-      border-color: var(--accent-color);
-      transform: translateY(-1px);
-    }
-    .mode-tile.active {
-      border-color: var(--card-border-active);
-      background: var(--card-bg-active);
-      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.1);
-    }
-    .mode-tile-title {
-      font-size: 15px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      color: var(--text-main);
-    }
-    .mode-tile-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 14px;
-    }
-    .feature-list {
-      border-top: 1px dashed var(--card-border);
-      padding-top: 12px;
-      font-size: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .feature-item.yes { color: var(--success-color); font-weight: 600; }
-    .feature-item.no { color: var(--danger-color); opacity: 0.7; }
-
-    /* ── LLM Engine Cards ───────────────────────────────────────────────── */
-    .engine-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .engine-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 16px 20px;
-      transition: all 0.2s ease;
-    }
-    .engine-item.active {
-      border-color: var(--success-color);
-      background: rgba(16, 185, 129, 0.08);
-    }
-    .engine-item.offline {
-      border-color: var(--card-border);
-    }
-    .engine-status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-      flex-shrink: 0;
-    }
-    .engine-item.active .engine-status-dot {
-      background: var(--success-color);
-      box-shadow: 0 0 10px var(--success-color);
-    }
-    .engine-item.offline .engine-status-dot {
-      background: var(--text-muted);
-    }
-
-    .btn-action {
-      background: var(--accent-color);
-      color: #ffffff;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .btn-action:hover { background: var(--accent-hover); }
-    .btn-action.stop { background: var(--danger-color); }
-    .btn-action.stop:hover { background: #b91c1c; }
-    .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* ── Suite Matrix Cards ──────────────────────────────────────────────── */
-    .suites-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-      gap: 18px;
-      margin-top: 18px;
-    }
-    .suite-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: all 0.2s ease;
-      position: relative;
-    }
-    .suite-card:hover {
-      border-color: var(--accent-color);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-    }
-    .suite-card.selected {
-      border-color: var(--card-border-active);
-      background: var(--card-bg-active);
-      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.12);
-    }
-    .suite-card.active-entitled {
-      border-left: 4px solid var(--success-color);
-    }
-    .suite-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .suite-checkbox {
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-      accent-color: var(--accent-color);
-      margin-top: 3px;
-    }
-    .suite-title {
+    .pillar-title {
       font-size: 16px;
       font-weight: 700;
       color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
     }
-    .suite-price-badge {
+
+    .pillar-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .tag-foundation {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .tag-brain {
+      background: rgba(139, 92, 246, 0.15);
+      color: var(--accent-purple);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    .tag-coworkers {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .pillar-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Grids & Cards ─────────────────────────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .card:hover {
+      border-color: var(--card-border-focus);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-active {
+      border-color: var(--accent-cyan) !important;
+      background: var(--card-bg-active) !important;
+      box-shadow: 0 0 0 1px var(--accent-cyan);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card-badge {
       font-size: 11px;
       font-weight: 700;
       padding: 3px 8px;
       border-radius: 6px;
-      background: rgba(2, 132, 199, 0.18);
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.3);
-    }
-    .suite-domain-badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.08);
+      background: var(--badge-bg);
       color: var(--text-muted);
+      border: 1px solid var(--card-border);
+      white-space: nowrap;
     }
-    .suite-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 14px;
+    .badge-success {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border-color: rgba(16, 185, 129, 0.3);
     }
-    .suite-workflows-box {
-      border-top: 1px dashed var(--card-border);
-      border-bottom: 1px dashed var(--card-border);
-      padding: 10px 0;
-      margin-bottom: 14px;
+    .badge-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border-color: rgba(245, 158, 11, 0.3);
     }
-    .workflow-tag {
-      display: inline-flex;
+    .badge-cyan {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .card-icon-title {
+      display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin: 3px 4px 3px 0;
+      gap: 10px;
+    }
+
+    .card-icon {
+      font-size: 20px;
+      display: inline-block;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
       color: var(--text-main);
     }
-    .forms-accordion-toggle {
-      font-size: 12px;
+
+    .card-body-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      min-height: 40px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--card-border);
+      padding-top: 14px;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    /* ── Switch / Toggle Styles ────────────────────────────────────────── */
+    .switch-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .switch-wrap:last-child {
+      border-bottom: none;
+    }
+
+    .switch-label-title {
+      font-size: 13px;
       font-weight: 600;
-      color: var(--accent-color);
+      color: var(--text-main);
+    }
+    .switch-label-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
       cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--input-border);
+      transition: .25s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-blue);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* ── Radio Tile Selection (Pillar 2) ───────────────────────────────── */
+    .radio-card {
+      cursor: pointer;
+      position: relative;
+    }
+    .radio-card input[type="radio"] {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      accent-color: var(--accent-cyan);
+      width: 18px;
+      height: 18px;
+    }
+
+    .model-meta-list {
+      list-style: none;
+      font-size: 12px;
+      color: var(--text-subtle);
+      margin-bottom: 14px;
+    }
+    .model-meta-list li {
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-bottom: 8px;
-      user-select: none;
+      margin-bottom: 4px;
     }
-    .forms-preview-list {
-      max-height: 120px;
-      overflow-y: auto;
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
-      border-radius: 6px;
-      padding: 8px 12px;
-      font-size: 12px;
+    .model-meta-list li strong {
       color: var(--text-muted);
-      margin-bottom: 12px;
-      display: none;
     }
-    .sticky-suites-bar {
-      position: sticky;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--card-bg);
+
+    /* ── Engine Status Bar ─────────────────────────────────────────────── */
+    .engine-status-bar {
+      background: var(--surface-bg);
       border: 1px solid var(--card-border);
       border-radius: 12px;
-      padding: 16px 24px;
+      padding: 14px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 24px;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-      z-index: 90;
+      margin-top: 18px;
+      flex-wrap: wrap;
+      gap: 14px;
     }
 
-    /* ── Drag & Drop Offline Importer ───────────────────────────────────── */
-    .dropzone {
-      border: 2px dashed var(--card-border);
-      border-radius: 12px;
-      padding: 28px;
-      text-align: center;
-      background: rgba(255, 255, 255, 0.01);
-      transition: all 0.2s ease;
-      margin-top: 14px;
-    }
-    .dropzone.dragover {
-      border-color: var(--accent-color);
-      background: var(--card-bg-active);
-    }
-    .dropzone-title {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .dropzone-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 14px;
-    }
-    .dropzone-input-row {
+    .engine-indicator {
       display: flex;
+      align-items: center;
       gap: 10px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    .dropzone-input-row input {
-      flex: 1;
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
-      border-radius: 6px;
-      color: var(--text-main);
-      padding: 10px 14px;
       font-size: 13px;
-      font-family: monospace;
+      font-weight: 600;
     }
 
-    /* ── License & Subscriptions ────────────────────────────────────────── */
-    .license-box {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text-subtle);
+      display: inline-block;
     }
-    .license-box input {
-      flex: 1;
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
-      border-radius: 6px;
-      color: var(--text-main);
-      padding: 12px 16px;
-      font-size: 14px;
-      font-family: monospace;
+    .dot-running {
+      background: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
+    }
+    .dot-offline {
+      background: var(--accent-amber);
     }
 
-    /* ── Privacy Disclaimer Callout ─────────────────────────────────────── */
-    .privacy-callout {
-      background: rgba(2, 132, 199, 0.08);
-      border: 1px solid rgba(2, 132, 199, 0.25);
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 12px;
-      color: var(--text-muted);
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 18px;
-      line-height: 1.5;
-    }
-
-    /* ── Quick Reference Modal ─────────────────────────────────────────── */
-    .modal-backdrop {
-      display: none;
+    /* ── Modal Overlay & Dialog ────────────────────────────────────────── */
+    .modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(8px);
-      z-index: 2000;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
       align-items: center;
       justify-content: center;
+      z-index: 1000;
       padding: 20px;
     }
-    .modal-backdrop.active {
+
+    .modal-overlay.active {
       display: flex;
     }
+
     .modal-dialog {
-      background: var(--card-bg);
+      background: var(--surface-bg);
       border: 1px solid var(--card-border);
       border-radius: 16px;
-      max-width: 800px;
       width: 100%;
-      max-height: 85vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      max-width: 520px;
       padding: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
       position: relative;
     }
-    .modal-header {
+
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .modal-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: var(--input-border);
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 14px 0 8px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-emerald));
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 5px;
+    }
+
+    .progress-meta {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid var(--card-border);
-      padding-bottom: 16px;
-      margin-bottom: 20px;
-    }
-    .modal-close-btn {
-      background: none;
-      border: none;
+      font-size: 12px;
       color: var(--text-muted);
-      font-size: 22px;
-      cursor: pointer;
-      line-height: 1;
     }
-    .modal-close-btn:hover { color: var(--text-main); }
 
-    /* ── Toast Alert Notification ──────────────────────────────────────── */
+    /* ── Toast Notifications ───────────────────────────────────────────── */
     #toast {
       visibility: hidden;
-      min-width: 280px;
-      background-color: var(--success-color);
-      color: #fff;
+      min-width: 260px;
+      background-color: var(--surface-bg);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
       text-align: center;
-      border-radius: 8px;
-      padding: 14px 24px;
+      border-radius: 10px;
+      padding: 12px 20px;
       position: fixed;
-      z-index: 3000;
-      right: 24px;
-      bottom: 24px;
-      font-size: 14px;
+      z-index: 1100;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      font-size: 13px;
       font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      opacity: 0;
     }
     #toast.show {
       visibility: visible;
-      animation: fadein 0.3s, fadeout 0.3s 2.7s;
+      opacity: 1;
     }
-    @keyframes fadein { from { bottom: 10px; opacity: 0; } to { bottom: 24px; opacity: 1; } }
-    @keyframes fadeout { from { bottom: 24px; opacity: 1; } to { bottom: 10px; opacity: 0; } }
   </style>
 </head>
 <body>
+
   <div class="container">
-    
-    <!-- ── Header Bar with Live Hardware Telemetry ────────────────────────── -->
-    <div class="header">
-      <div class="header-left">
-        <img src="/api/hayagriva/branding/logo.png" class="header-logo" alt="Hayagriva" onerror="this.style.display='none'">
+
+    <!-- ── Sticky Top Bar & Telemetry ── -->
+    <header class="header-bar">
+      <div class="brand-section">
+        <div class="brand-icon">⚖️</div>
         <div>
-          <h1 class="header-title">Hayagriva Command Center</h1>
-          <div class="header-subtitle">Sovereign Legal &amp; Financial Workspace Environment</div>
-        </div>
-      </div>
-      <div class="header-right">
-        <button type="button" class="btn-slash-ref" onclick="openSlashCheatSheetModal()" title="View Monaco Slash Commands &amp; Citations Reference">
-          📖 Slash Reference
-        </button>
-        <div class="telemetry-pill" id="telemetryPill">
-          <div>
-            <span>RAM</span>
-            <div class="ram-bar-bg"><div class="ram-bar-fill" id="ramFill"></div></div>
-            <span id="ramText" style="color: var(--text-muted);">-- / -- GB</span>
-          </div>
-          <span id="modeBadge" style="background: rgba(16, 185, 129, 0.15); color: var(--success-color); padding: 4px 10px; border-radius: 12px; font-weight: 700;">Lite Mode</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Sticky Main Navigation Tabs (The 4 Purpose-Driven Pillars) ─────── -->
-    <div class="nav-tabs-wrapper">
-      <div class="nav-tabs">
-        <button type="button" class="nav-tab-btn active" id="tabBtn_workspace" onclick="switchNavTab('workspace')">🏛️ Practice &amp; Workspace</button>
-        <button type="button" class="nav-tab-btn" id="tabBtn_marketplace" onclick="switchNavTab('marketplace')">🤖 Agent Suites &amp; Packs</button>
-        <button type="button" class="nav-tab-btn" id="tabBtn_engine" onclick="switchNavTab('engine')">🧠 Engine &amp; Connected Services</button>
-        <button type="button" class="nav-tab-btn" id="tabBtn_license" onclick="switchNavTab('license')">🔑 License &amp; Account</button>
-      </div>
-    </div>
-
-    <!-- ── TAB 1: Practice & Workspace Profile ────────────────────────────── -->
-    <div class="tab-content active" id="tabWorkspace">
-      <div id="domainOnboardingBanner" style="display: none; background: rgba(2, 132, 199, 0.12); border: 1px solid var(--accent-color); border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;">
-        <div style="font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 4px;">
-          ✨ Welcome to Hayagriva Sovereign Workspace
-        </div>
-        <div style="font-size: 13px; color: var(--text-muted);">
-          This case directory is uninitialized. Select your <strong>Practice Edition</strong> below to automatically provision domain folder taxonomy, statutory templates, and AI compliance subagents.
-        </div>
-      </div>
-
-      <!-- Practice Domain Profile Card -->
-      <div class="section-card">
-        <div class="section-header">🏛️ Practice Edition &amp; Case Profile</div>
-        <div class="section-desc">Select the active professional practice domain for this workspace. Enforces folder taxonomy isolation and assigns specialized subagents.</div>
-        
-        <div class="domain-grid-3col">
-          <!-- Insolvency Profile Tile -->
-          <div class="mode-tile" id="tileDomainInsolvency" onclick="setWorkspaceDomain('insolvency')">
-            <div>
-              <div class="mode-tile-title">
-                <span>🏛️ Haya Insolvency (IP)</span>
-                <span id="radioDomainInsolvency" style="color: var(--accent-color);">✓</span>
-              </div>
-              <div class="mode-tile-desc">Insolvency Professional &amp; IPE workflow. 10 iPIE Folders, CoC Voting Engine, Form A–F &amp; <code>@claims_mgr</code>.</div>
-            </div>
-            <div class="feature-list">
-              <div class="feature-item yes">✓ Statutory CIRP Milestones (T₀ → T₃₃₀)</div>
-              <div class="feature-item yes">✓ Resolution Plan &amp; Form H Audit</div>
-              <div class="feature-item yes">✓ Sections 43, 45, 50, 66 PUFE Inquest</div>
-            </div>
-          </div>
-
-          <!-- Legal Advocate Profile Tile -->
-          <div class="mode-tile" id="tileDomainLegal" onclick="setWorkspaceDomain('legal')">
-            <div>
-              <div class="mode-tile-title">
-                <span>⚖️ Haya Legal (Advocate)</span>
-                <span id="radioDomainLegal" style="display: none; color: var(--accent-color);">✓</span>
-              </div>
-              <div class="mode-tile-desc">Advocate &amp; Law Firm litigation workflow. 5 Legal Folders, Court Dockets, SLP Drafter &amp; <code>@docket_mgr</code>.</div>
-            </div>
-            <div class="feature-list">
-              <div class="feature-item yes">✓ Supreme Court Compliant DOCX (/export-sc)</div>
-              <div class="feature-item yes">✓ NCLAT-1 Appeal &amp; Stay Applications</div>
-              <div class="feature-item yes">✓ Binding Precedents Ratio Decidendi</div>
-            </div>
-          </div>
-
-          <!-- Finance CA Profile Tile -->
-          <div class="mode-tile" id="tileDomainFinance" onclick="setWorkspaceDomain('finance')">
-            <div>
-              <div class="mode-tile-title">
-                <span>📊 Haya Finance (CA)</span>
-                <span id="radioDomainFinance" style="display: none; color: var(--accent-color);">✓</span>
-              </div>
-              <div class="mode-tile-desc">Chartered Accountant &amp; Forensic Audit workflow. 5 Finance Folders, Multi-Bank Reconciliations &amp; <code>@audit_mgr</code>.</div>
-            </div>
-            <div class="feature-list">
-              <div class="feature-item yes">✓ Bank Statement Ingestion (.xlsx, .csv)</div>
-              <div class="feature-item yes">✓ Contra-Sweep &amp; Siphoning Scans</div>
-              <div class="feature-item yes">✓ MCA-21 AOC-4 XBRL Balance Extraction</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Processing Mode Card -->
-      <div class="section-card">
-        <div class="section-header">⚡ Workspace Processing Mode</div>
-        <div class="section-desc">Choose between high-speed zero-RAM indexing or full neural AI drafting with specialized subagents.</div>
-        
-        <div class="mode-grid-2col">
-          <!-- Lite Mode Tile -->
-          <div class="mode-tile" id="tileLite" onclick="setMode('lite')">
-            <div>
-              <div class="mode-tile-title">
-                <span>⚡ Sovereign Lite Mode</span>
-                <span id="radioLite" style="color: var(--accent-color);">✓</span>
-              </div>
-              <div class="mode-tile-desc">High-speed passage search (SQLite FTS5 + ONNX vector embeddings). 0 MB local LLM RAM overhead. 100% air-gapped.</div>
-            </div>
-            <div class="feature-list">
-              <div class="feature-item yes">✓ Local Semantic Search (InLegal-SBERT)</div>
-              <div class="feature-item yes">✓ Statutory Timeline Engine &amp; Card Slicing</div>
-              <div class="feature-item yes">✓ Bare Acts Autocomplete (/law, /case)</div>
-              <div class="feature-item no">✗ Neural LLM Drafting &amp; Subagents (Offline)</div>
-            </div>
-          </div>
-
-          <!-- AI Mode Tile -->
-          <div class="mode-tile" id="tileLocal" onclick="setMode('local')">
-            <div>
-              <div class="mode-tile-title">
-                <span>🧠 Full AI Drafting Mode</span>
-                <span id="radioLocal" style="display: none; color: var(--accent-color);">✓</span>
-              </div>
-              <div class="mode-tile-desc">Full AI-assisted legal drafting, automated fact extraction, and compliance audits. Runs local SLM on Port 8090 (~2.7 GB RAM).</div>
-            </div>
-            <div class="feature-list">
-              <div class="feature-item yes">✓ Full AI Chat &amp; Specialized Subagents</div>
-              <div class="feature-item yes">✓ Bi-directional Automated Fact Dictionary</div>
-              <div class="feature-item yes">✓ Autonomous Petition &amp; Form Drafting</div>
-              <div class="feature-item yes">✓ Resolution Plan Compliance Certificates</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Storage & Diagnostics Card -->
-      <div class="section-card">
-        <div class="section-header">🛠️ Storage &amp; Conversion Diagnostics</div>
-        <div class="section-desc">Inspect local workspace path, headless conversion tools, and legacy format compatibility.</div>
-
-        <div id="libreOfficeBanner" style="padding: 14px 18px; border-radius: 8px; margin-bottom: 18px; font-weight: 600; font-size: 14px;">
-          Checking LibreOffice status…
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-          <input type="checkbox" id="chkLibreOfficeWarning" onchange="autoSaveSettings()" style="cursor: pointer; width: 16px; height: 16px;">
-          <label for="chkLibreOfficeWarning" style="cursor: pointer; user-select: none; font-size: 14px; font-weight: 500;">
-            Enable Warning Banner for Legacy Doc Formats (.doc, .xls)
-          </label>
-        </div>
-
-        <div id="libreOfficeInstallGuide" style="display: none; font-size: 13px; color: var(--text-muted); border-top: 1px dashed var(--card-border); padding-top: 14px; margin-top: 10px;">
-          <strong>Terminal Command to Install LibreOffice for headless conversions (macOS):</strong><br>
-          <code style="background: var(--input-bg); border: 1px solid var(--input-border); padding: 6px 12px; border-radius: 6px; display: inline-block; margin-top: 8px; font-size: 13px; color: var(--text-main);">brew install --cask libreoffice</code>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── TAB 2: Agent Suites & Packs ────────────────────────────────────── -->
-    <div class="tab-content" id="tabMarketplace">
-      <div class="section-card">
-        <div class="section-header">🤖 Specialized Domain Agent Suites (Checkbox Marketplace)</div>
-        <div class="section-desc">
-          Select the specialized suites required for your practice. Each suite bundles autonomous subagents, IBC &amp; Companies Act statutory forms, practice playbooks, and landmark precedents.
-        </div>
-
-        <!-- Suites Matrix Grid -->
-        <div class="suites-grid" id="suitesMatrixGrid">
-          <div style="color: var(--text-muted); padding: 20px;">Loading specialized suites catalog…</div>
-        </div>
-
-        <!-- Sticky Checkout Bar -->
-        <div class="sticky-suites-bar" id="stickySuitesBar">
-          <div>
-            <div style="font-weight: 700; font-size: 15px;" id="selectedSuitesCountText">0 Suites Selected</div>
-            <div style="font-size: 12px; color: var(--text-muted);" id="selectedSuitesPriceText">Select suites above to view bundle pricing</div>
-          </div>
-          <button type="button" class="btn-action" id="btnSubscribeSuites" onclick="proceedToSubscribe()" style="padding: 10px 22px; font-size: 14px; font-weight: 700; background: var(--accent-color);">
-            Proceed to Subscribe on Website ➔
-          </button>
-        </div>
-      </div>
-
-      <!-- Drag & Drop Importer -->
-      <div class="section-card" style="margin-top: 20px;">
-        <div class="section-header">📥 Offline Module Importer (.vlt / .gguf / .zip)</div>
-        <div class="section-desc">Import pre-downloaded offline module files or enterprise packs directly into the sovereign runtime. Required for air-gapped deployments.</div>
-        
-        <div class="dropzone" id="dropzone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
-          <div class="dropzone-title">Drag &amp; Drop Offline Module File</div>
-          <div class="dropzone-desc">Drop any .vlt agent pack, .gguf model, or .zip data vault archive here</div>
-          <div class="dropzone-input-row">
-            <input type="text" id="importPathInput" placeholder="/Users/path/to/module_file.zip">
-            <button type="button" class="btn-action" onclick="submitImportPath()">Import File</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── TAB 3: Engine & Connected Services ─────────────────────────────── -->
-    <div class="tab-content" id="tabEngine">
-      <!-- Section 1: Local Neural Engine -->
-      <div class="section-card" id="engineControlSection">
-        <div class="section-header">🧠 Local Neural SLM Engine (Unified Port 8090)</div>
-        <div class="section-desc">
-          100% private, local RAM execution. Allocates ~2.7 GB on Port 8090. Switching models hot-swaps memory dynamically, ensuring strictly 1 engine runs at a time.
-        </div>
-
-        <div class="engine-list">
-          <!-- Legal Engine Card -->
-          <div class="engine-item" id="cardLegal">
-            <div>
-              <div style="font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 10px;">
-                <span class="engine-status-dot"></span>
-                <span>HayaLegal-2.9B Engine</span>
-                <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(Port 8090)</span>
-              </div>
-              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="statusTextLegal">Status: Offline</div>
-            </div>
-            <button type="button" class="btn-action" id="btnLegal" onclick="toggleEngine('legal')">Start Engine</button>
-          </div>
-
-          <!-- Finance Engine Card -->
-          <div class="engine-item" id="cardFinance">
-            <div>
-              <div style="font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 10px;">
-                <span class="engine-status-dot"></span>
-                <span>HayaFinance-2.9B Engine</span>
-                <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(Port 8090)</span>
-              </div>
-              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="statusTextFinance">Status: Offline</div>
-            </div>
-            <button type="button" class="btn-action" id="btnFinance" onclick="toggleEngine('finance')">Start Engine</button>
-          </div>
-
-          <!-- SaulLM-7B Engine Card -->
-          <div class="engine-item" id="cardSaul">
-            <div>
-              <div style="font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 10px;">
-                <span class="engine-status-dot"></span>
-                <span>HayaPro-7B Instruct (Pro Engine)</span>
-                <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(Port 8090)</span>
-              </div>
-              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="statusTextSaul">Status: Offline</div>
-            </div>
-            <button type="button" class="btn-action" id="btnSaul" onclick="toggleEngine('saul')">Start Engine</button>
-          </div>
-        </div>
-
-        <!-- Model Weights Download Manager -->
-        <div id="domainModelInfoBox" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 16px; margin-top: 18px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-            <div>
-              <div style="font-weight: 700; font-size: 15px;" id="modelDomainTitle">HayaLegal™ Sovereign Legal Stack</div>
-              <div style="font-size: 13px; color: var(--text-muted); margin-top: 3px;" id="modelDomainFiles">
-                SLM: HayaLegal-2.9B Instruct (1.8 GB) • Embeddings: HayaVector-Legal (280 MB)
-              </div>
-            </div>
-            <span id="modelStatusBadge" style="font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 20px; background: rgba(16,185,129,0.15); color: var(--success-color);">
-              Checking weights…
+          <div class="brand-title">
+            Hayagriva Command Center
+            <span class="mode-pill" id="activeModePill">⚡ Core Lite</span>
+            <span class="mode-pill" id="licenseStatusPill" onclick="openPaymentModal()" style="cursor: pointer; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3); color: var(--accent-cyan);" title="Click to view license or activate device">
+              🔒 Free Core (₹1 Token)
             </span>
           </div>
-
-          <!-- Progress Bar -->
-          <div id="modelDownloadProgressWrap" style="display: none; margin-top: 16px;">
-            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
-              <span id="dlStatusText" style="color: var(--text-muted);">Downloading model weights…</span>
-              <span id="dlPercentText" style="font-weight: 700; color: var(--accent-color);">0%</span>
-            </div>
-            <div style="width: 100%; height: 10px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 5px; overflow: hidden;">
-              <div id="dlProgressBarFill" style="width: 0%; height: 100%; background: var(--accent-color); transition: width 0.3s ease;"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-              <span id="dlSpeedText">Speed: -- MB/s</span>
-              <span id="dlEtaText">ETA: -- s</span>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap;">
-            <button type="button" class="btn-action" id="btnDownloadModels" onclick="startModelDownload()" style="background: var(--accent-color);">
-              📥 Download Domain Weights (2.1 GB)
-            </button>
-            <button type="button" class="btn-action" id="btnCancelDownload" onclick="cancelModelDownload()" style="display: none; background: var(--danger-color);">
-              Cancel Download
-            </button>
-            <button type="button" class="btn-action" onclick="checkModelsDiskStatus()" style="background: transparent; border: 1px solid var(--card-border); color: var(--text-main);">
-              🔄 Refresh Check
-            </button>
-          </div>
+          <div class="brand-subtitle">Indian Legal &amp; Financial AI Sovereign Environment</div>
         </div>
       </div>
 
-      <!-- Section 2: Connected Hybrid Services -->
-      <div class="section-card" id="hybridServicesSection">
-        <div class="section-header">🌐 Connected Hybrid Services (Optional)</div>
-        <div class="section-desc">
-          Extend sovereign offline capabilities with high-scale precedent graph queries and cloud OCR for damaged documents.
+      <div class="telemetry-group">
+        <div class="telemetry-card">
+          <span>RAM</span>
+          <div class="telemetry-bar-outer">
+            <div class="telemetry-bar-inner" id="ramBarFill" style="width: 20%;"></div>
+          </div>
+          <span id="ramText">0.0 / 0.0 GB</span>
         </div>
 
-        <div class="privacy-callout">
-          <span style="font-size: 18px; line-height: 1;">🔒</span>
-          <div>
-            <strong>Air-Gap Privacy Guarantee:</strong> Case documents and client files never leave your computer. These services only query public statutory knowledge or parse image pages upon your explicit consent.
-          </div>
+        <div class="telemetry-card">
+          <span>CPU Cores</span>
+          <span id="cpuText" style="color: var(--accent-cyan);">--</span>
         </div>
 
-        <!-- Service A: Haya Jurisprudence Graph -->
-        <div style="background: rgba(0,0,0,0.15); border: 1px solid var(--card-border); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
-          <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
-            <span>⚖️ Haya Jurisprudence Graph™ (43,000+ Judgments)</span>
-            <span id="lightragStatusBadge" style="font-size: 12px; font-weight: 600; color: var(--accent-color);">Live Knowledge Graph</span>
-          </div>
-          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-            Enables multi-hop legal reasoning across Supreme Court, NCLAT, and NCLT landmark precedents. Free tier includes Top 50 Landmark SC cases.
-          </div>
+        <button class="btn-theme" id="btnThemeToggle" title="Toggle Theme">🌓</button>
+        <button class="btn-header btn-primary" id="btnSaveAll">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Changes
+        </button>
+      </div>
+    </header>
 
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <div>
-              <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 5px;">Precedent Advisory Subscription Key</label>
-              <input type="password" id="inputAdvisoryKey" placeholder="Enter key (e.g. haya_adv_...)" style="width: 100%; max-width: 480px; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-main); border-radius: 6px; font-family: monospace;">
-            </div>
-            <div>
-              <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 5px;">Knowledge Graph Endpoint</label>
-              <input type="text" id="inputLightragUrl" placeholder="http://localhost:8020" style="width: 100%; max-width: 480px; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-main); border-radius: 6px; font-family: monospace;">
-            </div>
-            <div style="display: flex; align-items: center; gap: 14px; margin-top: 4px;">
-              <button type="button" class="btn-action" onclick="saveAndTestLightrag()" style="background: var(--accent-color);">Save &amp; Test Connection</button>
-              <span id="lightragStatusText" style="font-size: 13px; color: var(--text-muted);">Status: Free Tier (Top 50 SC Cases &amp; Bare Acts Active)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Service B: LlamaParse Cloud OCR -->
-        <div style="background: rgba(0,0,0,0.15); border: 1px solid var(--card-border); border-radius: 10px; padding: 20px;">
-          <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">
-            ⚡ Cloud OCR Fallback (LlamaParse)
-          </div>
-          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-            Advanced multi-pass layout extraction for complex scanned tables and blurred documents. Invoked only upon explicit consent.
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <div>
-              <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 5px;">LlamaParse API Key</label>
-              <div style="display: flex; gap: 8px; max-width: 580px;">
-                <input type="password" id="txtLlamaApiKey" placeholder="llx-..." onchange="autoSaveSettings()" style="flex: 1; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; color: var(--text-main); font-family: monospace;">
-                <button type="button" onclick="toggleApiKeyVisibility()" class="btn-action" style="background: transparent; border: 1px solid var(--card-border); color: var(--text-main);">👁️</button>
-                <button type="button" onclick="testLlamaConnection()" id="btnTestLlama" class="btn-action" style="background: var(--accent-color);">⚡ Test</button>
-              </div>
-              <div id="llamaStatusBadge" style="margin-top: 6px; font-size: 12px; font-weight: 600; display: none;"></div>
-            </div>
-
-            <div style="max-width: 480px;">
-              <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 5px;">Parsing Tier</label>
-              <select id="selLlamaTier" onchange="autoSaveSettings()" style="width: 100%; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; color: var(--text-main); font-size: 13px;">
-                <option value="agentic">Agentic (Recommended — multi-pass layout &amp; table extraction)</option>
-                <option value="cost_effective">Cost Effective (Balanced speed and quality)</option>
-                <option value="fast">Fast (Basic text OCR)</option>
-              </select>
-            </div>
+    <!-- License Activation & Renewal Alert Banner -->
+    <div id="licenseAlertBanner" style="display: none; background: linear-gradient(90deg, rgba(234, 179, 8, 0.12), rgba(249, 115, 22, 0.08)); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 12px; padding: 14px 20px; margin-bottom: 24px; align-items: center; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <span style="font-size: 24px;">⚡</span>
+        <div>
+          <div id="licenseAlertTitle" style="font-weight: 700; font-size: 14px; color: var(--accent-amber);">Activate 6-Month Free Core License (₹1 Token Verification)</div>
+          <div id="licenseAlertDesc" style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+            Nominal ₹1 UPI payment verifies your Indian legal identity &amp; locks your license to this laptop. Renews every 6 months.
           </div>
         </div>
       </div>
+      <button class="btn-header btn-primary" onclick="openPaymentModal()" style="white-space: nowrap; padding: 8px 18px; font-size: 12px; font-weight: 700; background: var(--accent-amber); border-color: #d97706; color: #000;">
+        ⚡ Verify &amp; Activate (₹1)
+      </button>
     </div>
 
-    <!-- ── TAB 4: License & Account ───────────────────────────────────────── -->
-    <div class="tab-content" id="tabLicense">
-      <div class="section-card">
-        <div class="section-header">🔑 Cryptographic License &amp; Firm Entitlements</div>
-        <div class="section-desc">
-          Manage your Ed25519 cryptographic license key, unlocked practice suites, and offline validity state.
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- PILLAR 1: KNOWLEDGE & FORMATS (OFFLINE FOUNDATION)                      -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="pillar-section">
+      <div class="pillar-header">
+        <div class="pillar-title-wrap">
+          <div class="pillar-num">1</div>
+          <h2 class="pillar-title">Knowledge &amp; Formats Foundation</h2>
         </div>
-        
-        <div class="license-box">
-          <input type="text" id="licenseInput" placeholder="Paste license key string (e.g. HAYG.eyJzdWIi...)...">
-          <button type="button" class="btn-action" onclick="activateLicense()">Activate Key</button>
-        </div>
-        
-        <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; background: rgba(0,0,0,0.2); padding: 18px 22px; border-radius: 10px; border: 1px solid var(--card-border);">
-          <div>
-            <div style="font-size: 12px; color: var(--text-muted);">Licensed Practitioner / Firm</div>
-            <div style="font-weight: 700; font-size: 15px;" id="licenseeName">Evaluation User (Sovereign Core)</div>
+        <span class="pillar-tag tag-foundation">Offline Foundation — Zero RAM Overhead</span>
+      </div>
+      <p class="pillar-desc">
+        Built-in statutory law repositories and deterministic template filling. Operates with <strong>instant response times (&lt;100ms)</strong> and <strong>zero LLM dependency</strong>.
+      </p>
+
+      <div class="grid-2">
+        <!-- Card 1A: Statutory Bare Acts & Law Vault -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">🏛️</span>
+              <span class="card-title">Bare Acts &amp; Statutory Vault</span>
+            </div>
+            <span class="card-badge badge-success" id="lawVaultStatusBadge">✓ Installed (v2026.1)</span>
           </div>
-          <div>
-            <div style="font-size: 12px; color: var(--text-muted);">Subscription Tier</div>
-            <div style="font-weight: 700; font-size: 15px; color: var(--accent-color);" id="tierBadge">STARTER (SOVEREIGN FREE)</div>
+          <p class="card-body-text">
+            Offline SQLite FTS5 database containing the complete IBC 2016, Companies Act 2013, and NCLAT Rules (100% offline, zero cloud dependency). Dynamic legal precedents are served live via ResolutionBazaar cloud intelligence.
+          </p>
+
+          <div class="switch-wrap">
+            <div>
+              <div class="switch-label-title">Monaco Statutory Hover Tooltips</div>
+              <div class="switch-label-desc">Hovering over Section 7, 9, 14, 29A, 43, 66 renders statutory text inline.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkMonacoHover" checked>
+              <span class="slider"></span>
+            </label>
           </div>
-          <div>
-            <div style="font-size: 12px; color: var(--text-muted);">Valid Until</div>
-            <div style="font-weight: 700; font-size: 15px;" id="licenseExpiry">Perpetual Sovereign</div>
+
+          <div class="switch-wrap">
+            <div>
+              <div class="switch-label-title">CodeLens &amp; /law Autocomplete</div>
+              <div class="switch-label-desc">Slash-commands trigger instant bare-act lookup directly in Monaco editor.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkMonacoAutocomplete" checked>
+              <span class="slider"></span>
+            </label>
           </div>
         </div>
 
-        <div style="margin-top: 20px;">
-          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Active Subscribed Practice Suites:</div>
-          <div id="activePacksBadges" style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <span style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-muted);">Sovereign Free Tier (Top 50 SC Judgments &amp; Skeletons Active)</span>
+        <!-- Card 1B: Standard Formats & Skeletons -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">📋</span>
+              <span class="card-title">Standard Legal Formats &amp; Skeletons</span>
+            </div>
+            <span class="card-badge badge-cyan" id="skeletonCountBadge">15 Skeletons Active</span>
+          </div>
+          <p class="card-body-text">
+            Deterministic filing from <code>case_kv_dictionary.json</code> into standard statutory schedules (Form B, Form C, Section 7/9 filings) with guaranteed precision.
+          </p>
+
+          <div class="switch-wrap">
+            <div>
+              <div class="switch-label-title">Deterministic KV Auto-Filling</div>
+              <div class="switch-label-desc">Fills placeholders directly from case facts without hallucination risk.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkDeterministicKv" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="card-footer">
+            <span style="font-size: 12px; color: var(--text-subtle);">Fast Verification</span>
+            <button class="btn-header btn-outline" id="btnTestDeterministicDraft" style="padding: 5px 12px; font-size: 12px;">
+              ⚡ Test Deterministic Draft
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- PILLAR 2: ACTIVE BRAIN TIER (LICENSE-GATED 1-CLICK DOWNLOAD)            -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="pillar-section">
+      <div class="pillar-header">
+        <div class="pillar-title-wrap">
+          <div class="pillar-num">2</div>
+          <h2 class="pillar-title">Active Brain Tier</h2>
+        </div>
+        <span class="pillar-tag tag-brain">License-Gated &bull; 1-Click Streamer</span>
+      </div>
+      <p class="pillar-desc">
+        Select the reasoning engine powering deep case analysis, interactive chat, and agent critique loops.
+      </p>
+
+      <div class="grid-4">
+        <!-- Tile 1: Core Lite Brain -->
+        <div class="card radio-card card-active" id="tileBrainCore" onclick="selectBrainTier('core')">
+          <input type="radio" name="brainTier" value="core" id="radioBrainCore" checked>
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">⚡</span>
+              <span class="card-title">Core Lite</span>
+            </div>
+          </div>
+          <span class="card-badge badge-success" style="margin-bottom: 10px; display: inline-block;">Included &bull; Active</span>
+          <p class="card-body-text">
+            Nomic 8K Context Embeddings + MiniLM Reranker + Extractive RAG. Runs with zero background compute.
+          </p>
+          <ul class="model-meta-list">
+            <li><strong>RAM Idle:</strong> 0 MB (0% CPU)</li>
+            <li><strong>Model:</strong> Nomic-Embed-Text 8k</li>
+            <li><strong>Reranker:</strong> MiniLM-L6 (ONNX)</li>
+          </ul>
+          <div class="card-footer">
+            <span style="font-size: 11px; color: var(--accent-emerald); font-weight: 700;">DEFAULT ENGINE</span>
           </div>
         </div>
 
-        <div style="margin-top: 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-          <button type="button" class="btn-action" onclick="syncLicenseFromCloud()" style="background: rgba(2, 132, 199, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
-            🔄 1-Click Auto-Sync with Website Account
+        <!-- Tile 2: Specialized Legal Brain -->
+        <div class="card radio-card" id="tileBrainLegal" onclick="selectBrainTier('legal')">
+          <input type="radio" name="brainTier" value="legal" id="radioBrainLegal">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">🏛️</span>
+              <span class="card-title">Legal Brain</span>
+            </div>
+          </div>
+          <span class="card-badge" id="badgeLegalStatus" style="margin-bottom: 10px; display: inline-block;">Checking...</span>
+          <p class="card-body-text">
+            Specialized Indian legal reasoning with <code>LegalParam-2.9B</code> + <code>InLegal-SBERT</code>.
+          </p>
+          <ul class="model-meta-list">
+            <li><strong>LLM:</strong> LegalParam-2.9B (GGUF)</li>
+            <li><strong>Embeddings:</strong> InLegal-SBERT</li>
+            <li><strong>Footprint:</strong> ~1.7 GB disk / ~1.8 GB RAM</li>
+          </ul>
+          <div class="card-footer">
+            <button class="btn-header btn-outline" id="btnActionLegal" style="width: 100%; justify-content: center; padding: 6px 10px; font-size: 12px;" onclick="handleBrainAction(event, 'legal')">
+              Activate
+            </button>
+          </div>
+        </div>
+
+        <!-- Tile 3: Specialized Finance Brain -->
+        <div class="card radio-card" id="tileBrainFinance" onclick="selectBrainTier('finance')">
+          <input type="radio" name="brainTier" value="finance" id="radioBrainFinance">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">📈</span>
+              <span class="card-title">Finance Brain</span>
+            </div>
+          </div>
+          <span class="card-badge" id="badgeFinanceStatus" style="margin-bottom: 10px; display: inline-block;">Checking...</span>
+          <p class="card-body-text">
+            Balance sheet forensic analysis, CIRP claim reconciliation with <code>FinanceParam-2.9B</code>.
+          </p>
+          <ul class="model-meta-list">
+            <li><strong>LLM:</strong> FinanceParam-2.9B (GGUF)</li>
+            <li><strong>Embeddings:</strong> Finance-Embeddings</li>
+            <li><strong>Footprint:</strong> ~1.7 GB disk / ~1.8 GB RAM</li>
+          </ul>
+          <div class="card-footer">
+            <button class="btn-header btn-outline" id="btnActionFinance" style="width: 100%; justify-content: center; padding: 6px 10px; font-size: 12px;" onclick="handleBrainAction(event, 'finance')">
+              Activate
+            </button>
+          </div>
+        </div>
+
+        <!-- Tile 4: Cloud / Custom LLM API -->
+        <div class="card radio-card" id="tileBrainCloud" onclick="selectBrainTier('cloud')">
+          <input type="radio" name="brainTier" value="cloud" id="radioBrainCloud">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">☁️</span>
+              <span class="card-title">Cloud / Custom</span>
+            </div>
+          </div>
+          <span class="card-badge badge-warn" style="margin-bottom: 10px; display: inline-block;">External API</span>
+          <p class="card-body-text">
+            Connect to OpenAI, Anthropic Claude, Ollama, or an enterprise internal endpoint.
+          </p>
+          <ul class="model-meta-list">
+            <li><strong>Endpoint:</strong> Custom URL</li>
+            <li><strong>Privacy:</strong> Requires internet</li>
+            <li><strong>Key:</strong> BYOK (Bring Your Own)</li>
+          </ul>
+          <div class="card-footer">
+            <button class="btn-header btn-outline" style="width: 100%; justify-content: center; padding: 6px 10px; font-size: 12px;" onclick="openCloudConfig(event)">
+              Configure API
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Engine Status & Control Bar -->
+      <div class="engine-status-bar" id="engineControlBar">
+        <div class="engine-indicator">
+          <span class="status-dot dot-offline" id="engineStatusDot"></span>
+          <span>Local Engine (Port 8090): <strong id="engineStatusText">OFFLINE</strong></span>
+          <span style="font-size: 12px; color: var(--text-subtle); margin-left: 8px;">(Default Lite mode maintains 0% RAM)</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-header btn-outline" id="btnStopEngine" style="display: none;" onclick="stopEngine()">
+            ⏹ Stop Engine
           </button>
-          <span style="font-size: 12px; color: var(--text-muted);">
-            🛡️ Monotonic clock tamper protection active (Offline-safe without network sync).
-          </span>
+          <button class="btn-header btn-primary" id="btnStartEngine" onclick="startEngine()">
+            ▶ Start Engine (Port 8090)
+          </button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- PILLAR 3: SPECIALIST COWORKERS (TWO-TIER ARCHITECTURE)                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="pillar-section">
+      <div class="pillar-header">
+        <div class="pillar-title-wrap">
+          <div class="pillar-num">3</div>
+          <h2 class="pillar-title">Specialist Coworkers</h2>
+        </div>
+        <span class="pillar-tag tag-coworkers">Two-Tier Architecture</span>
+      </div>
+      <p class="pillar-desc">
+        Hayagriva enforces a strict data sovereignty boundary: <strong>Tier 3A Local Coworkers</strong> operate 100% on-device CPU without transmitting client files. <strong>Tier 3B Global Coworkers</strong> query daily-updated legal precedents and market benchmarks via ResolutionBazaar.
+      </p>
+
+      <!-- Tier 3A: Local Coworkers -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin: 24px 0 14px 0; border-bottom: 1px solid var(--card-border); padding-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px; font-weight: 700; color: var(--accent-emerald);">🔒 Tier 3A: Local Coworkers</span>
+          <span class="card-badge badge-success" style="font-size: 11px;">100% On-Device &bull; 0% Cloud Leak</span>
+        </div>
+        <span style="font-size: 11px; color: var(--text-muted);">Processes sensitive client PDFs strictly on local CPU</span>
+      </div>
+
+      <div class="grid-3">
+        <!-- Coworker 1: Claims Auditor -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">🧮</span>
+              <span class="card-title">Claims Auditor</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkCoworkerClaims" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="card-body-text">
+            Automates Form B/C/CA verification, Section 8 interest recalculation, and generates the statutory disallowance ledger.
+          </p>
+          <div class="card-footer">
+            <span style="font-size: 11px; color: var(--text-subtle);">Mention: <code>@Auditor</code></span>
+            <span class="card-badge badge-success">Local CPU</span>
+          </div>
+        </div>
+
+        <!-- Coworker 2: Bank Forensic Auditor -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">🔍</span>
+              <span class="card-title">Bank Forensic Auditor</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkCoworkerForensic" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="card-body-text">
+            Performs multi-bank contra-sweep elimination and Section 43/45/50/66 avoidance transaction inquests.
+          </p>
+          <div class="card-footer">
+            <span style="font-size: 11px; color: var(--text-subtle);">Mention: <code>@Forensic</code></span>
+            <span class="card-badge badge-success">Local CPU</span>
+          </div>
+        </div>
+
+        <!-- Coworker 3: Pleadings Formatter -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">🖋️</span>
+              <span class="card-title">Pleadings &amp; Typography</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkCoworkerPleadings" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="card-body-text">
+            Enforces strict Supreme Court and NCLT rules (A4, 14pt Times New Roman, 4cm margins, automated index).
+          </p>
+          <div class="card-footer">
+            <span style="font-size: 11px; color: var(--text-subtle);">Mention: <code>@Formatter</code></span>
+            <span class="card-badge badge-success">Local CPU</span>
+          </div>
+        </div>
+
+        <!-- Coworker 4: PII Redactor -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">🔒</span>
+              <span class="card-title">PII Redactor</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkCoworkerPii">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="card-body-text">
+            DPDP Act compliant privacy masking for Virtual Data Rooms and public NCLT dockets (PAN, Aadhaar, bank numbers).
+          </p>
+          <div class="card-footer">
+            <span style="font-size: 11px; color: var(--text-subtle);">Mention: <code>@Redactor</code></span>
+            <span class="card-badge">Local CPU</span>
+          </div>
+        </div>
+
+        <!-- Coworker 5: Corporate XBRL Intelligence -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">📊</span>
+              <span class="card-title">Corporate XBRL</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkCoworkerXbrl">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="card-body-text">
+            Extracts AS-18 related parties, CARO disclosures, and bank loan facilities from MCA AOC-4 XBRL filings.
+          </p>
+          <div class="card-footer">
+            <span style="font-size: 11px; color: var(--text-subtle);">Mention: <code>@XBRL</code></span>
+            <span class="card-badge">Local CPU</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tier 3B: Global Coworkers -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin: 32px 0 14px 0; border-bottom: 1px solid var(--card-border); padding-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15px; font-weight: 700; color: var(--accent-cyan);">🌐 Tier 3B: Global Coworkers</span>
+          <span class="card-badge badge-cyan" style="font-size: 11px;">ResolutionBazaar Cloud Intelligence</span>
+        </div>
+        <span style="font-size: 11px; color: var(--text-muted);" id="rbConnectionStatusPill">Live Daily NCLT/NCLAT Rulings &amp; CIRP Benchmarks</span>
+      </div>
+
+      <div class="grid-2">
+        <!-- Global Coworker 1: Precedent Agent -->
+        <div class="card" style="border-color: rgba(56, 189, 248, 0.25);">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">⚖️</span>
+              <span class="card-title">Legal Precedent Intelligence</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkCoworkerPrecedent" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="card-body-text">
+            Connects to ResolutionBazaar LightRAG Knowledge Graph for daily-updated NCLT, NCLAT, and Supreme Court rulings with full citations, benches, and ratio decidendi. Pure legal questions only — client files are never transmitted.
+          </p>
+          <div class="card-footer">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; color: var(--text-subtle);">Mention: <code>@Precedent</code></span>
+              <span class="card-badge badge-cyan" id="rbStatusBadge">Checking ResolutionBazaar…</span>
+            </div>
+            <button class="btn-header btn-outline" id="btnOpenPrecedentTest" style="padding: 5px 12px; font-size: 11px;">
+              ⚡ Test Precedent Agent
+            </button>
+          </div>
+        </div>
+
+        <!-- Global Coworker 2: Market Intelligence -->
+        <div class="card" style="border-color: rgba(56, 189, 248, 0.25);">
+          <div class="card-top">
+            <div class="card-icon-title">
+              <span class="card-icon">📈</span>
+              <span class="card-title">CIRP Market Intelligence</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="chkCoworkerMarket" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="card-body-text">
+            Aggregates nationwide CIRP benchmarks: average resolution plan haircuts, liquidation vs resolution realizations, and Section 29A prospective resolution applicant dossiers.
+          </p>
+          <div class="card-footer">
+            <span style="font-size: 11px; color: var(--text-subtle);">Mention: <code>@MarketIntelligence</code></span>
+            <span class="card-badge badge-cyan">ResolutionBazaar Graph</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /.container -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- MODALS: IN-IDE RAZORPAY CHECKOUT & 1-CLICK DOWNLOADER                   -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- ── Modal: Razorpay In-IDE Checkout & ₹1 Token Verification ── -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
+      <div class="modal-title" id="paymentModalTitle">⚡ In-IDE Device Verification &amp; Licensing</div>
+      <div class="modal-subtitle">
+        Direct UPI / Razorpay payment inside Hayagriva. No external portal or login required.
+      </div>
+
+      <!-- Plan Selector Cards -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0;">
+        <div class="card card-active" id="planCardFree" onclick="selectPaymentPlan('free_core_6m')" style="cursor: pointer; padding: 14px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--accent-emerald);">FREE CORE</div>
+          <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin: 4px 0;">₹1.00</div>
+          <div style="font-size: 11px; color: var(--text-muted);">6-Month Token Verification</div>
+          <div style="font-size: 10px; color: var(--text-secondary); margin-top: 6px;">Bare Acts, Skeletons &amp; Ingest</div>
+        </div>
+
+        <div class="card" id="planCardPro" onclick="selectPaymentPlan('pro_pilot')" style="cursor: pointer; padding: 14px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--accent-cyan);">PRO PILOT</div>
+          <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin: 4px 0;">₹4,999</div>
+          <div style="font-size: 11px; color: var(--text-muted);">1-Year Single Seat</div>
+          <div style="font-size: 10px; color: var(--text-secondary); margin-top: 6px;">LegalParam-2.9B + Auditor</div>
+        </div>
+
+        <div class="card" id="planCardEnterprise" onclick="selectPaymentPlan('enterprise_pilot')" style="cursor: pointer; padding: 14px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--accent-purple);">ENTERPRISE</div>
+          <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin: 4px 0;">₹14,999</div>
+          <div style="font-size: 11px; color: var(--text-muted);">1-Year Multi Seat</div>
+          <div style="font-size: 10px; color: var(--text-secondary); margin-top: 6px;">Legal + Finance + Precedents</div>
+        </div>
+      </div>
+
+      <!-- Demographic Telemetry Form -->
+      <div style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📋 Practitioner Registration (Captured in Razorpay CRM)</span>
+          <span style="font-family: monospace; color: var(--accent-cyan); font-size: 11px;" id="dispDeviceId">MAC-...</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Full Name *</label>
+            <input type="text" class="form-control" id="payName" placeholder="Adv. Rajesh Sharma">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Email Address *</label>
+            <input type="email" class="form-control" id="payEmail" placeholder="rajesh@chambers.in">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Phone Number (UPI linked) *</label>
+            <input type="tel" class="form-control" id="payPhone" placeholder="+91 98765 43210">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Practitioner Role</label>
+            <select class="form-control" id="payRole">
+              <option value="Advocate">Advocate / Legal Counsel</option>
+              <option value="Insolvency Professional">Insolvency Professional (IP)</option>
+              <option value="Chartered Accountant">Chartered Accountant (CA)</option>
+              <option value="Banker / Financial Creditor">Banker / Financial Creditor</option>
+              <option value="Corporate Counsel">Corporate Legal Department</option>
+              <option value="Law Student / Academic">Law Student / Academic</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Primary NCLT / Court Bench</label>
+            <select class="form-control" id="payBench">
+              <option value="Mumbai Bench">NCLT Mumbai Bench</option>
+              <option value="Principal Bench (New Delhi)">NCLT Principal Bench (New Delhi)</option>
+              <option value="Bengaluru Bench">NCLT Bengaluru Bench</option>
+              <option value="Kolkata Bench">NCLT Kolkata Bench</option>
+              <option value="Chennai Bench">NCLT Chennai Bench</option>
+              <option value="Ahmedabad Bench">NCLT Ahmedabad Bench</option>
+              <option value="Hyderabad Bench">NCLT Hyderabad Bench</option>
+              <option value="Chandigarh Bench">NCLT Chandigarh Bench</option>
+              <option value="Supreme Court / High Court">Supreme Court / High Court</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Chamber or Firm Name</label>
+            <input type="text" class="form-control" id="payFirm" placeholder="e.g. Independent Chamber / Firm">
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+        <div style="font-size: 11px; color: var(--text-muted);">
+          🔒 Anti-piracy cryptographic lock binds license to this CPU &amp; motherboard.
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-header btn-outline" onclick="closeModal('paymentModal')">Cancel</button>
+          <button class="btn-header btn-primary" id="btnInitiatePayment" onclick="initiateRazorpayPayment()" style="background: var(--accent-emerald); border-color: #059669; font-weight: 700;">
+            ⚡ Pay ₹1 via UPI &amp; Activate
+          </button>
         </div>
       </div>
     </div>
-
   </div>
 
-  <!-- ── Quick Reference Modal: Monaco Slash Commands ──────────────────── -->
-  <div class="modal-backdrop" id="slashCheatSheetModal" onclick="if(event.target === this) closeSlashCheatSheetModal();">
+  <div class="modal-overlay" id="downloadModal">
     <div class="modal-dialog">
-      <div class="modal-header">
-        <div style="font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
-          <span>📖</span>
-          <span>Monaco Slash Commands &amp; Citations Reference</span>
-        </div>
-        <button type="button" class="modal-close-btn" onclick="closeSlashCheatSheetModal()" title="Close Reference">✕</button>
+      <button class="modal-close" onclick="closeModal('downloadModal')">&times;</button>
+      <div class="modal-title" id="modalTargetTitle">Unlock Specialized Brain</div>
+      <div class="modal-subtitle">
+        Enter your practitioner license key to unlock and stream model artifacts directly into your IDE.
       </div>
 
-      <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
-        Type <code>/</code> inside any document editor canvas to open the instant autocomplete command palette:
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
-        <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 16px; border-radius: 8px;">
-          <div style="font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 14px;">/law &lt;query&gt;</div>
-          <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Statutory Bare Acts Search</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Inserts exact statutory provisions from encrypted bare acts (IBC, Companies Act, Contract Act).</div>
+      <div id="licenseEntryStep">
+        <div class="form-group">
+          <label class="form-label">License Key or Envelope</label>
+          <input type="text" class="form-control" id="inputLicenseKey" placeholder="e.g. HAYG-PRO-2026-X89K or paste envelope JSON">
+          <div style="font-size: 11px; color: var(--text-subtle); margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Don't have a license key?</span>
+            <button class="btn-header btn-outline" style="font-size: 11px; padding: 3px 10px; color: var(--accent-cyan); border-color: rgba(56, 189, 248, 0.4);" onclick="closeModal('downloadModal'); openPaymentModal();">
+              ⚡ Activate in-IDE (₹1 via UPI)
+            </button>
+          </div>
         </div>
 
-        <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 16px; border-radius: 8px;">
-          <div style="font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 14px;">/case &lt;query&gt;</div>
-          <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Supreme Court &amp; NCLAT Precedents</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Searches landmark judicial rulings, ratios, and citations for petition grounds.</div>
-        </div>
-
-        <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 16px; border-radius: 8px;">
-          <div style="font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 14px;">/clause &lt;name&gt;</div>
-          <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Standard Dealpoint Clauses</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Inserts standard contractual &amp; settlement clauses with tab-stop variable placeholders.</div>
-        </div>
-
-        <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 16px; border-radius: 8px;">
-          <div style="font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 14px;">/export-sc</div>
-          <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Supreme Court Compliant DOCX</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">One-click compilation conforming to SC rules (A4, 14pt TNR, 1.5 line spacing, 4cm margins).</div>
-        </div>
-
-        <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 16px; border-radius: 8px;">
-          <div style="font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 14px;">@@code/section</div>
-          <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Inline Hover Citation Cards</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Hovering over <code>@@ibc/sec7</code> renders instant popover drawer with statutory bare text.</div>
-        </div>
-
-        <div style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 16px; border-radius: 8px;">
-          <div style="font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 14px;">/concept &lt;entity&gt;</div>
-          <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Case Concept &amp; Fact Slices</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Pulls extracted facts and ledger records directly into the editor without leaving the canvas.</div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button class="btn-header btn-outline" onclick="closeModal('downloadModal')">Cancel</button>
+          <button class="btn-header btn-primary" id="btnVerifyAndDownload" onclick="executeLicenseAndDownload()">
+            Verify Key &amp; Download Pack
+          </button>
         </div>
       </div>
 
-      <div style="text-align: right; margin-top: 20px;">
-        <button type="button" class="btn-action" onclick="closeSlashCheatSheetModal()" style="background: var(--accent-color);">Got it</button>
+      <div id="downloadProgressStep" style="display: none; margin-top: 10px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--text-main);" id="downloadStatusMsg">
+          Downloading model pack…
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="downloadProgressBar"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="downloadSpeedText">Speed: 42.8 MB/s</span>
+          <span id="downloadPctText">0%</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <div id="toast">Settings updated successfully!</div>
+  <!-- ── Deterministic Draft Test Modal ── -->
+  <div class="modal-overlay" id="draftTestModal">
+    <div class="modal-dialog">
+      <button class="modal-close" onclick="closeModal('draftTestModal')">&times;</button>
+      <div class="modal-title">Deterministic Template Generation</div>
+      <div class="modal-subtitle">
+        Select a standard statutory format to fill deterministically from <code>case_kv_dictionary.json</code>.
+      </div>
 
+      <div class="form-group">
+        <label class="form-label">Select Template Skeleton</label>
+        <select class="form-control" id="selDraftTemplate">
+          <option value="form-b">IBC Form B — Operational Creditor Claim</option>
+          <option value="form-c">IBC Form C — Financial Creditor Claim</option>
+          <option value="public-announcement">Form A — Public Announcement of CIRP</option>
+          <option value="coc-resolution">CoC Meeting Minutes &amp; Resolution</option>
+        </select>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn-header btn-outline" onclick="closeModal('draftTestModal')">Close</button>
+        <button class="btn-header btn-primary" id="btnExecuteTestDraft" onclick="executeDeterministicDraft()">
+          ⚡ Generate in &lt;100ms
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Cloud Config Modal ── -->
+  <div class="modal-overlay" id="cloudConfigModal">
+    <div class="modal-dialog">
+      <button class="modal-close" onclick="closeModal('cloudConfigModal')">&times;</button>
+      <div class="modal-title">Cloud &amp; Custom API Settings</div>
+      <div class="modal-subtitle">Configure an external OpenAI-compatible API endpoint.</div>
+
+      <div class="form-group">
+        <label class="form-label">API Provider</label>
+        <select class="form-control" id="selCloudProvider">
+          <option value="openai">OpenAI (GPT-4o, GPT-4 Turbo)</option>
+          <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+          <option value="ollama">Local Ollama (http://localhost:11434)</option>
+          <option value="custom">Custom OpenAI-Compatible Gateway</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">API Base URL</label>
+        <input type="text" class="form-control" id="inputCloudBaseUrl" placeholder="https://api.openai.com/v1">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">API Key</label>
+        <input type="password" class="form-control" id="inputCloudApiKey" placeholder="sk-...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Model Name</label>
+        <input type="text" class="form-control" id="inputCloudModel" placeholder="gpt-4o">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn-header btn-outline" onclick="closeModal('cloudConfigModal')">Cancel</button>
+        <button class="btn-header btn-primary" onclick="saveCloudConfig()">Save API Config</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Test Precedent Agent Modal ── -->
+  <div class="modal-overlay" id="precedentTestModal">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <button class="modal-close" onclick="closeModal('precedentTestModal')">&times;</button>
+      <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="display: flex; align-items: center; gap: 8px;">⚖️ Precedent Agent Inquest</span>
+        <span class="card-badge badge-cyan" id="precedentSourceBadge">ResolutionBazaar LightRAG</span>
+      </div>
+      <div class="modal-subtitle">
+        Query live Supreme Court, NCLAT, and NCLT rulings. Only legal search parameters are queried — client documents remain strictly on-device.
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Legal Research Query / Issue</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" class="form-control" id="inputPrecedentQuery" value="Section 7 application limitation period under IBC" placeholder="e.g. Limitation period for filing Section 7 petition">
+          <button class="btn-header btn-primary" id="btnExecutePrecedentQuery" style="white-space: nowrap; padding: 0 16px;">
+            ⚡ Query Rulings
+          </button>
+        </div>
+      </div>
+
+      <!-- Results Display -->
+      <div id="precedentResultsArea" style="margin-top: 16px; max-height: 380px; overflow-y: auto; display: none;">
+        <div id="precedentSummaryCard" style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 8px; padding: 14px; margin-bottom: 12px; font-size: 12px; line-height: 1.6;">
+        </div>
+        <div id="precedentDossiersList" style="display: flex; flex-direction: column; gap: 10px;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">Changes saved</div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- CLIENT SCRIPT                                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const caseName = params.get('case') || 'Case_Alpha';
-    const theme = params.get('theme') || 'dark';
-    
-    let activeMode = 'lite';
-    let isLegalRunning = false;
-    let isFinanceRunning = false;
-    let isSaulRunning = false;
-    let telemetryTimer = null;
-
-    document.documentElement.setAttribute('data-theme', theme);
-
-    // ── Navigation Tabs with Aliases for Backward Compatibility ──────────
-    function switchNavTab(tabId) {
-      // Map legacy tab names to new 4-pillar tabs
-      let targetId = tabId;
-      if (tabId === 'mode') targetId = 'workspace';
-      if (tabId === 'pipeline') targetId = 'engine';
-      if (tabId === 'slash') {
-        openSlashCheatSheetModal();
-        return;
-      }
-
-      document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
-      const targetBtn = document.getElementById(`tabBtn_${targetId}`);
-      if (targetBtn) targetBtn.classList.add('active');
-      
-      const targetContent = document.getElementById(`tab${targetId.charAt(0).toUpperCase() + targetId.slice(1)}`);
-      if (targetContent) targetContent.classList.add('active');
+    const urlParams = new URLSearchParams(window.location.search);
+    const caseName = urlParams.get('case') || '';
+    const themeParam = urlParams.get('theme');
+    if (themeParam) {
+      document.documentElement.setAttribute('data-theme', themeParam);
     }
 
-    // ── Modal Handlers ───────────────────────────────────────────────────
-    function openSlashCheatSheetModal() {
-      const modal = document.getElementById('slashCheatSheetModal');
-      if (modal) modal.classList.add('active');
-    }
-    function closeSlashCheatSheetModal() {
-      const modal = document.getElementById('slashCheatSheetModal');
-      if (modal) modal.classList.remove('active');
-    }
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeSlashCheatSheetModal();
+    let activeBrainTier = 'core';
+    let currentModalTarget = 'legal';
+    let downloadTimer = null;
+    let installedBrains = { core: true, legal: false, finance: false };
+    let cloudSettings = { provider: 'openai', apiKey: '', baseUrl: '', model: '' };
+
+    // ── Theme Switcher ──
+    const btnThemeToggle = document.getElementById('btnThemeToggle');
+    btnThemeToggle.addEventListener('click', () => {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
     });
 
-    // ── Mode Selection & Reactive Auto-Save ──────────────────────────────
-    function setMode(mode) {
-      activeMode = mode;
-      const tileLite = document.getElementById('tileLite');
-      const tileLocal = document.getElementById('tileLocal');
-      const radioLite = document.getElementById('radioLite');
-      const radioLocal = document.getElementById('radioLocal');
+    // ── Brain Tier Selection ──
+    function selectBrainTier(tier) {
+      activeBrainTier = tier;
+      document.querySelectorAll('.radio-card').forEach(c => c.classList.remove('card-active'));
+      const activeCard = document.getElementById(`tileBrain${capitalize(tier)}`);
+      if (activeCard) activeCard.classList.add('card-active');
+      const radio = document.getElementById(`radioBrain${capitalize(tier)}`);
+      if (radio) radio.checked = true;
 
-      if (tileLite) tileLite.classList.toggle('active', mode === 'lite');
-      if (tileLocal) tileLocal.classList.toggle('active', mode === 'local');
-      if (radioLite) radioLite.style.display = mode === 'lite' ? 'inline' : 'none';
-      if (radioLocal) radioLocal.style.display = mode === 'local' ? 'inline' : 'none';
-      
-      autoSaveSettings();
-    }
-
-    // ── Workspace Domain Selection & Reactive Auto-Save ─────────────────
-    let activeDomain = 'unconfigured';
-    let workspaceDocumentCount = 0;
-
-    function setWorkspaceDomain(domainKey) {
-      if (workspaceDocumentCount > 0 && activeDomain !== 'unconfigured' && domainKey !== activeDomain) {
-        showToast(`🔒 Domain Locked: This workspace has ${workspaceDocumentCount} ingested document(s). Domain switching is disabled to prevent index drift. Create a new case for ${domainKey.toUpperCase()}.`, true);
-        return;
+      // Update Active Mode Pill
+      const pill = document.getElementById('activeModePill');
+      if (tier === 'core') {
+        pill.textContent = '⚡ Core Lite';
+        pill.style.color = 'var(--accent-emerald)';
+      } else if (tier === 'legal') {
+        pill.textContent = '🏛️ Legal Brain';
+        pill.style.color = 'var(--accent-cyan)';
+      } else if (tier === 'finance') {
+        pill.textContent = '📈 Finance Brain';
+        pill.style.color = 'var(--accent-amber)';
+      } else if (tier === 'cloud') {
+        pill.textContent = '☁️ Cloud AI';
+        pill.style.color = 'var(--accent-purple)';
       }
-
-      activeDomain = domainKey;
-      renderDomainTiles();
-      checkModelsDiskStatus();
-      autoSaveSettings();
     }
 
-    function renderDomainTiles() {
-      const domains = ['Insolvency', 'Legal', 'Finance'];
-      domains.forEach(d => {
-        const key = d.toLowerCase();
-        const tile = document.getElementById(`tileDomain${d}`);
-        const radio = document.getElementById(`radioDomain${d}`);
-        const isCurrent = key === activeDomain;
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
 
-        if (tile && radio) {
-          tile.classList.toggle('active', isCurrent);
-          if (workspaceDocumentCount > 0 && !isCurrent) {
-            tile.style.opacity = '0.5';
-            tile.style.cursor = 'not-allowed';
-            radio.innerHTML = '🔒 Locked';
-            radio.style.display = 'inline';
-            radio.style.color = 'var(--text-muted)';
-          } else {
-            tile.style.opacity = '1.0';
-            tile.style.cursor = 'pointer';
-            radio.innerHTML = isCurrent ? (workspaceDocumentCount > 0 ? '🔒 Active' : '✓') : '';
-            radio.style.display = isCurrent ? 'inline' : 'none';
-            radio.style.color = isCurrent ? 'var(--accent-color)' : 'var(--text-muted)';
-          }
+    function handleBrainAction(event, target) {
+      event.stopPropagation();
+      if (!installedBrains[target]) {
+        // Open License & Downloader Modal
+        currentModalTarget = target;
+        document.getElementById('modalTargetTitle').textContent = `Unlock ${capitalize(target)} Brain (1-Click Downloader)`;
+        document.getElementById('licenseEntryStep').style.display = 'block';
+        document.getElementById('downloadProgressStep').style.display = 'none';
+        document.getElementById('downloadModal').classList.add('active');
+      } else {
+        selectBrainTier(target);
+        showToast(`${capitalize(target)} Brain selected.`);
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+      if (downloadTimer) {
+        clearInterval(downloadTimer);
+        downloadTimer = null;
+      }
+    }
+
+    // ── In-IDE Razorpay Checkout & ₹1 Token Verification ──
+    let selectedPaymentPlanId = 'free_core_6m';
+    let cachedLicenseStatus = null;
+
+    function openPaymentModal(planId = 'free_core_6m') {
+      selectPaymentPlan(planId);
+      document.getElementById('paymentModal').classList.add('active');
+      if (cachedLicenseStatus && cachedLicenseStatus.deviceId) {
+        const disp = document.getElementById('dispDeviceId');
+        if (disp) disp.textContent = cachedLicenseStatus.deviceId;
+      }
+    }
+
+    function selectPaymentPlan(planId) {
+      selectedPaymentPlanId = planId;
+      const cardFree = document.getElementById('planCardFree');
+      const cardPro = document.getElementById('planCardPro');
+      const cardEnterprise = document.getElementById('planCardEnterprise');
+      if (cardFree) cardFree.classList.toggle('card-active', planId === 'free_core_6m');
+      if (cardPro) cardPro.classList.toggle('card-active', planId === 'pro_pilot');
+      if (cardEnterprise) cardEnterprise.classList.toggle('card-active', planId === 'enterprise_pilot');
+
+      const btn = document.getElementById('btnInitiatePayment');
+      if (btn) {
+        if (planId === 'free_core_6m') {
+          btn.textContent = '⚡ Pay ₹1 via UPI & Activate (6 Months)';
+        } else if (planId === 'pro_pilot') {
+          btn.textContent = '⚡ Pay ₹4,999 for Pro Pilot (1 Year)';
+        } else {
+          btn.textContent = '⚡ Pay ₹14,999 for Enterprise Pilot (1 Year)';
         }
+      }
+    }
+
+    function loadRazorpayScript() {
+      return new Promise((resolve) => {
+        if (window.Razorpay) return resolve(true);
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
       });
     }
 
-    async function autoSaveSettings() {
-      try {
-        const chk = document.getElementById('chkLibreOfficeWarning');
-        const remindLibreOffice = chk ? chk.checked : true;
-        const txtKey = document.getElementById('txtLlamaApiKey');
-        const llamaCloudApiKey = txtKey ? txtKey.value.trim() : '';
-        const selTier = document.getElementById('selLlamaTier');
-        const llamaCloudTier = selTier ? selTier.value : 'agentic';
+    async function initiateRazorpayPayment() {
+      const name = document.getElementById('payName').value.trim();
+      const email = document.getElementById('payEmail').value.trim();
+      const phone = document.getElementById('payPhone').value.trim();
+      const role = document.getElementById('payRole').value;
+      const bench = document.getElementById('payBench').value;
+      const firm = document.getElementById('payFirm').value.trim();
 
-        const res = await fetch('/api/hayagriva/settings/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ activeMode, activeDomain, remindLibreOffice, llamaCloudApiKey, llamaCloudTier, case: caseName })
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast(`✓ Settings updated (${activeDomain.toUpperCase()} domain, ${activeMode === 'lite' ? 'Lite' : 'AI'} Mode)`);
-          fetchTelemetry();
-        } else {
-          showToast(data.error || 'Failed to save settings', true);
-        }
-      } catch (err) {
-        showToast('Failed to save settings', true);
-      }
-    }
-
-    function toggleApiKeyVisibility() {
-      const input = document.getElementById('txtLlamaApiKey');
-      if (input) {
-        input.type = input.type === 'password' ? 'text' : 'password';
-      }
-    }
-
-    async function testLlamaConnection() {
-      const input = document.getElementById('txtLlamaApiKey');
-      const apiKey = input ? input.value.trim() : '';
-      const badge = document.getElementById('llamaStatusBadge');
-      const btn = document.getElementById('btnTestLlama');
-
-      if (!apiKey) {
-        showToast('Please enter an API Key first', true);
+      if (!name || !email || !phone) {
+        showToast('Please enter Name, Email, and Phone number.', true);
         return;
       }
 
+      const btn = document.getElementById('btnInitiatePayment');
       btn.disabled = true;
-      btn.innerText = 'Testing…';
-      badge.style.display = 'block';
-      badge.innerText = 'Connecting to LlamaParse…';
-      badge.style.color = 'var(--text-muted)';
+      btn.textContent = 'Creating Order…';
 
       try {
-        const res = await fetch('/api/hayagriva/llamaparse/test', {
+        await loadRazorpayScript();
+        const res = await fetch('/api/hayagriva/payments/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey })
+          body: JSON.stringify({
+            planId: selectedPaymentPlanId,
+            name, email, phone, role, bench, firm,
+            case: caseName
+          })
         });
+
         const data = await res.json();
-        if (data.success) {
-          badge.innerText = `● Connected: ${data.message}`;
-          badge.style.color = 'var(--success-color)';
-          showToast('✓ LlamaParse API Key connected successfully!');
-        } else {
-          badge.innerText = `● Connection Failed: ${data.message || data.error}`;
-          badge.style.color = 'var(--danger-color)';
-          showToast(data.message || 'Connection failed', true);
-        }
-      } catch (err) {
-        badge.innerText = `● Network Error: ${err.message}`;
-        badge.style.color = 'var(--danger-color)';
-        showToast('Network error testing connection', true);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '⚡ Test';
-      }
-    }
-
-    // ── Precedents LightRAG Engine Controls ──────────────────────────────
-    async function saveAndTestLightrag() {
-      const inputKey = document.getElementById('inputAdvisoryKey');
-      const inputUrl = document.getElementById('inputLightragUrl');
-      const apiKey = inputKey ? inputKey.value.trim() : '';
-      const apiUrl = inputUrl ? inputUrl.value.trim() : 'http://localhost:8020';
-      const statusSpan = document.getElementById('lightragStatusText');
-
-      if (statusSpan) statusSpan.textContent = 'Testing connection…';
-
-      try {
-        const testRes = await fetch('/api/hayagriva/lightrag/test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey, apiUrl })
-        });
-        const testData = await testRes.json();
-
-        // Also save to settings
-        await fetch('/api/hayagriva/settings/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lightragApiKey: apiKey, advisoryApiKey: apiKey, lightragApiUrl: apiUrl, case: caseName })
-        });
-
-        if (testData.online) {
-          if (statusSpan) {
-            statusSpan.style.color = 'var(--success-color)';
-            statusSpan.textContent = '● Connected: Haya Jurisprudence Graph™ Active (43,000+ Judgments)';
-          }
-          showToast('✓ Haya Jurisprudence Graph™ Connected & Saved');
-        } else {
-          if (statusSpan) {
-            statusSpan.style.color = apiKey ? 'var(--danger-color)' : 'var(--text-muted)';
-            statusSpan.textContent = apiKey ? `Offline: ${testData.error || 'Unreachable'} (Local Bare Acts active)` : 'Free Tier: Top 50 SC Landmark Cases & Bare Acts Active';
-          }
-          showToast(apiKey ? 'Saved, but server is offline' : 'Saved in Free Tier Mode');
-        }
-      } catch (err) {
-        if (statusSpan) {
-          statusSpan.style.color = 'var(--text-muted)';
-          statusSpan.textContent = 'Free Tier: Top 50 SC Landmark Cases & Bare Acts Active';
-        }
-        showToast('Saved in local mode');
-      }
-    }
-
-    // ── LLM Engine Controls ──────────────────────────────────────────────
-    async function toggleEngine(engineType) {
-      const isRunning = engineType === 'legal' ? isLegalRunning : (engineType === 'finance' ? isFinanceRunning : isSaulRunning);
-      const endpoint = isRunning ? '/api/hayagriva/engine/stop' : '/api/hayagriva/engine/start';
-      const btnId = engineType === 'legal' ? 'btnLegal' : (engineType === 'finance' ? 'btnFinance' : 'btnSaul');
-      const btn = document.getElementById(btnId);
-      
-      btn.disabled = true;
-      showToast(`${isRunning ? 'Stopping' : 'Starting'} ${engineType} engine…`);
-
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ engine: engineType, case: caseName })
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast(isRunning ? `Stopped ${engineType} engine` : `Started ${engineType} engine`);
-          if (!isRunning) {
-            setMode('local');
-          }
-        } else {
-          showToast(data.error || 'Engine toggle failed', true);
-        }
-      } catch (err) {
-        showToast('Connection error toggling engine', true);
-      } finally {
-        btn.disabled = false;
-        fetchEngineStatus();
-      }
-    }
-
-    async function fetchEngineStatus() {
-      try {
-        const res = await fetch('/api/hayagriva/llm/engines-status');
-        if (res.ok) {
-          const data = await res.json();
-          isLegalRunning = !!data.legalActive;
-          isFinanceRunning = !!data.financeActive;
-          isSaulRunning = !!data.saulActive;
-
-          updateEngineCard('cardLegal', 'btnLegal', 'statusTextLegal', isLegalRunning, 'HayaLegal-2.9B');
-          updateEngineCard('cardFinance', 'btnFinance', 'statusTextFinance', isFinanceRunning, 'HayaFinance-2.9B');
-          updateEngineCard('cardSaul', 'btnSaul', 'statusTextSaul', isSaulRunning, 'HayaPro-7B');
-        }
-      } catch (_) {}
-    }
-
-    function updateEngineCard(cardId, btnId, statusId, isActive, name) {
-      const card = document.getElementById(cardId);
-      const btn = document.getElementById(btnId);
-      const statusText = document.getElementById(statusId);
-      
-      if (!card || !btn || !statusText) return;
-      card.className = 'engine-item ' + (isActive ? 'active' : 'offline');
-      btn.className = 'btn-action ' + (isActive ? 'stop' : '');
-      btn.innerText = isActive ? 'Stop Engine' : 'Start Engine';
-      statusText.innerText = isActive ? 'Status: Active (Running on Port 8090)' : 'Status: Offline';
-    }
-
-    // ── Hardware Telemetry ───────────────────────────────────────────────
-    async function fetchTelemetry() {
-      try {
-        const res = await fetch('/api/hayagriva/system/telemetry');
-        if (res.ok) {
-          const data = await res.json();
-          document.getElementById('ramFill').style.width = `${data.usedPercent}%`;
-          document.getElementById('ramText').innerText = `${data.usedMemGb} / ${data.totalMemGb} GB`;
-          
-          const modeBadge = document.getElementById('modeBadge');
-          if (activeMode === 'local' || isLegalRunning || isFinanceRunning) {
-            modeBadge.innerText = 'AI Mode Active';
-            modeBadge.style.background = 'rgba(2, 132, 199, 0.15)';
-            modeBadge.style.color = 'var(--accent-color)';
-          } else {
-            modeBadge.innerText = 'Lite Mode Active';
-            modeBadge.style.background = 'rgba(16, 185, 129, 0.15)';
-            modeBadge.style.color = 'var(--success-color)';
-          }
-        }
-      } catch (_) {}
-    }
-
-    // ── Checkbox Suites Marketplace ─────────────────────────────────────
-    let availableSuites = [];
-    const selectedSuites = new Set();
-    let isDownloadingModel = false;
-    let dlPollInterval = null;
-
-    async function fetchSuitesCatalog() {
-      const container = document.getElementById('suitesMatrixGrid');
-      try {
-        const res = await fetch('/api/hayagriva/marketplace/suites-metadata');
-        if (!res.ok) throw new Error('Failed to load suites');
-        const data = await res.json();
-        availableSuites = data.suites || [];
-
-        if (availableSuites.length === 0) {
-          container.innerHTML = '<div style="color: var(--text-muted); padding: 20px;">No agent suites found.</div>';
+        if (!data.success) {
+          btn.disabled = false;
+          selectPaymentPlan(selectedPaymentPlanId);
+          showToast(`Order failed: ${data.error || 'Server error'}`, true);
           return;
         }
 
-        container.innerHTML = availableSuites.map(s => {
-          const isSelected = selectedSuites.has(s.packId);
-          const isSubscribed = s.status === 'active';
-          const isLocked = s.status === 'locked';
-          
-          let statusPill = '';
-          if (isSubscribed) {
-            statusPill = '<span style="font-size: 11px; font-weight: 700; color: var(--success-color); background: rgba(16,185,129,0.15); padding: 4px 10px; border-radius: 12px;">● SUBSCRIBED &amp; ACTIVE</span>';
-          } else if (isLocked) {
-            statusPill = '<span style="font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245,158,11,0.15); padding: 4px 10px; border-radius: 12px;">🔒 LOCKED (SUBSCRIBE TO UNLOCK)</span>';
-          } else {
-            statusPill = '<span style="font-size: 11px; font-weight: 700; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 4px 10px; border-radius: 12px;">○ SOVEREIGN DEMO (3 RUNS)</span>';
-          }
-
-          const workflowsHtml = (s.coreWorkflows || []).map(w => 
-            `<span class="workflow-tag">✓ ${w}</span>`
-          ).join('');
-
-          const formsHtml = (s.forms || []).map(f => 
-            `<div style="padding: 2px 0;">📄 <strong>${f.fileName}</strong></div>`
-          ).join('');
-
-          return `
-            <div class="suite-card ${isSelected ? 'selected' : ''} ${isSubscribed ? 'active-entitled' : ''}" id="suiteCard_${s.packId}">
-              <div>
-                <div class="suite-header">
-                  <input type="checkbox" class="suite-checkbox" id="chk_${s.packId}" onchange="toggleSuiteSelection('${s.packId}', this.checked)" ${isSelected ? 'checked' : ''}>
-                  <div style="flex: 1;">
-                    <div class="suite-title">
-                      <span>${s.name}</span>
-                      <span class="suite-price-badge">₹${s.priceMonthly.toLocaleString()} / mo</span>
-                      <span class="suite-domain-badge">${(s.domain || '').toUpperCase()}</span>
-                    </div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                      Target: <strong>${s.targetAudience || 'Legal & Financial Professionals'}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="suite-desc">${s.description}</div>
-
-                <div class="suite-workflows-box">
-                  <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
-                    Included Statutory Workflows &amp; Subagents (${s.agentsCount || 0}):
-                  </div>
-                  <div>${workflowsHtml}</div>
-                </div>
-
-                <div class="forms-accordion-toggle" onclick="toggleFormsPreview('${s.packId}')">
-                  <span>📂 Statutory Skeletons &amp; Form Templates (${s.formsCount || 0} Forms)</span>
-                  <span id="formsToggleIcon_${s.packId}">▼</span>
-                </div>
-                <div class="forms-preview-list" id="formsPreview_${s.packId}">
-                  ${formsHtml || '<div style="color: var(--text-muted);">No statutory forms bundled</div>'}
-                </div>
-              </div>
-
-              <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--card-border); padding-top: 12px; margin-top: 10px;">
-                ${statusPill}
-                <button type="button" class="btn-action" onclick="document.getElementById('chk_${s.packId}').click();" style="padding: 5px 12px; font-size: 12px; background: transparent; border: 1px solid var(--card-border); color: var(--text-main);">
-                  ${isSelected ? 'Deselect' : 'Select'}
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        updateSelectedSuitesBar();
-      } catch (e) {
-        container.innerHTML = `<div style="color: var(--danger-color); padding: 20px;">Failed to load suites: ${e.message}</div>`;
-      }
-    }
-
-    function toggleFormsPreview(packId) {
-      const el = document.getElementById(`formsPreview_${packId}`);
-      const icon = document.getElementById(`formsToggleIcon_${packId}`);
-      if (!el) return;
-      const isOpen = el.style.display === 'block';
-      el.style.display = isOpen ? 'none' : 'block';
-      if (icon) icon.innerText = isOpen ? '▼' : '▲';
-    }
-
-    function toggleSuiteSelection(packId, isChecked) {
-      if (isChecked) {
-        selectedSuites.add(packId);
-      } else {
-        selectedSuites.delete(packId);
-      }
-      const card = document.getElementById(`suiteCard_${packId}`);
-      if (card) card.classList.toggle('selected', isChecked);
-      updateSelectedSuitesBar();
-    }
-
-    function updateSelectedSuitesBar() {
-      const count = selectedSuites.size;
-      const countEl = document.getElementById('selectedSuitesCountText');
-      const priceEl = document.getElementById('selectedSuitesPriceText');
-      const btn = document.getElementById('btnSubscribeSuites');
-
-      if (!countEl || !priceEl || !btn) return;
-
-      if (count === 0) {
-        countEl.innerText = '0 Suites Selected';
-        priceEl.innerText = 'Select suites above to view bundle pricing';
-        btn.innerText = 'Proceed to Subscribe on Website ➔';
-        return;
-      }
-
-      let totalPrice = 0;
-      for (const s of availableSuites) {
-        if (selectedSuites.has(s.packId)) {
-          totalPrice += (s.priceMonthly || 2499);
-        }
-      }
-
-      // Volume bundle discount: 2 suites = 15% off, 3+ suites = 25% off
-      let discountedPrice = totalPrice;
-      let discountText = '';
-      if (count === 2) {
-        discountedPrice = Math.round(totalPrice * 0.85);
-        discountText = ' (15% Bundle Discount applied)';
-      } else if (count >= 3) {
-        discountedPrice = Math.round(totalPrice * 0.75);
-        discountText = ' (25% Multi-Suite Firm Pass applied)';
-      }
-
-      countEl.innerText = `${count} Suite${count > 1 ? 's' : ''} Selected`;
-      priceEl.innerText = `Total: ₹${discountedPrice.toLocaleString()} / month${discountText}`;
-      btn.innerText = `Subscribe ${count} Suite${count > 1 ? 's' : ''} (₹${discountedPrice.toLocaleString()}/mo) ➔`;
-    }
-
-    function proceedToSubscribe() {
-      const packsArr = Array.from(selectedSuites);
-      const packsQuery = packsArr.length > 0 ? packsArr.join(',') : 'suite_cirp';
-      const websiteUrl = `https://hayagriva.io/pricing?packs=${encodeURIComponent(packsQuery)}&domain=${encodeURIComponent(activeDomain)}`;
-      
-      window.open(websiteUrl, '_blank');
-      showToast('Opening Agentic Professionals Pricing Checkout in browser…');
-    }
-
-    // ── Domain Neural Models Downloader ─────────────────────────────────
-    async function checkModelsDiskStatus() {
-      try {
-        const res = await fetch('/api/hayagriva/models/check');
-        if (res.ok) {
-          const data = await res.json();
-          const targetDomain = (activeDomain === 'finance') ? 'finance' : 'legal';
-          const domainInfo = data[targetDomain] || {};
-          
-          const titleEl = document.getElementById('modelDomainTitle');
-          const filesEl = document.getElementById('modelDomainFiles');
-          const badgeEl = document.getElementById('modelStatusBadge');
-          const dlBtn = document.getElementById('btnDownloadModels');
-
-          if (targetDomain === 'finance') {
-            if (titleEl) titleEl.innerText = 'HayaFinance™ Forensic Audit Stack';
-            if (filesEl) filesEl.innerText = 'SLM: HayaFinance-2.9B Instruct (1.8 GB) • Embeddings: HayaVector-Finance (280 MB)';
-          } else {
-            if (titleEl) titleEl.innerText = 'HayaLegal™ Sovereign Legal Stack';
-            if (filesEl) filesEl.innerText = 'SLM: HayaLegal-2.9B Instruct (1.8 GB) • Embeddings: HayaVector-Legal (280 MB)';
-          }
-
-          if (badgeEl) {
-            if (domainInfo.ready) {
-              badgeEl.innerText = '● Models Installed Locally (Ready)';
-              badgeEl.style.background = 'rgba(16,185,129,0.15)';
-              badgeEl.style.color = 'var(--success-color)';
-              if (dlBtn) {
-                dlBtn.innerText = '✓ Re-verify & Checksum Weights';
-                dlBtn.style.background = 'transparent';
-                dlBtn.style.border = '1px solid var(--success-color)';
-                dlBtn.style.color = 'var(--success-color)';
+        const options = {
+          key: data.keyId,
+          amount: data.amount,
+          currency: data.currency,
+          name: 'Hayagriva Sovereign AI',
+          description: data.plan.name,
+          order_id: data.orderId,
+          prefill: {
+            name: name,
+            email: email,
+            contact: phone
+          },
+          theme: {
+            color: '#0284c7'
+          },
+          handler: async function (response) {
+            btn.textContent = 'Verifying & Activating…';
+            try {
+              const verifyRes = await fetch('/api/hayagriva/payments/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  planId: selectedPaymentPlanId,
+                  userData: { name, email, phone, role, bench, firm, case: caseName }
+                })
+              });
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                closeModal('paymentModal');
+                showToast(`✓ ${verifyData.message}`);
+                loadSettings();
+              } else {
+                showToast(`Verification failed: ${verifyData.error}`, true);
               }
-            } else {
-              badgeEl.innerText = '⚠️ Neural Weights Missing Locally';
-              badgeEl.style.background = 'rgba(245,158,11,0.15)';
-              badgeEl.style.color = 'var(--warning-color)';
-              if (dlBtn) {
-                dlBtn.innerText = `📥 Download ${targetDomain.toUpperCase()} Weights (2.1 GB)`;
-                dlBtn.style.background = 'var(--accent-color)';
-                dlBtn.style.border = 'none';
-                dlBtn.style.color = '#fff';
-              }
+            } catch (err) {
+              showToast(`Verify error: ${err.message}`, true);
+            } finally {
+              btn.disabled = false;
+              selectPaymentPlan(selectedPaymentPlanId);
+            }
+          },
+          modal: {
+            ondismiss: function() {
+              btn.disabled = false;
+              selectPaymentPlan(selectedPaymentPlanId);
             }
           }
-        }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+
       } catch (e) {
-        console.error('Failed to check models status:', e);
+        btn.disabled = false;
+        selectPaymentPlan(selectedPaymentPlanId);
+        showToast(`Checkout error: ${e.message}`, true);
       }
     }
 
-    async function startModelDownload() {
-      const targetDomain = (activeDomain === 'finance') ? 'finance' : 'legal';
-      showToast(`Initiating download for ${targetDomain.toUpperCase()} neural models…`);
+    function openCloudConfig(event) {
+      if (event) event.stopPropagation();
+      selectBrainTier('cloud');
+      document.getElementById('cloudConfigModal').classList.add('active');
+    }
 
-      document.getElementById('modelDownloadProgressWrap').style.display = 'block';
-      document.getElementById('btnDownloadModels').style.display = 'none';
-      document.getElementById('btnCancelDownload').style.display = 'inline-block';
+    function saveCloudConfig() {
+      cloudSettings = {
+        provider: document.getElementById('selCloudProvider').value,
+        baseUrl: document.getElementById('inputCloudBaseUrl').value.trim(),
+        apiKey: document.getElementById('inputCloudApiKey').value.trim(),
+        model: document.getElementById('inputCloudModel').value.trim()
+      };
+      closeModal('cloudConfigModal');
+      showToast('✓ Cloud API settings updated.');
+    }
+
+    // ── License Verification & Model Downloader ──
+    async function executeLicenseAndDownload() {
+      const key = document.getElementById('inputLicenseKey').value.trim();
+      const btn = document.getElementById('btnVerifyAndDownload');
+      btn.disabled = true;
+      btn.textContent = 'Verifying License…';
 
       try {
-        const res = await fetch('/api/hayagriva/models/download', {
+        const verifyRes = await fetch('/api/hayagriva/license/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ domain: targetDomain })
+          body: JSON.stringify({ licenseKey: key, case: caseName })
         });
-        const data = await res.json();
-        
-        isDownloadingModel = true;
-        if (dlPollInterval) clearInterval(dlPollInterval);
-        dlPollInterval = setInterval(pollModelDownloadProgress, 500);
-      } catch (e) {
-        showToast(`Failed to start download: ${e.message}`, true);
-        document.getElementById('btnDownloadModels').style.display = 'inline-block';
-        document.getElementById('btnCancelDownload').style.display = 'none';
-      }
-    }
+        const verifyData = await verifyRes.json();
 
-    async function pollModelDownloadProgress() {
-      const targetDomain = (activeDomain === 'finance') ? 'finance' : 'legal';
-      try {
-        const res = await fetch(`/api/hayagriva/models/download-status?domain=${targetDomain}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const st = data.status || {};
-
-        const fill = document.getElementById('dlProgressBarFill');
-        const pct = document.getElementById('dlPercentText');
-        const statusTxt = document.getElementById('dlStatusText');
-        const speedTxt = document.getElementById('dlSpeedText');
-        const etaTxt = document.getElementById('dlEtaText');
-
-        if (fill) fill.style.width = `${st.progressPct || 0}%`;
-        if (pct) pct.innerText = `${st.progressPct || 0}%`;
-        if (statusTxt) statusTxt.innerText = st.status === 'completed' ? '✓ Download Completed & Verified!' : 'Streaming neural weights to ide_models/weights/…';
-        if (speedTxt) speedTxt.innerText = `Speed: ${((st.speedBps || 0) / (1024 * 1024)).toFixed(1)} MB/s`;
-        if (etaTxt) etaTxt.innerText = `ETA: ${st.etaSeconds || 0}s remaining`;
-
-        if (st.status === 'completed') {
-          clearInterval(dlPollInterval);
-          isDownloadingModel = false;
-          showToast('✓ Model download completed and verified!');
-          document.getElementById('btnCancelDownload').style.display = 'none';
-          document.getElementById('btnDownloadModels').style.display = 'inline-block';
-          checkModelsDiskStatus();
-          fetchEngineStatus();
+        if (!verifyData.success) {
+          showToast(`License verification failed: ${verifyData.error || 'Invalid key'}`, true);
+          btn.disabled = false;
+          btn.textContent = 'Verify Key & Download Pack';
+          return;
         }
-      } catch (e) {}
-    }
 
-    async function cancelModelDownload() {
-      const targetDomain = (activeDomain === 'finance') ? 'finance' : 'legal';
-      try {
-        await fetch('/api/hayagriva/models/download-cancel', {
+        showToast(`✓ ${verifyData.message || 'License activated!'}`);
+
+        // Transition to Download progress view
+        document.getElementById('licenseEntryStep').style.display = 'none';
+        document.getElementById('downloadProgressStep').style.display = 'block';
+        document.getElementById('downloadStatusMsg').textContent = `Streaming ${capitalize(currentModalTarget)} Brain artifacts…`;
+
+        // Start pack download stream
+        await fetch('/api/hayagriva/models/download-pack', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ domain: targetDomain })
+          body: JSON.stringify({ target: currentModalTarget, case: caseName })
         });
-        clearInterval(dlPollInterval);
-        isDownloadingModel = false;
-        document.getElementById('modelDownloadProgressWrap').style.display = 'none';
-        document.getElementById('btnCancelDownload').style.display = 'none';
-        document.getElementById('btnDownloadModels').style.display = 'inline-block';
-        showToast('Download cancelled.');
-      } catch (e) {}
+
+        // Poll progress
+        downloadTimer = setInterval(async () => {
+          try {
+            const progRes = await fetch('/api/hayagriva/models/download-progress');
+            const progData = await progRes.json();
+            const pct = progData.percent || 0;
+            document.getElementById('downloadProgressBar').style.width = `${pct}%`;
+            document.getElementById('downloadPctText').textContent = `${pct}%`;
+            if (progData.speedMbS) {
+              document.getElementById('downloadSpeedText').textContent = `Speed: ${progData.speedMbS}`;
+            }
+
+            if (pct >= 100) {
+              clearInterval(downloadTimer);
+              downloadTimer = null;
+              document.getElementById('downloadStatusMsg').textContent = `✓ ${capitalize(currentModalTarget)} Brain Pack Downloaded & Verified!`;
+              installedBrains[currentModalTarget] = true;
+              updateBrainBadges();
+              setTimeout(() => {
+                closeModal('downloadModal');
+                selectBrainTier(currentModalTarget);
+                showToast(`✓ ${capitalize(currentModalTarget)} Brain Ready! You may start the engine.`);
+              }, 1200);
+            }
+          } catch (_) {}
+        }, 350);
+
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, true);
+        btn.disabled = false;
+        btn.textContent = 'Verify Key & Download Pack';
+      }
     }
 
-    // ── Drag & Drop Offline Import ───────────────────────────────────────
-    function handleDragOver(e) {
-      e.preventDefault();
-      document.getElementById('dropzone').classList.add('dragover');
-    }
-    function handleDragLeave(e) {
-      document.getElementById('dropzone').classList.remove('dragover');
-    }
-    function handleDrop(e) {
-      e.preventDefault();
-      document.getElementById('dropzone').classList.remove('dragover');
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        document.getElementById('importPathInput').value = files[0].path || files[0].name;
-        submitImportPath();
-      }
-    }
-    async function submitImportPath() {
-      const input = document.getElementById('importPathInput');
-      const sourcePath = input ? input.value.trim() : '';
-      if (!sourcePath) {
-        showToast('Please enter or drop a valid file path', true);
-        return;
-      }
-      showToast('Importing offline package…');
+    // ── Deterministic Draft Test ──
+    document.getElementById('btnTestDeterministicDraft').addEventListener('click', () => {
+      document.getElementById('draftTestModal').classList.add('active');
+    });
+
+    async function executeDeterministicDraft() {
+      const template = document.getElementById('selDraftTemplate').value;
+      const btn = document.getElementById('btnExecuteTestDraft');
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+
       try {
-        const res = await fetch('/api/hayagriva/marketplace/import-local', {
+        const res = await fetch('/api/hayagriva/foundation/draft-deterministic', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sourcePath })
+          body: JSON.stringify({ template, case: caseName })
         });
         const data = await res.json();
+        btn.disabled = false;
+        btn.textContent = '⚡ Generate in <100ms';
+
         if (data.success) {
-          showToast('✓ Module imported successfully!');
-          fetchSuitesCatalog();
+          closeModal('draftTestModal');
+          showToast(`✓ Draft Generated in drafts/${data.draftFilename} (${data.filledCount}/${data.totalCount} fields filled)`);
         } else {
-          showToast(data.error || 'Import failed', true);
-        }
-      } catch (e) {
-        showToast(`Import error: ${e.message}`, true);
-      }
-    }
-
-    // ── License Key & Cloud Sync ─────────────────────────────────────────
-    async function activateLicense() {
-      const key = document.getElementById('licenseInput').value.trim();
-      if (!key) {
-        showToast('Please enter a license key or token', true);
-        return;
-      }
-      try {
-        const res = await fetch('/api/hayagriva/license/activate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ licenseKey: key })
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast(`✓ Activated ${(data.tier || 'PRO').toUpperCase()} License!`);
-          document.getElementById('tierBadge').innerText = (data.tier || 'PRO').toUpperCase();
-          if (data.licensedTo) document.getElementById('licenseeName').innerText = data.licensedTo;
-          if (data.expiresAt) document.getElementById('licenseExpiry').innerText = new Date(data.expiresAt).toLocaleDateString();
-
-          fetchLicenseDetails();
-          fetchSuitesCatalog();
-        } else {
-          showToast(data.error || 'Invalid License Key', true);
+          showToast(`Error: ${data.error || 'Failed to generate draft'}`, true);
         }
       } catch (err) {
-        showToast('Failed to validate license', true);
+        btn.disabled = false;
+        btn.textContent = '⚡ Generate in <100ms';
+        showToast(`Error: ${err.message}`, true);
       }
     }
 
-    async function syncLicenseFromCloud() {
-      showToast('Contacting Agentic Professionals Licensing Server…');
+    // ── Precedent Agent Inquest Test ──
+    const btnOpenPrec = document.getElementById('btnOpenPrecedentTest');
+    if (btnOpenPrec) {
+      btnOpenPrec.addEventListener('click', () => {
+        document.getElementById('precedentTestModal').classList.add('active');
+      });
+    }
+
+    const btnExecPrec = document.getElementById('btnExecutePrecedentQuery');
+    if (btnExecPrec) {
+      btnExecPrec.addEventListener('click', executePrecedentQuery);
+    }
+    const inputPrec = document.getElementById('inputPrecedentQuery');
+    if (inputPrec) {
+      inputPrec.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') executePrecedentQuery();
+      });
+    }
+
+    async function executePrecedentQuery() {
+      const query = document.getElementById('inputPrecedentQuery').value.trim();
+      if (!query) return;
+      const btn = document.getElementById('btnExecutePrecedentQuery');
+      const resultsArea = document.getElementById('precedentResultsArea');
+      const summaryCard = document.getElementById('precedentSummaryCard');
+      const dossiersList = document.getElementById('precedentDossiersList');
+      const sourceBadge = document.getElementById('precedentSourceBadge');
+
+      btn.disabled = true;
+      btn.textContent = 'Querying…';
+      resultsArea.style.display = 'block';
+      summaryCard.innerHTML = '<span style="color: var(--text-muted);">Contacting ResolutionBazaar LightRAG / statutory fallback…</span>';
+      dossiersList.innerHTML = '';
+
       try {
-        const res = await fetch('/api/hayagriva/license/status');
-        if (res.ok) {
-          const data = await res.json();
-          fetchLicenseDetails();
-          fetchSuitesCatalog();
-          showToast('✓ License status synchronized with cloud!');
+        const res = await fetch('/api/hayagriva/precedents/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, case: caseName })
+        });
+        const data = await res.json();
+        btn.disabled = false;
+        btn.textContent = '⚡ Query Rulings';
+
+        if (!data.success) {
+          summaryCard.innerHTML = `<span style="color: var(--accent-rose);">Error: ${data.error || 'Query failed'}</span>`;
+          return;
         }
-      } catch (e) {
-        showToast('Cloud sync unreachable in offline mode', true);
+
+        sourceBadge.textContent = data.source === 'resolutionbazaar_lightrag' ? '✓ ResolutionBazaar LightRAG' : '🏛️ Statutory Bare Acts Fallback';
+        sourceBadge.className = data.source === 'resolutionbazaar_lightrag' ? 'card-badge badge-cyan' : 'card-badge badge-warn';
+
+        if (data.source === 'resolutionbazaar_lightrag') {
+          summaryCard.innerHTML = `<strong>Synthesis (${data.mode || 'hybrid'} mode):</strong><br><div style="margin-top: 6px; white-space: pre-wrap;">${data.answer || data.summary || 'No direct summary returned'}</div>`;
+        } else {
+          summaryCard.innerHTML = `<strong>Notice:</strong> ${data.notice || 'Precedents retrieved from statutory bare acts repository.'}`;
+        }
+
+        if (data.precedents && data.precedents.length > 0) {
+          dossiersList.innerHTML = data.precedents.map((p, idx) => `
+            <div style="background: var(--surface-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 12px; font-size: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                <span style="font-weight: 700; color: var(--accent-cyan); font-size: 13px;">${p.title || p.caseTitle || ('Precedent #' + (idx+1))}</span>
+                <span class="card-badge badge-cyan" style="font-size: 10px;">${p.court || p.bench || 'SC / NCLAT'}</span>
+              </div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 6px;">
+                Citation: <strong>${p.citation || 'N/A'}</strong> &bull; Date: ${p.judgmentDate || p.date || 'N/A'}
+              </div>
+              <div style="color: var(--text-main); line-height: 1.5; background: var(--bg-color); padding: 8px; border-radius: 6px; border-left: 3px solid var(--accent-cyan);">
+                <strong>Ratio Decidendi:</strong> ${p.ratio || p.snippet || p.content || 'N/A'}
+              </div>
+            </div>
+          `).join('');
+        } else if (data.source !== 'resolutionbazaar_lightrag') {
+          dossiersList.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px;">Air-gapped mode active. For daily live NCLT/NCLAT rulings, ensure your practitioner license key is activated.</div>';
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '⚡ Query Rulings';
+        summaryCard.innerHTML = `<span style="color: var(--accent-rose);">Network error: ${err.message}</span>`;
       }
     }
 
-    async function fetchLicenseDetails() {
-      try {
-        const res = await fetch('/api/hayagriva/license/status');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.licensee) document.getElementById('licenseeName').innerText = data.licensee;
-          if (data.tier) document.getElementById('tierBadge').innerText = data.tier.toUpperCase();
-          if (data.valid_until) document.getElementById('licenseExpiry').innerText = new Date(data.valid_until).toLocaleDateString();
+    // ── Engine Start/Stop Controls ──
+    async function startEngine() {
+      const btn = document.getElementById('btnStartEngine');
+      btn.disabled = true;
+      btn.textContent = 'Starting Engine (Port 8090)…';
 
-          const badgesContainer = document.getElementById('activePacksBadges');
-          if (badgesContainer) {
-            const isPro = data.tier === 'professional' || data.tier === 'enterprise';
-            if (isPro) {
-              badgesContainer.innerHTML = `
-                <span style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(16,185,129,0.15); color: var(--success-color); font-weight: 700;">✓ CIRP Master Process Suite</span>
-                <span style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(16,185,129,0.15); color: var(--success-color); font-weight: 700;">✓ Forensic Cash Flow Suite</span>
-                <span style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(2,132,199,0.15); color: #38bdf8; font-weight: 700;">✓ Haya Jurisprudence Graph™ (43k Judgments)</span>
-              `;
-            } else {
-              badgesContainer.innerHTML = `
-                <span style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-muted);">Sovereign Free Tier (Top 50 SC Judgments &amp; Skeletons Active)</span>
-              `;
-            }
-          }
+      try {
+        const res = await fetch('/api/hayagriva/engine/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ engine: activeBrainTier, case: caseName })
+        });
+        const data = await res.json();
+        btn.disabled = false;
+        btn.textContent = '▶ Start Engine (Port 8090)';
+
+        if (data.success) {
+          updateEngineUI(true);
+          showToast('✓ Local LLM Engine online on port 8090.');
+        } else {
+          showToast(`Failed to start engine: ${data.error || 'Check weights file'}`, true);
         }
-      } catch (e) {}
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '▶ Start Engine (Port 8090)';
+        showToast(`Error starting engine: ${err.message}`, true);
+      }
     }
 
-    // ── Initial Load & Polling ───────────────────────────────────────────
+    async function stopEngine() {
+      const btn = document.getElementById('btnStopEngine');
+      btn.disabled = true;
+      btn.textContent = 'Stopping…';
+
+      try {
+        const res = await fetch('/api/hayagriva/engine/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: caseName })
+        });
+        const data = await res.json();
+        btn.disabled = false;
+        btn.textContent = '⏹ Stop Engine';
+
+        if (data.success) {
+          updateEngineUI(false);
+          showToast('✓ Engine stopped. Reverted to Core Lite (0% RAM).');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '⏹ Stop Engine';
+        showToast(`Error: ${err.message}`, true);
+      }
+    }
+
+    function updateEngineUI(isRunning) {
+      const dot = document.getElementById('engineStatusDot');
+      const text = document.getElementById('engineStatusText');
+      const btnStart = document.getElementById('btnStartEngine');
+      const btnStop = document.getElementById('btnStopEngine');
+
+      if (isRunning) {
+        dot.className = 'status-dot dot-running';
+        text.textContent = 'RUNNING (Standard Mode)';
+        text.style.color = 'var(--accent-emerald)';
+        btnStart.style.display = 'none';
+        btnStop.style.display = 'inline-flex';
+      } else {
+        dot.className = 'status-dot dot-offline';
+        text.textContent = 'OFFLINE';
+        text.style.color = 'var(--accent-amber)';
+        btnStart.style.display = 'inline-flex';
+        btnStop.style.display = 'none';
+      }
+    }
+
+    function updateBrainBadges() {
+      // Legal
+      const badgeLegal = document.getElementById('badgeLegalStatus');
+      const btnLegal = document.getElementById('btnActionLegal');
+      if (installedBrains.legal) {
+        badgeLegal.textContent = '✓ Installed';
+        badgeLegal.className = 'card-badge badge-success';
+        btnLegal.textContent = 'Select Legal Brain';
+      } else {
+        badgeLegal.textContent = '🔒 Download Needed';
+        badgeLegal.className = 'card-badge badge-warn';
+        btnLegal.textContent = 'Download Pack (1.68 GB)';
+      }
+
+      // Finance
+      const badgeFinance = document.getElementById('badgeFinanceStatus');
+      const btnFinance = document.getElementById('btnActionFinance');
+      if (installedBrains.finance) {
+        badgeFinance.textContent = '✓ Installed';
+        badgeFinance.className = 'card-badge badge-success';
+        btnFinance.textContent = 'Select Finance Brain';
+      } else {
+        badgeFinance.textContent = '🔒 Download Needed';
+        badgeFinance.className = 'card-badge badge-warn';
+        btnFinance.textContent = 'Download Pack (1.72 GB)';
+      }
+    }
+
+    // ── Load & Save Settings V2 ──
     async function loadSettings() {
       try {
-        const res = await fetch(`/api/hayagriva/settings/get?case=${encodeURIComponent(caseName)}`);
-        if (res.ok) {
-          const config = await res.json();
-          activeMode = config.activeMode || 'lite';
-          activeDomain = config.activeDomain || (config.isDomainConfigured ? 'insolvency' : 'unconfigured');
-          workspaceDocumentCount = config.documentCount || 0;
-          setMode(activeMode);
-          renderDomainTiles();
-          const chk = document.getElementById('chkLibreOfficeWarning');
-          if (chk) chk.checked = config.remindLibreOffice !== false;
+        const res = await fetch(`/api/hayagriva/settings/v2?case=${encodeURIComponent(caseName)}`);
+        if (!res.ok) return;
+        const data = await res.json();
 
-          const txtKey = document.getElementById('txtLlamaApiKey');
-          if (txtKey) txtKey.value = config.llamaCloudApiKey || '';
-          const selTier = document.getElementById('selLlamaTier');
-          if (selTier && config.llamaCloudTier) selTier.value = config.llamaCloudTier;
-
-          const inputKey = document.getElementById('inputAdvisoryKey');
-          if (inputKey) inputKey.value = config.lightragApiKey || config.advisoryApiKey || '';
-          const inputUrl = document.getElementById('inputLightragUrl');
-          if (inputUrl) inputUrl.value = config.lightragApiUrl || 'http://localhost:8020';
-          const statusSpan = document.getElementById('lightragStatusText');
-          if (statusSpan && (config.lightragApiKey || config.advisoryApiKey)) {
-            statusSpan.textContent = '● Key Configured (Click Save & Test to ping)';
+        // Foundation
+        if (data.foundation) {
+          document.getElementById('chkMonacoHover').checked = data.foundation.monacoHoverEnabled !== false;
+          document.getElementById('chkMonacoAutocomplete').checked = data.foundation.monacoAutocompleteEnabled !== false;
+          document.getElementById('chkDeterministicKv').checked = data.foundation.deterministicKvFilling !== false;
+          if (data.foundation.availableTemplates) {
+            document.getElementById('skeletonCountBadge').textContent = `${data.foundation.availableTemplates.length} Skeletons Active`;
           }
+        }
 
-          const onboardingBanner = document.getElementById('domainOnboardingBanner');
-          if (onboardingBanner) {
-            onboardingBanner.style.display = (!config.isDomainConfigured || activeDomain === 'unconfigured') ? 'block' : 'none';
+        // Active Brain
+        if (data.activeBrain) {
+          installedBrains = data.activeBrain.installedBrains || { core: true, legal: false, finance: false };
+          updateBrainBadges();
+
+          activeBrainTier = data.activeBrain.tier || 'core';
+          selectBrainTier(activeBrainTier);
+
+          const isRunning = data.activeBrain.localEngineStatus === 'running';
+          updateEngineUI(isRunning);
+
+          if (data.activeBrain.cloud) {
+            cloudSettings = data.activeBrain.cloud;
+            document.getElementById('selCloudProvider').value = cloudSettings.provider || 'openai';
+            document.getElementById('inputCloudBaseUrl').value = cloudSettings.baseUrl || '';
+            document.getElementById('inputCloudApiKey').value = cloudSettings.apiKey || '';
+            document.getElementById('inputCloudModel').value = cloudSettings.model || '';
           }
+        }
 
-          const banner = document.getElementById('libreOfficeBanner');
-          const guide = document.getElementById('libreOfficeInstallGuide');
-          if (banner) {
-            if (config.libreOfficeDetected) {
-              banner.innerText = '✓ Headless LibreOffice Converter: Active & Detected';
-              banner.style.background = 'rgba(16, 185, 129, 0.12)';
-              banner.style.border = '1px solid var(--success-color)';
-              banner.style.color = 'var(--success-color)';
-              if (guide) guide.style.display = 'none';
+        // ResolutionBazaar & Precedents
+        if (data.resolutionBazaar) {
+          const badge = document.getElementById('rbStatusBadge');
+          const pill = document.getElementById('rbConnectionStatusPill');
+          if (badge && pill) {
+            if (data.resolutionBazaar.connected) {
+              badge.textContent = '✓ Live Cloud Graph';
+              badge.className = 'card-badge badge-success';
+              pill.textContent = `Connected (${data.resolutionBazaar.url})`;
+              pill.style.color = 'var(--accent-emerald)';
+            } else if (data.resolutionBazaar.configured) {
+              badge.textContent = '⚡ Cloud Configured (Offline)';
+              badge.className = 'card-badge badge-warn';
+              pill.textContent = `Offline / Reconnecting (${data.resolutionBazaar.url})`;
+              pill.style.color = 'var(--accent-amber)';
             } else {
-              banner.innerText = '⚠️ Headless LibreOffice Converter: Missing / Not Detected';
-              banner.style.background = 'rgba(239, 68, 68, 0.12)';
-              banner.style.border = '1px solid var(--danger-color)';
-              banner.style.color = 'var(--danger-color)';
-              if (guide) guide.style.display = 'block';
+              badge.textContent = '🔑 License Activation Required';
+              badge.className = 'card-badge';
+              pill.textContent = 'Air-gapped Fallback Active (No Cloud Calls)';
             }
+          }
+        }
+
+        // Coworkers
+        if (data.coworkers) {
+          const local = data.coworkers.local || data.coworkers;
+          const global = data.coworkers.global || {};
+          document.getElementById('chkCoworkerClaims').checked = local.claimsAuditor !== false;
+          document.getElementById('chkCoworkerForensic').checked = local.bankForensic !== false;
+          document.getElementById('chkCoworkerPleadings').checked = local.pleadingsFormatter !== false;
+          document.getElementById('chkCoworkerPii').checked = !!local.piiRedactor;
+          document.getElementById('chkCoworkerXbrl').checked = !!local.corporateXbrl;
+
+          const chkPrec = document.getElementById('chkCoworkerPrecedent');
+          if (chkPrec) chkPrec.checked = global.precedentAgent !== false;
+          const chkMkt = document.getElementById('chkCoworkerMarket');
+          if (chkMkt) chkMkt.checked = global.marketIntelligence !== false;
+        }
+
+        // Telemetry
+        if (data.telemetry) {
+          const used = data.telemetry.usedMemGb || 0;
+          const total = data.telemetry.totalMemGb || 16;
+          document.getElementById('ramText').textContent = `${used} / ${total} GB`;
+          const pct = Math.min(100, Math.round((used / total) * 100));
+          document.getElementById('ramBarFill').style.width = `${pct}%`;
+          document.getElementById('cpuText').textContent = `${data.telemetry.cpuCores || 8} Cores`;
+        }
+
+        // License & Hardware Verification Status
+        try {
+          const licRes = await fetch(`/api/hayagriva/license/status?case=${encodeURIComponent(caseName)}`);
+          if (licRes.ok) {
+            const licData = await licRes.json();
+            cachedLicenseStatus = licData;
+            const pill = document.getElementById('licenseStatusPill');
+            const banner = document.getElementById('licenseAlertBanner');
+            const dispDev = document.getElementById('dispDeviceId');
+            if (dispDev && licData.deviceId) dispDev.textContent = licData.deviceId;
+
+            if (licData.activated) {
+              const tierName = licData.tier === 'lite' ? 'Free Core' : capitalize(licData.tier);
+              pill.textContent = `🟢 ${tierName} (${licData.daysRemaining}d)`;
+              pill.style.background = 'rgba(16, 185, 129, 0.15)';
+              pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+              pill.style.color = 'var(--accent-emerald)';
+
+              if (licData.needsRenewal) {
+                banner.style.display = 'flex';
+                document.getElementById('licenseAlertTitle').textContent = `⚡ License Renewal Due (${licData.daysRemaining} days remaining)`;
+                document.getElementById('licenseAlertDesc').textContent = 'Renew for ₹1 to verify active usage and prevent reversion to basic Core Lite.';
+              } else {
+                banner.style.display = 'none';
+              }
+            } else {
+              pill.textContent = '🔒 Unverified (Activate ₹1)';
+              pill.style.background = 'rgba(234, 179, 8, 0.15)';
+              pill.style.borderColor = 'rgba(234, 179, 8, 0.4)';
+              pill.style.color = 'var(--accent-amber)';
+              banner.style.display = 'flex';
+            }
+          }
+        } catch (_) {}
+
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      }
+    }
+
+    async function saveSettings() {
+      const btn = document.getElementById('btnSaveAll');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      const payload = {
+        case: caseName,
+        foundation: {
+          monacoHoverEnabled: document.getElementById('chkMonacoHover').checked,
+          monacoAutocompleteEnabled: document.getElementById('chkMonacoAutocomplete').checked,
+          deterministicKvFilling: document.getElementById('chkDeterministicKv').checked
+        },
+        activeBrain: {
+          tier: activeBrainTier,
+          cloud: cloudSettings
+        },
+        coworkers: {
+          local: {
+            claimsAuditor: document.getElementById('chkCoworkerClaims').checked,
+            bankForensic: document.getElementById('chkCoworkerForensic').checked,
+            pleadingsFormatter: document.getElementById('chkCoworkerPleadings').checked,
+            piiRedactor: document.getElementById('chkCoworkerPii').checked,
+            corporateXbrl: document.getElementById('chkCoworkerXbrl').checked
+          },
+          global: {
+            precedentAgent: document.getElementById('chkCoworkerPrecedent') ? document.getElementById('chkCoworkerPrecedent').checked : true,
+            marketIntelligence: document.getElementById('chkCoworkerMarket') ? document.getElementById('chkCoworkerMarket').checked : true
+          },
+          claimsAuditor: document.getElementById('chkCoworkerClaims').checked,
+          bankForensic: document.getElementById('chkCoworkerForensic').checked,
+          pleadingsFormatter: document.getElementById('chkCoworkerPleadings').checked,
+          piiRedactor: document.getElementById('chkCoworkerPii').checked,
+          corporateXbrl: document.getElementById('chkCoworkerXbrl').checked,
+          precedentAgent: document.getElementById('chkCoworkerPrecedent') ? document.getElementById('chkCoworkerPrecedent').checked : true,
+          marketIntelligence: document.getElementById('chkCoworkerMarket') ? document.getElementById('chkCoworkerMarket').checked : true
+        }
+      };
+
+      try {
+        const res = await fetch('/api/hayagriva/settings/v2/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+
+        if (data.success) {
+          showToast('✓ Settings successfully saved.');
+        } else {
+          showToast(`Error: ${data.error || 'Failed to save settings'}`, true);
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+        showToast(`Save failed: ${err.message}`, true);
+      }
+    }
+
+    document.getElementById('btnSaveAll').addEventListener('click', saveSettings);
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.borderColor = isError ? 'var(--accent-rose)' : 'var(--accent-emerald)';
+      toast.className = 'show';
+      setTimeout(() => { toast.className = ''; }, 3500);
+    }
+
+    // Initial Load & Telemetry Loop
+    loadSettings();
+    setInterval(async () => {
+      try {
+        const res = await fetch(`/api/hayagriva/settings/v2?case=${encodeURIComponent(caseName)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.telemetry) {
+            const used = data.telemetry.usedMemGb || 0;
+            const total = data.telemetry.totalMemGb || 16;
+            document.getElementById('ramText').textContent = `${used} / ${total} GB`;
+            const pct = Math.min(100, Math.round((used / total) * 100));
+            document.getElementById('ramBarFill').style.width = `${pct}%`;
+          }
+          if (data.activeBrain) {
+            updateEngineUI(data.activeBrain.localEngineStatus === 'running');
           }
         }
       } catch (_) {}
-      fetchEngineStatus();
-      fetchTelemetry();
-      fetchSuitesCatalog();
-      checkModelsDiskStatus();
-      fetchLicenseDetails();
-    }
-
-    function showToast(message, isError = false) {
-      const toast = document.getElementById('toast');
-      toast.innerText = message;
-      toast.style.backgroundColor = isError ? 'var(--danger-color)' : 'var(--success-color)';
-      toast.className = 'show';
-      setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
-    }
-
-    // Start background telemetry polling
-    loadSettings();
-    telemetryTimer = setInterval(() => {
-      fetchTelemetry();
-      fetchEngineStatus();
-    }, 4000);
+    }, 4500);
   </script>
 </body>
 </html>

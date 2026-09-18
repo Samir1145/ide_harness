@@ -1467,7 +1467,7 @@ async function indexVectorsToSqlite(caseDir, result, profile) {
         
         let count = 0;
         for (const item of chunksToEmbed) {
-            const vec = await getEmbedding(item.content, { filename: relative, vectorType });
+            const vec = await getEmbedding(item.content, { filename: relative, vectorType, isQuery: false });
             if (vec && vec.length > 0) {
                 const floatArray = new Float32Array(vec);
                 const buffer = Buffer.from(floatArray.buffer);

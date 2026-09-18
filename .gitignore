@@ -43,27 +43,44 @@ hayagriva/bin/
 !backend/lib/
 !backend/vault/agent_packs/
 
-# Local case runtime files
+# Local case runtime files (Never commit case matter data to engine repository)
 case_facts.md
+case_facts.markdown
+claims_registry.md
+avoidance_ledger.md
+timeline.md
 concepts/
 drafts/
+exports/
+claims/
+playground/
+scratch/
+**/scratch/
+.tempmediaStorage/
 
 # Models & Binary Weights
 *.gguf
 **/*.gguf
+*.onnx
+**/*.onnx
 backend/models/
 
 # Local backup & archive directories
 frontend/plugins-disabled-backup/
 backend/vault/agent_packs_archive/
+
 # SQLite lock & WAL files
 *.db-shm
 *.db-wal
 **/*_concepts_haya/
 **/*_conversions_haya/
 **/*_wiki_haya/
+
 # Local runtime case directories
 claims_live_run/
 claims_demo_case/
+demo_case/
 dev-scratch/
 **/dev-scratch/
+cases/
+

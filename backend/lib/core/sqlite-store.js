@@ -177,13 +177,23 @@ function getDb(caseDir) {
         console.error('[SQLite Store] Failed to check/alter documents table:', e.message);
     }
 
-    // Self-healing migration: Add 'vector_type' column to document_vectors if it does not exist
+    // Self-healing migration: Add 'vector_type', 'model_name', and 'dimension' columns to document_vectors if they do not exist
     try {
         const vecColumns = db.prepare('PRAGMA table_info(document_vectors)').all();
         const hasVectorType = vecColumns.some(col => col.name === 'vector_type');
         if (!hasVectorType) {
             db.exec("ALTER TABLE document_vectors ADD COLUMN vector_type TEXT DEFAULT 'legal';");
             console.log('[SQLite Store] Altered table document_vectors to add vector_type column.');
+        }
+        const hasModelName = vecColumns.some(col => col.name === 'model_name');
+        if (!hasModelName) {
+            db.exec("ALTER TABLE document_vectors ADD COLUMN model_name TEXT DEFAULT 'nomic-embed-text-v1.5';");
+            console.log('[SQLite Store] Altered table document_vectors to add model_name column.');
+        }
+        const hasDimension = vecColumns.some(col => col.name === 'dimension');
+        if (!hasDimension) {
+            db.exec("ALTER TABLE document_vectors ADD COLUMN dimension INTEGER DEFAULT 768;");
+            console.log('[SQLite Store] Altered table document_vectors to add dimension column.');
         }
     } catch (e) {
         console.error('[SQLite Store] Failed to check/alter document_vectors table:', e.message);

@@ -27,24 +27,52 @@ async function getRerankerPipeline() {
         return _rerankerPipeline;
     }
 
-    const modelDir = path.join(__dirname, '..', '..', 'models', 'reranker', 'ms-marco-MiniLM-L-6-v2');
-    const onnxModelPath = path.join(modelDir, 'onnx', 'model_quantized.onnx');
+    const os = require('os');
+    const candidates = [
+        process.env.HAYA_RERANKER_PATH ? process.env.HAYA_RERANKER_PATH : null,
+        process.env.HAYA_MODELS_PATH ? path.join(process.env.HAYA_MODELS_PATH, 'reranker') : null,
+        path.join(os.homedir(), 'Desktop', 'ide_models', 'weights', 'reranker'),
+        path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'models', 'reranker'),
+        path.join(__dirname, '..', '..', 'models', 'default', 'reranker'),
+        path.join(__dirname, '..', '..', 'models', 'reranker')
+    ].filter(Boolean);
 
-    if (!fs.existsSync(onnxModelPath)) {
-        throw new Error(`Reranker ONNX model not found at ${onnxModelPath}. Please run download-reranker.js.`);
+    let modelDir = null;
+    let baseRerankerDir = null;
+    let selectedModelName = 'ms-marco-MiniLM-L-6-v2';
+
+    // Model priority: bge-reranker-base (if present) -> ms-marco-MiniLM-L-6-v2
+    const modelPriorities = ['bge-reranker-base', 'ms-marco-MiniLM-L-6-v2'];
+
+    for (const c of candidates) {
+        for (const mName of modelPriorities) {
+            const candidateModel = path.join(c, mName);
+            if (fs.existsSync(path.join(candidateModel, 'onnx', 'model_quantized.onnx')) ||
+                fs.existsSync(path.join(candidateModel, 'onnx', 'model.onnx'))) {
+                modelDir = candidateModel;
+                baseRerankerDir = c;
+                selectedModelName = mName;
+                break;
+            }
+        }
+        if (modelDir) break;
+    }
+
+    if (!modelDir) {
+        throw new Error('Reranker ONNX model not found in core models or local directories.');
     }
 
     const { pipeline, env } = await import('@xenova/transformers');
     env.allowLocalModels = true;
     env.allowRemoteModels = false;
-    env.localModelPath = path.join(__dirname, '..', '..', 'models', 'reranker');
+    env.localModelPath = baseRerankerDir;
 
     const t0 = Date.now();
-    console.log('[Reranker] Loading local quantized cross-encoder (ms-marco-MiniLM-L-6-v2)...');
-    _rerankerPipeline = await pipeline('text-classification', 'ms-marco-MiniLM-L-6-v2', {
+    console.log(`[Reranker] Loading local quantized cross-encoder (${selectedModelName})...`);
+    _rerankerPipeline = await pipeline('text-classification', selectedModelName, {
         quantized: true
     });
-    console.log(`[Reranker] ✓ Pipeline ready in ${Date.now() - t0} ms`);
+    console.log(`[Reranker] ✓ Pipeline ready (${selectedModelName}) in ${Date.now() - t0} ms`);
     return _rerankerPipeline;
 }
 

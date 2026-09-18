@@ -1,2 +1,9 @@
-const ruleStore = require('../../../../skills/bank-forensic-audit/rules');
+const { resolveSkill } = require('./skill-resolver');
+
+const ruleStore = resolveSkill('bank-forensic-audit', 'rules') || {
+    loadRules: () => ({}),
+    getRule: () => null
+};
+
 module.exports = ruleStore;
+
