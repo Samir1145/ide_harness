@@ -74,6 +74,7 @@ While Legal Counsel is the initial active module, Hayagriva's 6 core systems eas
 * 📜 **Industry & Judicial Exporter:** One-click conversion from Markdown to court-compliant `.docx` format with strict judicial margins and font specifications.
 * 📊 **Live Project Ledgers:** Bi-directional synchronization between Markdown ledgers (`case_facts.md`, `claims_registry.md`, `avoidance_ledger.md`) and SQLite records.
 * 🔍 **Active-Context RAG Matrix:** Interactive document selection grid to control dynamic context window inputs for RAG retrieval.
+* ⚡ **In-IDE Verification & Decoupled Licensing:** Zero-web-portal distribution with nominal ₹1 UPI token verification, cryptographic hardware locking (`IOPlatformUUID` / `MachineGuid`), dynamic micro-pricing, 15-field telemetry, and free Appsmith CRM support. (See [Licensing & Telemetry Architecture](file:///Users/atulgrover/Desktop/ide_harness/docs/architecture/licensing_and_telemetry_architecture.md)).
 
 ---
 
