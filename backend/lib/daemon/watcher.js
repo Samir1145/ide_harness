@@ -442,6 +442,10 @@ function createWatcher(caseDir, onChange) {
         depth: 10
     });
 
+    watcher.on('error', err => {
+        console.warn(`[Watcher Warning] ${err.message}`);
+    });
+
     watcher.on('all', async (event, filePath) => {
         const ext = path.extname(filePath).toLowerCase();
         if (!DOC_EXTENSIONS.includes(ext) && !filePath.toLowerCase().endsWith('.wiki.html')) return;

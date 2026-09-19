@@ -26,6 +26,7 @@ twillm/twillm-wiki/tiddlers/vault-loader/
 .tempmediaStorage/
 **/test-results/
 **/playwright-report/
+.wrangler/
 
 # Secrets and environment configs
 .env

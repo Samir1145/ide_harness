@@ -356,11 +356,21 @@ async function main() {
 async function runWatchAll(docsRoot) {
     console.log(`[hayagriva] watch-all mode: ${docsRoot}`);
 
-    const SYSTEM_DIRS = ['concepts', 'conversions', 'wiki', 'drafts', 'exports', 'reviews', 'node_modules'];
-    const caseDirs = fs.readdirSync(docsRoot).filter(f => {
-        const p = path.join(docsRoot, f);
-        return fs.statSync(p).isDirectory() && !f.startsWith('.') && !SYSTEM_DIRS.includes(f.toLowerCase());
-    });
+    const SYSTEM_DIRS = ['concepts', 'conversions', 'wiki', 'drafts', 'exports', 'reviews', 'node_modules', 'my music', 'my pictures', 'my videos', '$recycle.bin', 'system volume information'];
+    let caseDirs = [];
+    try {
+        caseDirs = fs.readdirSync(docsRoot).filter(f => {
+            try {
+                const p = path.join(docsRoot, f);
+                const stat = fs.statSync(p);
+                return stat.isDirectory() && !f.startsWith('.') && !SYSTEM_DIRS.includes(f.toLowerCase());
+            } catch (_) {
+                return false;
+            }
+        });
+    } catch (e) {
+        console.warn('[hayagriva] Unable to scan docs root:', e.message);
+    }
 
     console.log(`[hayagriva] found cases: ${caseDirs.join(', ')}`);
 

@@ -1,5 +1,6 @@
 import { _electron as electron, test, expect } from '@playwright/test';
 import * as path from 'path';
+import * as os from 'os';
 
 test.describe('Hayagriva E2E Smoke Tests', () => {
   let electronApp: any;
@@ -8,12 +9,20 @@ test.describe('Hayagriva E2E Smoke Tests', () => {
   test.beforeAll(async () => {
     test.setTimeout(60000);
 
+    const tmpUserData = path.join(os.tmpdir(), 'hayagriva-playwright-test-' + Date.now());
+
     const isPackaged = process.env.TEST_PACKAGED === 'true';
     if (isPackaged) {
-      console.log('Testing packaged app: /Applications/Hayagriva.app');
+      let packagedPath = '/Applications/Hayagriva.app/Contents/MacOS/Hayagriva';
+      if (process.platform === 'win32') {
+        packagedPath = 'C:\\Program Files\\Eclipse Theia\\Hayagriva\\Hayagriva.exe';
+      } else if (process.platform === 'linux') {
+        packagedPath = '/usr/bin/hayagriva';
+      }
+      console.log('Testing packaged app:', packagedPath);
       electronApp = await electron.launch({
-        executablePath: '/Applications/Hayagriva.app/Contents/MacOS/Hayagriva',
-        args: ['--no-sandbox']
+        executablePath: packagedPath,
+        args: ['--no-sandbox', `--user-data-dir=${tmpUserData}`]
       });
     } else {
       const electronPath = require('electron');

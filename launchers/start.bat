@@ -8,6 +8,11 @@ set "HAYAGRIVA_DIR=%ROOT_DIR%backend"
 set "FRONTEND_DIR=%ROOT_DIR%frontend"
 set "THEIA_DIR=%ROOT_DIR%frontend\applications\electron"
 
+REM Add local tools directory if present
+if exist "%ROOT_DIR%.tools\node" (
+    set "PATH=%ROOT_DIR%.tools\node;%APPDATA%\npm;%PATH%"
+)
+
 REM Check Node.js
 where node >nul 2>nul
 if %errorlevel% neq 0 (
