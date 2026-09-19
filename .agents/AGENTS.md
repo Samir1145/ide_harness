@@ -245,8 +245,13 @@ Refer to the following plans saved in the workspace:
     * **Linux (`ubuntu-22.04`)**: Generates standalone `.AppImage` and `.deb` packages (583 MB).
     * **macOS (`macos-14` M1)**: Generates standalone Apple Silicon `.dmg` installer with ad-hoc signing (350 MB).
     * **Windows (`windows-2022`)**: Configured with Python `setuptools` and VS 2022 build tools, generating standalone NSIS `Setup.exe` (284 MB).
-  * **Automatic GitHub Release**: Automatically collects and flattens all 3 OS installer artifacts on tag pushes (`v*`) or manual `workflow_dispatch` triggers.
-
-
-
-
+* **Windows Daemon Resilience on System Junctions & Chokidar Error Handling**:
+  * **System Junction EPERM Fix**: Scanning `Documents/` on Windows hit hidden system junctions (`My Music`, `My Pictures`, `My Videos`, `$RECYCLE.BIN`, `System Volume Information`) where `fs.statSync` threw uncaught `EPERM` errors, crashing the daemon before binding port 3210. Added these to `SYSTEM_DIRS` in `backend/cli.js` and `backend/lib/routes.js` (for `/api/hayagriva/cases`), wrapping scan loops in defensive `try...catch`.
+  * **Chokidar Error Listener**: Added `watcher.on('error', ...)` to `backend/lib/daemon/watcher.js` to prevent unhandled EventEmitter exceptions from crashing the background daemon on locked or permission-restricted Windows directories.
+  * **Local Tools PATH Fallback**: Added auto-detection for `%ROOT_DIR%.tools\node` in `start.bat` and `launchers/start.bat` for portable, zero-install distributions.
+  * **Playwright E2E Isolation**: Added cross-platform packaged executable paths (`win32`, `linux`, `darwin`) and isolated temporary `--user-data-dir` argument to prevent Electron `ProcessSingleton` socket locks (`ECONNRESET`).
+* **Standardized Installer Naming (`Setup.exe` & `Setup.deb`)**:
+  * **Installer vs Binary Disambiguation**: Embraced Eclipse Theia's default NSIS convention (`${productName}Setup.exe`) to prevent user confusion between the installation wizard and the installed runtime binary (`Hayagriva.exe`).
+  * **Cross-Platform Uniformity**: Aligned Linux Debian packaging to the same convention (`HayagrivaSetup.deb`) in `frontend/applications/electron/electron-builder.yml` and `frontend/applications/electron-next/electron-builder.yml`, updating `BUILD.md` and `README.md`.
+  * **Distribution Portal Sync (`website_apnet.co.in`)**: Updated download modal in `header.html` and `js/header.js` to target `HayagrivaSetup.exe` and `HayagrivaSetup.deb` (and fixed Linux download fallback URL from `.exe` to `.AppImage`).
+  * **Cloudflare R2 Live Synchronization**: Replicated `Hayagriva.deb` into `HayagrivaSetup.deb` (202.57 MB) alongside `HayagrivaSetup.exe` (271.75 MB) in the `hayagriva` bucket with verified public HTTP 200 responses.
