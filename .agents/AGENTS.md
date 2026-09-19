@@ -231,6 +231,22 @@ Refer to the following plans saved in the workspace:
   * **15-Note Telemetry Blueprint**: Passes hardware capacity (`device_id`, `ram_gb`, `cpu_cores`, `os`, `app_version`), legal practitioner demographics (`practitioner_role`, `primary_nclt_bench`, `firm_or_chamber`, `city_state`), and lifecycle metrics (`plan_id`, `activation_type`, `cases_active_count`, `preferred_llm_mode`, `install_source`) into Razorpay `notes`.
   * **Read-Only External Dashboard**: Appsmith connects to Razorpay via Basic Auth (`GET /v1/payments?count=100`), guaranteeing that finance and support teams get full real-time CRM and analytics access with 0% risk of modifying banking or refund data.
   * **Master-Detail CRM Pattern**: Binds `Table1.selectedRow` to a CRM Call Form backed by a free Google Sheet (`Hayagriva_CRM_Notes`) to record advocate call notes, lead status, and follow-up dates at zero server cost.
+* **Eclipse Theia 1.75.0 & Node 22 LTS Monorepo Alignment**:
+  * **Engine Synchronization**: Aligned Node engine requirements (`engines.node: ">=22"`) across root, backend, frontend, extensions, and electron application packages to ensure full compatibility with modern Node 22 LTS runtimes and CI environments.
+  * **Theia 1.75 Platform**: Updated core Eclipse Theia framework packages to 1.75.0 and Electron runtime to 42.8.1.
+* **Direct Extension Compilation (`tsc -b`) & Nx FileLock Elimination**:
+  * **Node 22 Nx Crash**: Under Node 22 runners, `nx@22.x` crashes during workspace project graph construction due to native `FileLock` addon incompatibilities, even when `NX_DAEMON=false` is set.
+  * **Zero-Lerna CI Pipeline**: Bypassed Lerna/Nx execution entirely in CI by compiling workspace extensions (`product`, `launcher`, `updater`, `hayagriva`) directly via `yarn build` (`tsc -b`).
+* **Platform Prebuilt Binaries & Ripgrep Resolution in CI**:
+  * **The `--ignore-optional` Trap**: Running `yarn install --ignore-optional` skips critical platform packages (`@vscode/ripgrep-*`, `@parcel/watcher-*`, `@vscode/windows-ca-certs`), causing `@theia/bundle-plugin`'s `copyRipgrep` step in `theia build` to crash with `Error: Could not resolve path of module: @vscode/ripgrep-<platform>-<arch>`.
+  * **Automated Binary Verification & Fallback**: Retain optional dependencies during `yarn install` and execute a cross-platform inline Node check (`shell: bash`) right after install that verifies the required platform binaries and automatically runs `npm install --no-save <pkg>` if any binary is missing before esbuild bundling starts.
+* **Cross-Platform Automated Release Pipeline (`.github/workflows/build-release.yml`)**:
+  * **Verified 3-Platform Matrix**:
+    * **Linux (`ubuntu-22.04`)**: Generates standalone `.AppImage` and `.deb` packages (583 MB).
+    * **macOS (`macos-14` M1)**: Generates standalone Apple Silicon `.dmg` installer with ad-hoc signing (350 MB).
+    * **Windows (`windows-2022`)**: Configured with Python `setuptools` and VS 2022 build tools, generating standalone NSIS `Setup.exe` (284 MB).
+  * **Automatic GitHub Release**: Automatically collects and flattens all 3 OS installer artifacts on tag pushes (`v*`) or manual `workflow_dispatch` triggers.
+
 
 
 

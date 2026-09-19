@@ -81,7 +81,7 @@ While Legal Counsel is the initial active module, Hayagriva's 6 core systems eas
 ## 🚀 Quick Start
 
 ### 1. Requirements
-* Node.js (v18+)
+* Node.js (v22 LTS required)
 * Yarn (v1.22+)
 * macOS / Linux / Windows
 
@@ -96,17 +96,26 @@ To stop all background processes cleanly:
 - **Windows:** `launchers\stop.bat`
 - **Linux:** `./launchers/stop.sh`
 
-
 ### 3. Rebuilding Frontend Extensions
 If modifying code in `frontend/theia-extensions/`:
 ```bash
-# 1. Compile product & Hayagriva extensions
+# 1. Compile all workspace extensions directly (tsc -b)
 yarn --cwd frontend/theia-extensions/product build
+yarn --cwd frontend/theia-extensions/launcher build
+yarn --cwd frontend/theia-extensions/updater build
 yarn --cwd frontend/theia-extensions/hayagriva build
 
-# 2. Package Electron distribution bundle
+# 2. Package Electron distribution bundle (esbuild)
 yarn --cwd frontend/applications/electron build
 ```
+
+### 4. Cross-Platform Automated Releases
+Hayagriva uses an automated cross-platform GitHub Actions CI/CD matrix ([`build-release.yml`](.github/workflows/build-release.yml)) targeting Node 22 LTS to build and package standalone installers:
+* **macOS (Apple Silicon M1):** `Hayagriva-macOS` (`.dmg`)
+* **Windows (x64):** `Hayagriva-Windows` (`Setup.exe` NSIS installer)
+* **Linux (x64):** `Hayagriva-Linux` (`.AppImage` & `.deb`)
+
+All releases can be packaged locally or triggered automatically on tag releases (`v*`). See [BUILD.md](BUILD.md) for packaging instructions.
 
 
 ---
