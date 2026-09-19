@@ -65,11 +65,15 @@ jobs:
           npm --prefix backend install --omit=dev
 
       - name: Install Frontend Dependencies
+        env:
+          GYP_MSVS_VERSION: '2022'
+          npm_config_msvs_version: '2022'
         run: |
-          yarn --cwd frontend install --frozen-lockfile
+          yarn --cwd frontend install --frozen-lockfile --ignore-optional
 
-      - name: Build Hayagriva Theia Extension
+      - name: Build Workspace & Hayagriva Extensions
         run: |
+          yarn --cwd frontend build:extensions
           yarn --cwd frontend/theia-extensions/hayagriva build
 
       - name: Build Electron Application Frontend Bundle
