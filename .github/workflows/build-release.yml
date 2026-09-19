@@ -86,15 +86,15 @@ jobs:
           # Windows: explicitly tell node-gyp which VS version to use
           GYP_MSVS_VERSION: '2022'
 
-      # Use the workspace-installed lerna (via yarn scripts), NOT npx.
-      # npx installs lerna v10 globally which runs from repo root = ENOPKG.
+      # Bypass lerna entirely — nx@22.x native FileLock is incompatible
+      # with Node 22 runners. All extensions just run 'tsc -b' anyway.
       - name: Build Workspace & Hayagriva Extensions
+        shell: bash
         run: |
-          yarn --cwd frontend build:extensions
+          yarn --cwd frontend/theia-extensions/product build
+          yarn --cwd frontend/theia-extensions/launcher build
+          yarn --cwd frontend/theia-extensions/updater build
           yarn --cwd frontend/theia-extensions/hayagriva build
-        env:
-          NX_DAEMON: 'false'
-          NX_NATIVE_FILE_CACHE: 'false'
 
       - name: Build Electron Application Frontend Bundle
         run: |
