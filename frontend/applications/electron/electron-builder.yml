@@ -1,6 +1,6 @@
-appId: eclipse.theia
-productName: TheiaIDE
-copyright: Copyright © 2020-2026 Eclipse Foundation, Inc
+appId: com.hayagriva.ide
+productName: Hayagriva
+copyright: Copyright © 2026 Hayagriva
 electronDist: ../../node_modules/electron/dist
 electronVersion: 42.8.1
 asar: true
@@ -26,6 +26,15 @@ files:
 extraResources:
   - from: ../../plugins
     to: app/plugins
+  - from: ../../../backend
+    to: backend
+    filter:
+      - "**/*"
+      - "!**/.venv/**"
+      - "!**/.venv"
+      - "!**/.git/**"
+      - "!**/node_modules/.cache/**"
+      - "!**/*.log"
 
 win:
   icon: resources/icons/WindowsLauncherIcons/TheiaIDE.ico

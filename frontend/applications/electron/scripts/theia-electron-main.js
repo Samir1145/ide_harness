@@ -39,5 +39,58 @@ if (isAppImage) {
     process.env.THEIA_DEFAULT_PLUGINS = `local-dir:${bundledPluginsDir}`;
 }
 
+// ── AUTO-SPAWN EMBEDDED HAYAGRIVA DAEMON (PORT 3210) ────────────────────────
+function ensureHayagrivaBackend() {
+    try {
+        const backendDir = isInsideAsar
+            ? path.join(process.resourcesPath, 'backend')
+            : path.resolve(__dirname, '../../../../backend');
+
+        const cliScript = path.join(backendDir, 'cli.js');
+        if (!fs.existsSync(cliScript)) {
+            return;
+        }
+
+        let isRunning = false;
+        try {
+            const { execSync } = require('child_process');
+            if (process.platform === 'win32') {
+                execSync('netstat -ano | findstr :3210', { stdio: 'pipe' });
+            } else {
+                execSync('lsof -Pi :3210 -sTCP:LISTEN', { stdio: 'pipe' });
+            }
+            isRunning = true;
+        } catch (_) {
+            isRunning = false;
+        }
+
+        if (!isRunning) {
+            console.log('[Hayagriva] Auto-spawning background daemon from:', cliScript);
+            const { spawn } = require('child_process');
+            const backendProc = spawn(process.execPath, [cliScript, '--watch-all'], {
+                cwd: backendDir,
+                env: Object.assign({}, process.env, { ELECTRON_RUN_AS_NODE: '1' }),
+                detached: false,
+                stdio: 'ignore'
+            });
+            backendProc.unref();
+
+            const { app } = require('electron');
+            if (app) {
+                app.on('will-quit', () => {
+                    try {
+                        backendProc.kill();
+                    } catch (_) {}
+                });
+            }
+        } else {
+            console.log('[Hayagriva] Backend daemon already running on port 3210.');
+        }
+    } catch (err) {
+        console.warn('[Hayagriva] Note: Auto-spawn backend daemon check:', err.message);
+    }
+}
+ensureHayagrivaBackend();
+
 // Handover to the auto-generated electron application handler.
 require('../lib/backend/electron-main.js');
