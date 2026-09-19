@@ -23,9 +23,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # macOS: use macos-14 (Apple Silicon M1, available on free tier)
+          # macos-13 Intel runners are queue-starved and sit indefinitely
           - platform: macos
-            os: macos-13
-            builder_args: '--mac -c.mac.identity=null'
+            os: macos-14
+            builder_args: '--mac --arm64 -c.mac.identity=null'
             artifact_name: Hayagriva-macOS
             artifact_path: frontend/applications/electron/dist/*.dmg
 
@@ -47,34 +49,58 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (v24)
+      # Pin Node 22 LTS — nx@22.x native addons (FileLock) are not
+      # compatible with Node 24 which is now the default on runners.
+      - name: Setup Node.js (v22 LTS)
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: 'yarn'
           cache-dependency-path: frontend/yarn.lock
 
+      # Linux: install native build deps for Electron / node-gyp / RPM packaging
       - name: Install Linux System Build Dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libsecret-1-dev build-essential libx11-dev libxkbfile-dev rpm desktop-file-utils
 
+      # Windows: ensure Python setuptools is available for node-gyp distutils
+      # and let node-gyp auto-detect the VS installation (don't force version)
+      - name: Configure Windows Build Environment
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          pip install setuptools
+          # Verify VS is findable by vswhere
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vswhere) {
+            $vsPath = & $vswhere -latest -property installationPath
+            Write-Host "Visual Studio found at: $vsPath"
+          } else {
+            Write-Host "::warning::vswhere not found — node-gyp may fail"
+          }
+
       - name: Install Backend Dependencies (Native Architecture)
         run: |
           npm --prefix backend install --omit=dev
 
       - name: Install Frontend Dependencies
-        env:
-          GYP_MSVS_VERSION: '2022'
-          npm_config_msvs_version: '2022'
         run: |
           yarn --cwd frontend install --frozen-lockfile --ignore-optional
+        env:
+          # Suppress nx native daemon — prevents FileLock issues in CI
+          NX_DAEMON: 'false'
 
+      # Use npx to bypass lerna's nx native project-graph (FileLock crash).
+      # Directly invoke tsc for the extension builds instead.
       - name: Build Workspace & Hayagriva Extensions
         run: |
-          yarn --cwd frontend build:extensions
+          npx --yes lerna run --scope="theia-ide*ext" build
           yarn --cwd frontend/theia-extensions/hayagriva build
+        env:
+          NX_DAEMON: 'false'
+          NX_NATIVE_FILE_CACHE: 'false'
 
       - name: Build Electron Application Frontend Bundle
         run: |
