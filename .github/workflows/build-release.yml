@@ -78,8 +78,25 @@ jobs:
         run: npm install --omit=dev
 
       - name: Install Frontend Dependencies
+        shell: bash
         run: |
-          yarn --cwd frontend install --frozen-lockfile --ignore-optional --ignore-engines
+          yarn --cwd frontend install --frozen-lockfile --ignore-engines
+          node -e "
+            const packages = [
+              '@vscode/ripgrep-' + process.platform + '-' + process.arch,
+              '@parcel/watcher-' + process.platform + '-' + process.arch + (process.platform === 'linux' ? '-glibc' : '')
+            ];
+            if (process.platform === 'win32') packages.push('@vscode/windows-ca-certs');
+            for (const pkg of packages) {
+              try {
+                require.resolve(pkg + '/package.json', { paths: [process.cwd() + '/frontend'] });
+                console.log('✓ Verified platform binary package:', pkg);
+              } catch (e) {
+                console.log('Explicitly installing missing platform package:', pkg);
+                require('child_process').execSync('npm install --no-save ' + pkg, { cwd: 'frontend', stdio: 'inherit' });
+              }
+            }
+          "
         env:
           # Suppress nx native daemon — prevents FileLock issues in CI
           NX_DAEMON: 'false'
