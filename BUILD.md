@@ -113,7 +113,7 @@ yarn --cwd frontend/applications/electron electron-builder --linux --publish nev
 ```
 Outputs:
 * `frontend/applications/electron/dist/Hayagriva.AppImage`
-* `frontend/applications/electron/dist/Hayagriva.deb`
+* `frontend/applications/electron/dist/HayagrivaSetup.deb`
 
 ---
 

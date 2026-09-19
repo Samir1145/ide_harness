@@ -113,7 +113,7 @@ yarn --cwd frontend/applications/electron build
 Hayagriva uses an automated cross-platform GitHub Actions CI/CD matrix ([`build-release.yml`](.github/workflows/build-release.yml)) targeting Node 22 LTS to build and package standalone installers:
 * **macOS (Apple Silicon M1):** `Hayagriva-macOS` (`.dmg`)
 * **Windows (x64):** `Hayagriva-Windows` (`Setup.exe` NSIS installer)
-* **Linux (x64):** `Hayagriva-Linux` (`.AppImage` & `.deb`)
+* **Linux (x64):** `Hayagriva-Linux` (`.AppImage` & `Setup.deb` installer)
 
 All releases can be packaged locally or triggered automatically on tag releases (`v*`). See [BUILD.md](BUILD.md) for packaging instructions.
 

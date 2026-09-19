@@ -38,7 +38,7 @@ linux:
     - AppImage
 
 deb:
-  artifactName: ${productName}.${ext}
+  artifactName: ${productName}Setup.${ext}
 appImage:
   artifactName: ${productName}.${ext}
 

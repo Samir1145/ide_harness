@@ -23,13 +23,22 @@ async function uploadFile(filePath, r2Key) {
     const sizeMb = (stat.size / (1024 * 1024)).toFixed(2);
     console.log(`[R2 Upload] Uploading "${r2Key}" (${sizeMb} MB) to bucket "${BUCKET_NAME}"...`);
 
+    const ext = path.extname(filePath).toLowerCase();
+    const contentTypes = {
+        '.exe': 'application/vnd.microsoft.portable-executable',
+        '.deb': 'application/vnd.debian.binary-package',
+        '.appimage': 'application/x-executable',
+        '.dmg': 'application/x-apple-diskimage'
+    };
+    const contentType = contentTypes[ext] || 'application/octet-stream';
+
     const fileStream = fs.createReadStream(filePath);
     const command = new PutObjectCommand({
         Bucket: BUCKET_NAME,
         Key: r2Key,
         Body: fileStream,
         ContentLength: stat.size,
-        ContentType: 'application/vnd.microsoft.portable-executable',
+        ContentType: contentType,
     });
 
     await s3.send(command);
