@@ -166,35 +166,6 @@ log "Auto-healing backend watchdog active (PID: $WATCHDOG_PID)"
 
 log "App started in Lite Mode. LLM engines (Port 8090/8091) remain offline until manually started in Settings."
 
-# Ensure Electron Dock launcher wrapper is installed
-ELECTRON_MAC_DIR="$ROOT_DIR/frontend/node_modules/electron/dist/Electron.app/Contents/MacOS"
-if [ -d "$ELECTRON_MAC_DIR" ]; then
-    if [ -f "$ELECTRON_MAC_DIR/Electron" ] && [ ! -f "$ELECTRON_MAC_DIR/Electron.bin" ]; then
-        log "Configuring Electron Dock launcher wrapper..."
-        mv "$ELECTRON_MAC_DIR/Electron" "$ELECTRON_MAC_DIR/Electron.bin"
-        cat << 'EOF' > "$ELECTRON_MAC_DIR/Electron"
-#!/bin/zsh
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/../../../../../../.." && pwd)"
-
-if [ -f "$ROOT_DIR/launchers/start.command" ]; then
-    LAUNCHER="$ROOT_DIR/launchers/start.command"
-elif [ -f "$ROOT_DIR/start.command" ]; then
-    LAUNCHER="$ROOT_DIR/start.command"
-else
-    LAUNCHER="${HOME}/Desktop/ide_harness/launchers/start.command"
-fi
-
-if [ "$#" -eq 0 ]; then
-    exec "$LAUNCHER"
-else
-    exec "$SCRIPT_DIR/Electron.bin" "$@"
-fi
-EOF
-        chmod +x "$ELECTRON_MAC_DIR/Electron"
-        log "Electron Dock launcher wrapper configured."
-    fi
-fi
 
 # Start Hayagriva Electron app
 log "Starting Hayagriva Electron app..."

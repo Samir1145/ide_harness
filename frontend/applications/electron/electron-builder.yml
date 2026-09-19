@@ -33,8 +33,13 @@ extraResources:
       - "!**/.venv/**"
       - "!**/.venv"
       - "!**/.git/**"
-      - "!**/node_modules/.cache/**"
+      - "!**/node_modules/**"
       - "!**/*.log"
+  - from: ../../../backend/node_modules
+    to: backend/node_modules
+    filter:
+      - "**/*"
+      - "!**/.cache/**"
 
 win:
   icon: resources/icons/WindowsLauncherIcons/TheiaIDE.ico
