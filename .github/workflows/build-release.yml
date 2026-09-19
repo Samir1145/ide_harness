@@ -62,7 +62,7 @@ jobs:
 
       - name: Install Backend Dependencies (Native Architecture)
         run: |
-          npm --prefix backend ci --omit=dev
+          npm --prefix backend install --omit=dev
 
       - name: Install Frontend Dependencies
         run: |
