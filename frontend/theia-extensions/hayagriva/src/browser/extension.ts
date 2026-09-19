@@ -50,6 +50,7 @@ export class HayagrivaFrontendContribution
 
   protected isBackendOnline = false;
   protected showOfflineWarning = true;
+  protected offlineFailureCount = 0;
   protected hasSmartLaunchedSettings = false;
 
   protected wikiWidget?: Widget;
@@ -678,7 +679,7 @@ export class HayagrivaFrontendContribution
   startBackendMonitor(): void {
     setTimeout(() => {
       this.checkBackendHealth();
-    }, 3000);
+    }, 8000);
 
     setInterval(() => {
       this.checkBackendHealth();
@@ -731,6 +732,7 @@ export class HayagrivaFrontendContribution
       if (res.ok) {
         this.isBackendOnline = true;
         this.showOfflineWarning = true;
+        this.offlineFailureCount = 0;
         this.statusBar.setElement('hayagriva-status-item', {
           text: '$(fa-check) Hayagriva Server: Online',
           alignment: StatusBarAlignment.RIGHT,
@@ -849,6 +851,7 @@ export class HayagrivaFrontendContribution
       throw new Error('Non-ok response');
     } catch (_) {
       this.isBackendOnline = false;
+      this.offlineFailureCount++;
       this.statusBar.setElement('hayagriva-status-item', {
         text: '$(fa-warning) Hayagriva Server: Offline',
         alignment: StatusBarAlignment.RIGHT,
@@ -864,10 +867,13 @@ export class HayagrivaFrontendContribution
       });
       this.updateStatusBarStyle('offline');
 
-      if (this.showOfflineWarning) {
+      // Only notify if the backend has failed at least 3 consecutive checks (~28s)
+      if (this.showOfflineWarning && this.offlineFailureCount >= 3) {
         this.showOfflineWarning = false;
         setTimeout(() => {
-          this.messageService.error('Hayagriva backend server is offline. Please launch it using ./launchers/start.command');
+          if (!this.isBackendOnline) {
+            this.messageService.error('Hayagriva backend server is offline. Please launch it using ./launchers/start.command');
+          }
         }, 3000);
       }
     }

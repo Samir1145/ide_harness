@@ -1,0 +1,117 @@
+name: Build & Release Hayagriva (Cross-Platform)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish as GitHub Release?'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            os: macos-13
+            builder_args: '--mac -c.mac.identity=null'
+            artifact_name: Hayagriva-macOS
+            artifact_path: frontend/applications/electron/dist/*.dmg
+
+          - platform: windows
+            os: windows-latest
+            builder_args: '--win'
+            artifact_name: Hayagriva-Windows
+            artifact_path: frontend/applications/electron/dist/*Setup.exe
+
+          - platform: linux
+            os: ubuntu-22.04
+            builder_args: '--linux'
+            artifact_name: Hayagriva-Linux
+            artifact_path: |
+              frontend/applications/electron/dist/*.AppImage
+              frontend/applications/electron/dist/*.deb
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (v24)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install Linux System Build Dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev build-essential libx11-dev libxkbfile-dev rpm desktop-file-utils
+
+      - name: Install Backend Dependencies (Native Architecture)
+        run: |
+          npm --prefix backend ci --omit=dev
+
+      - name: Install Frontend Dependencies
+        run: |
+          yarn --cwd frontend install --frozen-lockfile
+
+      - name: Build Hayagriva Theia Extension
+        run: |
+          yarn --cwd frontend/theia-extensions/hayagriva build
+
+      - name: Build Electron Application Frontend Bundle
+        run: |
+          yarn --cwd frontend/applications/electron build
+
+      - name: Rebuild Native Modules for Target Electron Platform
+        run: |
+          yarn --cwd frontend/applications/electron rebuild
+
+      - name: Package Standalone Installer with Electron-Builder
+        run: |
+          yarn --cwd frontend/applications/electron electron-builder ${{ matrix.builder_args }} --publish never
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+
+  release:
+    name: Publish Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Flatten Artifacts Structure
+        run: |
+          mkdir -p dist-release
+          find release-artifacts -type f -exec cp {} dist-release/ \;
+          ls -la dist-release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-release/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true

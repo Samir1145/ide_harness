@@ -108,16 +108,18 @@
     "@theia/vsx-registry": "1.75.0",
     "@theia/workspace": "1.75.0",
     "fs-extra": "^9.1.0",
+    "hayagriva-theia-extension": "link:../../theia-extensions/hayagriva",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "theia-ide-launcher-ext": "1.75.0",
     "theia-ide-product-ext": "1.75.0",
-    "theia-ide-updater-ext": "1.75.0",
-    "hayagriva-theia-extension": "link:../../theia-extensions/hayagriva"
+    "theia-ide-updater-ext": "1.75.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@theia/bundle-plugin": "1.75.0",
     "@theia/cli": "1.75.0",
+    "@theia/playwright": "1.75.0",
     "@types/js-yaml": "^3.12.10",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -162,6 +164,8 @@
     "sign:directory": "ts-node scripts/sign-directory.ts",
     "sign:directory:windows": "ts-node scripts/sign-directory-windows.ts",
     "test": "mocha --timeout 60000 \"./test/*.spec.js\"",
+    "test:playwright": "playwright test",
+    "test:playwright:packaged": "TEST_PACKAGED=true playwright test",
     "lint": "eslint --ext js,jsx,ts,tsx scripts && eslint --ext js,jsx,ts,tsx test",
     "lint:fix": "eslint --ext js,jsx,ts,tsx scripts --fix && eslint --ext js,jsx,ts,tsx test -fix"
   }

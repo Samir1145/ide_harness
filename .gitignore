@@ -24,6 +24,8 @@ twillm/twillm-wiki/tiddlers/vault-loader/
 # Test/Scratch directories
 **/scratch/
 .tempmediaStorage/
+**/test-results/
+**/playwright-report/
 
 # Secrets and environment configs
 .env

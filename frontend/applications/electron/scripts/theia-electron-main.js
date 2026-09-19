@@ -51,13 +51,19 @@ function ensureHayagrivaBackend() {
             return;
         }
 
+        // Augment PATH for macOS GUI launches
+        const augmentedPath = (process.env.PATH || '') + ':/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin';
+
         let isRunning = false;
         try {
             const { execSync } = require('child_process');
             if (process.platform === 'win32') {
                 execSync('netstat -ano | findstr :3210', { stdio: 'pipe' });
             } else {
-                execSync('lsof -Pi :3210 -sTCP:LISTEN', { stdio: 'pipe' });
+                execSync('lsof -Pi :3210 -sTCP:LISTEN', {
+                    stdio: 'pipe',
+                    env: Object.assign({}, process.env, { PATH: augmentedPath })
+                });
             }
             isRunning = true;
         } catch (_) {
@@ -66,22 +72,47 @@ function ensureHayagrivaBackend() {
 
         if (!isRunning) {
             console.log('[Hayagriva] Auto-spawning background daemon from:', cliScript);
+
+            // Cross-platform log directory (macOS: ~/Library/Logs/Hayagriva, Windows: %APPDATA%/Hayagriva/logs, Linux: ~/.config/Hayagriva/logs)
+            let stdioConfig = 'ignore';
+            try {
+                let logDir;
+                if (process.platform === 'win32') {
+                    const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+                    logDir = path.join(appData, 'Hayagriva', 'logs');
+                } else if (process.platform === 'darwin') {
+                    logDir = path.join(os.homedir(), 'Library', 'Logs', 'Hayagriva');
+                } else {
+                    const configDir = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+                    logDir = path.join(configDir, 'Hayagriva', 'logs');
+                }
+                fs.mkdirSync(logDir, { recursive: true });
+                const logFile = path.join(logDir, 'hayagriva-daemon.log');
+                const outFd = fs.openSync(logFile, 'a');
+                stdioConfig = ['ignore', outFd, outFd];
+            } catch (_) {}
+
             const { spawn } = require('child_process');
             const backendProc = spawn(process.execPath, [cliScript, '--watch-all'], {
                 cwd: backendDir,
-                env: Object.assign({}, process.env, { ELECTRON_RUN_AS_NODE: '1' }),
-                detached: false,
-                stdio: 'ignore'
+                env: Object.assign({}, process.env, {
+                    ELECTRON_RUN_AS_NODE: '1',
+                    PATH: augmentedPath
+                }),
+                detached: true,
+                stdio: stdioConfig
             });
             backendProc.unref();
 
             const { app } = require('electron');
             if (app) {
-                app.on('will-quit', () => {
+                const cleanup = () => {
                     try {
                         backendProc.kill();
                     } catch (_) {}
-                });
+                };
+                app.on('before-quit', cleanup);
+                app.on('will-quit', cleanup);
             }
         } else {
             console.log('[Hayagriva] Backend daemon already running on port 3210.');
