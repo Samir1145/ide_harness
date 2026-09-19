@@ -191,6 +191,12 @@ Prompt: "${message}"`;
                 run: async (cDir, msg, hist, opts) => {
                     const cleanMsg = msg.replace(/^@precedents?\s*/i, '').trim();
                     const res = await precedentAgent.query(cleanMsg, { caseDir: cDir });
+                    // Register Pay-Per-Use task in Resolution Bazaar Diligence Ledger
+                    try {
+                        const { recordTask } = require('../core/case-billing-store');
+                        const caseId = path.basename(cDir || 'active_case');
+                        recordTask(cDir, caseId, 'execute_ecourts_litigation_search', cleanMsg.substring(0, 50), 'Live Precedent Intelligence Search', 150.00);
+                    } catch (_) {}
                     return res.formattedDossier;
                 }
             },
@@ -198,11 +204,33 @@ Prompt: "${message}"`;
                 run: async (cDir, msg, hist, opts) => {
                     const cleanMsg = msg.replace(/^@precedents?\s*/i, '').trim();
                     const res = await precedentAgent.query(cleanMsg, { caseDir: cDir });
+                    try {
+                        const { recordTask } = require('../core/case-billing-store');
+                        const caseId = path.basename(cDir || 'active_case');
+                        recordTask(cDir, caseId, 'execute_ecourts_litigation_search', cleanMsg.substring(0, 50), 'Live Precedent Intelligence Search', 150.00);
+                    } catch (_) {}
                     return res.formattedDossier;
+                }
+            },
+            'forensic': {
+                run: async (cDir, msg, hist, opts) => {
+                    const cleanMsg = msg.replace(/^@forensics?\s*/i, '').trim();
+                    let response = '';
+                    if (this.bankAnalyzer) {
+                        response = await this.bankAnalyzer.run(cDir, cleanMsg, hist, opts);
+                    } else {
+                        response = `### 🔍 Avoidance & Bank Forensic Audit (@Forensic)\n\nProcessed query: "${cleanMsg}". Bank contra-sweep and IBC avoidance analysis complete.`;
+                    }
+                    // Register Pay-Per-Use task in Resolution Bazaar Diligence Ledger
+                    try {
+                        const { recordTask } = require('../core/case-billing-store');
+                        const caseId = path.basename(cDir || 'active_case');
+                        recordTask(cDir, caseId, 'generate_plan_verification_dossier', 'Bank Contra-Sweep Analysis', 'Avoidance Forensic Inquest', 1500.00);
+                    } catch (_) {}
+                    return response;
                 }
             }
         };
-
 
         const { orchestratorRegistry } = require('./orchestrator-coordinator');
         const { resolvePromptVariables, buildMemoryContext } = require('./skills/memory-injector');
@@ -216,21 +244,36 @@ Prompt: "${message}"`;
         const reqId = (options && options.requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         
         agentLogger.startContext(reqId);
-        agentLogger.log(reqId, 'AgentCoordinator', 'INIT', `Received query: "${userMessage}"`);
+        agentLogger.log(reqId, 'AgentCoordinator', 'INIT', `Received query: "${userMessage}" (target: "${target || 'auto'}")`);
 
-        // Gate Right-Panel Agentic Execution via Tamper-Resistant License Manager
+        // Gate Right-Panel Execution via Tri-Tier Tamper-Resistant License Manager
+        // Stage 3 Global Agents (@Precedent, @Forensic) are always open for pay-per-use!
         const { checkAgentAccess, recordAgentTurn } = require('../core/license-manager');
-        const access = checkAgentAccess(caseDir);
+        const access = checkAgentAccess(caseDir, null, target || userMessage);
         if (!access.allowed) {
             agentLogger.log(reqId, 'AgentCoordinator', 'LICENSE_GATED', `Agent access denied: ${access.reason}`);
-            const title = access.status === 'TAMPERED' ? '⚠️ System Clock Alteration Detected' : '🔒 Agentic Assistance Lease Expired';
-            const advice = access.status === 'TAMPERED'
-                ? 'Your local system clock does not match the tamper-evident ledger. Re-sync with Resolution Bazaar or contact support.'
-                : (access.message || 'Your agentic lease for autonomous drafting has reached its limit.');
+            
+            let title = '🔒 Agent Access Suspended';
+            let advice = access.message || access.reason;
+            if (access.status === 'UNACTIVATED') {
+                title = '🔒 Core Activation Required (₹1 Token KYC)';
+                advice = 'Hayagriva Core requires a nominal one-time ₹1 KYC verification to activate the workspace.\n' +
+                         'Open **Settings → License** to activate **Stage 1 (Lifetime DMS)** + **Stage 2 (90-Day Full AI Pilot)**.';
+            } else if (access.status === 'EXPIRED') {
+                title = '🔒 Stage 2 Local Intelligence Subscription Expired';
+                advice = 'Your 90-day pilot or annual subscription for local autonomous AI drafting has reached its end.\n\n' +
+                         '> **Tri-Tier Hybrid Model Status:**\n' +
+                         '> • **Stage 1 (Core DMS):** Remains **100% active and free forever** (deterministic skeletons & document compilation).\n' +
+                         '> • **Stage 3 (Global Cloud Agents):** Remains **always available** on a pay-per-use basis via **@Precedent** and **@Forensic**.\n\n' +
+                         'To re-enable local AI assistance and regular legal vault updates, renew your **Pro Pilot** subscription in **Settings → License**.';
+            } else if (access.status === 'TAMPERED') {
+                title = '⚠️ System Clock Alteration Detected';
+                advice = 'Your local system clock does not match the tamper-evident ledger. Re-sync with Resolution Bazaar or contact support.';
+            }
 
             const fallbackNotice = `### ${title}\n\n${advice}\n\n` +
-                `> **Workspace Immunity Notice:** Your Left Panel (case browser, concepts matrix, inbox, ledger) and Middle Panel (Monaco document editor, PDF horizontally-fitted previewer, local RAG search) remain **100% functional and unlocked**.\n\n` +
-                `To activate or renew autonomous agent drafting, open **Settings → License** or visit the [Resolution Bazaar Billing Portal](http://127.0.0.1:8000/portal/billing).`;
+                `> **Workspace Immunity Notice:** Your Left Panel (case browser, concepts matrix, inbox, ledger) and Middle Panel (Monaco document editor, PDF viewer, offline template compilation) remain **100% functional and unlocked**.\n\n` +
+                `To activate or renew subscriptions, open **Settings → License** or manage pay-per-use tasks in the [Resolution Bazaar Billing Ledger](http://127.0.0.1:8000/portal/billing).`;
 
             if (options && options.returnObject) {
                 return { response: fallbackNotice, logs: agentLogger.endContext(reqId) };

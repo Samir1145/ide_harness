@@ -126,7 +126,8 @@ function getActiveDomainProfile(caseDir) {
 }
 
 /**
- * Provisions the domain-specific folder taxonomy subdirectories inside caseDir.
+ * Provisions essential workspace folders (drafts/ and exports/) in a Clean Flat Workspace (Option A).
+ * Intrusive 6-10 numbered folders are no longer forced onto the user's hard drive.
  */
 function bootstrapDomainTaxonomy(caseDir) {
     if (!caseDir) return [];
@@ -137,42 +138,40 @@ function bootstrapDomainTaxonomy(caseDir) {
     const profile = getActiveDomainProfile(caseDir);
     if (!profile) return [];
 
-    // Prune any empty taxonomy subfolders belonging to non-active domains
-    const activeFolders = new Set(profile.taxonomy);
-    const allTaxonomyFolders = new Set();
-    Object.values(DOMAIN_PROFILES).forEach(p => p.taxonomy.forEach(f => allTaxonomyFolders.add(f)));
-
-    for (const folderName of allTaxonomyFolders) {
-        if (!activeFolders.has(folderName)) {
-            const obsoleteFolderPath = path.join(caseDir, folderName);
-            if (fs.existsSync(obsoleteFolderPath)) {
-                try {
-                    const files = fs.readdirSync(obsoleteFolderPath);
-                    if (files.length === 0) {
-                        fs.rmdirSync(obsoleteFolderPath);
-                        console.log(`[DomainRegistry] Pruned empty obsolete taxonomy folder '${folderName}'`);
-                    }
-                } catch (_) {}
-            }
-        }
-    }
-
+    // Clean Workspace: Ensure essential AI output directories exist
+    const essentialDirs = ['drafts', 'exports'];
     const createdFolders = [];
-    for (const folderName of profile.taxonomy) {
-        const folderPath = path.join(caseDir, folderName);
-        if (!fs.existsSync(folderPath)) {
+    for (const dirName of essentialDirs) {
+        const p = path.join(caseDir, dirName);
+        if (!fs.existsSync(p)) {
             try {
-                fs.mkdirSync(folderPath, { recursive: true });
-                createdFolders.push(folderName);
-            } catch (e) {
-                console.error(`[DomainRegistry] Failed to create folder ${folderName}:`, e.message);
-            }
+                fs.mkdirSync(p, { recursive: true });
+                createdFolders.push(dirName);
+            } catch (_) {}
         }
     }
-    if (createdFolders.length > 0) {
-        console.log(`[DomainRegistry] Bootstrapped ${createdFolders.length} taxonomy folders for domain '${profile.id}' in ${caseDir}`);
+
+    // Cleanly prune any legacy empty numbered taxonomy subfolders from earlier versions
+    const allLegacyTaxonomyFolders = new Set();
+    Object.values(DOMAIN_PROFILES).forEach(p => (p.taxonomy || []).forEach(f => allLegacyTaxonomyFolders.add(f)));
+
+    for (const folderName of allLegacyTaxonomyFolders) {
+        const legacyPath = path.join(caseDir, folderName);
+        if (fs.existsSync(legacyPath)) {
+            try {
+                const files = fs.readdirSync(legacyPath);
+                if (files.length === 0) {
+                    fs.rmdirSync(legacyPath);
+                    console.log(`[DomainRegistry] Pruned legacy empty taxonomy folder '${folderName}' for clean workspace`);
+                }
+            } catch (_) {}
+        }
     }
-    return profile.taxonomy;
+
+    if (createdFolders.length > 0) {
+        console.log(`[DomainRegistry] Clean workspace initialized with essential dirs [${createdFolders.join(', ')}] in ${caseDir}`);
+    }
+    return essentialDirs;
 }
 
 module.exports = {

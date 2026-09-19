@@ -5,38 +5,62 @@
  */
 
 const PRICING_PLANS = {
-  free_core_6m: {
-    id: 'free_core_6m',
-    name: 'Free Core Lite (6-Month Verification)',
+  core_starter_90d: {
+    id: 'core_starter_90d',
+    name: 'Core Starter (90-Day Local AI Pilot + Perpetual DMS)',
     amountPaise: 100, // ₹1.00
     displayPrice: '₹1',
-    validityDays: 180, // 6 months
-    tier: 'lite',
+    validityDays: 90, // 3 months / 90 days
+    tier: 'starter',
     activationType: 'token_verification_1rs',
-    description: 'Statutory Bare Acts, Legal Skeletons, Local Document Ingest & Deterministic Drafting',
-    allowedBrains: ['bare_acts', 'skeletons', 'companion_indexer']
+    stage1_perpetual_dms: true,
+    stage2_trial_days: 90,
+    stage3_pay_per_use: true,
+    description: 'Stage 1 Lifetime DMS + Stage 2 Local AI Pilot (90 Days) + Stage 3 Pay-Per-Use Global Precedents',
+    allowedBrains: ['bare_acts', 'skeletons', 'companion_indexer', 'legal_brain', 'monaco_rag']
+  },
+  free_core_6m: {
+    // Backwards-compatible alias to core_starter_90d
+    id: 'core_starter_90d',
+    name: 'Core Starter (90-Day Local AI Pilot + Perpetual DMS)',
+    amountPaise: 100, // ₹1.00
+    displayPrice: '₹1',
+    validityDays: 90,
+    tier: 'starter',
+    activationType: 'token_verification_1rs',
+    stage1_perpetual_dms: true,
+    stage2_trial_days: 90,
+    stage3_pay_per_use: true,
+    description: 'Stage 1 Lifetime DMS + Stage 2 Local AI Pilot (90 Days) + Stage 3 Pay-Per-Use Global Precedents',
+    allowedBrains: ['bare_acts', 'skeletons', 'companion_indexer', 'legal_brain', 'monaco_rag']
   },
   pro_pilot: {
     id: 'pro_pilot',
-    name: 'Professional Pilot (1-Year License)',
+    name: 'Professional Pilot (1-Year Stage 2 Subscription)',
     amountPaise: 499900, // ₹4,999.00
     displayPrice: '₹4,999',
     validityDays: 365,
     tier: 'standard',
     activationType: 'pro_pilot_annual',
-    description: 'LegalParam-2.9B Local Brain, Claims Auditor (@Auditor), Pleadings Formatter (@Formatter)',
-    allowedBrains: ['legal_brain', 'claims_auditor', 'pleadings_formatter']
+    stage1_perpetual_dms: true,
+    stage2_subscription: true,
+    stage3_pay_per_use: true,
+    description: 'Stage 2 Local Intelligence: LegalParam-2.9B Local Brain, Claims Auditor (@Auditor), Pleadings Formatter (@Formatter), Monaco Semantic RAG & Vault Updates',
+    allowedBrains: ['legal_brain', 'claims_auditor', 'pleadings_formatter', 'monaco_rag']
   },
   enterprise_pilot: {
     id: 'enterprise_pilot',
-    name: 'Enterprise Pilot (1-Year License)',
+    name: 'Enterprise Pilot (1-Year Stage 2 Subscription)',
     amountPaise: 1499900, // ₹14,999.00
     displayPrice: '₹14,999',
     validityDays: 365,
     tier: 'enterprise',
     activationType: 'enterprise_pilot_annual',
-    description: 'Legal & Finance Brains, Avoidance Forensic (@Forensic), Live ResolutionBazaar Precedents (@Precedent)',
-    allowedBrains: ['legal_brain', 'finance_brain', 'avoidance_forensic', 'precedent_cloud']
+    stage1_perpetual_dms: true,
+    stage2_subscription: true,
+    stage3_pay_per_use: true,
+    description: 'Stage 2 Full Intelligence: Legal & Finance Brains, Avoidance Forensic (@Forensic), Monaco Semantic RAG + Priority Vault Updates',
+    allowedBrains: ['legal_brain', 'finance_brain', 'avoidance_forensic', 'monaco_rag', 'precedent_cloud']
   }
 };
 

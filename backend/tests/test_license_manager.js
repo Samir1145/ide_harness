@@ -26,11 +26,26 @@ async function main() {
 
     const { generateLicenseKey } = require('../lib/utils/license-validator');
 
-    // 1. Initial State: Evaluation License is ACTIVE
+    // 1. Initial State: Fresh install starts as UNACTIVATED until KYC
     let access = checkAgentAccess(TEST_CASE, TEST_DB);
+    assert.strictEqual(access.allowed, false);
+    assert.strictEqual(access.status, 'UNACTIVATED');
+    console.log('1a. Fresh install is correctly UNACTIVATED.');
+
+    // Activate initial license to test working hours and tamper detection
+    const initKey = generateLicenseKey({
+        sub: 'Evaluation User',
+        tier: 'trial',
+        issued_at: new Date().toISOString(),
+        valid_until: new Date(Date.now() + 30 * 86400000).toISOString(),
+        max_active_hours: 150.0,
+        max_agent_turns: 1000
+    });
+    activateLicense(initKey, TEST_CASE, TEST_DB);
+    access = checkAgentAccess(TEST_CASE, TEST_DB);
     assert.strictEqual(access.allowed, true);
     assert.strictEqual(access.status, 'ACTIVE');
-    console.log('1. Initial Evaluation License is ACTIVE.');
+    console.log('1b. Activated Evaluation License is ACTIVE.');
 
     // 2. Accumulate Monotonic Working Hours
     recordAgentTurn(TEST_CASE, 15.5, TEST_DB); // 15.5 seconds

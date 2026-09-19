@@ -51,6 +51,36 @@ class BankAnalyzerSubAgent {
         this.description = 'Autonomous Multi-Bank Forensic Cash Flow, Contra-Sweep Reconciliation & Counterparty Inquest Agent';
     }
 
+    /**
+     * Stages a heavy external Multi-Bank Contra & Director Inquest into the
+     * Settings outbound billing queue for user review and payment authorization.
+     */
+    async stageCloudInquest(caseDir, entityName, userEmail = 'advocate@chamber.in') {
+        const { recordPendingTask } = require('../../core/case-billing-store');
+        const task = recordPendingTask(caseDir, {
+            tool_name: 'rbz_multibank_inquest',
+            target_identifier: entityName || 'Corporate Debtor',
+            target_name: `Forensic Inquest: ${entityName || 'Multi-Bank Accounts'}`,
+            rate_inr: 1200.00,
+            email: userEmail,
+            payload: {
+                entity: entityName,
+                inquestType: 'SECTIONS_43_45_66',
+                requestedAt: new Date().toISOString()
+            }
+        });
+
+        return {
+            success: true,
+            staged: true,
+            taskId: task.task_id,
+            rateInr: task.rate_inr,
+            gstInr: Math.round(task.rate_inr * 0.18 * 100) / 100,
+            totalInr: Math.round(task.rate_inr * 1.18 * 100) / 100,
+            message: `Prepared Resolution Bazaar Forensic Inquest for "${entityName}". Staged in Settings Outbound Queue (Task ID: ${task.task_id}). Total: ₹${Math.round(task.rate_inr * 1.18 * 100) / 100}.`
+        };
+    }
+
     formatInr(amount) {
         if (!amount || isNaN(amount)) return '₹ 0.00';
         const abs = Math.abs(amount);

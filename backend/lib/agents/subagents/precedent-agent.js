@@ -29,6 +29,36 @@ class PrecedentAgent {
     }
 
     /**
+     * Prepares an MCP Tool Call for live cloud precedent research and
+     * stages it in the case billing queue for user review and payment authorization.
+     */
+    async stageCloudResearch(queryText, caseDir, userEmail = 'advocate@chamber.in') {
+        const { recordPendingTask } = require('../../core/case-billing-store');
+        const task = recordPendingTask(caseDir, {
+            tool_name: 'rbz_query_precedents',
+            target_identifier: 'NCLT/NCLAT/SC',
+            target_name: `Precedent Inquest: ${queryText.slice(0, 60)}...`,
+            rate_inr: 150.00,
+            email: userEmail,
+            payload: {
+                query: queryText,
+                jurisdiction: 'IBC_NCLAT',
+                requestedAt: new Date().toISOString()
+            }
+        });
+
+        return {
+            success: true,
+            staged: true,
+            taskId: task.task_id,
+            rateInr: task.rate_inr,
+            gstInr: Math.round(task.rate_inr * 0.18 * 100) / 100,
+            totalInr: Math.round(task.rate_inr * 1.18 * 100) / 100,
+            message: `Prepared Resolution Bazaar MCP call for "${queryText}". Staged in Settings Outbound Queue (Task ID: ${task.task_id}). Total: ₹${Math.round(task.rate_inr * 1.18 * 100) / 100}.`
+        };
+    }
+
+    /**
      * Executes legal research against ResolutionBazaar LightRAG.
      * If offline, falls back gracefully to the local statutory bare acts vault.
      */

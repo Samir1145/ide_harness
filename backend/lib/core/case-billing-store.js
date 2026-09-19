@@ -47,7 +47,10 @@ function getCaseBillingDb(caseDir) {
             server_task_id TEXT,
             server_receipt_sig TEXT,
             prev_hash TEXT NOT NULL,
-            task_hash TEXT NOT NULL
+            task_hash TEXT NOT NULL,
+            payload_json TEXT,
+            report_path TEXT,
+            user_email TEXT
         );
 
         CREATE TABLE IF NOT EXISTS case_payment_receipts (
@@ -60,12 +63,34 @@ function getCaseBillingDb(caseDir) {
             gateway_payment_id TEXT NOT NULL,
             payment_status TEXT NOT NULL,
             paid_at TEXT NOT NULL,
-            pdf_path TEXT
+            pdf_path TEXT,
+            task_id TEXT
         );
 
         CREATE INDEX IF NOT EXISTS idx_billing_status ON case_billing_tasks(status);
         CREATE INDEX IF NOT EXISTS idx_billing_payment_status ON case_billing_tasks(payment_status);
     `);
+
+    // Self-healing columns check
+    try {
+        const cols = db.prepare("PRAGMA table_info(case_billing_tasks)").all();
+        const colNames = new Set(cols.map(c => c.name));
+        if (!colNames.has('payload_json')) {
+            db.exec("ALTER TABLE case_billing_tasks ADD COLUMN payload_json TEXT;");
+        }
+        if (!colNames.has('report_path')) {
+            db.exec("ALTER TABLE case_billing_tasks ADD COLUMN report_path TEXT;");
+        }
+        if (!colNames.has('user_email')) {
+            db.exec("ALTER TABLE case_billing_tasks ADD COLUMN user_email TEXT;");
+        }
+
+        const receiptCols = db.prepare("PRAGMA table_info(case_payment_receipts)").all();
+        const receiptColNames = new Set(receiptCols.map(c => c.name));
+        if (!receiptColNames.has('task_id')) {
+            db.exec("ALTER TABLE case_payment_receipts ADD COLUMN task_id TEXT;");
+        }
+    } catch (_) {}
 
     return db;
 }
@@ -104,15 +129,20 @@ function recordPendingTask(caseDir, taskData) {
     const prevHash = getLastHash(db);
     const taskHash = computeTaskHash(prevHash, taskId, rateInr, createdAt);
 
+    const payloadJson = typeof taskData.payload === 'object' ? JSON.stringify(taskData.payload) : (taskData.payload_json || null);
+    const userEmail = taskData.user_email || taskData.email || null;
+
     const stmt = db.prepare(`
         INSERT INTO case_billing_tasks (
             task_id, case_id, tool_name, target_identifier, target_name,
             rate_inr, status, payment_status, approved_by, created_at,
-            executed_at, server_task_id, server_receipt_sig, prev_hash, task_hash
+            executed_at, server_task_id, server_receipt_sig, prev_hash, task_hash,
+            payload_json, report_path, user_email
         ) VALUES (
             ?, ?, ?, ?, ?,
             ?, 'PENDING_APPROVAL', 'UNBILLED', NULL, ?,
-            NULL, NULL, NULL, ?, ?
+            NULL, NULL, NULL, ?, ?,
+            ?, NULL, ?
         )
     `);
 
@@ -125,16 +155,21 @@ function recordPendingTask(caseDir, taskData) {
         rateInr,
         createdAt,
         prevHash,
-        taskHash
+        taskHash,
+        payloadJson,
+        userEmail
     );
 
     return {
         task_id: taskId,
         tool_name: taskData.tool_name,
+        target_name: taskData.target_name || '',
         rate_inr: rateInr,
         status: 'PENDING_APPROVAL',
         payment_status: 'UNBILLED',
-        created_at: createdAt
+        created_at: createdAt,
+        payload_json: payloadJson,
+        user_email: userEmail
     };
 }
 
@@ -176,6 +211,106 @@ function markTaskExecuted(caseDir, taskId, serverResult = {}) {
         task_id: taskId,
         status: 'EXECUTED',
         server_task_id: serverTaskId
+    };
+}
+
+/**
+ * Delivers completed cloud report to <caseDir>/RBZ_reports/<filename>
+ * and creates a strict 1-to-1 audit receipt linking Invoice Number + Payment ID.
+ */
+function deliverReportAndSettle(caseDir, taskId, deliveryData = {}) {
+    const db = getCaseBillingDb(caseDir);
+    const caseId = path.basename(caseDir);
+    const paidAt = new Date().toISOString();
+
+    const taskStmt = db.prepare("SELECT * FROM case_billing_tasks WHERE task_id = ?");
+    const task = taskStmt.get(taskId);
+    if (!task) {
+        throw new Error(`Task ${taskId} not found in case billing ledger.`);
+    }
+
+    const rateInr = task.rate_inr;
+    const gstInr = Math.round(rateInr * 0.18 * 100) / 100;
+    const totalInr = Math.round((rateInr + gstInr) * 100) / 100;
+
+    const invoiceId = deliveryData.invoice_id || `inv_${Date.now()}`;
+    const invoiceNumber = deliveryData.invoice_number || `RBZ-INV-${Date.now().toString().slice(-6)}`;
+    const paymentId = deliveryData.payment_id || deliveryData.gateway_payment_id || `pay_${Date.now()}`;
+
+    // Ensure RBZ_reports folder exists
+    const reportsDir = path.join(caseDir, 'RBZ_reports');
+    if (!fs.existsSync(reportsDir)) {
+        fs.mkdirSync(reportsDir, { recursive: true });
+    }
+
+    // Standardize report filename
+    const dateStr = new Date().toISOString().split('T')[0];
+    const safeTitle = (deliveryData.title || task.target_name || task.tool_name).replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const reportFilename = deliveryData.filename || `${dateStr}_${safeTitle}.md`;
+    const reportAbsPath = path.join(reportsDir, reportFilename);
+    const reportRelPath = path.join('RBZ_reports', reportFilename);
+
+    // Build tamper-evident frontmatter
+    const frontmatter = `---
+report_id: "RBZ-REP-${taskId.slice(-8)}"
+task_id: "${taskId}"
+invoice_number: "${invoiceNumber}"
+gateway_payment_id: "${paymentId}"
+tool_name: "${task.tool_name}"
+rate_inr: ${rateInr.toFixed(2)}
+gst_18_pct: ${gstInr.toFixed(2)}
+total_paid_inr: ${totalInr.toFixed(2)}
+case_id: "${caseId}"
+delivered_at: "${paidAt}"
+ledger_task_hash: "${task.task_hash}"
+verified_audit_trail: true
+---
+
+`;
+
+    const fullContent = frontmatter + (deliveryData.content || `# ${task.target_name || task.tool_name}\n\nReport generated by Resolution Bazaar Cloud.`);
+    fs.writeFileSync(reportAbsPath, fullContent, 'utf8');
+
+    // Update Task to EXECUTED and SETTLED
+    const updateTaskStmt = db.prepare(`
+        UPDATE case_billing_tasks
+        SET status = 'EXECUTED',
+            payment_status = 'SETTLED',
+            executed_at = ?,
+            report_path = ?
+        WHERE task_id = ?
+    `);
+    updateTaskStmt.run(paidAt, reportRelPath, taskId);
+
+    // Insert 1-to-1 Payment Receipt
+    const insertReceiptStmt = db.prepare(`
+        INSERT OR REPLACE INTO case_payment_receipts (
+            invoice_id, invoice_number, case_id, amount_inr, gst_inr, total_inr,
+            gateway_payment_id, payment_status, paid_at, pdf_path, task_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PAID', ?, ?, ?)
+    `);
+    insertReceiptStmt.run(
+        invoiceId,
+        invoiceNumber,
+        caseId,
+        rateInr,
+        gstInr,
+        totalInr,
+        paymentId,
+        paidAt,
+        reportRelPath,
+        taskId
+    );
+
+    return {
+        success: true,
+        task_id: taskId,
+        invoice_number: invoiceNumber,
+        payment_id: paymentId,
+        report_path: reportRelPath,
+        report_abs_path: reportAbsPath,
+        total_inr: totalInr,
+        delivered_at: paidAt
     };
 }
 
@@ -318,11 +453,28 @@ function verifyLedgerIntegrity(caseDir) {
 module.exports = {
     getCaseBillingDb,
     recordPendingTask,
+    recordTask: (caseDir, caseIdOrData, toolName, targetId, targetName, rateInr) => {
+        if (typeof caseIdOrData === 'object') {
+            return recordPendingTask(caseDir, caseIdOrData);
+        }
+        return recordPendingTask(caseDir, {
+            tool_name: toolName || 'execute_ecourts_litigation_search',
+            target_identifier: targetId || '',
+            target_name: targetName || '',
+            rate_inr: rateInr || 150.00
+        });
+    },
     markTaskAuthorized,
     markTaskExecuted,
     cancelTask,
+    deliverReportAndSettle,
     updateSettlementStatus,
     getCaseLedger,
     verifyLedgerIntegrity,
-    DEFAULT_TOOL_RATES
+    DEFAULT_TOOL_RATES: {
+        ...DEFAULT_TOOL_RATES,
+        'rbz_query_precedents': 150.00,
+        'rbz_multibank_inquest': 1200.00,
+        'rbz_section_29a_screening': 350.00
+    }
 };

@@ -46,29 +46,37 @@ function getLicenseDb(customDbPath) {
             max_wall_clock INTEGER NOT NULL,
             last_reanchor_utc TEXT,
             last_heartbeat_at TEXT,
-            tamper_reason TEXT
+            tamper_reason TEXT,
+            initial_kyc_completed INTEGER DEFAULT 0,
+            stage2_valid_until TEXT
         );
     `);
 
+    // Self-healing schema migrations for existing vaults
+    try { db.exec("ALTER TABLE license_state ADD COLUMN initial_kyc_completed INTEGER DEFAULT 0;"); } catch (_) {}
+    try { db.exec("ALTER TABLE license_state ADD COLUMN stage2_valid_until TEXT;"); } catch (_) {}
+
     // Ensure single state row
-    const row = db.prepare('SELECT id FROM license_state WHERE id = 1').get();
+    const row = db.prepare('SELECT id, license_key FROM license_state WHERE id = 1').get();
     if (!row) {
         const now = Date.now();
         const stmt = db.prepare(`
             INSERT INTO license_state (
                 id, license_key, licensee, tier, status, issued_at, valid_until,
                 max_active_hours, accumulated_active_seconds, max_agent_turns, turns_used,
-                max_wall_clock, last_reanchor_utc, last_heartbeat_at, tamper_reason
+                max_wall_clock, last_reanchor_utc, last_heartbeat_at, tamper_reason,
+                initial_kyc_completed, stage2_valid_until
             ) VALUES (
-                1, NULL, 'Evaluation User', 'trial', 'ACTIVE', ?, ?,
+                1, NULL, 'Unactivated User', 'starter', 'UNACTIVATED', ?, ?,
                 ?, 0.0, ?, 0,
-                ?, NULL, ?, NULL
+                ?, NULL, ?, NULL,
+                0, NULL
             )
         `);
-        const validUntil = new Date(now + 30 * 86400000).toISOString();
+        // New installs start as UNACTIVATED until ₹1 KYC payment
         stmt.run(
             new Date(now).toISOString(),
-            validUntil,
+            null,
             DEFAULT_MAX_HOURS,
             DEFAULT_MAX_TURNS,
             now,
@@ -80,29 +88,136 @@ function getLicenseDb(customDbPath) {
 }
 
 /**
- * Checks whether the right-panel agentic engine is permitted to execute.
- * Immune to client clock rollbacks and enforces monotonic active hours.
- * 
+ * Checks Tri-Tier Hybrid Access:
+ * Stage 1 (DMS): Perpetual lifetime once initial ₹1 KYC completed.
+ * Stage 2 (Local AI): 90-day pilot from KYC, then subscription-gated.
+ * Stage 3 (Global Cloud): Always allowed, pay-per-use via Resolution Bazaar.
+ *
  * @param {string} [caseDir]
  * @param {string} [customDbPath]
- * @returns {{ allowed: boolean, status: string, reason?: string, message?: string, stats?: object }}
  */
-function checkAgentAccess(caseDir = '', customDbPath = null) {
+function checkTriTierAccess(caseDir = '', customDbPath = null) {
+    const db = getLicenseDb(customDbPath);
+    const row = db.prepare('SELECT * FROM license_state WHERE id = 1').get();
+    const isKycDone = Boolean(row.initial_kyc_completed || row.license_key);
+
+    let effectiveNow = Date.now();
+    if (_reanchorState) {
+        const elapsedMs = Number(process.hrtime.bigint() - _reanchorState.hrtimeBigInt) / 1e6;
+        effectiveNow = Math.round(_reanchorState.epochMs + elapsedMs);
+    }
+
+    const stage2Expiry = row.stage2_valid_until || row.valid_until;
+    const stage2Epoch = stage2Expiry ? new Date(stage2Expiry).getTime() : 0;
+    const isStage2Expired = (!stage2Epoch || effectiveNow > stage2Epoch);
+    const daysRemaining = (stage2Epoch > effectiveNow) ? Math.ceil((stage2Epoch - effectiveNow) / 86400000) : 0;
+
+    return {
+        initial_kyc_completed: isKycDone,
+        status: !isKycDone ? 'UNACTIVATED' : (row.status === 'TAMPERED' ? 'TAMPERED' : (isStage2Expired ? 'STAGE2_EXPIRED' : 'ACTIVE')),
+        tier: row.tier || 'starter',
+        licensee: row.licensee,
+        stage1_dms: {
+            allowed: isKycDone,
+            status: isKycDone ? 'ACTIVE' : 'UNACTIVATED',
+            mode: 'perpetual_lifetime',
+            reason: isKycDone ? null : 'Initial ₹1 token KYC verification required to unlock DMS.'
+        },
+        stage2_local: {
+            allowed: isKycDone && !isStage2Expired && row.status !== 'TAMPERED',
+            status: !isKycDone ? 'UNACTIVATED' : (row.status === 'TAMPERED' ? 'TAMPERED' : (isStage2Expired ? 'EXPIRED' : 'ACTIVE')),
+            valid_until: stage2Expiry,
+            days_remaining: daysRemaining,
+            reason: !isKycDone
+                ? 'Initial ₹1 token KYC verification required.'
+                : (isStage2Expired ? 'Stage 2 Local Intelligence subscription expired. Renew Pro Pilot to unlock local AI.' : null)
+        },
+        stage3_global: {
+            allowed: true,
+            status: 'ACTIVE',
+            mode: 'pay_per_use',
+            billing: 'resolution_bazaar_diligence_ledger'
+        }
+    };
+}
+
+/**
+ * Checks whether an agentic engine or specific agent handle is permitted to execute.
+ * Stage 3 Global Agents (@Precedent, @Forensic) are always allowed (pay-per-use).
+ * Stage 1 DMS tasks are allowed perpetually once KYC is completed.
+ * Stage 2 Local Agents are gated by the 90-day pilot / subscription.
+ *
+ * @param {string} [caseDir]
+ * @param {string} [customDbPath]
+ * @param {string} [agentHandle]
+ * @returns {{ allowed: boolean, status: string, reason?: string, message?: string, stats?: object, stage?: number, payPerUse?: boolean }}
+ */
+function checkAgentAccess(caseDir = '', customDbPath = null, agentHandle = null) {
+    const tri = checkTriTierAccess(caseDir, customDbPath);
     const db = getLicenseDb(customDbPath);
     const row = db.prepare('SELECT * FROM license_state WHERE id = 1').get();
 
+    // 1. Stage 3 Global Cloud Agents (@Precedent, @Forensic, Bank Analyzer)
+    const normHandle = String(agentHandle || '').toLowerCase().replace(/^@/, '');
+    const isStage3Agent = [
+        'precedent', 'precedents', 'forensic', 'bank_analyzer',
+        'bank-analyzer', 'bank_forensic', 'cashflow_agent', 'resolutionbazaar'
+    ].includes(normHandle);
+
+    if (isStage3Agent) {
+        return {
+            allowed: true,
+            status: 'ACTIVE',
+            stage: 3,
+            isStage3Global: true,
+            payPerUse: true,
+            message: 'Stage 3 Global Agent active via Resolution Bazaar Pay-Per-Use.'
+        };
+    }
+
+    // 2. Stage 1 Deterministic DMS Tasks
+    const isStage1Task = [
+        'dms', 'skeletons', 'templates', 'bare_acts', 'template_inventory'
+    ].includes(normHandle);
+
+    if (isStage1Task) {
+        if (!tri.initial_kyc_completed) {
+            return {
+                allowed: false,
+                status: 'UNACTIVATED',
+                stage: 1,
+                reason: 'Initial ₹1 token KYC verification required.',
+                message: 'Please complete your initial ₹1 KYC verification in Settings to unlock the DMS.'
+            };
+        }
+        return {
+            allowed: true,
+            status: 'ACTIVE',
+            stage: 1,
+            message: 'Stage 1 Lifetime DMS Active.'
+        };
+    }
+
+    // 3. Unactivated Gate for Stage 2
+    if (!tri.initial_kyc_completed) {
+        return {
+            allowed: false,
+            status: 'UNACTIVATED',
+            stage: 2,
+            reason: 'Initial ₹1 token KYC verification required.',
+            message: 'Nothing works until initial ₹1 activation is completed. Please open Settings to activate.'
+        };
+    }
+
     let effectiveNow = Date.now();
     let isReanchored = false;
-
-    // If authoritative network anchor exists, compute effective time monotonically from kernel
     if (_reanchorState) {
         const elapsedMs = Number(process.hrtime.bigint() - _reanchorState.hrtimeBigInt) / 1e6;
         effectiveNow = Math.round(_reanchorState.epochMs + elapsedMs);
         isReanchored = true;
     }
 
-    // 1. Clock Rollback Detection (High-Water Mark)
-    // Only check local system clock if NOT reanchored from authoritative server
+    // 4. Clock Rollback Detection (High-Water Mark)
     if (!isReanchored && effectiveNow < (row.max_wall_clock - TOLERANCE_DRIFT_MS)) {
         const rollbackDeltaMins = Math.round((row.max_wall_clock - effectiveNow) / 60000);
         const updateTamper = db.prepare(`
@@ -117,8 +232,9 @@ function checkAgentAccess(caseDir = '', customDbPath = null) {
         return {
             allowed: false,
             status: 'TAMPERED',
+            stage: 2,
             reason: reason,
-            message: 'System clock alteration detected. Agentic assistance paused until re-anchored with Resolution Bazaar.'
+            message: 'System clock alteration detected. Connect to Resolution Bazaar or enter a valid renewal key.'
         };
     }
 
@@ -127,56 +243,44 @@ function checkAgentAccess(caseDir = '', customDbPath = null) {
     db.prepare('UPDATE license_state SET max_wall_clock = ?, last_heartbeat_at = ? WHERE id = 1')
       .run(newMax, new Date(effectiveNow).toISOString());
 
-    // 2. Prior Tamper Lockout
+    // 5. Prior Tamper Lockout
     if (row.status === 'TAMPERED' && !isReanchored) {
         return {
             allowed: false,
             status: 'TAMPERED',
+            stage: 2,
             reason: row.tamper_reason || 'Clock tampering recorded.',
             message: 'System clock alteration detected. Connect to Resolution Bazaar or enter a valid renewal key.'
         };
     }
 
-    // 3. Monotonic Active Hours Limit
-    const activeHoursUsed = row.accumulated_active_seconds / 3600.0;
-    if (row.max_active_hours > 0 && activeHoursUsed >= row.max_active_hours) {
-        db.prepare("UPDATE license_state SET status = 'EXPIRED', tamper_reason = 'Active operating hours exhausted' WHERE id = 1").run();
+    // 6. Stage 2 Subscription / Pilot Expiration Check
+    if (!tri.stage2_local.allowed) {
         return {
             allowed: false,
             status: 'EXPIRED',
+            stage: 2,
+            reason: tri.stage2_local.reason || 'Stage 2 Local Intelligence subscription expired.',
+            message: 'Stage 2 Local Intelligence subscription required. Your 90-day pilot or subscription for local AI drafting has expired. Workspace DMS (Stage 1) and Global Cloud Agents (Stage 3) remain available.'
+        };
+    }
+
+    // 7. Active hours and turn limits
+    const activeHoursUsed = row.accumulated_active_seconds / 3600.0;
+    if (row.max_active_hours > 0 && activeHoursUsed >= row.max_active_hours) {
+        return {
+            allowed: false,
+            status: 'EXHAUSTED',
+            stage: 2,
             reason: `Active agent hours exhausted (${activeHoursUsed.toFixed(1)} / ${row.max_active_hours} hrs).`,
             message: 'Your active agent working-hours budget has been reached. Please renew to continue autonomous drafting.'
         };
     }
 
-    // 4. Action Turn Budget
-    if (row.max_agent_turns > 0 && row.turns_used >= row.max_agent_turns) {
-        db.prepare("UPDATE license_state SET status = 'EXHAUSTED', tamper_reason = 'Agent action turns quota reached' WHERE id = 1").run();
-        return {
-            allowed: false,
-            status: 'EXHAUSTED',
-            reason: `Agent drafting quota exhausted (${row.turns_used} / ${row.max_agent_turns} turns).`,
-            message: 'Agent drafting quota reached. Please replenish your action credits.'
-        };
-    }
-
-    // 5. Calendar Expiration (against effective monotonically tracked time)
-    if (row.valid_until) {
-        const expiryEpoch = new Date(row.valid_until).getTime();
-        if (effectiveNow > expiryEpoch) {
-            db.prepare("UPDATE license_state SET status = 'EXPIRED', tamper_reason = 'License expired' WHERE id = 1").run();
-            return {
-                allowed: false,
-                status: 'EXPIRED',
-                reason: `License expired on ${row.valid_until}.`,
-                message: 'Your agentic lease has expired. Workspace files and local search remain 100% accessible.'
-            };
-        }
-    }
-
     return {
         allowed: true,
         status: 'ACTIVE',
+        stage: 2,
         stats: {
             licensee: row.licensee,
             tier: row.tier,
@@ -184,7 +288,8 @@ function checkAgentAccess(caseDir = '', customDbPath = null) {
             max_active_hours: row.max_active_hours,
             turns_used: row.turns_used,
             max_agent_turns: row.max_agent_turns,
-            valid_until: row.valid_until
+            valid_until: tri.stage2_local.valid_until,
+            days_remaining: tri.stage2_local.days_remaining
         }
     };
 }
@@ -279,6 +384,7 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
     const db = getLicenseDb(customDbPath);
     const now = Date.now();
 
+    const stage2Expiry = payload.valid_until || payload.expiresAt || new Date(now + 90 * 86400000).toISOString();
     const stmt = db.prepare(`
         UPDATE license_state
         SET license_key = ?,
@@ -287,6 +393,8 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
             status = 'ACTIVE',
             issued_at = ?,
             valid_until = ?,
+            stage2_valid_until = ?,
+            initial_kyc_completed = 1,
             max_active_hours = ?,
             accumulated_active_seconds = 0.0,
             max_agent_turns = ?,
@@ -300,9 +408,10 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
     stmt.run(
         licenseKey,
         payload.sub || 'Licensed Practitioner',
-        payload.tier || 'professional',
+        payload.tier || 'starter',
         payload.issued_at || new Date(now).toISOString(),
-        payload.valid_until || payload.expiresAt || new Date(now + 365 * 86400000).toISOString(),
+        stage2Expiry,
+        stage2Expiry,
         payload.max_active_hours || DEFAULT_MAX_HOURS,
         payload.max_agent_turns || DEFAULT_MAX_TURNS,
         now,
@@ -317,12 +426,14 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
         const entitlementsPath = path.join(entitlementsDir, 'active_license_entitlements.json');
         const entitlementsData = {
             licensee: payload.sub || 'Licensed Practitioner',
-            tier: payload.tier || 'professional',
+            tier: payload.tier || 'starter',
             allowed_packs: payload.allowed_packs || payload.allowedPacks || [
                 'suite_cirp', 'suite_finance', 'suite_liquidation', 'suite_msme', 'suite_guarantor', 'suite_litigation'
             ],
             lightrag_api_key: payload.lightrag_api_key || payload.lightragApiKey || '',
-            valid_until: payload.valid_until || payload.expiresAt || new Date(now + 365 * 86400000).toISOString(),
+            valid_until: stage2Expiry,
+            stage2_valid_until: stage2Expiry,
+            initial_kyc_completed: true,
             activated_at: new Date(now).toISOString()
         };
         fs.writeFileSync(entitlementsPath, JSON.stringify(entitlementsData, null, 2), 'utf8');
@@ -341,7 +452,9 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
         tier: payload.tier,
         allowed_packs: payload.allowed_packs || payload.allowedPacks || [],
         lightrag_api_key: payload.lightrag_api_key || payload.lightragApiKey ? 'Configured' : 'None',
-        valid_until: payload.valid_until || payload.expiresAt
+        valid_until: stage2Expiry,
+        stage2_valid_until: stage2Expiry,
+        initial_kyc_completed: true
     };
 }
 
@@ -372,12 +485,15 @@ function getLicenseStatus(customDbPath = null) {
     const db = getLicenseDb(customDbPath);
     const row = db.prepare('SELECT * FROM license_state WHERE id = 1').get();
     const activeHoursUsed = row.accumulated_active_seconds / 3600.0;
+    const tri = checkTriTierAccess('', customDbPath);
     return {
         licensee: row.licensee,
         tier: row.tier,
-        status: row.status,
+        status: tri.status,
         issued_at: row.issued_at,
         valid_until: row.valid_until,
+        stage2_valid_until: row.stage2_valid_until || row.valid_until,
+        initial_kyc_completed: tri.initial_kyc_completed,
         accumulated_active_seconds: row.accumulated_active_seconds,
         active_hours_used: parseFloat(activeHoursUsed.toFixed(4)),
         max_active_hours: row.max_active_hours,
@@ -385,13 +501,15 @@ function getLicenseStatus(customDbPath = null) {
         max_agent_turns: row.max_agent_turns,
         max_wall_clock_iso: new Date(row.max_wall_clock).toISOString(),
         last_reanchor_utc: row.last_reanchor_utc,
-        tamper_reason: row.tamper_reason
+        tamper_reason: row.tamper_reason,
+        tri_tier: tri
     };
 }
 
 module.exports = {
     getLicenseDb,
     checkAgentAccess,
+    checkTriTierAccess,
     recordAgentTurn,
     reanchorFromNetwork,
     activateLicense,
