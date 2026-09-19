@@ -32,7 +32,7 @@ jobs:
             artifact_path: frontend/applications/electron/dist/*.dmg
 
           - platform: windows
-            os: windows-latest
+            os: windows-2022
             builder_args: '--win'
             artifact_name: Hayagriva-Windows
             artifact_path: frontend/applications/electron/dist/*Setup.exe
@@ -65,21 +65,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libsecret-1-dev build-essential libx11-dev libxkbfile-dev rpm desktop-file-utils
 
-      # Windows: ensure Python setuptools is available for node-gyp distutils
-      # and let node-gyp auto-detect the VS installation (don't force version)
+      # Windows: install Python setuptools (needed for node-gyp distutils)
+      # windows-2022 has VS 2022 which node-gyp can reliably detect
       - name: Configure Windows Build Environment
         if: matrix.platform == 'windows'
         shell: pwsh
         run: |
           pip install setuptools
-          # Verify VS is findable by vswhere
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          if (Test-Path $vswhere) {
-            $vsPath = & $vswhere -latest -property installationPath
-            Write-Host "Visual Studio found at: $vsPath"
-          } else {
-            Write-Host "::warning::vswhere not found — node-gyp may fail"
-          }
 
       - name: Install Backend Dependencies (Native Architecture)
         working-directory: backend
@@ -87,16 +79,18 @@ jobs:
 
       - name: Install Frontend Dependencies
         run: |
-          yarn --cwd frontend install --frozen-lockfile --ignore-optional
+          yarn --cwd frontend install --frozen-lockfile --ignore-optional --ignore-engines
         env:
           # Suppress nx native daemon — prevents FileLock issues in CI
           NX_DAEMON: 'false'
+          # Windows: explicitly tell node-gyp which VS version to use
+          GYP_MSVS_VERSION: '2022'
 
-      # Use npx to bypass lerna's nx native project-graph (FileLock crash).
-      # Directly invoke tsc for the extension builds instead.
+      # Use the workspace-installed lerna (via yarn scripts), NOT npx.
+      # npx installs lerna v10 globally which runs from repo root = ENOPKG.
       - name: Build Workspace & Hayagriva Extensions
         run: |
-          npx --yes lerna run --scope="theia-ide*ext" build
+          yarn --cwd frontend build:extensions
           yarn --cwd frontend/theia-extensions/hayagriva build
         env:
           NX_DAEMON: 'false'
