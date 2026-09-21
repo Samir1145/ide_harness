@@ -1209,44 +1209,36 @@
   <!-- MODALS: IN-IDE RAZORPAY CHECKOUT & 1-CLICK DOWNLOADER                   -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
 
-  <!-- ── Modal: Razorpay In-IDE Checkout & ₹1 Token Verification ── -->
+  <!-- ── Modal: Razorpay In-IDE Checkout & Pro Licensing ── -->
   <div class="modal-overlay" id="paymentModal">
     <div class="modal-dialog" style="max-width: 680px;">
       <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
-      <div class="modal-title" id="paymentModalTitle">⚡ In-IDE Device Verification &amp; Licensing</div>
+      <div class="modal-title" id="paymentModalTitle">⚡ Hayagriva Pro Annual Subscription</div>
       <div class="modal-subtitle">
-        Direct UPI / Razorpay payment inside Hayagriva. No external portal or login required.
+        Direct UPI / Razorpay payment inside Hayagriva. Official GST Tax Invoice provided for Chambers &amp; Firms.
       </div>
 
-      <!-- Tri-Tier Explanation Banner -->
-      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 11px; line-height: 1.5; color: var(--text-main);">
-        <strong>⚡ Tri-Tier Hybrid Monetization Model:</strong><br/>
-        • <strong>Stage 1 (Core DMS):</strong> Runs <strong>free forever</strong> once verified with your initial ₹1 token.<br/>
-        • <strong>Stage 2 (Local AI &amp; RAG):</strong> Unlocked for <strong>90 days</strong>, then renewable annually.<br/>
-        • <strong>Stage 3 (Global Precedents &amp; Forensics):</strong> <strong>Always on</strong> as pay-per-use cloud intelligence via Resolution Bazaar.
+      <!-- Plan Feature Banner -->
+      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 12px 16px; margin: 12px 0; font-size: 11px; line-height: 1.6; color: var(--text-main);">
+        <strong>⚡ Hayagriva Pro Annual Subscription (₹25,000 / Year):</strong><br/>
+        • <strong>Autonomous Agent Workforce:</strong> @Advisor (merits &amp; precedent scoring), @Forms (statutory form filling), @Document (pleadings drafting in Monaco).<br/>
+        • <strong>Continuous Statutory &amp; Model Updates:</strong> Ongoing updates to IBC rules, NCLAT/SC precedents, Monaco LSP grammar, and retrained local LLM weights.<br/>
+        • <strong>Core Workbench Immunity:</strong> Document ingestion, PDF parsing, FTS5 search, and base editor remain <strong>100% free forever</strong>.
       </div>
 
       <!-- Plan Selector Cards -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0;">
-        <div class="card card-active" id="planCardFree" onclick="selectPaymentPlan('core_starter_90d')" style="cursor: pointer; padding: 14px;">
-          <div style="font-size: 11px; font-weight: 700; color: var(--accent-emerald);">CORE STARTER</div>
-          <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin: 4px 0;">₹1.00</div>
-          <div style="font-size: 11px; color: var(--text-muted);">90-Day Full AI Pilot</div>
-          <div style="font-size: 10px; color: var(--text-secondary); margin-top: 6px;">Perpetual Lifetime DMS Included</div>
-        </div>
-
-        <div class="card" id="planCardPro" onclick="selectPaymentPlan('pro_pilot')" style="cursor: pointer; padding: 14px;">
-          <div style="font-size: 11px; font-weight: 700; color: var(--accent-cyan);">PRO PILOT</div>
-          <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin: 4px 0;">₹4,999</div>
-          <div style="font-size: 11px; color: var(--text-muted);">1-Year Stage 2 Sub</div>
-          <div style="font-size: 10px; color: var(--text-secondary); margin-top: 6px;">LegalParam-2.9B + Local RAG</div>
-        </div>
-
-        <div class="card" id="planCardEnterprise" onclick="selectPaymentPlan('enterprise_pilot')" style="cursor: pointer; padding: 14px;">
-          <div style="font-size: 11px; font-weight: 700; color: var(--accent-purple);">ENTERPRISE</div>
-          <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin: 4px 0;">₹14,999</div>
-          <div style="font-size: 11px; color: var(--text-muted);">1-Year Stage 2 Multi-Seat</div>
-          <div style="font-size: 10px; color: var(--text-secondary); margin-top: 6px;">Legal + Finance + Priority Vault</div>
+      <div style="display: grid; grid-template-columns: 1fr; margin: 16px 0;">
+        <div class="card card-active" id="planCardPro" onclick="selectPaymentPlan('hayagriva_pro_annual')" style="cursor: pointer; padding: 18px; border: 2px solid var(--accent-emerald); background: rgba(16, 185, 129, 0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-emerald); letter-spacing: 0.05em;">ANNUAL PROFESSIONAL SUBSCRIPTION</div>
+              <div style="font-size: 26px; font-weight: 800; color: var(--text-main); margin: 4px 0;">₹25,000 <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">/ year (~₹2,083/mo)</span></div>
+              <div style="font-size: 11px; color: var(--text-secondary);">365-Day Full Autonomous Intelligence + Continuous Monaco Statutory Sync &amp; Local Model Updates</div>
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-emerald); border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; color: var(--accent-emerald);">
+              RECOMMENDED
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1562,11 +1554,11 @@
       }
     }
 
-    // ── In-IDE Razorpay Checkout & ₹1 Token Verification ──
-    let selectedPaymentPlanId = 'core_starter_90d';
+    // ── In-IDE Razorpay Checkout & Pro Licensing ──
+    let selectedPaymentPlanId = 'hayagriva_pro_annual';
     let cachedLicenseStatus = null;
 
-    function openPaymentModal(planId = 'core_starter_90d') {
+    function openPaymentModal(planId = 'hayagriva_pro_annual') {
       selectPaymentPlan(planId);
       document.getElementById('paymentModal').classList.add('active');
       if (cachedLicenseStatus && cachedLicenseStatus.deviceId) {
@@ -1576,23 +1568,28 @@
     }
 
     function selectPaymentPlan(planId) {
-      selectedPaymentPlanId = planId;
-      const cardFree = document.getElementById('planCardFree');
+      selectedPaymentPlanId = planId || 'hayagriva_pro_annual';
       const cardPro = document.getElementById('planCardPro');
-      const cardEnterprise = document.getElementById('planCardEnterprise');
-      if (cardFree) cardFree.classList.toggle('card-active', planId === 'core_starter_90d' || planId === 'free_core_6m');
-      if (cardPro) cardPro.classList.toggle('card-active', planId === 'pro_pilot');
-      if (cardEnterprise) cardEnterprise.classList.toggle('card-active', planId === 'enterprise_pilot');
+      if (cardPro) cardPro.classList.add('card-active');
 
       const btn = document.getElementById('btnInitiatePayment');
       if (btn) {
-        if (planId === 'core_starter_90d' || planId === 'free_core_6m') {
-          btn.textContent = '⚡ Pay ₹1 via UPI & Activate (90-Day Local AI + Lifetime DMS)';
-        } else if (planId === 'pro_pilot') {
-          btn.textContent = '⚡ Pay ₹4,999 for Pro Pilot (1 Year)';
+        btn.textContent = '⚡ Pay ₹25,000 for Hayagriva Pro (1 Year Full Intelligence)';
+      }
+    }
+
+    async function startTrialFromSettings() {
+      try {
+        const res = await fetch('/api/hayagriva/license/start-trial', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✓ 7-Day Free Trial activated successfully!');
+          if (typeof loadSettings === 'function') await loadSettings();
         } else {
-          btn.textContent = '⚡ Pay ₹14,999 for Enterprise Pilot (1 Year)';
+          showToast(data.error || 'Failed to start trial', true);
         }
+      } catch (e) {
+        showToast('Network error starting trial', true);
       }
     }
 
@@ -2111,35 +2108,51 @@
             const dispDev = document.getElementById('dispDeviceId');
             if (dispDev && licData.deviceId) dispDev.textContent = licData.deviceId;
 
-            const isKycDone = Boolean(licData.initial_kyc_completed || licData.activated);
-            const stage2Local = licData.stage2_local || {};
-            const daysRem = stage2Local.days_remaining !== undefined ? stage2Local.days_remaining : (licData.daysRemaining || 0);
+            const isSubscribed = Boolean(licData.is_subscribed || (licData.tri_tier && licData.tri_tier.is_subscribed));
+            const inTrial = Boolean(licData.in_trial || (licData.tri_tier && licData.tri_tier.in_trial));
+            const trialAvailable = Boolean(licData.trial_available || (licData.tri_tier && licData.tri_tier.trial_available));
+            const trialExpired = Boolean(licData.trial_expired || (licData.tri_tier && licData.tri_tier.trial_expired));
+            const stage2Local = licData.stage2_local || (licData.tri_tier && licData.tri_tier.stage2_local) || {};
+            const daysRem = licData.trial_days_remaining || (licData.tri_tier && licData.tri_tier.trial_days_remaining) || (stage2Local.days_remaining || 0);
 
-            if (isKycDone) {
-              if (stage2Local.allowed !== false) {
-                const tierName = licData.tier === 'starter' ? 'Core Starter' : capitalize(licData.tier || 'pilot');
-                pill.textContent = `🟢 Stage 2: Local AI Active (${daysRem}d)`;
-                pill.style.background = 'rgba(16, 185, 129, 0.15)';
-                pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-                pill.style.color = 'var(--accent-emerald)';
-                banner.style.display = 'none';
-              } else {
-                pill.textContent = '🟡 Stage 1: DMS Free | Stage 2: Expired';
-                pill.style.background = 'rgba(234, 179, 8, 0.15)';
-                pill.style.borderColor = 'rgba(234, 179, 8, 0.4)';
-                pill.style.color = 'var(--accent-amber)';
-                banner.style.display = 'flex';
-                document.getElementById('licenseAlertTitle').textContent = '⚡ Stage 2 Local AI Subscription Due';
-                document.getElementById('licenseAlertDesc').textContent = 'Stage 1 DMS remains 100% free forever. Stage 3 Global Agents (@Precedent, @Forensic) are always on (pay-per-use). Renew Pro Pilot to unlock local AI.';
+            if (isSubscribed) {
+              pill.textContent = '🛡️ Hayagriva Pro Active';
+              pill.style.background = 'rgba(16, 185, 129, 0.15)';
+              pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+              pill.style.color = 'var(--accent-emerald)';
+              banner.style.display = 'none';
+            } else if (inTrial) {
+              pill.textContent = `⚡ Pro Trial: ${daysRem}d Left`;
+              pill.style.background = 'rgba(56, 189, 248, 0.15)';
+              pill.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+              pill.style.color = 'var(--accent-cyan)';
+              banner.style.display = 'none';
+            } else if (trialExpired) {
+              pill.textContent = '🔒 Trial Expired: Unlock Pro (₹25k)';
+              pill.style.background = 'rgba(234, 179, 8, 0.15)';
+              pill.style.borderColor = 'rgba(234, 179, 8, 0.4)';
+              pill.style.color = 'var(--accent-amber)';
+              banner.style.display = 'flex';
+              document.getElementById('licenseAlertTitle').textContent = '🔒 7-Day Free Trial Concluded — Upgrade to Hayagriva Pro';
+              document.getElementById('licenseAlertDesc').textContent = 'Document Ingestion and Monaco remain 100% free forever. Subscribe to Hayagriva Pro (₹25,000/year) to unlock autonomous agents and continuous updates.';
+              const alertBtn = banner.querySelector('button');
+              if (alertBtn) {
+                alertBtn.textContent = '⚡ Subscribe (₹25,000 / Yr)';
+                alertBtn.onclick = () => openPaymentModal('hayagriva_pro_annual');
               }
             } else {
-              pill.textContent = '🔒 Unverified (Activate ₹1)';
-              pill.style.background = 'rgba(239, 68, 68, 0.15)';
-              pill.style.borderColor = 'rgba(239, 68, 68, 0.4)';
-              pill.style.color = '#ef4444';
+              pill.textContent = '✓ Core Workbench (Free Forever)';
+              pill.style.background = 'rgba(16, 185, 129, 0.12)';
+              pill.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+              pill.style.color = 'var(--accent-emerald)';
               banner.style.display = 'flex';
-              document.getElementById('licenseAlertTitle').textContent = '⚡ Initial ₹1 KYC Verification Required';
-              document.getElementById('licenseAlertDesc').textContent = 'Nothing works until the first key is installed. Pay ₹1 to activate Stage 1 (Lifetime DMS) + Stage 2 (90-Day Local AI Pilot).';
+              document.getElementById('licenseAlertTitle').textContent = '⚡ Unlock Autonomous IBC Agents (7-Day Free Trial)';
+              document.getElementById('licenseAlertDesc').textContent = 'Try @Advisor, @Forms, and @Document free for 7 days with 1 click. Zero payment or credit card required.';
+              const alertBtn = banner.querySelector('button');
+              if (alertBtn) {
+                alertBtn.textContent = '⚡ Start 7-Day Free Trial';
+                alertBtn.onclick = () => startTrialFromSettings();
+              }
             }
           }
         } catch (_) {}

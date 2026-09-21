@@ -108,7 +108,24 @@ async function runTest() {
         assert.strictEqual(task.tool_name, 'rbz_query_precedents');
         assert.strictEqual(task.rate_inr, 150.00);
         assert.strictEqual(Math.round(task.rate_inr * 1.18 * 100) / 100, 177.00);
-        console.log(`[✓] Test 7 Passed: Staged task [${stageRes.taskId}] written to SQLite ledger under PENDING_APPROVAL / UNBILLED.`);
+        // Test 8: Form A Public Announcement -> Section 65 Collusive CIRP Inquest
+        rbzAdvisorAgent._lastSuggestionTimestamp = 0; // reset cooldown
+        const formAEvaluation = await rbzAdvisorAgent.evaluateContext({
+            activeFilePath: '/workspace/case/03_Form_A_Public_Announcement_Noida_Marketing.md',
+            fileContentSnippet: `FORM A PUBLIC ANNOUNCEMENT (Under Regulation 6 of IBBI CIRP Regulations 2016).
+            Name of corporate debtor | **Noida Marketing Private Limited**
+            Corporate Identity No: U51109DL2000PTC106074
+            Insolvency commencement date: 24th April 2026.
+            Interim Resolution Professional: Manoj Kumar Anand`,
+            dwellTimeMs: 9000
+        });
+        assert.strictEqual(formAEvaluation.shouldSuggest, true);
+        assert.strictEqual(formAEvaluation.suggestion.tool, 'rbz_section_65_inquest');
+        assert.strictEqual(formAEvaluation.suggestion.rateInr, 2500.00);
+        assert.strictEqual(formAEvaluation.suggestion.totalInr, 2950.00);
+        assert.strictEqual(formAEvaluation.suggestion.payload.corporate_debtor, 'Noida Marketing Private Limited');
+        assert.strictEqual(formAEvaluation.suggestion.payload.cin, 'U51109DL2000PTC106074');
+        console.log(`[✓] Test 8 Passed: Form A Public Announcement accurately triggered Section 65 Inquest suggestion (₹${formAEvaluation.suggestion.totalInr}).`);
 
         console.log('--- All Proactive RBZ Advisor Agent Tests Passed Successfully! ---');
     } finally {

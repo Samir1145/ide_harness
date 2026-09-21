@@ -139,7 +139,15 @@ const TOOL_RISK_MAP = {
     'execute_ecourts_litigation_search': RiskClass.EXTERNAL,
     'executeecourtslitigationsearch': RiskClass.EXTERNAL,
     'generate_plan_verification_dossier': RiskClass.EXTERNAL,
-    'generateplanverificationdossier': RiskClass.EXTERNAL
+    'generateplanverificationdossier': RiskClass.EXTERNAL,
+    'rbz_section_65_inquest': RiskClass.EXTERNAL,
+    'rbzsection65inquest': RiskClass.EXTERNAL,
+    'screen_section_65_collusion': RiskClass.EXTERNAL,
+    'screensection65collusion': RiskClass.EXTERNAL,
+    'rbz_related_party_inquest': RiskClass.EXTERNAL,
+    'rbzrelatedpartyinquest': RiskClass.EXTERNAL,
+    'screen_related_parties': RiskClass.EXTERNAL,
+    'screenrelatedparties': RiskClass.EXTERNAL
 };
 
 /**

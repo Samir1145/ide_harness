@@ -1,33 +1,164 @@
 import { injectable } from '@theia/core/shared/inversify';
-import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
+import { MenuContribution, MenuModelRegistry, MAIN_MENU_BAR, MenuPath } from '@theia/core/lib/common/menu';
 import { CommonMenus } from '@theia/core/lib/browser/common-frontend-contribution';
 import { NavigatorContextMenu } from '@theia/navigator/lib/browser/navigator-contribution';
 
 const HAYAGRIVA_NS = 'hayagriva';
+const HAYAGRIVA_MAIN_MENU: MenuPath = [...MAIN_MENU_BAR, '3_hayagriva'];
 const WIKI_MENU = [...CommonMenus.VIEW, 'wiki'];
+
+export const NAVIGATOR_PRUNE_COMMAND_IDS = [
+  'navigator.openWith',                   // Open With... (already in top File menu)
+  'revealFileInOS',                       // Reveal in Finder / Explorer (already in top File menu)
+  'core.cut',                             // Cut (already in top Edit menu / Cmd+X)
+  'core.copy',                            // Copy (already in top Edit menu / Cmd+C)
+  'core.paste',                           // Paste (already in top Edit menu / Cmd+V)
+  'core.copyPath',                        // Copy Path (already in top File & Edit menus)
+  'navigator.copyRelativeFilePath',       // Copy Relative Path
+  'file.duplicate',                       // Duplicate
+  'file.copyDownloadLink',                // Download Link
+  'file.delete',                          // Raw permanent delete (replaced by Hayagriva 7-day safe trash)
+  'navigator.compareFirst',               // Select for Compare (available in Hayagriva top menu)
+  'navigator.compareSecond',              // Compare with Selected (available in Hayagriva top menu)
+  'terminal:open-in-folder',              // Open in Terminal
+];
+
+export function pruneNavigatorContextMenu(registry: MenuModelRegistry): void {
+  const NAV_MENU: MenuPath = ['navigator-context-menu'];
+  for (const cmdId of NAVIGATOR_PRUNE_COMMAND_IDS) {
+    try {
+      registry.unregisterMenuAction(cmdId, NAV_MENU);
+    } catch (_) {}
+  }
+}
 
 @injectable()
 export class HayagrivaMenuContribution implements MenuContribution {
   registerMenus(registry: MenuModelRegistry): void {
-    registry.registerSubmenu(WIKI_MENU, 'Wiki');
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:ingest`, label: 'Ingest Document', order: '1' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openWiki`, label: 'Open Companion Wiki', order: '2' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openCaseDashboard`, label: 'Open Case Dashboard Wiki', order: '3' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openRagChat`, label: 'RAG Chat', order: '4' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openUploadSplit`, label: 'Upload and Split...', order: '5' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openKvEditor`, label: 'Case KV Dictionary', order: '6' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openFormEditor`, label: 'Form Review Dashboard', order: '7' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openDraftingPanel`, label: 'Drafting Panel', order: '8' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openChronology`, label: 'Open Case Chronology', order: '9' });
-    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openTopicOverlap`, label: 'Open Topic Overlap Map', order: '10' });
+    // ═════════════════════════════════════════════════════════════════════════
+    // 1. TOP-LEVEL "HAYAGRIVA" MENU TAB
+    // ═════════════════════════════════════════════════════════════════════════
+    registry.registerSubmenu(HAYAGRIVA_MAIN_MENU, 'Hayagriva', { sortString: '3_hayagriva' });
 
-    // File menu action
-    registry.registerMenuAction([...CommonMenus.FILE, '1_hayagriva'], {
-      commandId: `${HAYAGRIVA_NS}:openUploadSplit`,
-      label: 'Upload to Hayagriva...',
+    // ── 1. Document & Preview Submenu ──
+    const DOCS_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '1_docs_submenu'];
+    registry.registerSubmenu(DOCS_SUBMENU, '📄 Document & Preview', { sortString: '1_docs' });
+    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`, label: 'Open Preview in Middle Panel', order: '1' });
+    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openCompanionWithLivePreview`, label: 'Edit Companion (with Live Preview)', order: '2' });
+    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:enhanceMarkdown`, label: 'Review / Edit Companion Markdown', order: '3' });
+    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:compareDocuments`, label: 'Compare Documents (Diff)', order: '4' });
+
+    // ── 2. Ingestion & OCR Submenu ──
+    const INGEST_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '2_ingest_submenu'];
+    registry.registerSubmenu(INGEST_SUBMENU, '⚡ Ingestion & OCR', { sortString: '2_ingest' });
+    registry.registerMenuAction(INGEST_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openUploadSplit`, label: 'Upload & Ingest Document...', order: '1' });
+    registry.registerMenuAction(INGEST_SUBMENU, { commandId: `${HAYAGRIVA_NS}:ingestToAi`, label: 'Re-index Document into AI Memory', order: '2' });
+    registry.registerMenuAction(INGEST_SUBMENU, { commandId: `${HAYAGRIVA_NS}:enrichToAi`, label: 'Extract Case Facts (K-V)', order: '3' });
+    registry.registerMenuAction(INGEST_SUBMENU, { commandId: `${HAYAGRIVA_NS}:parseWithLlamaParse`, label: 'Cloud OCR Fallback (LlamaParse)', order: '4' });
+
+    // ── 3. Court Compilers & Drafting Submenu ──
+    const COMPILERS_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '3_compilers_submenu'];
+    registry.registerSubmenu(COMPILERS_SUBMENU, '⚖️ Court Compilers & Drafting', { sortString: '3_compilers' });
+    registry.registerMenuAction(COMPILERS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:exportScDocx`, label: 'Export to Supreme Court DOCX (A4, 14pt)', order: '1' });
+    registry.registerMenuAction(COMPILERS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:exportCourtPdf`, label: 'Export to Court PDF & Preview', order: '2' });
+    registry.registerMenuAction(COMPILERS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openDraftingPanel`, label: 'Open Drafting & Pleadings Panel', order: '3' });
+    registry.registerMenuAction(COMPILERS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openFormEditor`, label: 'Open Form Review Dashboard', order: '4' });
+
+    // ── 4. Case Intelligence & Databases Submenu ──
+    const INTEL_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '4_intel_submenu'];
+    registry.registerSubmenu(INTEL_SUBMENU, '📊 Case Intelligence & Databases', { sortString: '4_intel' });
+    registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openCaseVault`, label: 'Open Case Database Viewer', order: '1' });
+    registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:showPipelineAudit`, label: 'Case Ingestion Audit Log', order: '2' });
+    registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openKvEditor`, label: 'Case Fact Dictionary (KV)', order: '3' });
+    registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openChronology`, label: 'Open Case Chronology', order: '4' });
+    registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openTopicOverlap`, label: 'Open Topic Overlap Map', order: '5' });
+    registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:exportChunksToTiddlyWiki`, label: 'Export Chunks to TiddlyWiki', order: '6' });
+
+    // ── 5. Vault & Archival Submenu ──
+    const VAULT_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '5_vault_submenu'];
+    registry.registerSubmenu(VAULT_SUBMENU, '🔒 Vault & Archival', { sortString: '5_vault' });
+    registry.registerMenuAction(VAULT_SUBMENU, { commandId: `${HAYAGRIVA_NS}:archiveCase`, label: 'Archive Case to Vault', order: '1' });
+    registry.registerMenuAction(VAULT_SUBMENU, { commandId: `${HAYAGRIVA_NS}:restoreCase`, label: 'Restore Case from Vault', order: '2' });
+
+    // ── Direct Settings Action ──
+    registry.registerMenuAction([...HAYAGRIVA_MAIN_MENU, '9_settings'], {
+      commandId: `${HAYAGRIVA_NS}:openSettingsPanel`,
+      label: '⚙️ Case Settings & Licensing...',
+      order: '1'
     });
 
-    // File Editor right click menu
+    // ── 6. Help & User Guides Submenu ──
+    const HELP_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, 'z_help_submenu'];
+    registry.registerSubmenu(HELP_SUBMENU, '❓ Help & User Guides', { sortString: 'z_help' });
+    registry.registerMenuAction(HELP_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:showIngestionHelp`,
+      label: '📄 Document Ingestion & Pipeline Guide',
+      order: '1'
+    });
+    registry.registerMenuAction(HELP_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:showMonacoVaultsHelp`,
+      label: '⚖️ Monaco Vaults & Drafting Shortcuts Guide',
+      order: '2'
+    });
+
+    // Also register directly in the top-level Help menu bar for quick access
+    registry.registerMenuAction([...CommonMenus.HELP, '0_hayagriva_guides'], {
+      commandId: `${HAYAGRIVA_NS}:showIngestionHelp`,
+      label: '📄 Hayagriva: Document Ingestion Guide',
+      order: '1'
+    });
+    registry.registerMenuAction([...CommonMenus.HELP, '0_hayagriva_guides'], {
+      commandId: `${HAYAGRIVA_NS}:showMonacoVaultsHelp`,
+      label: '⚖️ Hayagriva: Monaco Vaults & Shortcuts Guide',
+      order: '2'
+    });
+
+
+// ═════════════════════════════════════════════════════════════════════════
+// 2. NAVIGATOR CONTEXT MENU (FOCUSED LEGAL WORKBENCH & 3-DOT PIPELINE)
+// ═════════════════════════════════════════════════════════════════════════
+
+    // ── Prune generic developer clutter from Explorer right-click ──
+    pruneNavigatorContextMenu(registry);
+
+    // ── Group 1: Viewing & Preview ──
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
+      label: '📄 Open Preview in Middle Panel',
+      order: '1'
+    });
+
+    // ── Group 2: The Three Status Dots Pipeline ──
+    const PIPELINE_GROUP: MenuPath = ['navigator-context-menu', '2_pipeline'];
+    registry.registerMenuAction(PIPELINE_GROUP, {
+      commandId: `${HAYAGRIVA_NS}:openCompanionWithLivePreview`,
+      label: '🟢 1. Review Companion (Edit & Live Preview)',
+      order: '1'
+    });
+
+    registry.registerMenuAction(PIPELINE_GROUP, {
+      commandId: `${HAYAGRIVA_NS}:ingestToAi`,
+      label: '🟢 2. Re-Index into AI Memory (Vector & FTS5)',
+      order: '2'
+    });
+
+    registry.registerMenuAction(PIPELINE_GROUP, {
+      commandId: `${HAYAGRIVA_NS}:enrichToAi`,
+      label: '🟢 3. Extract Case Facts & Claims (K-V)',
+      order: '3'
+    });
+
+    // ── Group 3: File Management (Safe Soft-Delete to .trash/) ──
+    registry.registerMenuAction(NavigatorContextMenu.MODIFICATION, {
+      commandId: `${HAYAGRIVA_NS}:deleteFile`,
+      label: '🗑 Delete File (move to trash)',
+      order: 'z_delete'
+    });
+
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // 3. EDITOR CONTEXT MENU & AUXILIARY MENUS
+    // ═════════════════════════════════════════════════════════════════════════
     registry.registerMenuAction(['editor_context_menu'], {
       commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
       label: '📄 Open Preview in Middle Panel',
@@ -76,121 +207,24 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '7'
     });
 
-    // Direct preview action on top of Navigator context menu
-    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
-      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
-      label: '📄 Open Preview in Middle Panel',
-      order: '0_preview'
+    // File menu action
+    registry.registerMenuAction([...CommonMenus.FILE, '1_hayagriva'], {
+      commandId: `${HAYAGRIVA_NS}:openUploadSplit`,
+      label: 'Upload to Hayagriva...',
     });
 
-    // Direct Preview Companion Markdown action
-    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
-      commandId: `${HAYAGRIVA_NS}:previewCompanionInMiddlePanel`,
-      label: '📖 Preview Companion Markdown',
-      order: '0_preview_companion'
-    });
-
-    // Direct OCR action on top of Navigator context menu
-    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
-      commandId: `${HAYAGRIVA_NS}:parseWithLlamaParse`,
-      label: '⚡ OCR with LlamaParse',
-      order: '0_ocr'
-    });
-
-    // Navigator (File Explorer) right click sibling submenus
-    const PIPELINE_SUBMENU = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_pipeline_submenu'];
-    registry.registerSubmenu(PIPELINE_SUBMENU, 'Hayagriva (Pipeline)', { sortString: 'a_hayagriva_1' });
-
-    const ARCHIVE_SUBMENU = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_archive_submenu'];
-    registry.registerSubmenu(ARCHIVE_SUBMENU, 'Hayagriva (Archive)', { sortString: 'a_hayagriva_2' });
-
-    // D7: Pipeline Submenu — Step 1 (Convert to Markdown) removed; now auto-starts on drop
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
-      label: '📄 Preview in Middle Panel',
-      order: '0'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:previewCompanionInMiddlePanel`,
-      label: '📖 Preview Companion Markdown',
-      order: '0_preview_companion'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:parseWithLlamaParse`,
-      label: '⚡ OCR with LlamaParse',
-      order: '0_ocr'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:enhanceMarkdown`,
-      label: '1. Review / Edit Companion Markdown',
-      order: '1'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:ingestToAi`,
-      label: '2. Index into AI Memory',
-      order: '2'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:enrichToAi`,
-      label: '3. Run AI Enrichment',
-      order: '3'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:openCaseVault`,
-      label: '4. Open Database Viewer',
-      order: '4'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:exportCourtPdf`,
-      label: '5. Export to Court PDF & Preview',
-      order: '5'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:exportScDocx`,
-      label: '6. Export to SC DOCX',
-      order: '6'
-    });
-
-    registry.registerMenuAction(PIPELINE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:exportChunksToTiddlyWiki`,
-      label: '7. Export Chunks to TiddlyWiki',
-      order: '7'
-    });
-
-    // Archive Submenu actions
-    registry.registerMenuAction(ARCHIVE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:showPipelineAudit`,
-      label: 'Show Pipeline Audit',
-      order: '1'
-    });
-
-    registry.registerMenuAction(ARCHIVE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:archiveCase`,
-      label: 'Archive to Vault',
-      order: '2'
-    });
-
-    registry.registerMenuAction(ARCHIVE_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:restoreCase`,
-      label: 'Restore from Vault',
-      order: '3'
-    });
-
-    // D8: Delete File (soft-delete to .trash/) — in its own group below pipeline
-    const DELETE_GROUP = [...NavigatorContextMenu.NAVIGATION, 'hayagriva_delete_group'];
-    registry.registerMenuAction(DELETE_GROUP, {
-      commandId: `${HAYAGRIVA_NS}:deleteFile`,
-      label: '🗑 Delete File (move to trash)',
-      order: '1'
-    });
+    // View -> Wiki menu
+    registry.registerSubmenu(WIKI_MENU, 'Wiki');
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:ingest`, label: 'Ingest Document', order: '1' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openWiki`, label: 'Open Companion Wiki', order: '2' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openCaseDashboard`, label: 'Open Case Dashboard Wiki', order: '3' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openRagChat`, label: 'RAG Chat', order: '4' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openUploadSplit`, label: 'Upload and Split...', order: '5' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openKvEditor`, label: 'Case KV Dictionary', order: '6' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openFormEditor`, label: 'Form Review Dashboard', order: '7' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openDraftingPanel`, label: 'Drafting Panel', order: '8' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openChronology`, label: 'Open Case Chronology', order: '9' });
+    registry.registerMenuAction(WIKI_MENU, { commandId: `${HAYAGRIVA_NS}:openTopicOverlap`, label: 'Open Topic Overlap Map', order: '10' });
 
     // Outline panel context menu node actions
     registry.registerMenuAction(['outline.context'], { commandId: `${HAYAGRIVA_NS}:outlineAskRag`, label: 'Ask about this section', order: '1' });

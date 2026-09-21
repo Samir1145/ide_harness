@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Ingestion &amp; Pipeline Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #2563eb;
+      --accent-glow: rgba(37, 99, 235, 0.2);
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.2);
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --blue: #38bdf8;
+      --code-bg: #0b1120;
+    }
+
+    body.light-theme {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --code-bg: #f1f5f9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      padding: 2.5rem 3rem 4rem;
+    }
+
+    .header-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--green-glow);
+      color: var(--green);
+      border: 1px solid var(--green);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-top: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .pipeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .pipeline-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+
+    .dot-indicator {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+      flex-shrink: 0;
+      margin-top: 0.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: #000;
+      font-weight: 900;
+    }
+
+    .step-content h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .step-content p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .key-feature {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      color: var(--blue);
+      margin-top: 0.5rem;
+    }
+
+    .callout-box {
+      background: rgba(37, 99, 235, 0.08);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .table-spec {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .table-spec th {
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 2px solid var(--card-border);
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .table-spec td {
+      border-bottom: 1px solid var(--card-border);
+      padding: 0.75rem 1rem;
+      color: var(--text-muted);
+    }
+
+    .table-spec td strong {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-banner">
+    <div>
+      <div class="badge-pill"><i class="fa-solid fa-file-shield"></i> Ingestion Management System (IMS)</div>
+      <h1>Document Ingestion &amp; 3-Dot Status Pipeline</h1>
+      <p class="subtitle">Complete practitioner guide to local document processing, OCR, companion Markdown, and knowledge graphs.</p>
+    </div>
+  </div>
+
+  <div class="callout-box">
+    <div class="callout-title"><i class="fa-solid fa-shield-halved"></i> 100% Air-Gapped Local-First Enclave</div>
+    <p>All document parsing, optical text recognition, lexical indexing (FTS5), and vector generation (InLegal-SBERT ONNX) execute entirely inside your local machine. <strong>Zero bytes of client data or case dossiers ever leave your hardware.</strong></p>
+  </div>
+
+  <div class="card" style="margin-bottom: 2rem;">
+    <div class="card-title"><i class="fa-solid fa-circle-nodes" style="color: var(--green);"></i> Understanding the 3 Green Status Dots</div>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Every legal document (PDF, Word, Excel, Markdown) displays 3 status dots in the Explorer tree indicating where it stands in the sovereign AI processing pipeline:
+    </p>
+
+    <div class="pipeline-container">
+      <div class="pipeline-step">
+        <div class="dot-indicator">1</div>
+        <div class="step-content">
+          <h4>Dot 1: Companion Markdown Conversion &amp; Live Authoring</h4>
+          <p>
+            When a binary document (e.g. PDF or DOCX) is added to a case folder, Hayagriva immediately extracts its text and tables into a clean, editable companion Markdown file (<code>.md</code>).
+          </p>
+          <div class="key-feature">Right-Click ➔ 🟢 1. Review Companion (Edit &amp; Live Preview)</div>
+          <p style="margin-top: 0.5rem;">
+            Selecting this closes the heavy PDF viewer and docks the <strong>Monaco Editor</strong> on the left and the <strong>Live HTML Preview</strong> on the right. Any edits you make sync live on <code>Cmd+S</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="dot-indicator">2</div>
+        <div class="step-content">
+          <h4>Dot 2: Lexical FTS5 Indexing &amp; Dual-Vector Embedding</h4>
+          <p>
+            The companion Markdown is sliced into structural sections and semantic chunks. Chunks are simultaneously registered in the SQLite FTS5 search index and embedded via local ONNX neural models:
+          </p>
+          <ul style="margin-left: 1.25rem; margin-top: 0.4rem; color: var(--text-muted); font-size: 0.88rem;">
+            <li><strong>Legal Text &amp; Orders:</strong> Embedded using <em>InLegal-SBERT</em> (768d vector space).</li>
+            <li><strong>Financial Sheets &amp; Ledgers:</strong> Embedded using <em>Finance-Embeddings</em> for tabular arithmetic.</li>
+          </ul>
+          <div class="key-feature">Right-Click ➔ 🟢 2. Re-Index into AI Memory (Vector &amp; FTS5)</div>
+        </div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="dot-indicator">3</div>
+        <div class="step-content">
+          <h4>Dot 3: Case Fact &amp; Variable Extraction (K-V)</h4>
+          <p>
+            The background worker identifies and extracts essential statutory variables into <code>case_kv_dictionary.json</code>: Corporate Debtor names, admission order dates, debt quantum, admitted financial claims, and IRP details.
+          </p>
+          <div class="key-feature">Right-Click ➔ 🟢 3. Extract Case Facts &amp; Claims (K-V)</div>
+          <p style="margin-top: 0.5rem;">
+            Extracted facts auto-populate into court skeletons when drafting via <code>@Document</code> or <code>/template</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-file-lines" style="color: var(--blue);"></i> Supported Ingestion Formats</div>
+      <table class="table-spec">
+        <thead>
+          <tr>
+            <th>Format</th>
+            <th>Engine</th>
+            <th>Treatment</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>.PDF</strong></td>
+            <td>Local PDF Engine</td>
+            <td>Text extracted; scanned pages flagged with <code>[!WARNING]</code> banners.</td>
+          </tr>
+          <tr>
+            <td><strong>.DOCX / .DOC</strong></td>
+            <td>Pandoc Native</td>
+            <td>Tables and headings preserved in GitHub-flavored Markdown.</td>
+          </tr>
+          <tr>
+            <td><strong>.XLSX / .CSV</strong></td>
+            <td>Sheet Parser</td>
+            <td>Multi-bank statements transformed to clean Markdown tables.</td>
+          </tr>
+          <tr>
+            <td><strong>Standalone .MD</strong></td>
+            <td>Direct Native</td>
+            <td>Promoted directly as primary documents; Dot 1 pre-set to green.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-trash-can" style="color: var(--red);"></i> Safe 7-Day Trash Deletion</div>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        Legal dossiers are high-stakes. Hayagriva replaces accidental destructive file deletes with a safe 7-day retention vault:
+      </p>
+      <div class="callout-box" style="margin: 1rem 0; border-left-color: var(--red); background: rgba(239, 68, 68, 0.08);">
+        <div class="callout-title" style="color: var(--red);"><i class="fa-solid fa-recycle"></i> Soft-Delete to .trash/</div>
+        <p style="font-size: 0.88rem;">
+          Selecting <code>🗑 Delete File (move to trash)</code> safely moves the document, companion files, and vector indices into <code>.trash/</code> for 7 days before permanent removal.
+        </p>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        You can restore any trashed file within 7 days directly from the <strong>🔒 Vault &amp; Archival</strong> top menu.
+      </p>
+    </div>
+  </div>
+
+</body>
+</html>

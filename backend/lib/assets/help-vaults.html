@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monaco Vaults &amp; Legal Drafting Shortcuts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #8b5cf6;
+      --accent-glow: rgba(139, 92, 246, 0.2);
+      --green: #10b981;
+      --amber: #f59e0b;
+      --blue: #38bdf8;
+      --code-bg: #0b1120;
+    }
+
+    body.light-theme {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --code-bg: #f1f5f9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      padding: 2.5rem 3rem 4rem;
+    }
+
+    .header-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent-glow);
+      color: #c084fc;
+      border: 1px solid #c084fc;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-top: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .trigger-badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      background: var(--code-bg);
+      border: 1px solid var(--accent);
+      color: #c084fc;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+    }
+
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .shortcut-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 2px solid var(--card-border);
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .shortcut-table td {
+      border-bottom: 1px solid var(--card-border);
+      padding: 0.75rem 1rem;
+      color: var(--text-muted);
+    }
+
+    .shortcut-table td strong {
+      color: var(--text-main);
+    }
+
+    .code-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      color: var(--blue);
+    }
+
+    .callout-box {
+      background: rgba(139, 92, 246, 0.08);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      color: #c084fc;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-banner">
+    <div>
+      <div class="badge-pill"><i class="fa-solid fa-scale-balanced"></i> Vault Management System (VMS)</div>
+      <h1>Monaco Vaults &amp; Drafting Shortcuts Guide</h1>
+      <p class="subtitle">Cheatsheet for encrypted statutory bare acts, court precedents, Notion-style clause injection, and hover tooltips.</p>
+    </div>
+  </div>
+
+  <div class="callout-box">
+    <div class="callout-title"><i class="fa-solid fa-lock"></i> Encrypted In-Memory Law Vaults</div>
+    <p>Hayagriva bundles <strong>4,026+ statutory bare act sections</strong> and over <strong>17,500+ court judgments</strong> directly into offline, AES-256 encrypted vaults. You can cite laws and precedents in Monaco with sub-millisecond autocompletion even completely disconnected from the internet.</p>
+  </div>
+
+  <div class="card" style="margin-bottom: 2rem;">
+    <div class="card-title"><i class="fa-solid fa-keyboard" style="color: var(--blue);"></i> Primary Drafting Shortcuts in Monaco Editor</div>
+    <table class="shortcut-table">
+      <thead>
+        <tr>
+          <th>Trigger</th>
+          <th>Vault Queried</th>
+          <th>Description &amp; Example</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="trigger-badge">@@</span> or <span class="trigger-badge">@sec</span></td>
+          <td><strong>Statutory Law Vault</strong></td>
+          <td>Search 4,026+ bare act provisions. Type <span class="code-chip">@@moratorium</span> or <span class="code-chip">@sec 14</span> to insert verbatim statutory text.</td>
+        </tr>
+        <tr>
+          <td><span class="trigger-badge">@ibc/</span></td>
+          <td><strong>Insolvency Code</strong></td>
+          <td>Direct IBC provision filter. Type <span class="code-chip">@ibc/29a</span> or <span class="code-chip">@ibc/43</span> for section text and explanations.</td>
+        </tr>
+        <tr>
+          <td><span class="trigger-badge">@mca/</span></td>
+          <td><strong>Companies Act</strong></td>
+          <td>Corporate statutory filter. Type <span class="code-chip">@mca/188</span> for related party rules.</td>
+        </tr>
+        <tr>
+          <td><span class="trigger-badge">@precedent/</span></td>
+          <td><strong>Court Precedents</strong></td>
+          <td>Query 17,500+ rulings. Type <span class="code-chip">@precedent/ruchi soya</span> to insert judgment title, tribunal, and ratio.</td>
+        </tr>
+        <tr>
+          <td><span class="trigger-badge">/clause</span></td>
+          <td><strong>Clause Boilerplate</strong></td>
+          <td>Notion-style interactive picker. Inserts Arbitration, Moratorium, Severability, Force Majeure, or Confidentiality clauses.</td>
+        </tr>
+        <tr>
+          <td><span class="trigger-badge">/fact</span></td>
+          <td><strong>Case Fact Dictionary</strong></td>
+          <td>Insert verified variables: <span class="code-chip">Corporate Debtor</span>, <span class="code-chip">Total Admitted Debt</span>, <span class="code-chip">IRP Name</span>, <span class="code-chip">Admission Date</span>.</td>
+        </tr>
+        <tr>
+          <td><span class="trigger-badge">/export</span></td>
+          <td><strong>Supreme Court DOCX</strong></td>
+          <td>Deterministic compiler conforming to Supreme Court rules (A4, 14pt Times New Roman, 1.5 spacing, 4cm margins).</td>
+        </tr>
+        <tr>
+          <td><span class="trigger-badge">/export-pdf</span></td>
+          <td><strong>Court PDF</strong></td>
+          <td>Compiles active Markdown into court-ready formatted PDF and opens live preview.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-eye" style="color: var(--green);"></i> Statutory Hover Providers</div>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        When reviewing or drafting Markdown documents, hover your mouse cursor over any legal citation:
+      </p>
+      <div style="margin: 1rem 0; background: var(--code-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
+        Pursuant to <span style="text-decoration: underline; color: var(--blue);">Section 14</span> of the Insolvency and Bankruptcy Code...
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">
+        Monaco immediately displays a rich tooltip with the complete bare act provision, statutory amendments, and operational explanations without switching tabs.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-link" style="color: #c084fc;"></i> Interactive Citation Deep-Links</div>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        Link companion Markdown notes directly to source PDF dossier pages using double brackets:
+      </p>
+      <div style="margin: 1rem 0; background: var(--code-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--blue);">
+        [[Sanction_Letter_State_Bank.pdf#page=4]]
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">
+        Clicking this link automatically opens the source PDF in the middle viewer and navigates directly to Page 4 side-by-side with your active Markdown draft.
+      </p>
+    </div>
+  </div>
+
+</body>
+</html>

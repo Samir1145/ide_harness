@@ -11,7 +11,11 @@ const DEFAULT_TOOL_RATES = {
     'query_cibil_defaulters': 75.00,
     'check_director_mca_status': 50.00,
     'execute_ecourts_litigation_search': 150.00,
-    'generate_plan_verification_dossier': 1500.00
+    'generate_plan_verification_dossier': 1500.00,
+    'rbz_section_65_inquest': 2500.00,
+    'screen_section_65_collusion': 2500.00,
+    'rbz_related_party_inquest': 1500.00,
+    'screen_related_parties': 1500.00
 };
 
 /**

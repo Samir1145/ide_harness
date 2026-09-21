@@ -45,7 +45,9 @@ export class HayagrivaPreviewManager {
     for (const w of mainWidgets) {
       if (
         w.id !== activeId &&
-        (w.id.startsWith('hayagriva-office-preview-') || w.id.startsWith('hayagriva-wiki-viewer-'))
+        (w.id.startsWith('hayagriva-office-preview-') ||
+         w.id.startsWith('hayagriva-wiki-viewer-') ||
+         w.id.startsWith('hayagriva-md-live-preview-'))
       ) {
         w.close();
       }
@@ -120,6 +122,64 @@ export class HayagrivaPreviewManager {
     this.shell.addWidget(widget, { area: 'main' });
     this.shell.activateWidget(widget.id);
     return widget;
+  }
+
+  async openLiveMarkdownPreview(filePath: string, _caseName: string): Promise<Widget> {
+    const id = `hayagriva-md-live-preview-${encodeURIComponent(filePath)}`;
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    // Close any previous office/PDF previewers so the user has full focus on authoring
+    this.closeOtherDocumentViewers(id);
+
+    widget = new Widget();
+    widget.id = id;
+    widget.node.style.width = '100%';
+    widget.node.style.height = '100%';
+    widget.node.style.overflow = 'hidden';
+    widget.node.style.display = 'flex';
+    widget.node.style.flexDirection = 'column';
+
+    const base = getBasename(filePath);
+    widget.title.label = `📖 ${base} (Preview)`;
+    widget.title.caption = `Live Rendered Markdown Preview for ${base}`;
+    widget.title.iconClass = 'fa fa-columns';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.flex = '1';
+    iframe.style.border = 'none';
+    iframe.style.display = 'block';
+    iframe.src = `${this.getBackendUrl()}/api/hayagriva/office-preview?path=${encodeURIComponent(filePath)}#view=FitH&zoom=page-width&navpanes=0`;
+    widget.node.appendChild(iframe);
+
+    // Split to the right of the active Monaco editor in area 'main'
+    this.shell.addWidget(widget, { area: 'main', mode: 'split-right' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
+  refreshPreview(filePath: string): void {
+    const liveId = `hayagriva-md-live-preview-${encodeURIComponent(filePath)}`;
+    const officeId = `hayagriva-office-preview-${encodeURIComponent(filePath)}`;
+    const mainWidgets = this.shell.getWidgets('main');
+    for (const w of mainWidgets) {
+      if (w.id === liveId || w.id === officeId) {
+        const iframe = w.node.querySelector('iframe');
+        if (iframe) {
+          const currentSrc = iframe.src;
+          const cleanUrl = currentSrc.split('#')[0].split('&_t=')[0];
+          const hash = currentSrc.includes('#') ? '#' + currentSrc.split('#')[1] : '';
+          iframe.src = `${cleanUrl}&_t=${Date.now()}${hash}`;
+        }
+      }
+    }
   }
 
   async openKvEditor(caseName: string): Promise<Widget> {
@@ -430,4 +490,67 @@ export class HayagrivaPreviewManager {
       this.logger.warn(`[HAYAGRIVA] No PageIndex concept node found for page ${pageNum} in ${docName}`);
     }
   }
+
+  async openIngestionHelpPanel(caseName: string): Promise<Widget> {
+    const id = 'hayagriva-ingestion-help-panel';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Document Ingestion Guide';
+    widget.title.caption = 'IMS 3-Dot Status Pipeline & Ingestion Guide';
+    widget.title.iconClass = 'fa fa-book';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    const currentTheme = this.themeService.getCurrentTheme();
+    const isLight = currentTheme && currentTheme.id && currentTheme.id.toLowerCase().includes('light');
+    const theme = isLight ? 'light' : 'dark';
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/help/ingestion?case=${encodeURIComponent(caseName)}&theme=${theme}`;
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
+  async openMonacoVaultsHelpPanel(caseName: string): Promise<Widget> {
+    const id = 'hayagriva-vaults-help-panel';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Monaco Vaults & Shortcuts';
+    widget.title.caption = 'Statutory Laws & Precedents Drafting Cheatsheet';
+    widget.title.iconClass = 'fa fa-keyboard';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    const currentTheme = this.themeService.getCurrentTheme();
+    const isLight = currentTheme && currentTheme.id && currentTheme.id.toLowerCase().includes('light');
+    const theme = isLight ? 'light' : 'dark';
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/help/vaults?case=${encodeURIComponent(caseName)}&theme=${theme}`;
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
 }
+

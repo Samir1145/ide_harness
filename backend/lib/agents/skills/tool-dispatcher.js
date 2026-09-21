@@ -19,7 +19,15 @@ const RBZ_TOOLS = {
     'execute_ecourts_litigation_search': 150.00,
     'executeecourtslitigationsearch': 150.00,
     'generate_plan_verification_dossier': 1500.00,
-    'generateplanverificationdossier': 1500.00
+    'generateplanverificationdossier': 1500.00,
+    'rbz_section_65_inquest': 2500.00,
+    'rbzsection65inquest': 2500.00,
+    'screen_section_65_collusion': 2500.00,
+    'screensection65collusion': 2500.00,
+    'rbz_related_party_inquest': 1500.00,
+    'rbzrelatedpartyinquest': 1500.00,
+    'screen_related_parties': 1500.00,
+    'screenrelatedparties': 1500.00
 };
 
 /**
@@ -318,7 +326,15 @@ async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
         case 'execute_ecourts_litigation_search':
         case 'executeecourtslitigationsearch':
         case 'generate_plan_verification_dossier':
-        case 'generateplanverificationdossier': {
+        case 'generateplanverificationdossier':
+        case 'rbz_section_65_inquest':
+        case 'rbzsection65inquest':
+        case 'screen_section_65_collusion':
+        case 'screensection65collusion':
+        case 'rbz_related_party_inquest':
+        case 'rbzrelatedpartyinquest':
+        case 'screen_related_parties':
+        case 'screenrelatedparties': {
             const http = require('http');
             const { markTaskExecuted, DEFAULT_TOOL_RATES } = require('../../core/case-billing-store');
             const rate = DEFAULT_TOOL_RATES[norm] || 100.00;

@@ -520,11 +520,40 @@ module.exports = {
                     license: status,
                     access,
                     tri_tier: tri,
-                    initial_kyc_completed: tri.initial_kyc_completed,
+                    workbench_free: true,
+                    initial_kyc_completed: true,
+                    trial_available: tri.trial_available,
+                    in_trial: tri.in_trial,
+                    trial_expired: tri.trial_expired,
+                    trial_days_remaining: tri.trial_days_remaining,
+                    is_subscribed: tri.is_subscribed,
                     stage1_dms: tri.stage1_dms,
                     stage2_local: tri.stage2_local,
                     stage3_global: tri.stage3_global,
                     ...extended
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/license/start-trial': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const { startTrial, checkTriTierAccess } = require('./core/license-manager');
+                const result = startTrial(7);
+                if (!result.success) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                    return;
+                }
+                const tri = checkTriTierAccess();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    trial: result,
+                    tri_tier: tri,
+                    message: '7-day free trial of autonomous agents activated successfully!'
                 }));
             } catch (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1971,6 +2000,38 @@ module.exports = {
             res.end(content);
         },
 
+        '/api/hayagriva/help/ingestion': (req, res, parsedUrl, docsRoot) => {
+            const htmlPath = path.join(__dirname, 'assets', 'help-ingestion.html');
+            if (!fs.existsSync(htmlPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Ingestion Help view file not found');
+                return;
+            }
+            let content = fs.readFileSync(htmlPath, 'utf8');
+            const theme = parsedUrl.query.theme || 'dark';
+            if (theme === 'light') {
+                content = content.replace('<body>', '<body class="light-theme">');
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(content);
+        },
+
+        '/api/hayagriva/help/vaults': (req, res, parsedUrl, docsRoot) => {
+            const htmlPath = path.join(__dirname, 'assets', 'help-vaults.html');
+            if (!fs.existsSync(htmlPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Vaults Help view file not found');
+                return;
+            }
+            let content = fs.readFileSync(htmlPath, 'utf8');
+            const theme = parsedUrl.query.theme || 'dark';
+            if (theme === 'light') {
+                content = content.replace('<body>', '<body class="light-theme">');
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(content);
+        },
+
         '/api/hayagriva/chronology-panel': (req, res, parsedUrl, docsRoot) => {
             const htmlPath = path.join(__dirname, 'assets', 'chronology-panel.html');
             if (!fs.existsSync(htmlPath)) {
@@ -2900,11 +2961,18 @@ module.exports = {
                     const rbzAdvisor = require('./agents/subagents/rbz-advisor-agent');
                     const result = rbzAdvisor.evaluateContext(caseDir, data);
 
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, ...result }));
+                    const payload = JSON.stringify({ success: true, ...result });
+                    if (!res.headersSent) {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                    }
+                    res.end(payload);
                 } catch (err) {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: false, error: err.message }));
+                    if (!res.headersSent) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: err.message }));
+                    } else {
+                        res.end();
+                    }
                 }
             });
         },
@@ -2919,11 +2987,18 @@ module.exports = {
                     const rbzAdvisor = require('./agents/subagents/rbz-advisor-agent');
                     rbzAdvisor.recordDismissal(data.targetKey);
 
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, targetKey: data.targetKey }));
+                    const payload = JSON.stringify({ success: true, targetKey: data.targetKey });
+                    if (!res.headersSent) {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                    }
+                    res.end(payload);
                 } catch (err) {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: false, error: err.message }));
+                    if (!res.headersSent) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: err.message }));
+                    } else {
+                        res.end();
+                    }
                 }
             });
         },
@@ -4354,31 +4429,11 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     const data = JSON.parse(body);
                     const caseDir = resolveCaseDir(docsRoot, data.case);
                     
-                    // ── LITE MODE GATE ──────────────────────────────────────────
+                    // ── LITE MODE GATE (Free Core Workbench Case Search) ────────
                     const { loadLlmConfig } = require('./core/llm-client');
                     const config = loadLlmConfig({ caseDir });
                     if (config.activeMode === 'lite' && !data.agent) {
-                        const { checkTriTierAccess } = require('./core/license-manager');
-                        const tri = checkTriTierAccess(caseDir);
-                        if (!tri.initial_kyc_completed) {
-                            res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.end(JSON.stringify({
-                                success: false,
-                                response: '### 🔒 Core Activation Required (₹1 Token Verification)\n\nPlease complete your initial ₹1 KYC verification in **Settings → License** to unlock the workspace.',
-                                unactivated: true
-                            }));
-                            return;
-                        }
-                        if (!tri.stage2_local.allowed) {
-                            res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.end(JSON.stringify({
-                                success: true,
-                                response: '### 🔒 Stage 2 Local Intelligence Subscription Expired\n\nYour 90-day pilot or subscription for local AI and semantic search has ended.\n\n> **Available Systems:**\n> • **Stage 1 (DMS):** Lifetime templates, skeletons, and document compilation remain 100% active.\n> • **Stage 3 (Global Cloud Agents):** You can query **@Precedent** and **@Forensic** anytime on a pay-per-use basis.\n\n*Renew your **Pro Pilot** subscription in **Settings → License** to reactivate local semantic search.*',
-                                stage2_expired: true
-                            }));
-                            return;
-                        }
-
+                        // Free forever: local FTS5 search and companion indexing
                         const { query } = require('./core/rag');
                         const result = await query(caseDir, data.message, { caseDir });
                         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -5268,8 +5323,8 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     const { PRICING_PLANS, buildOrderNotes } = require('./config/pricing-plans');
                     const { getSystemTelemetry } = require('./utils/machine-fingerprint');
 
-                    const planId = data.planId || 'free_core_6m';
-                    const plan = PRICING_PLANS[planId] || PRICING_PLANS.free_core_6m;
+                    const planId = data.planId || 'hayagriva_pro_annual';
+                    const plan = PRICING_PLANS[planId] || PRICING_PLANS.hayagriva_pro_annual;
                     const sysTelemetry = getSystemTelemetry();
 
                     let caseCount = 1;
@@ -5368,7 +5423,7 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     const { getMachineId } = require('./utils/machine-fingerprint');
                     const { generateLicenseKey } = require('./utils/license-validator');
 
-                    const plan = PRICING_PLANS[planId || 'free_core_6m'] || PRICING_PLANS.free_core_6m;
+                    const plan = PRICING_PLANS[planId || 'hayagriva_pro_annual'] || PRICING_PLANS.hayagriva_pro_annual;
                     const machineId = getMachineId();
 
                     // 1. Verify Razorpay HMAC-SHA256 signature

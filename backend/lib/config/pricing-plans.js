@@ -4,25 +4,43 @@
  * Decoupled to allow instant addition of micro-pricing, credit packs, and case-metered tiers.
  */
 
+const TRIAL_DURATION_DAYS = 7;
+
 const PRICING_PLANS = {
+  hayagriva_pro_annual: {
+    id: 'hayagriva_pro_annual',
+    name: 'Hayagriva Pro (Annual Intelligence & Updates Subscription)',
+    amountPaise: 2500000, // ₹25,000.00
+    displayPrice: '₹25,000',
+    validityDays: 365,
+    trialDays: TRIAL_DURATION_DAYS,
+    tier: 'pro',
+    activationType: 'pro_annual_25k',
+    stage1_perpetual_dms: true,
+    stage2_subscription: true,
+    stage3_pay_per_use: true,
+    description: 'Full Intelligence Suite: @Advisor, @Forms, @Document, Local Param-2.9B LLMs, Continuous Monaco Statutory Sync & Retrained Model Weights',
+    allowedBrains: ['legal_brain', 'finance_brain', 'claims_auditor', 'forms_agent', 'document_agent', 'monaco_rag', 'precedent_cloud']
+  },
+  pro_annual: {
+    // Alias to hayagriva_pro_annual
+    id: 'hayagriva_pro_annual',
+    name: 'Hayagriva Pro (Annual Intelligence & Updates Subscription)',
+    amountPaise: 2500000, // ₹25,000.00
+    displayPrice: '₹25,000',
+    validityDays: 365,
+    trialDays: TRIAL_DURATION_DAYS,
+    tier: 'pro',
+    activationType: 'pro_annual_25k',
+    stage1_perpetual_dms: true,
+    stage2_subscription: true,
+    stage3_pay_per_use: true,
+    description: 'Full Intelligence Suite: @Advisor, @Forms, @Document, Local Param-2.9B LLMs, Continuous Monaco Statutory Sync & Retrained Model Weights',
+    allowedBrains: ['legal_brain', 'finance_brain', 'claims_auditor', 'forms_agent', 'document_agent', 'monaco_rag', 'precedent_cloud']
+  },
   core_starter_90d: {
     id: 'core_starter_90d',
-    name: 'Core Starter (90-Day Local AI Pilot + Perpetual DMS)',
-    amountPaise: 100, // ₹1.00
-    displayPrice: '₹1',
-    validityDays: 90, // 3 months / 90 days
-    tier: 'starter',
-    activationType: 'token_verification_1rs',
-    stage1_perpetual_dms: true,
-    stage2_trial_days: 90,
-    stage3_pay_per_use: true,
-    description: 'Stage 1 Lifetime DMS + Stage 2 Local AI Pilot (90 Days) + Stage 3 Pay-Per-Use Global Precedents',
-    allowedBrains: ['bare_acts', 'skeletons', 'companion_indexer', 'legal_brain', 'monaco_rag']
-  },
-  free_core_6m: {
-    // Backwards-compatible alias to core_starter_90d
-    id: 'core_starter_90d',
-    name: 'Core Starter (90-Day Local AI Pilot + Perpetual DMS)',
+    name: 'Core Starter (Legacy Pilot)',
     amountPaise: 100, // ₹1.00
     displayPrice: '₹1',
     validityDays: 90,
@@ -31,13 +49,27 @@ const PRICING_PLANS = {
     stage1_perpetual_dms: true,
     stage2_trial_days: 90,
     stage3_pay_per_use: true,
-    description: 'Stage 1 Lifetime DMS + Stage 2 Local AI Pilot (90 Days) + Stage 3 Pay-Per-Use Global Precedents',
+    description: 'Legacy plan',
+    allowedBrains: ['bare_acts', 'skeletons', 'companion_indexer', 'legal_brain', 'monaco_rag']
+  },
+  free_core_6m: {
+    id: 'core_starter_90d',
+    name: 'Core Starter (Legacy Pilot)',
+    amountPaise: 100,
+    displayPrice: '₹1',
+    validityDays: 90,
+    tier: 'starter',
+    activationType: 'token_verification_1rs',
+    stage1_perpetual_dms: true,
+    stage2_trial_days: 90,
+    stage3_pay_per_use: true,
+    description: 'Legacy plan',
     allowedBrains: ['bare_acts', 'skeletons', 'companion_indexer', 'legal_brain', 'monaco_rag']
   },
   pro_pilot: {
     id: 'pro_pilot',
-    name: 'Professional Pilot (1-Year Stage 2 Subscription)',
-    amountPaise: 499900, // ₹4,999.00
+    name: 'Professional Pilot (Legacy)',
+    amountPaise: 499900,
     displayPrice: '₹4,999',
     validityDays: 365,
     tier: 'standard',
@@ -45,13 +77,13 @@ const PRICING_PLANS = {
     stage1_perpetual_dms: true,
     stage2_subscription: true,
     stage3_pay_per_use: true,
-    description: 'Stage 2 Local Intelligence: LegalParam-2.9B Local Brain, Claims Auditor (@Auditor), Pleadings Formatter (@Formatter), Monaco Semantic RAG & Vault Updates',
+    description: 'Legacy Stage 2 Local Intelligence',
     allowedBrains: ['legal_brain', 'claims_auditor', 'pleadings_formatter', 'monaco_rag']
   },
   enterprise_pilot: {
     id: 'enterprise_pilot',
-    name: 'Enterprise Pilot (1-Year Stage 2 Subscription)',
-    amountPaise: 1499900, // ₹14,999.00
+    name: 'Enterprise Pilot (Legacy)',
+    amountPaise: 1499900,
     displayPrice: '₹14,999',
     validityDays: 365,
     tier: 'enterprise',
@@ -59,7 +91,7 @@ const PRICING_PLANS = {
     stage1_perpetual_dms: true,
     stage2_subscription: true,
     stage3_pay_per_use: true,
-    description: 'Stage 2 Full Intelligence: Legal & Finance Brains, Avoidance Forensic (@Forensic), Monaco Semantic RAG + Priority Vault Updates',
+    description: 'Legacy Enterprise Plan',
     allowedBrains: ['legal_brain', 'finance_brain', 'avoidance_forensic', 'monaco_rag', 'precedent_cloud']
   }
 };
@@ -125,5 +157,6 @@ function buildOrderNotes(planId, userData = {}, sysTelemetry = {}, caseCount = 0
 
 module.exports = {
   PRICING_PLANS,
+  TRIAL_DURATION_DAYS,
   buildOrderNotes
 };

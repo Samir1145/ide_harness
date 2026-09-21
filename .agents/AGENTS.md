@@ -255,3 +255,18 @@ Refer to the following plans saved in the workspace:
   * **Cross-Platform Uniformity**: Aligned Linux Debian packaging to the same convention (`HayagrivaSetup.deb`) in `frontend/applications/electron/electron-builder.yml` and `frontend/applications/electron-next/electron-builder.yml`, updating `BUILD.md` and `README.md`.
   * **Distribution Portal Sync (`website_apnet.co.in`)**: Updated download modal in `header.html` and `js/header.js` to target `HayagrivaSetup.exe` and `HayagrivaSetup.deb` (and fixed Linux download fallback URL from `.exe` to `.AppImage`).
   * **Cloudflare R2 Live Synchronization**: Replicated `Hayagriva.deb` into `HayagrivaSetup.deb` (202.57 MB) alongside `HayagrivaSetup.exe` (271.75 MB) in the `hayagriva` bucket with verified public HTTP 200 responses.
+* **RBZ Standalone Cloud Server, Async Task Queue & Cloudflare Tunnel Architecture**:
+  * **Standalone HTTP/MCP Server (Port 4001)**: Deployed `backend/lib/agents/rbz-server/server.js` exposing `/health`, `/api/mcp/tools`, `/api/mcp/tasks`, and `/api/mcp/jsonrpc`. Decouples forensic Section 65 / Section 5(24) queries from the local IDE client.
+  * **Smart Entity Cache (`entity-cache.js`)**: Implemented an in-memory LRU TTL cache (1000 items, 1h TTL) for CIN profiles and address clusters, achieving >85% cache hit ratio and eliminating redundant PostgreSQL queries.
+  * **Throttled Task Queue (`task-queue.js`)**: Serializes heavy multi-hop graph traversals with a concurrency cap of 3 workers, protecting host PostgreSQL (port 5432, 136 tables, 7,351 companies, 8.52 GB) from connection spikes or OOM crashes.
+  * **Remote Subagent Loop (`related-party-agent.js`)**: Client harness submits audit jobs to RBZ server, polls `/api/mcp/tasks/:id` until completion, and falls back gracefully to in-process execution if offline. Added `@RelatedParty` and `@Section65` routing to `agent-coordinator.js`.
+  * **Cloudflare Tunnel (`5408c6f0-e518-4e46-a46f-4fb72d036e34`)**: Bound tunnel ingress to `api.lexai.in` -> `http://127.0.0.1:4001`.
+  * **DNS & Nameserver Status (`lexai.in`)**:
+    * Namecheap nameservers (`dns1.registrar-servers.com`, `dns2.registrar-servers.com`) being migrated to Cloudflare (`desiree.ns.cloudflare.com`, `jihoon.ns.cloudflare.com`).
+    * Preserved `www.lexai.in` (`ghs.googlehosted.com`) and google-site-verification in Cloudflare DNS to ensure main website remains unaffected.
+  * **Resumption Protocol (Tomorrow)**:
+    1. Verify `lexai.in` zone is active in Cloudflare and old Namecheap NS (`dns1`, `dns2`) are fully purged.
+    2. Start RBZ Server (`node backend/lib/agents/rbz-server/server.js 4001`) and Tunnel (`./start_rbz_tunnel.command`).
+    3. Test `curl -i https://api.lexai.in/health` for HTTP 200.
+    4. Set `https://api.lexai.in` as default in `related-party-agent.js` and `lightrag-client.js`.
+

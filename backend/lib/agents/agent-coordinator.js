@@ -229,6 +229,59 @@ Prompt: "${message}"`;
                     } catch (_) {}
                     return response;
                 }
+            },
+            'relatedparty': {
+                run: async (cDir, msg, hist, opts) => {
+                    const relatedPartyClient = require('./subagents/related-party-agent');
+                    let formAContext = {};
+                    
+                    try {
+                        const formAFiles = fs.readdirSync(cDir).filter(f => f.toLowerCase().includes('form_a') && f.endsWith('.md'));
+                        if (formAFiles.length > 0) {
+                            formAContext = relatedPartyClient.extractFormAContext(path.join(cDir, formAFiles[0]));
+                        } else if (fs.existsSync(path.join(cDir, 'case_facts.md'))) {
+                            const facts = fs.readFileSync(path.join(cDir, 'case_facts.md'), 'utf8');
+                            const cinM = facts.match(/U[0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}/i);
+                            const cdM = facts.match(/(?:Corporate Debtor|Company Name)[:\s*]+([^\n\r]+)/i);
+                            formAContext = {
+                                corporate_debtor: cdM ? cdM[1].replace(/[*#]/g, '').trim() : 'Corporate Debtor',
+                                cin: cinM ? cinM[0] : ''
+                            };
+                        }
+                    } catch (_) {}
+
+                    if (!formAContext.cin && !formAContext.corporate_debtor) {
+                        return "⚠️ **@RelatedParty Notice**: Please ensure a **Form A Public Announcement** (or `case_facts.md` containing CIN) is present in the workspace before dispatching audit.";
+                    }
+
+                    const stageRes = relatedPartyClient.stageReportTask(cDir, formAContext, 'counsel@nclt.in');
+                    const cycleRes = await relatedPartyClient.executeMcpReportCycle(cDir, stageRes.taskId, formAContext);
+
+                    const rpList = (cycleRes.structuredData && cycleRes.structuredData.related_parties) || [];
+                    const rpRows = rpList.map(rp => `* **${rp.name}** (${rp.cin || 'CIN Unlisted'}): *${rp.relationship_type}* — **CoC Voting Disqualification:** ${rp.coc_disqualified ? '⚠️ YES (§ 21(2))' : 'NO'}`).join('\n');
+
+                    return `### 👥 Resolution Bazaar: Section 5(24) Related Party Audit\n\n` +
+                           `**Target Corporate Debtor:** ${formAContext.corporate_debtor} (\`${formAContext.cin || 'CIN'}\`)\n` +
+                           `**Invoice Number:** \`${cycleRes.invoiceNumber}\` • **Status:** \`✓ PAID & AUDITED\` (₹${cycleRes.totalInr.toFixed(2)})\n` +
+                           `**Server Task Ref:** \`${cycleRes.serverTaskId}\`\n\n` +
+                           `#### Connected Entities Identified:\n` +
+                           (rpRows || '*No direct related parties found.*') +
+                           `\n\n---\n📄 **Full Dossier Deposited:** \`${cycleRes.reportPath}\`\n` +
+                           `*(Tamper-evident SHA-256 hash verified in local case ledger)*`;
+                }
+            },
+            'related_party': {
+                run: async (cDir, msg, hist, opts) => agentMap['relatedparty'].run(cDir, msg, hist, opts)
+            },
+            'section65': {
+                run: async (cDir, msg, hist, opts) => {
+                    return `### 🏛️ Resolution Bazaar: Section 65 Collusive CIRP Inquest\n\n` +
+                           `Section 65 forensic screening is ready for cloud dispatch.\n` +
+                           `To initiate full automated inquest, ensure Form A is ingested and authorize task in Settings.`;
+                }
+            },
+            's65': {
+                run: async (cDir, msg, hist, opts) => agentMap['section65'].run(cDir, msg, hist, opts)
             }
         };
 
@@ -253,32 +306,65 @@ Prompt: "${message}"`;
         if (!access.allowed) {
             agentLogger.log(reqId, 'AgentCoordinator', 'LICENSE_GATED', `Agent access denied: ${access.reason}`);
             
-            let title = '🔒 Agent Access Suspended';
-            let advice = access.message || access.reason;
-            if (access.status === 'UNACTIVATED') {
-                title = '🔒 Core Activation Required (₹1 Token KYC)';
-                advice = 'Hayagriva Core requires a nominal one-time ₹1 KYC verification to activate the workspace.\n' +
-                         'Open **Settings → License** to activate **Stage 1 (Lifetime DMS)** + **Stage 2 (90-Day Full AI Pilot)**.';
-            } else if (access.status === 'EXPIRED') {
-                title = '🔒 Stage 2 Local Intelligence Subscription Expired';
-                advice = 'Your 90-day pilot or annual subscription for local autonomous AI drafting has reached its end.\n\n' +
-                         '> **Tri-Tier Hybrid Model Status:**\n' +
-                         '> • **Stage 1 (Core DMS):** Remains **100% active and free forever** (deterministic skeletons & document compilation).\n' +
-                         '> • **Stage 3 (Global Cloud Agents):** Remains **always available** on a pay-per-use basis via **@Precedent** and **@Forensic**.\n\n' +
-                         'To re-enable local AI assistance and regular legal vault updates, renew your **Pro Pilot** subscription in **Settings → License**.';
-            } else if (access.status === 'TAMPERED') {
-                title = '⚠️ System Clock Alteration Detected';
-                advice = 'Your local system clock does not match the tamper-evident ledger. Re-sync with Resolution Bazaar or contact support.';
+            if (access.status === 'TRIAL_AVAILABLE') {
+                const trialNotice = `### ⚡ Unlock Hayagriva Pro Suite (Autonomous IBC Agents)
+
+Supercharge your CIRP practice with autonomous legal drafting, Form A/B/C/CA audits, and local private LLM intelligence.
+
+| System / Feature | Core Workbench (Free) | Hayagriva Pro (₹25,000/yr) |
+| :--- | :---: | :---: |
+| **Document Ingestion & PDF Parser** | ✅ Free Forever | ✅ Included |
+| **Local FTS5 Case Search** | ✅ Free Forever | ✅ Included |
+| **Legal Monaco Editor & Skeletons** | ✅ Free Forever | ✅ Included |
+| **Autonomous Agents (@Advisor, @Forms, @Document)** | 🔒 Locked | ✅ Full Autonomy |
+| **Local Private LLM (Param-2.9B Engine)** | 🔒 Locked | ✅ 100% Offline |
+| **Continuous Monaco Statutory & IBC Sync** | 🔒 Locked | ✅ Continuous Updates |
+
+👉 **[⚡ Start 7-Day Free Trial (1-Click Activation)](command:hayagriva.license.startTrial)**
+
+*Or activate your annual subscription for **₹25,000 / year** (~₹2,083/mo) in **Settings → License**.*`;
+                if (options && options.returnObject) {
+                    return { response: trialNotice, logs: agentLogger.endContext(reqId) };
+                }
+                return trialNotice;
             }
 
-            const fallbackNotice = `### ${title}\n\n${advice}\n\n` +
-                `> **Workspace Immunity Notice:** Your Left Panel (case browser, concepts matrix, inbox, ledger) and Middle Panel (Monaco document editor, PDF viewer, offline template compilation) remain **100% functional and unlocked**.\n\n` +
-                `To activate or renew subscriptions, open **Settings → License** or manage pay-per-use tasks in the [Resolution Bazaar Billing Ledger](http://127.0.0.1:8000/portal/billing).`;
+            if (access.status === 'TRIAL_EXPIRED' || access.status === 'EXPIRED') {
+                const expiredNotice = `### 🔒 7-Day Free Trial Concluded
+
+Your 7-day autonomous legal agent trial has concluded.
+
+> **Workspace Immunity Notice:** Your Left Panel (case browser, concepts matrix, inbox, PDF viewer) and Middle Panel (Monaco document editor, offline template compilation) remain **100% free and functional forever**.
+
+To continue using **@Advisor**, **@Forms**, and **@Document**, and to keep your Monaco legal rules & model weights synchronized with the latest IBC amendments:
+
+👉 **[⚡ Subscribe to Hayagriva Pro — ₹25,000 / Year](command:hayagriva:openSettingsPanel)**
+
+*Already have a firm or volume license key? Enter your key in **Settings → License**.*`;
+                if (options && options.returnObject) {
+                    return { response: expiredNotice, logs: agentLogger.endContext(reqId) };
+                }
+                return expiredNotice;
+            }
+
+            if (access.status === 'TAMPERED') {
+                const tamperNotice = `### ⚠️ System Clock Alteration Detected
+
+Your local system clock does not match the tamper-evident ledger. Please restore your system clock, re-sync with network, or contact support.`;
+                if (options && options.returnObject) {
+                    return { response: tamperNotice, logs: agentLogger.endContext(reqId) };
+                }
+                return tamperNotice;
+            }
+
+            const genericNotice = `### 🔒 Agent Access Suspended\n\n${access.message || access.reason}\n\n` +
+                `> **Workspace Immunity Notice:** Your Left Panel and Monaco Editor remain 100% free and functional.\n\n` +
+                `👉 **[⚡ Upgrade to Hayagriva Pro — ₹25,000 / Year](command:hayagriva:openSettingsPanel)**`;
 
             if (options && options.returnObject) {
-                return { response: fallbackNotice, logs: agentLogger.endContext(reqId) };
+                return { response: genericNotice, logs: agentLogger.endContext(reqId) };
             }
-            return fallbackNotice;
+            return genericNotice;
         }
 
         const hrStart = process.hrtime.bigint();

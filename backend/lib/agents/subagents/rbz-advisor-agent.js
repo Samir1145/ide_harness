@@ -69,7 +69,8 @@ class RBZAdvisorAgent {
             totalInr: data.totalInr,
             payload: data.payload || {}
         };
-        res.suggestion = res;
+        const suggestionCopy = { ...res };
+        res.suggestion = suggestionCopy;
         return res;
     }
 
@@ -200,6 +201,49 @@ class RBZAdvisorAgent {
                 payload: {
                     query: 'IBC Section 7 Limitation Period and Section 18 Acknowledgment of Debt',
                     jurisdiction: 'NCLAT_SC'
+                }
+            });
+        }
+
+        // 6. Scenario D: Form A Public Announcement & Section 65 Collusive CIRP Inquest
+        // Detects Form A, Regulation 6 CIRP announcements, corporate debtor identification
+        const isFormAFile = fileName.includes('form_a') || fileName.includes('form a') || fileName.includes('public_announcement') || fileName.includes('public announcement');
+        const hasFormAText = snippetLower.includes('regulation 6') || snippetLower.includes('public announcement') || (snippetLower.includes('corporate insolvency resolution process') && (snippetLower.includes('form a') || snippetLower.includes('interim resolution professional') || snippetLower.includes('relevant particulars')));
+
+        if (isFormAFile || hasFormAText) {
+            let entityName = 'Corporate Debtor';
+            const cdMatch = contentSnippet.match(/(?:name of (?:the\s+)?corporate debtor|creditors of\s+m\/s\.?|creditors of)\s*[:\*\s|]+([A-Za-z0-9\s.,'()\-]+?)(?:\n|\*|\||$)/i);
+            if (cdMatch && cdMatch[1].trim().length > 3) {
+                entityName = cdMatch[1].trim().replace(/^\*+|\*+$/g, '').trim();
+            }
+
+            let cin = '';
+            const cinMatch = contentSnippet.match(/U[0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}/i);
+            if (cinMatch) {
+                cin = cinMatch[0].trim();
+            }
+
+            const targetKey = (cin || entityName).toLowerCase().trim();
+            if (this._dismissedEntities.has(targetKey)) {
+                return { shouldSuggest: false, reason: 'ENTITY_DISMISSED_FOR_SESSION', message: `Entity '${entityName}' was dismissed in this session` };
+            }
+
+            this._lastSuggestionTimestamp = now;
+            return this._formatSuggestion({
+                triggerType: 'FORM_A_CIRP_PUBLIC_ANNOUNCEMENT',
+                targetKey,
+                toolName: 'rbz_section_65_inquest',
+                title: '⚖️ Section 65 Collusive CIRP Inquest',
+                subtitle: `Audit Corporate Debtor: ${entityName}`,
+                description: 'Screen 21 IBBI forensic indicators, examine twilight board resignations, shell creditors, and prepare petition dismissal grounds (₹1 Crore penalty).',
+                rateInr: 2500.00,
+                gstInr: 450.00,
+                totalInr: 2950.00,
+                payload: {
+                    corporate_debtor: entityName,
+                    cin: cin,
+                    documentContext: fileName,
+                    inquest: 'SECTION_65_COLLUSIVE_CIRP'
                 }
             });
         }

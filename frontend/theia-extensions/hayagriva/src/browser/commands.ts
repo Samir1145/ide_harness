@@ -55,7 +55,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
   }
 
   private resolveUri(uri?: any): URI | undefined {
-    console.log('[HAYAGRIVA-CMD] resolveUri input:', typeof uri, uri ? JSON.stringify(uri) : 'null');
+    // Safely check input without risking circular structure JSON stringify crashes
     
     // Check if the input object is a valid URI
     if (uri && typeof uri === 'object' && ('path' in uri || 'scheme' in uri) && typeof uri.toString === 'function') {
@@ -157,67 +157,89 @@ export class HayagrivaCommandContribution implements CommandContribution {
       }}
     );
 
-    registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:openCompanionSideBySide`, label: '2. Review/Edit Markdown' },
-      {
-        execute: async (uri?: any) => {
-          const resourceUri = this.resolveUri(uri);
-          if (!resourceUri) {
-            this.logger.error('[HAYAGRIVA] No file selected to open companion');
-            return;
+    const handleOpenCompanionLivePreview = async (uri?: any) => {
+      const resourceUri = this.resolveUri(uri);
+      if (!resourceUri) {
+        this.logger.error('[HAYAGRIVA] No file selected to open companion');
+        return;
+      }
+
+      const originalPath = decodeURIComponent(resourceUri.path.toString());
+      const lowerPath = originalPath.toLowerCase();
+      const caseDir = this.getCasePath();
+      const rel = this.getRelativePath(resourceUri);
+      const status = this.treeDecorator.statusCache ? this.treeDecorator.statusCache[rel] : null;
+
+      let companionPath = '';
+      if (lowerPath.endsWith('.md') || lowerPath.endsWith('.markdown')) {
+        companionPath = originalPath;
+      } else if (status?.files?.companion?.path) {
+        companionPath = status.files.companion.path.startsWith('/')
+          ? status.files.companion.path
+          : `${caseDir}/${status.files.companion.path}`;
+      } else {
+        const basename = getBasename(originalPath).replace(/\.[a-zA-Z0-9]+$/, '');
+        const caseName = caseDir.split(/[\\/]/).pop() || '';
+        const subfolder = rel.includes('/') || rel.includes('\\') ? rel.substring(0, Math.max(rel.lastIndexOf('/'), rel.lastIndexOf('\\'))) : '';
+        companionPath = subfolder
+          ? `${caseDir}/${caseName}_conversions_haya/${subfolder}/${basename}.md`
+          : `${caseDir}/${caseName}_conversions_haya/${basename}.md`;
+      }
+
+      const companionUri = new URI(companionPath.startsWith('file://') ? companionPath : `file://${companionPath}`);
+      const caseName = this.getCasePath();
+      const apiPort = this.contribution.getApiPort();
+
+      // Self-Healing check: If companion .md is missing, trigger Phase 1 conversion automatically!
+      try {
+        const hasCompanion = status?.files?.companion?.exists === true || status?.dot1 === 'companion_ready';
+        if (!hasCompanion && !lowerPath.endsWith('.md') && !lowerPath.endsWith('.markdown')) {
+          this.logger.info(`[HAYAGRIVA] Companion .md missing for ${getBasename(originalPath)}. Triggering Phase 1 conversion...`);
+          const convertRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/convert-to-md`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case: caseName, file: originalPath })
+          });
+          const convertResult = await convertRes.json();
+          if (convertResult.success) {
+            await this.treeDecorator.refreshStatuses();
           }
-
-          const originalPath = resourceUri.path.toString();
-          const lowerPath = originalPath.toLowerCase();
-          if (!lowerPath.endsWith('.docx') && !lowerPath.endsWith('.doc') &&
-              !lowerPath.endsWith('.xlsx') && !lowerPath.endsWith('.xls') &&
-              !lowerPath.endsWith('.pdf') && !lowerPath.endsWith('.wiki.html')) {
-            this.logger.warn('[HAYAGRIVA] Open Companion Side-by-Side only supported for DOCX, XLSX, PDF, and Wiki');
-            return;
-          }
-
-          const caseDir = this.getCasePath();
-          const rel = this.getRelativePath(resourceUri);
-          const status = this.treeDecorator.statusCache[rel];
-          const subfolder = rel.includes('/') || rel.includes('\\') ? rel.substring(0, Math.max(rel.lastIndexOf('/'), rel.lastIndexOf('\\'))) : '';
-          const basename = getBasename(originalPath).replace(/\.[a-zA-Z0-9]+$/, '');
-          const conversionsSub = subfolder ? `conversions/${subfolder}` : 'conversions';
-          let companionPath = status?.files?.companion?.path ? `${caseDir}/${status.files.companion.path}` : `${caseDir}/${conversionsSub}/${basename}.md`;
-          const companionUri = resourceUri.withPath(companionPath);
-          const caseName = this.getCasePath();
-          const apiPort = this.contribution.getApiPort();
-
-          // Self-Healing check: If companion .md is missing, trigger Phase 1 conversion automatically!
-          try {
-            const hasCompanion = status?.files?.companion?.exists === true || status?.dot1 === 'companion_ready';
-            if (!hasCompanion) {
-              this.logger.info(`[HAYAGRIVA] Companion .md missing for ${getBasename(originalPath)}. Triggering Phase 1 conversion...`);
-              const convertRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/convert-to-md`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ case: caseName, file: originalPath })
-              });
-              const convertResult = await convertRes.json();
-              if (convertResult.success) {
-                await this.treeDecorator.refreshStatuses();
-              }
-            }
-          } catch (e: any) {
-            console.warn('[HAYAGRIVA] Companion self-healing check failed:', e.message);
-          }
-
-          // Open original file/preview first
-          await this.contribution.open(resourceUri);
-          // Split open the companion Markdown file to the right side
-          await this.editorManager.openToSide(companionUri);
-        },
-        isEnabled: (uri?: URI) => {
-          const resolved = this.resolveUri(uri);
-          if (!resolved) return false;
-          const lower = resolved.path.toString().toLowerCase();
-          const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.wiki.html'];
-          return validExts.some(ext => lower.endsWith(ext));
         }
+      } catch (e: any) {
+        console.warn('[HAYAGRIVA] Companion self-healing check failed:', e.message);
+      }
+
+      // 1. Close source PDF/Office viewers so the user has full focus on authoring
+      this.contribution.closeOtherDocumentViewers();
+
+      // 2. Open companion Markdown file in Monaco Editor on the Left
+      await this.editorManager.open(companionUri, { mode: 'open' });
+
+      // 3. Open Live Rendered Markdown Preview in the Right split
+      await this.contribution.openLiveMarkdownPreview(companionPath, caseName);
+    };
+
+    const isCompanionApplicable = (uri?: any) => {
+      const resolved = this.resolveUri(uri);
+      if (!resolved) return false;
+      const lower = resolved.path.toString().toLowerCase();
+      const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.tsv', '.md', '.markdown', '.txt', '.wiki.html'];
+      return validExts.some(ext => lower.endsWith(ext));
+    };
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCompanionWithLivePreview`, label: '🟢 1. Review Companion (Edit & Live Preview)' },
+      {
+        execute: handleOpenCompanionLivePreview,
+        isEnabled: isCompanionApplicable
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCompanionSideBySide`, label: 'Edit Companion (with Live Preview)' },
+      {
+        execute: handleOpenCompanionLivePreview,
+        isEnabled: isCompanionApplicable
       }
     );
 
@@ -704,12 +726,14 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error(`[HAYAGRIVA] Delete failed: ${e.message}`);
           }
         },
-        isEnabled: (uri?: URI) => {
+        isEnabled: (uri?: any) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return false;
           const lower = resolved.path.toString().toLowerCase();
           return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc')
-              || lower.endsWith('.xlsx') || lower.endsWith('.xls');
+              || lower.endsWith('.xlsx') || lower.endsWith('.xls') || lower.endsWith('.csv')
+              || lower.endsWith('.tsv') || lower.endsWith('.md') || lower.endsWith('.txt')
+              || lower.endsWith('.wiki.html');
         },
         isVisible: () => true
       }
@@ -1244,6 +1268,26 @@ export class HayagrivaCommandContribution implements CommandContribution {
           }
 
           const caseName = this.getCasePath();
+
+          // Self-Healing check: If companion .md is missing, trigger Phase 1 conversion automatically!
+          try {
+            const hasCompanion = status?.files?.companion?.exists === true || status?.dot1 === 'companion_ready';
+            if (!hasCompanion && !lower.endsWith('.md') && !lower.endsWith('.markdown')) {
+              const apiPort = this.contribution.getApiPort();
+              const convertRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/convert-to-md`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ case: caseName, file: originalPath })
+              });
+              const convertResult = await convertRes.json();
+              if (convertResult.success) {
+                await this.treeDecorator.refreshStatuses();
+              }
+            }
+          } catch (e: any) {
+            console.warn('[HAYAGRIVA] Companion self-healing check failed:', e.message);
+          }
+
           await this.contribution.openOfficePreview(companionPath, caseName);
         },
         isEnabled: (uri?: any) => {
@@ -1278,6 +1322,29 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}.license.startTrial`, label: 'Hayagriva: Start 7-Day Free Agent Trial' },
+      {
+        execute: async () => {
+          const apiPort = 3210;
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/license/start-trial`, {
+              method: 'POST'
+            });
+            const data = await res.json();
+            if (data.success) {
+              this.messageService.info('⚡ 7-Day Free Trial activated! @Advisor, @Forms, and @Document agents are unlocked.');
+            } else {
+              this.messageService.warn(data.error || 'Trial already consumed. Open Settings to subscribe.');
+              await this.contribution.openSettingsPanel();
+            }
+          } catch (err: any) {
+            this.messageService.error(`Failed to start trial: ${err.message}`);
+          }
+        }
+      }
+    );
+
+    registry.registerCommand(
       { id: `${HAYAGRIVA_NS}.license.activate`, label: 'Hayagriva: Enter Agentic License Key' },
       {
         execute: async () => {
@@ -1304,6 +1371,26 @@ export class HayagrivaCommandContribution implements CommandContribution {
           } catch (err: any) {
             this.messageService.error(`Failed to activate license: ${err.message}`);
           }
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:showIngestionHelp`, label: 'Hayagriva: Document Ingestion & Pipeline Guide' },
+      {
+        execute: async () => {
+          const caseName = this.getCasePath();
+          await this.contribution.openIngestionHelpPanel(caseName);
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:showMonacoVaultsHelp`, label: 'Hayagriva: Monaco Vaults & Drafting Shortcuts Guide' },
+      {
+        execute: async () => {
+          const caseName = this.getCasePath();
+          await this.contribution.openMonacoVaultsHelpPanel(caseName);
         }
       }
     );

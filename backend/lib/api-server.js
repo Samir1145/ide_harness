@@ -27,12 +27,18 @@ function startApiServer(docsRoot, port = 3210) {
             try {
                 await methodRoutes[pathname](req, res, parsedUrl, docsRoot);
             } catch (e) {
-                console.error(`[API Server] Error handling ${method} ${pathname}:`, e.stack);
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: e.message }));
+                console.error(`[API Server] Error handling ${method} ${pathname}:`, e.stack || e);
+                if (!res.headersSent) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                } else {
+                    res.end();
+                }
             }
         } else {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
+            if (!res.headersSent) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+            }
             res.end(JSON.stringify({ error: `Not found: ${method} ${pathname}` }));
         }
     });

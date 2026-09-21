@@ -427,6 +427,14 @@ async function runWatchAll(docsRoot) {
     });
 }
 
+process.on('uncaughtException', (err) => {
+    console.error('[Hayagriva Daemon] Uncaught exception safely handled:', err && (err.stack || err.message || err));
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[Hayagriva Daemon] Unhandled rejection safely handled:', reason);
+});
+
 main().catch(err => {
     console.error(err);
     process.exit(1);

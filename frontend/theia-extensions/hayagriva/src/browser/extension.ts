@@ -16,10 +16,13 @@ import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service
 import { EditorManager } from '@theia/editor/lib/browser';
 import { WidgetManager } from '@theia/core/lib/browser/widget-manager';
 import URI from '@theia/core/lib/common/uri';
+import { MenuModelRegistry } from '@theia/core/lib/common/menu';
+import { MonacoWorkspace } from '@theia/monaco/lib/browser/monaco-workspace';
 import { HayagrivaEditorDecorator } from './highlight-decorator';
 import { HayagrivaLspClient } from './lsp-client';
 import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
+import { pruneNavigatorContextMenu } from './menus';
 
 const { wikiExplorerHtml, conceptsExplorerHtml, inboxExplorerHtml, billingExplorerHtml } = require('./templates');
 
@@ -73,6 +76,8 @@ export class HayagrivaFrontendContribution
     @inject(HayagrivaLspClient) protected readonly lspClient: HayagrivaLspClient,
     @inject(HayagrivaMonacoProviders) protected readonly monacoProviders: HayagrivaMonacoProviders,
     @inject(HayagrivaPreviewManager) protected readonly previewManager: HayagrivaPreviewManager,
+    @inject(MenuModelRegistry) protected readonly menuRegistry: MenuModelRegistry,
+    @inject(MonacoWorkspace) protected readonly monacoWorkspace: MonacoWorkspace,
     @inject(ILogger) protected readonly logger: ILogger
   ) {}
 
@@ -157,6 +162,26 @@ export class HayagrivaFrontendContribution
       this.preferenceService.set('editor.quickSuggestions', { other: true, comments: true, strings: true });
     } catch (_) {}
 
+    // Prune generic developer clutter from Explorer context menu
+    try {
+      pruneNavigatorContextMenu(this.menuRegistry);
+      setTimeout(() => pruneNavigatorContextMenu(this.menuRegistry), 500);
+    } catch (_) {}
+
+    // Live auto-refresh of Markdown previews when saving .md files
+    try {
+      this.monacoWorkspace.onDidSaveTextDocument(model => {
+        try {
+          const filePath = decodeURIComponent(new URI(model.uri).path.toString());
+          if (filePath.endsWith('.md') || filePath.endsWith('.markdown')) {
+            this.previewManager.refreshPreview(filePath);
+          }
+        } catch (err: any) {
+          this.logger.warn(`[Hayagriva] Failed to refresh preview on save: ${err.message}`);
+        }
+      });
+    } catch (_) {}
+
     this.initializeWikiExplorerWidget();
     this.initializeConceptsExplorerWidget();
     this.initializeInboxExplorerWidget();
@@ -233,11 +258,30 @@ export class HayagrivaFrontendContribution
       icon: 'fa fa-link',
       priority: 5
     });
+    registry.registerItem({
+      id: 'hayagriva-md-live-preview-toolbar-item',
+      command: 'hayagriva:openCompanionWithLivePreview',
+      tooltip: 'Open Live Markdown Preview to the Side',
+      icon: 'fa fa-columns',
+      priority: 0
+    });
   }
 
   // ── Delegated Preview Operations ───────────────────────────────────────────
   async openOfficePreview(filePath: string, caseName: string): Promise<Widget> {
     return this.previewManager.openOfficePreview(filePath, caseName);
+  }
+
+  async openLiveMarkdownPreview(filePath: string, caseName: string): Promise<Widget> {
+    return this.previewManager.openLiveMarkdownPreview(filePath, caseName);
+  }
+
+  refreshPreview(filePath: string): void {
+    this.previewManager.refreshPreview(filePath);
+  }
+
+  closeOtherDocumentViewers(activeId?: string): void {
+    this.previewManager.closeOtherDocumentViewers(activeId);
   }
 
   async openWikiHtmlViewer(filePath: string, caseName: string): Promise<Widget> {
@@ -277,6 +321,16 @@ export class HayagrivaFrontendContribution
 
   async openCitationSideBySide(docName: string, pageNum: number): Promise<void> {
     return this.previewManager.openCitationSideBySide(docName, pageNum);
+  }
+
+  async openIngestionHelpPanel(caseName?: string): Promise<Widget> {
+    const targetCase = caseName || this.getActiveCaseName();
+    return this.previewManager.openIngestionHelpPanel(targetCase);
+  }
+
+  async openMonacoVaultsHelpPanel(caseName?: string): Promise<Widget> {
+    const targetCase = caseName || this.getActiveCaseName();
+    return this.previewManager.openMonacoVaultsHelpPanel(targetCase);
   }
 
   toggleTheme(): void {
@@ -784,44 +838,48 @@ export class HayagrivaFrontendContribution
           const licRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/license/status?case=${encodeURIComponent(caseName)}`);
           if (licRes.ok) {
             const licData = await licRes.json();
-            const access = licData.access || {};
-            const isKycDone = Boolean(licData.initial_kyc_completed || (licData.tri_tier && licData.tri_tier.initial_kyc_completed));
+            const isSubscribed = Boolean(licData.is_subscribed || (licData.tri_tier && licData.tri_tier.is_subscribed));
+            const inTrial = Boolean(licData.in_trial || (licData.tri_tier && licData.tri_tier.in_trial));
+            const trialExpired = Boolean(licData.trial_expired || (licData.tri_tier && licData.tri_tier.trial_expired));
             const stage2Local = licData.stage2_local || (licData.tri_tier && licData.tri_tier.stage2_local) || {};
-            const daysRem = stage2Local.days_remaining !== undefined ? stage2Local.days_remaining : (licData.daysRemaining || 0);
+            const daysRem = licData.trial_days_remaining || (licData.tri_tier && licData.tri_tier.trial_days_remaining) || (stage2Local.days_remaining || 0);
 
-            if (!isKycDone) {
+            if (isSubscribed) {
               this.statusBar.setElement('hayagriva-license-item', {
-                text: `$(fa-lock) Activate Core (₹1)`,
+                text: `$(fa-shield) Pro Active`,
                 alignment: StatusBarAlignment.LEFT,
-                color: '#ef4444',
-                tooltip: 'Initial ₹1 token KYC verification required. Click to activate Stage 1 (Lifetime DMS) + Stage 2 (90-Day Full AI Pilot).',
+                color: '#10b981',
+                tooltip: 'Hayagriva Pro Active: Autonomous Agents + Continuous Model & Statutory Updates.',
                 priority: 140,
                 onclick: () => this.commandRegistry.executeCommand('hayagriva.license.activate')
               });
-              if (!this.hasSmartLaunchedSettings) {
-                this.hasSmartLaunchedSettings = true;
-                setTimeout(() => {
-                  this.openSettingsPanel().catch(err => this.logger.warn(`[Hayagriva] Auto-launch activation failed: ${err.message}`));
-                }, 400);
-              }
-            } else if (!stage2Local.allowed) {
-              const icon = access.status === 'TAMPERED' ? '$(fa-warning)' : '$(fa-clock-o)';
-              const label = access.status === 'TAMPERED' ? 'Clock Altered' : 'Stage 2 Sub Due';
+            } else if (inTrial) {
               this.statusBar.setElement('hayagriva-license-item', {
-                text: `${icon} Local AI: ${label}`,
+                text: `$(fa-clock-o) Pro Trial: ${daysRem}d left`,
+                alignment: StatusBarAlignment.LEFT,
+                color: '#38bdf8',
+                tooltip: `Hayagriva Pro 7-Day Trial Active (${daysRem} days remaining). Full autonomous drafting unlocked.`,
+                priority: 140,
+                onclick: () => this.commandRegistry.executeCommand('hayagriva:openSettingsPanel')
+              });
+            } else if (trialExpired) {
+              this.statusBar.setElement('hayagriva-license-item', {
+                text: `$(fa-lock) Unlock Pro (₹25k/yr)`,
                 alignment: StatusBarAlignment.LEFT,
                 color: '#f59e0b',
-                tooltip: 'Stage 1 DMS is lifetime active. Stage 3 Global Agents (@Precedent, @Forensic) are always available. Click to renew Stage 2 local AI.',
+                tooltip: '7-Day Free Trial Concluded. Click to subscribe to Hayagriva Pro (₹25,000/year) to unlock autonomous agents.',
                 priority: 140,
-                onclick: () => this.commandRegistry.executeCommand('hayagriva.license.activate')
+                onclick: () => this.commandRegistry.executeCommand('hayagriva:openSettingsPanel')
               });
             } else {
+              // Trial available, workbench free
               this.statusBar.setElement('hayagriva-license-item', {
-                text: `$(fa-shield) Local AI: ${daysRem}d`,
+                text: `$(fa-check-circle) Hayagriva Core (Free)`,
                 alignment: StatusBarAlignment.LEFT,
-                tooltip: `Tri-Tier Hybrid: Stage 1 Lifetime DMS Active | Stage 2 Local AI Pilot (${daysRem} days remaining) | Stage 3 Pay-Per-Use Precedents Always On.`,
+                color: '#10b981',
+                tooltip: 'Free Legal Workbench: Document Ingestion, PDF OCR, FTS5 Search & Monaco Editor are 100% Free Forever. Click to explore Hayagriva Pro.',
                 priority: 140,
-                onclick: () => this.commandRegistry.executeCommand('hayagriva.license.activate')
+                onclick: () => this.commandRegistry.executeCommand('hayagriva:openSettingsPanel')
               });
             }
           }
