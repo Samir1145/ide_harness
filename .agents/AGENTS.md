@@ -264,9 +264,7 @@ Refer to the following plans saved in the workspace:
   * **DNS & Nameserver Status (`lexai.in`)**:
     * Namecheap nameservers (`dns1.registrar-servers.com`, `dns2.registrar-servers.com`) being migrated to Cloudflare (`desiree.ns.cloudflare.com`, `jihoon.ns.cloudflare.com`).
     * Preserved `www.lexai.in` (`ghs.googlehosted.com`) and google-site-verification in Cloudflare DNS to ensure main website remains unaffected.
-  * **Resumption Protocol (Tomorrow)**:
-    1. Verify `lexai.in` zone is active in Cloudflare and old Namecheap NS (`dns1`, `dns2`) are fully purged.
-    2. Start RBZ Server (`node backend/lib/agents/rbz-server/server.js 4001`) and Tunnel (`./start_rbz_tunnel.command`).
-    3. Test `curl -i https://api.lexai.in/health` for HTTP 200.
-    4. Set `https://api.lexai.in` as default in `related-party-agent.js` and `lightrag-client.js`.
+* **Brand vs. Tech Nomenclature Alignment**:
+  * **Technology Architecture (`lexai`)**: All codebase repositories (`LEXAI/server`, `LEXAI/api`, `LEXAI/datasets`, `LEXAI/matters`), CLI tools, API endpoints, microservices, and network ingress (`https://api.lexai.in`) use **`lexai`**.
+  * **Commercial Brand Identity (`Resolution Bazaar` / `RBZ`)**: The customer-facing brand name used on public websites, marketing copy, and domain recognition for Insolvency Professionals and banks. Think: *"Resolution Bazaar — Powered by LEXAI"*.
 

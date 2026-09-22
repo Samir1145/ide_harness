@@ -22,7 +22,11 @@ function startApiServer(docsRoot, port = 3210) {
         const pathname = parsedUrl.pathname;
         const method = req.method;
 
-        const methodRoutes = routes[method];
+        try {
+            delete require.cache[require.resolve('./routes')];
+        } catch (_) {}
+        const dynamicRoutes = require('./routes');
+        const methodRoutes = dynamicRoutes[method];
         if (methodRoutes && methodRoutes[pathname]) {
             try {
                 await methodRoutes[pathname](req, res, parsedUrl, docsRoot);
@@ -35,6 +39,7 @@ function startApiServer(docsRoot, port = 3210) {
                     res.end();
                 }
             }
+            return;
         } else {
             if (!res.headersSent) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });

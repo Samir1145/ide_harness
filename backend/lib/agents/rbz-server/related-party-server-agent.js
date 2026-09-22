@@ -12,14 +12,37 @@
 
 const crypto = require('crypto');
 const { entityCache } = require('./entity-cache');
+const path = require('path');
+const os = require('os');
 const { taskQueue } = require('./task-queue');
 
 let pool = null;
-try {
-    pool = require('/Users/atulgrover/Desktop/rbz_portal/dashman/dashboard/lib/db');
-} catch (_) {
+const dbModuleCandidates = [
+    path.join(os.homedir(), 'Desktop', 'LEXAI', 'server', 'dashman', 'dashboard', 'lib', 'db'),
+    path.join(os.homedir(), 'Desktop', 'rbz_portal', 'dashman', 'dashboard', 'lib', 'db')
+];
+
+for (const dbPath of dbModuleCandidates) {
     try {
-        const { Pool } = require('/Users/atulgrover/Desktop/rbz_portal/dashman/node_modules/pg');
+        pool = require(dbPath);
+        if (pool) break;
+    } catch (_) {}
+}
+
+if (!pool) {
+    try {
+        let pgModule = null;
+        const pgCandidates = [
+            path.join(os.homedir(), 'Desktop', 'LEXAI', 'server', 'dashman', 'node_modules', 'pg'),
+            path.join(os.homedir(), 'Desktop', 'rbz_portal', 'dashman', 'node_modules', 'pg')
+        ];
+        for (const pgPath of pgCandidates) {
+            try {
+                pgModule = require(pgPath);
+                if (pgModule) break;
+            } catch (_) {}
+        }
+        const { Pool } = pgModule || require('pg');
         pool = new Pool({
             host: 'localhost',
             port: 5432,

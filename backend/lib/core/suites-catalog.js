@@ -9,12 +9,22 @@ const { getLicenseStatus } = require('./license-manager');
  * Resolves the agent packs directory dynamically.
  */
 function getPacksDirectory() {
-    const home = process.env.HOME || process.env.USERPROFILE || '.';
-    const desktopPacks = path.join(home, 'Desktop', 'ide_agents', 'packs');
-    if (fs.existsSync(desktopPacks)) {
-        return desktopPacks;
+    if (process.env.HAYAGRIVA_AGENTS_PATH && fs.existsSync(process.env.HAYAGRIVA_AGENTS_PATH)) {
+        return process.env.HAYAGRIVA_AGENTS_PATH;
     }
-    return path.join(__dirname, '..', '..', '..', 'ide_agents', 'packs');
+    const home = process.env.HOME || process.env.USERPROFILE || '.';
+    const candidates = [
+        path.join(home, 'Desktop', 'HAYAGRIVA', 'agents', 'packs'),
+        path.join(__dirname, '..', '..', '..', '..', 'agents', 'packs'),
+        path.join(home, 'Desktop', 'ide_agents', 'packs'),
+        path.join(__dirname, '..', '..', '..', 'ide_agents', 'packs')
+    ];
+    for (const cand of candidates) {
+        if (fs.existsSync(cand)) {
+            return cand;
+        }
+    }
+    return path.join(home, 'Desktop', 'HAYAGRIVA', 'agents', 'packs');
 }
 
 /**

@@ -643,6 +643,83 @@
       visibility: visible;
       opacity: 1;
     }
+
+    /* ── Cockpit Tabs & Panels ─────────────────────────────────────────── */
+    .cockpit-nav-container {
+      margin-bottom: 24px;
+    }
+    .cockpit-nav-pills {
+      display: flex;
+      gap: 8px;
+      background: var(--surface-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      flex-wrap: wrap;
+    }
+    .cockpit-pill {
+      flex: 1;
+      min-width: 140px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .cockpit-pill:hover {
+      background: var(--card-bg-active);
+      color: var(--text-main);
+    }
+    .cockpit-pill.active {
+      background: var(--card-bg);
+      color: var(--accent-cyan);
+      border-color: var(--card-border-focus);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    .pill-counter {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 12px;
+      background: var(--badge-bg);
+      color: var(--text-muted);
+    }
+    .pill-counter.counter-amber {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .pill-counter.counter-emerald {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .pill-counter.counter-alert {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    .cockpit-tab-panel {
+      display: none;
+      animation: fadeInPanel 0.2s ease-in-out;
+    }
+    .cockpit-tab-panel.active {
+      display: block;
+    }
+    @keyframes fadeInPanel {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -680,6 +757,9 @@
         </div>
 
         <button class="btn-theme" id="btnThemeToggle" title="Toggle Theme">🌓</button>
+        <button class="btn-header" id="btnNewCaseModal" onclick="openNewCaseModal()" style="background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #0369a1; color: #fff; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+          <span style="font-size: 13px;">➕</span> New Matter / CIRP Estate
+        </button>
         <button class="btn-header btn-primary" id="btnSaveAll">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Save Changes
@@ -703,6 +783,345 @@
       </button>
     </div>
 
+    <!-- ── Cockpit Mission Control Navigation Tabs ── -->
+    <div class="cockpit-nav-container">
+      <div class="cockpit-nav-pills">
+        <button class="cockpit-pill active" id="pillHil" onclick="switchCockpitTab('hil')">
+          <span class="pill-icon">🛡️</span>
+          <span class="pill-label">HIL Approvals</span>
+          <span class="pill-counter" id="pillHilCount">0</span>
+        </button>
+        <button class="cockpit-pill" id="pillBilling" onclick="switchCockpitTab('billing')">
+          <span class="pill-icon">💳</span>
+          <span class="pill-label">CIRP Diligence Ledger</span>
+          <span class="pill-counter counter-amber" id="pillBillingDue">₹0.00</span>
+        </button>
+        <button class="cockpit-pill" id="pillTelemetry" onclick="switchCockpitTab('telemetry')">
+          <span class="pill-icon">📈</span>
+          <span class="pill-label">Local Telemetry</span>
+          <span class="pill-counter counter-emerald" id="pillTelemetryTokens">0 tok</span>
+        </button>
+        <button class="cockpit-pill" id="pillSettings" onclick="switchCockpitTab('settings')">
+          <span class="pill-icon">⚙️</span>
+          <span class="pill-label">AI Engines &amp; Routing</span>
+        </button>
+        <button class="cockpit-pill" id="pillLicense" onclick="switchCockpitTab('license')">
+          <span class="pill-icon">🔑</span>
+          <span class="pill-label">Identity &amp; Licensing</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB PANEL 1: 🛡️ HUMAN-IN-THE-LOOP (HIL) STATUTORY GATEKEEPER            -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cockpit-tab-panel active" id="tabPanelHil">
+      <div class="pillar-header" style="margin-bottom: 20px;">
+        <div class="pillar-title-wrap">
+          <div class="pillar-num" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">🛡️</div>
+          <div>
+            <h2 class="pillar-title">Human-In-The-Loop (HIL) Statutory Gatekeeper</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Autonomous research tasks, MCA/e-Court sweeps, and agent dispatches staged for IP sign-off. Zero external calls or charges occur without explicit authorization.
+            </p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="card-badge badge-warn" id="badgeHilSummaryCount">0 Pending Sign-offs</span>
+          <button class="btn-header btn-outline" onclick="loadHilQueue()" style="padding: 4px 10px; font-size: 11px;">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- HIL Sub-panel A: Cloud MCP Outbound Requests -->
+      <div class="card" style="margin-bottom: 20px; border-color: rgba(56, 189, 248, 0.3);">
+        <div class="card-top">
+          <div class="card-icon-title">
+            <span class="card-icon">📤</span>
+            <span class="card-title">Pending Cloud Dispatches (@Precedent / @Forensic)</span>
+          </div>
+          <span class="card-badge badge-warn" id="badgePendingQueueCount">0 Pending Authorizations</span>
+        </div>
+        <p class="card-body-text" style="margin-bottom: 12px;">
+          Pay-per-use tasks staged by coworkers. Click <strong>Authorize</strong> to dispatch or <strong>Inspect</strong> to view the JSON payload before sign-off.
+        </p>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                <th style="padding: 8px 10px;">Task ID</th>
+                <th style="padding: 8px 10px;">Service / Tool</th>
+                <th style="padding: 8px 10px;">Subject / Target</th>
+                <th style="padding: 8px 10px;">Estimated Fee</th>
+                <th style="padding: 8px 10px;">Payload</th>
+                <th style="padding: 8px 10px; text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyPendingQueue">
+              <tr><td colspan="6" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No pending cloud dispatches. Stage tasks via @Precedent or @Forensic.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HIL Sub-panel B: Agent Action Inbox & Clarifications -->
+      <div class="card" style="border-color: rgba(168, 85, 247, 0.3);">
+        <div class="card-top">
+          <div class="card-icon-title">
+            <span class="card-icon">📥</span>
+            <span class="card-title">Agent Inquests &amp; Strategy Approvals</span>
+          </div>
+          <span class="card-badge" id="badgeInboxCount">0 Inquests</span>
+        </div>
+        <p class="card-body-text" style="margin-bottom: 12px;">
+          Clarification requests, procedural questions, and draft strategy plans requiring practitioner confirmation.
+        </p>
+        <div id="inboxContainer" style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="text-align: center; padding: 24px; color: var(--text-subtle); font-size: 12px;">
+            No pending agent clarifications for this matter.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB PANEL 2: 💳 CIRP EXPENSE LEDGER & DILIGENCE VOUCHERS                -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cockpit-tab-panel" id="tabPanelBilling">
+      <div class="pillar-header" style="margin-bottom: 16px;">
+        <div class="pillar-title-wrap">
+          <div class="pillar-num" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald);">💳</div>
+          <div>
+            <h2 class="pillar-title">CIRP Expense Ledger &amp; Diligence Vouchers</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Statutory reimbursement schedule and cryptographic proof-of-work for Committee of Creditors (CoC) audit and NCLT approval under the IBC.
+            </p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="card-badge badge-success" id="badgeLedgerIntegrity">⛓️ SHA-256 Verified</span>
+          <button class="btn-header btn-outline" onclick="loadCaseLedgerUI()" style="padding: 4px 10px; font-size: 11px;">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Financial Accrual Grid -->
+      <div class="balance-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;">
+        <div class="card" style="border-color: rgba(56, 189, 248, 0.4); background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">TOTAL ACCRUED DUE</div>
+          <div style="font-size: 28px; font-weight: 800; color: var(--accent-cyan); margin: 6px 0;" id="billingTotalDue">₹0.00</div>
+          <div style="font-size: 11px; color: var(--text-subtle);" id="billingSubtotalBreakdown">Subtotal: ₹0.00 | GST (18%): ₹0.00</div>
+        </div>
+
+        <div class="card" style="border-color: rgba(16, 185, 129, 0.3);">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">LOCAL COMPUTE TIER</div>
+          <div style="font-size: 28px; font-weight: 800; color: var(--accent-emerald); margin: 6px 0;">₹0.00</div>
+          <div style="font-size: 11px; color: var(--accent-emerald);">✓ Included Free (InLegal-SBERT &amp; MiniLM)</div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+          <button class="btn-header btn-primary" onclick="openPaymentModal()" style="width: 100%; justify-content: center; background: var(--accent-blue);">
+            💳 Pay on Resolution Bazaar
+          </button>
+          <button class="btn-header btn-outline" onclick="showToast('CoC schedule generated from case_billing.db')" style="width: 100%; justify-content: center; font-size: 11px;">
+            📄 Export CoC Schedule (PDF)
+          </button>
+        </div>
+      </div>
+
+      <!-- Executed Tasks Table with Voucher inspection -->
+      <div class="card" style="margin-bottom: 20px; border-color: rgba(56, 189, 248, 0.2);">
+        <div class="card-top">
+          <div class="card-icon-title">
+            <span class="card-icon">📋</span>
+            <span class="card-title">Executed Diligence Tasks &amp; Proof of Work</span>
+          </div>
+          <span class="card-badge" id="badgeExecutedCount">0 Tasks</span>
+        </div>
+        <p class="card-body-text" style="margin-bottom: 12px;">
+          Every completed intelligence task receives a SHA-256 cryptographic receipt and live audit voucher linking directly to Langfuse Cloud traces.
+        </p>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                <th style="padding: 8px 10px;">Task ID</th>
+                <th style="padding: 8px 10px;">Diligence Task Title</th>
+                <th style="padding: 8px 10px;">Fee (INR)</th>
+                <th style="padding: 8px 10px;">Payment Status</th>
+                <th style="padding: 8px 10px;">Cryptographic Hash</th>
+                <th style="padding: 8px 10px; text-align: right;">Audit Voucher</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyExecutedTasks">
+              <tr><td colspan="6" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No executed diligence tasks in this case ledger.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tax Invoices & Delivered Reports -->
+      <div class="card" style="margin-bottom: 20px; border-color: rgba(16, 185, 129, 0.3);">
+        <div class="card-top">
+          <div class="card-icon-title">
+            <span class="card-icon">🧾</span>
+            <span class="card-title">CIRP Diligence Ledger &amp; Tax Invoices (1-to-1 Matched)</span>
+          </div>
+          <span class="card-badge badge-success" id="badgeReceiptsCount">0 Invoices</span>
+        </div>
+        <p class="card-body-text" style="margin-bottom: 12px;">
+          Admissible proof of work and reimbursable insolvency resolution process costs (IRPC) for Committee of Creditors (CoC) audit.
+        </p>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                <th style="padding: 8px 10px;">Invoice No</th>
+                <th style="padding: 8px 10px;">Delivered Report</th>
+                <th style="padding: 8px 10px;">Razorpay Payment ID</th>
+                <th style="padding: 8px 10px;">Amount Paid</th>
+                <th style="padding: 8px 10px;">Date &amp; Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyReceiptsLedger">
+              <tr><td colspan="5" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No paid reports in current case ledger.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Statutory Rate Card -->
+      <div class="card">
+        <div class="card-top">
+          <div class="card-icon-title">
+            <span class="card-icon">🏷️</span>
+            <span class="card-title">Statutory CIRP Intelligence Rate Card</span>
+          </div>
+          <span class="card-badge">Transparent Tariff</span>
+        </div>
+        <p class="card-body-text" style="margin-bottom: 12px;">
+          Standard tariffs for external intelligence tools approved for CIRP cost recovery. Local tasks remain included at ₹0.00.
+        </p>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                <th style="padding: 8px 10px;">Service / Tool</th>
+                <th style="padding: 8px 10px;">Operation Description</th>
+                <th style="padding: 8px 10px;">Compute Tier</th>
+                <th style="padding: 8px 10px; text-align: right;">Tariff (INR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--card-border);">
+                <td style="padding: 8px 10px; font-weight: 600;">@Precedent Search</td>
+                <td style="padding: 8px 10px;">NCLAT, NCLT &amp; Supreme Court case law precedent extraction</td>
+                <td style="padding: 8px 10px;"><span class="card-badge" style="font-size: 10px;">Cloud Sovereign</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700;">₹250.00</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--card-border);">
+                <td style="padding: 8px 10px; font-weight: 600;">@Forensic Sec 29A Inquest</td>
+                <td style="padding: 8px 10px;">Resolution Applicant DIN, disqualification &amp; willful defaulter check</td>
+                <td style="padding: 8px 10px;"><span class="card-badge" style="font-size: 10px;">Cloud Sovereign</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700;">₹350.00</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--card-border);">
+                <td style="padding: 8px 10px; font-weight: 600;">@Corporate MCA Sweep</td>
+                <td style="padding: 8px 10px;">Company Master Data, signatory details &amp; charges verification</td>
+                <td style="padding: 8px 10px;"><span class="card-badge" style="font-size: 10px;">Cloud Sovereign</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700;">₹150.00</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 10px; font-weight: 600;">Local Ingestion &amp; Search</td>
+                <td style="padding: 8px 10px;">On-device InLegal-SBERT embeddings and MiniLM reranking</td>
+                <td style="padding: 8px 10px;"><span class="card-badge badge-success" style="font-size: 10px;">On-Device CPU</span></td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: var(--accent-emerald);">₹0.00 (Free)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB PANEL 3: 📈 LOCAL OBSERVABILITY & NEURAL TELEMETRY                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cockpit-tab-panel" id="tabPanelTelemetry">
+      <div class="pillar-header" style="margin-bottom: 16px;">
+        <div class="pillar-title-wrap">
+          <div class="pillar-num" style="background: rgba(14, 165, 233, 0.15); color: var(--accent-cyan);">📈</div>
+          <div>
+            <h2 class="pillar-title">On-Device Neural Observability &amp; Local Telemetry</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Comprehensive auditing of local on-device compute tokens, embedding batches, and reranking latencies. 100% data residency with zero cloud leakage.
+            </p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="card-badge badge-success">✓ 100% Data Residency</span>
+          <button class="btn-header btn-outline" onclick="loadTelemetrySpans()" style="padding: 4px 10px; font-size: 11px;">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Telemetry Stat Counters -->
+      <div class="balance-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+        <div class="card">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">ON-DEVICE TOKENS</div>
+          <div style="font-size: 26px; font-weight: 800; color: var(--accent-cyan); margin: 6px 0;" id="statTotalTokens">0</div>
+          <div style="font-size: 11px; color: var(--text-subtle);">InLegal-SBERT &amp; MiniLM</div>
+        </div>
+        <div class="card">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">RECORDED OPERATIONS</div>
+          <div style="font-size: 26px; font-weight: 800; color: var(--accent-emerald); margin: 6px 0;" id="statTotalSpans">0</div>
+          <div style="font-size: 11px; color: var(--text-subtle);">Spans in case_billing.db</div>
+        </div>
+        <div class="card">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">TOTAL DURATION</div>
+          <div style="font-size: 26px; font-weight: 800; color: var(--accent-purple); margin: 6px 0;" id="statTotalDuration">0 ms</div>
+          <div style="font-size: 11px; color: var(--text-subtle);">Fast on-device compute</div>
+        </div>
+        <div class="card">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">LOCAL BILLING TIER</div>
+          <div style="font-size: 22px; font-weight: 800; color: var(--accent-emerald); margin: 6px 0;">INCLUDED (₹0)</div>
+          <div style="font-size: 11px; color: var(--text-subtle);">Fine-tuned monetization ready</div>
+        </div>
+      </div>
+
+      <!-- Live Spans Table -->
+      <div class="card">
+        <div class="card-top">
+          <div class="card-icon-title">
+            <span class="card-icon">🔬</span>
+            <span class="card-title">Recent Local Neural Operations (Live Feed)</span>
+          </div>
+          <span class="card-badge" id="badgeSpansFeedCount">0 Operations</span>
+        </div>
+        <p class="card-body-text" style="margin-bottom: 12px;">
+          Live telemetry stream recording every token processed by local embedders, cross-encoders, and on-device language models.
+        </p>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                <th style="padding: 8px 10px;">Category</th>
+                <th style="padding: 8px 10px;">Task Title / Operation</th>
+                <th style="padding: 8px 10px;">Model</th>
+                <th style="padding: 8px 10px;">Tokens</th>
+                <th style="padding: 8px 10px;">Duration</th>
+                <th style="padding: 8px 10px;">Cost</th>
+                <th style="padding: 8px 10px; text-align: right;">Executed At</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyTelemetrySpans">
+              <tr><td colspan="7" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No local telemetry spans recorded for this matter.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB PANEL 4: ⚙️ AI ENGINES & MONACO ROUTING                            -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cockpit-tab-panel" id="tabPanelSettings">
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- PILLAR 1: KNOWLEDGE & FORMATS (OFFLINE FOUNDATION)                      -->
@@ -923,7 +1342,81 @@
         </div>
       </div>
     </section>
+  </div><!-- /#tabPanelSettings -->
 
+  <div class="cockpit-tab-panel" id="tabPanelLicense">
+
+    <!-- ── STATUTORY PRACTITIONER IDENTITY & HARDWARE ANCHOR ── -->
+    <section class="pillar-section" style="margin-bottom: 24px;">
+      <div class="pillar-header" style="margin-bottom: 16px;">
+        <div class="pillar-title-wrap">
+          <div class="pillar-num" style="background: rgba(14, 165, 233, 0.15); color: var(--accent-cyan);">🏛️</div>
+          <div>
+            <h2 class="pillar-title">Practitioner Statutory Identity &amp; Hardware Anchor</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Your verified legal identity and hardware machine fingerprint. Automatically embedded into pleadings, Form A/G notices, and SHA-256 diligence audit vouchers.
+            </p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="card-badge" id="badgeIdentityStatus" style="font-size: 11px; padding: 4px 10px; background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid var(--accent-emerald);">
+            Checking Identity…
+          </span>
+          <button class="btn-header btn-primary" onclick="openOnboardingModal()" style="font-size: 11px; padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <span>✏️</span> Edit Credentials &amp; Stamp
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="border-color: rgba(14, 165, 233, 0.35);">
+        <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; align-items: start;">
+          <div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px;">
+              <div>
+                <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);" id="dispProfName">Practitioner Name</h3>
+                <div style="font-size: 12px; font-weight: 600; color: var(--accent-cyan); margin-top: 2px;" id="dispProfDesignation">Advocate &amp; Insolvency Professional</div>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-subtle); letter-spacing: 0.5px;">User ID</span>
+                <div style="font-family: monospace; font-size: 11px; color: var(--accent-cyan);" id="dispProfUserId">usr_...</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; font-size: 12px;">
+              <div style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 6px; padding: 8px 12px;">
+                <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-subtle);">IBBI / Bar Enrolment</span>
+                <div style="font-weight: 600; color: var(--text-main); margin-top: 2px;" id="dispProfReg">--</div>
+              </div>
+              <div style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 6px; padding: 8px 12px;">
+                <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-subtle);">Master Email (Verified)</span>
+                <div style="font-weight: 600; color: var(--text-main); margin-top: 2px; word-break: break-all;" id="dispProfEmail">--</div>
+              </div>
+            </div>
+
+            <div style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; font-size: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-subtle);">Workstation Hardware Lock</span>
+                <span class="card-badge badge-success" style="font-size: 10px;">🔒 Locked to Device</span>
+              </div>
+              <div style="font-family: monospace; font-size: 13px; font-weight: 700; color: var(--accent-cyan); margin-top: 4px;" id="dispProfMachineId">MAC-...</div>
+            </div>
+
+            <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5;">
+              <strong style="color: var(--text-main);">Chambers:</strong> <span id="dispProfAddress">--</span><br/>
+              <strong style="color: var(--text-main);">Firm:</strong> <span id="dispProfFirm">--</span> | <strong style="color: var(--text-main);">Phone:</strong> <span id="dispProfPhone">--</span>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-subtle); margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>Official Digital Stamp Preview</span>
+              <span style="color: var(--accent-emerald);">Evidentiary Proof</span>
+            </div>
+            <pre id="dispAttestationBox" style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--card-border); border-radius: 8px; padding: 12px; font-size: 10px; line-height: 1.5; color: #cbd5e1; font-family: monospace; white-space: pre-wrap; margin: 0; max-height: 220px; overflow-y: auto;">Loading attestation stamp…</pre>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- PILLAR 3: SPECIALIST COWORKERS (TWO-TIER ARCHITECTURE)                  -->
@@ -1114,93 +1607,7 @@
         </div>
       </div>
     </section>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <!-- PILLAR 4: RESOLUTION BAZAAR CLOUD QUEUE & 1-TO-1 INVOICE LEDGER          -->
-    <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <section class="pillar-section" id="sectionRbzBilling">
-      <div class="pillar-header">
-        <div class="pillar-title-wrap">
-          <div class="pillar-num" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald);">4</div>
-          <h2 class="pillar-title">Resolution Bazaar Cloud Queue &amp; Diligence Invoices</h2>
-        </div>
-        <span class="pillar-tag" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.25);">
-          Pay-Per-Use • 1-to-1 Audit Guarantee • Auto-Saved to RBZ_reports/
-        </span>
-      </div>
-      <p class="pillar-desc">
-        Review staged MCP payloads prepared by <code>@Precedent</code> or <code>@Forensic</code>. No cloud charges or data transfers occur without your explicit authorization. Each paid task issues an official GST invoice and automatically deposits the delivered report into your case workspace.
-      </p>
-
-      <!-- Sub-panel A: Pending Outbound Dispatch Queue -->
-      <div class="card" style="margin-bottom: 20px; border-color: rgba(56, 189, 248, 0.3);">
-        <div class="card-top">
-          <div class="card-icon-title">
-            <span class="card-icon">📤</span>
-            <span class="card-title">Pending Outbound Dispatch Queue</span>
-          </div>
-          <span class="card-badge badge-warn" id="badgePendingQueueCount">0 Pending Authorizations</span>
-        </div>
-        <div style="overflow-x: auto; margin-top: 10px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-            <thead>
-              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
-                <th style="padding: 8px 10px;">Task ID</th>
-                <th style="padding: 8px 10px;">Service / Tool</th>
-                <th style="padding: 8px 10px;">Subject / Target</th>
-                <th style="padding: 8px 10px;">Fee (INR)</th>
-                <th style="padding: 8px 10px;">Payload</th>
-                <th style="padding: 8px 10px; text-align: right;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyPendingQueue">
-              <tr>
-                <td colspan="6" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">
-                  No pending cloud dispatches. Prompt <code>@Precedent</code> or <code>@Forensic</code> to stage research.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Sub-panel B: Historical Invoices & Delivered Reports (1-to-1 Audit) -->
-      <div class="card" style="border-color: rgba(16, 185, 129, 0.3);">
-        <div class="card-top">
-          <div class="card-icon-title">
-            <span class="card-icon">🧾</span>
-            <span class="card-title">CIRP Diligence Ledger &amp; Tax Invoices (1-to-1 Matched)</span>
-          </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <span class="card-badge badge-success" id="badgeLedgerIntegrity">✓ Hash Chain Verified</span>
-            <button class="btn-header btn-outline" onclick="loadCaseLedgerUI()" style="padding: 4px 10px; font-size: 11px;">🔄 Refresh</button>
-          </div>
-        </div>
-        <p class="card-body-text" style="margin-bottom: 12px;">
-          Admissible proof of work and reimbursable insolvency resolution process costs (IRPC) for Committee of Creditors (CoC) audit.
-        </p>
-        <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-            <thead>
-              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
-                <th style="padding: 8px 10px;">Invoice No</th>
-                <th style="padding: 8px 10px;">Delivered Report</th>
-                <th style="padding: 8px 10px;">Razorpay Payment ID</th>
-                <th style="padding: 8px 10px;">Amount Paid</th>
-                <th style="padding: 8px 10px;">Date &amp; Status</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyReceiptsLedger">
-              <tr>
-                <td colspan="5" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">
-                  No paid reports in current case ledger.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+  </div><!-- /#tabPanelLicense -->
 
   </div><!-- /.container -->
 
@@ -1471,6 +1878,283 @@
       <pre id="prePayloadInspect" style="background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 8px; padding: 14px; font-size: 11px; max-height: 280px; overflow: auto; color: var(--accent-cyan);"></pre>
       <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
         <button class="btn-header btn-primary" onclick="closeModal('payloadInspectModal')">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Interactive Diligence Voucher & Langfuse Trace Link ── -->
+  <div class="modal-overlay" id="voucherModal">
+    <div class="modal-dialog" style="max-width: 660px;">
+      <button class="modal-close" onclick="closeModal('voucherModal')">&times;</button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+        <span style="font-size: 24px;">🛡️</span>
+        <div class="modal-title" style="margin-bottom: 0;">CIRP Diligence Audit Voucher</div>
+      </div>
+      <div class="modal-subtitle" style="margin-bottom: 16px;">
+        Admissible cryptographic proof of work for Committee of Creditors (CoC) audit and NCLT approval under Section 5(13) of the IBC.
+      </div>
+      <div id="voucherContent" style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+        <!-- Populated dynamically -->
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; color: var(--text-subtle);">Chained in <code>ledgers/case_billing.db</code></span>
+        <div style="display: flex; gap: 10px;">
+          <a id="btnVoucherLangfuse" href="#" target="_blank" class="btn-header btn-outline" style="display: none; background: rgba(56, 189, 248, 0.1); border-color: var(--accent-cyan); color: var(--accent-cyan); text-decoration: none;">
+            🌐 View Langfuse Cloud Trace
+          </a>
+          <button class="btn-header btn-primary" onclick="closeModal('voucherModal')">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal 1: Statutory Practitioner Onboarding & Hardware Lock ── -->
+  <div class="modal-overlay" id="onboardingModal">
+    <div class="modal-dialog" style="max-width: 860px; max-height: 90vh; overflow-y: auto;">
+      <button class="modal-close" onclick="closeModal('onboardingModal')">&times;</button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+        <span style="font-size: 26px;">🏛️</span>
+        <div class="modal-title" style="margin-bottom: 0;">Practitioner Identity &amp; Hardware Lock</div>
+      </div>
+      <div class="modal-subtitle" style="margin-bottom: 18px;">
+        Anchor your official legal credentials to this workstation. Secures your digital attestation stamps, SHA-256 diligence vouchers, and CIRP expense audit trail.
+      </div>
+
+      <!-- Hardware Anchor Lock Banner -->
+      <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 16px;">🔒</span>
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--accent-cyan);">Hardware Machine Fingerprint</div>
+            <div style="font-size: 11px; color: var(--text-muted);">Auto-detected from local operating system. Immutable &amp; non-transferable.</div>
+          </div>
+        </div>
+        <span style="font-family: monospace; font-size: 13px; font-weight: 700; color: #fff; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--accent-cyan); border-radius: 6px; padding: 4px 12px;" id="onbMachineIdDisp">MAC-...</span>
+      </div>
+
+      <!-- Two Column Layout: Form vs Live Preview -->
+      <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 20px;">
+        <!-- Left: Form -->
+        <div style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 10px; padding: 18px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+            1. Statutory Credentials &amp; Chambers
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <label class="form-label">Full Legal Name *</label>
+            <input type="text" class="form-control" id="onbFullName" placeholder="e.g. Adv. Atul Grover" oninput="updateLiveSignaturePreview()">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label class="form-label">Designation / Role *</label>
+              <select class="form-control" id="onbDesignation" onchange="updateLiveSignaturePreview()">
+                <option value="Advocate & Insolvency Professional">Advocate &amp; Insolvency Professional</option>
+                <option value="Insolvency Resolution Professional (IRP/RP)">Insolvency Resolution Professional (IRP/RP)</option>
+                <option value="Liquidator">Liquidator</option>
+                <option value="Advocate / Legal Counsel">Advocate / Legal Counsel</option>
+                <option value="Chartered Accountant & Forensic Auditor">Chartered Accountant &amp; Forensic Auditor</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Firm / Chamber Name</label>
+              <input type="text" class="form-control" id="onbFirmName" placeholder="e.g. Grover & Associates" oninput="updateLiveSignaturePreview()">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label class="form-label">IBBI Reg. No. (for IPs)</label>
+              <input type="text" class="form-control" id="onbIbbiReg" placeholder="IBBI/IPA-001/IP-P01234/..." oninput="updateLiveSignaturePreview()">
+            </div>
+            <div>
+              <label class="form-label">Bar Enrolment No. *</label>
+              <input type="text" class="form-control" id="onbBarReg" placeholder="e.g. P/2418/2006 or D/1234/..." oninput="updateLiveSignaturePreview()">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label class="form-label">AFA Validity (for IPs)</label>
+              <input type="text" class="form-control" id="onbAfa" placeholder="e.g. Valid up to 31-Dec-2027" oninput="updateLiveSignaturePreview()">
+            </div>
+            <div>
+              <label class="form-label">Phone / WhatsApp</label>
+              <input type="tel" class="form-control" id="onbPhone" placeholder="+91 98765 43210" oninput="updateLiveSignaturePreview()">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label class="form-label">Primary Chambers / Office Address *</label>
+            <input type="text" class="form-control" id="onbAddress" placeholder="e.g. SCO No. 165-166, Sector 43-B, Chandigarh" oninput="updateLiveSignaturePreview()">
+          </div>
+
+          <!-- Section 2: Master Email & Google Workspace OTP Verification -->
+          <div style="border-top: 1px solid var(--card-border); padding-top: 14px; margin-top: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">
+                2. Master Email &amp; OTP Verification
+              </span>
+              <span id="onbOtpStatusBadge" class="card-badge" style="background: rgba(234, 179, 8, 0.15); color: var(--accent-amber); border: 1px solid var(--accent-amber); font-size: 10px;">
+                Pending Verification
+              </span>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+              <input type="email" class="form-control" id="onbEmail" placeholder="your.name@chambers.in" style="flex: 1;" oninput="updateLiveSignaturePreview()">
+              <button class="btn-header btn-primary" id="btnSendOtp" onclick="sendOnboardingOtp()" style="white-space: nowrap; font-size: 11px; padding: 6px 14px;">
+                ✉️ Send OTP
+              </button>
+            </div>
+
+            <div id="otpInputRow" style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" class="form-control" id="onbOtpCode" placeholder="Enter 6-digit code" maxlength="6" style="letter-spacing: 4px; font-family: monospace; font-size: 14px; width: 170px; text-align: center;">
+              <button class="btn-header" id="btnVerifyOtp" onclick="verifyOnboardingOtp()" style="background: var(--accent-emerald); border-color: var(--accent-emerald); color: #fff; font-size: 11px; padding: 6px 16px; font-weight: 700;">
+                ✓ Verify &amp; Lock
+              </button>
+              <span id="otpCountdown" style="font-size: 11px; color: var(--text-subtle);"></span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-subtle); margin-top: 6px;" id="otpDevHintText">
+              Dispatches via Google Workspace SMTP. (Local Dev Mode logs code in terminal).
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Live Letterhead & Attestation Stamp Preview -->
+        <div style="display: flex; flex-direction: column;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between;">
+            <span>Live Digital Stamp Preview</span>
+            <span style="color: var(--accent-cyan);">Pleadings / Form A</span>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div id="liveAttestationStamp" style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; word-break: break-word;">
+              Generating live attestation stamp…
+            </div>
+
+            <div style="border-top: 1px solid var(--card-border); padding-top: 12px; margin-top: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 14px;">🛡️</span>
+                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                  Embedded into Section 29A reports, Form G public advertisements, and CoC filings under Indian Evidence Act Section 79A.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; border-top: 1px solid var(--card-border); padding-top: 16px;">
+        <button class="btn-header btn-outline" onclick="closeModal('onboardingModal')">Cancel</button>
+        <button class="btn-header btn-primary" id="btnSaveOnboardingProfile" onclick="savePractitionerProfile()" style="padding: 8px 24px; font-weight: 700;">
+          💾 Save &amp; Bind Profile
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal 2: New Case Creation Wizard (CIN/NCLT Petition Input) ── -->
+  <div class="modal-overlay" id="newCaseModal">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <button class="modal-close" onclick="closeModal('newCaseModal')">&times;</button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+        <span style="font-size: 26px;">📁</span>
+        <div class="modal-title" style="margin-bottom: 0;">New Matter / CIRP Estate Creation Wizard</div>
+      </div>
+      <div class="modal-subtitle" style="margin-bottom: 18px;">
+        Bootstrap a statutory case workspace with isolated ledger, standardized IBC folder taxonomy, and dedicated estate process email.
+      </div>
+
+      <div style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 10px; padding: 18px; margin-bottom: 16px;">
+        <!-- Matter Type Selector -->
+        <div style="margin-bottom: 14px;">
+          <label class="form-label">Matter Classification *</label>
+          <select class="form-control" id="newCaseType" onchange="updateCanonicalCaseIdPreview()">
+            <option value="cirp">🏢 Corporate Insolvency Resolution Process (CIRP - Section 7/9/10)</option>
+            <option value="liquidation">⚖️ Corporate Liquidation (Section 33)</option>
+            <option value="ppirp">🤝 Pre-Packaged Insolvency (PPIRP - MSME / Section 54A)</option>
+            <option value="pgcd">👤 Personal Guarantor to Corporate Debtor (PGCD / Section 94/95)</option>
+            <option value="commercial">🏛️ NCLT / Companies Act Commercial Litigation</option>
+          </select>
+        </div>
+
+        <!-- Corporate Debtor Name -->
+        <div style="margin-bottom: 14px;">
+          <label class="form-label">Corporate Debtor / Company Name *</label>
+          <input type="text" class="form-control" id="newCaseName" placeholder="e.g. Noida Marketing Private Limited" oninput="updateCanonicalCaseIdPreview()">
+        </div>
+
+        <!-- Dedicated Estate Email (Mandated under IBBI Reg 6(2)) -->
+        <div style="margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <label class="form-label">Dedicated Estate / Process Email *</label>
+            <span style="font-size: 10px; color: var(--accent-cyan); font-weight: 600;">IBBI Reg. 6(2) Mandatory</span>
+          </div>
+          <input type="email" class="form-control" id="newCaseEstateEmail" placeholder="e.g. cirp.noidamarketing@gmail.com">
+          <div style="font-size: 10px; color: var(--text-subtle); margin-top: 3px;">
+            Used in Form A announcements and creditor claims. Handed over to liquidator/incoming RP upon transition.
+          </div>
+        </div>
+
+        <!-- CIN and Bench -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <label class="form-label">CIN or LLPIN</label>
+              <span id="cinValidationBadge" style="font-size: 10px; color: var(--text-subtle);">21-char MCA Format</span>
+            </div>
+            <input type="text" class="form-control" id="newCaseCin" placeholder="U74899DL2000PTC105000" maxlength="21" oninput="onCinInput(this)">
+          </div>
+          <div>
+            <label class="form-label">NCLT Bench *</label>
+            <select class="form-control" id="newCaseBench">
+              <option value="Principal Bench, New Delhi">Principal Bench, New Delhi</option>
+              <option value="New Delhi Bench (Court-II)">New Delhi Bench (Court-II)</option>
+              <option value="New Delhi Bench (Court-III)">New Delhi Bench (Court-III)</option>
+              <option value="Mumbai Bench (Court-I)">Mumbai Bench (Court-I)</option>
+              <option value="Mumbai Bench (Court-II)">Mumbai Bench (Court-II)</option>
+              <option value="Chandigarh Bench - Court I">Chandigarh Bench - Court I</option>
+              <option value="Bengaluru Bench">Bengaluru Bench</option>
+              <option value="Kolkata Bench">Kolkata Bench</option>
+              <option value="Chennai Bench">Chennai Bench</option>
+              <option value="Ahmedabad Bench">Ahmedabad Bench</option>
+              <option value="Hyderabad Bench">Hyderabad Bench</option>
+              <option value="Cuttack Bench">Cuttack Bench</option>
+              <option value="Jaipur Bench">Jaipur Bench</option>
+              <option value="Kochi Bench">Kochi Bench</option>
+              <option value="Indore Bench">Indore Bench</option>
+              <option value="Supreme Court / High Court">Supreme Court / High Court</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Petition Number & Insolvency Date -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+          <div>
+            <label class="form-label">Company Petition (CP) No. *</label>
+            <input type="text" class="form-control" id="newCaseCpNumber" placeholder="e.g. CP (IB) No. 420/ND/2024" oninput="updateCanonicalCaseIdPreview()">
+          </div>
+          <div>
+            <label class="form-label">Insolvency Commencement Date (ICD)</label>
+            <input type="date" class="form-control" id="newCaseIcd">
+          </div>
+        </div>
+
+        <!-- Canonical Case ID preview box -->
+        <div style="background: rgba(15, 23, 42, 0.8); border: 1px dashed var(--accent-cyan); border-radius: 6px; padding: 10px 14px;">
+          <div style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--accent-cyan); letter-spacing: 0.5px;">Canonical Statutory Case ID (Auto-Derived)</div>
+          <div style="font-family: monospace; font-size: 13px; font-weight: 700; color: #fff; margin-top: 4px;" id="dispCanonicalCaseId">CIRP_ESTATE</div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; color: var(--text-subtle);">Creates 12 statutory folders &amp; <code>case_billing.db</code></span>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-header btn-outline" onclick="closeModal('newCaseModal')">Cancel</button>
+          <button class="btn-header btn-primary" id="btnCreateCaseSubmit" onclick="submitNewCaseCreation()" style="background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #0369a1; padding: 8px 22px; font-weight: 700;">
+            🚀 Bootstrap Estate Workspace
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -2232,6 +2916,555 @@
       setTimeout(() => { toast.className = ''; }, 3500);
     }
 
+    // ── Cockpit Mission Control Navigation & Deep-Linking ──
+    const COCKPIT_TABS = ['hil', 'billing', 'telemetry', 'settings', 'license'];
+    let currentCockpitTab = urlParams.get('tab') || 'hil';
+
+    function switchCockpitTab(tabKey) {
+      if (!COCKPIT_TABS.includes(tabKey)) tabKey = 'hil';
+      currentCockpitTab = tabKey;
+
+      // Update pills
+      document.querySelectorAll('.cockpit-pill').forEach(btn => btn.classList.remove('active'));
+      const activePill = document.getElementById(`pill${capitalize(tabKey)}`);
+      if (activePill) activePill.classList.add('active');
+
+      // Update panels
+      document.querySelectorAll('.cockpit-tab-panel').forEach(p => p.classList.remove('active'));
+      const activePanel = document.getElementById(`tabPanel${capitalize(tabKey)}`);
+      if (activePanel) activePanel.classList.add('active');
+
+      // Sync URL query without reloading
+      try {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('tab', tabKey);
+        window.history.replaceState({}, '', newUrl.toString());
+      } catch (_) {}
+
+      // Trigger lazy tab refreshes
+      if (tabKey === 'hil') loadHilQueue();
+      if (tabKey === 'billing') loadCaseLedgerUI();
+      if (tabKey === 'telemetry') loadTelemetrySpans();
+      if (tabKey === 'license') loadPractitionerIdentityUI();
+    }
+
+    // Message listener from Theia host (e.g. top menu clicks)
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'switch-tab' && event.data.tab) {
+        switchCockpitTab(event.data.tab);
+      }
+      if (event.data && (event.data.type === 'open-new-case' || event.data.action === 'new-case')) {
+        openNewCaseModal();
+      }
+      if (event.data && (event.data.type === 'open-onboarding' || event.data.action === 'onboarding')) {
+        openOnboardingModal();
+      }
+    });
+
+    // ── Practitioner Identity & Hardware Lock UI ──
+    let activePractitionerProfile = null;
+    let currentHardwareMachineId = '';
+    let otpResendTimer = null;
+
+    async function loadPractitionerIdentityUI() {
+      try {
+        const res = await fetch(`/api/hayagriva/practitioner/profile?case=${encodeURIComponent(caseName)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success) return;
+
+        activePractitionerProfile = data.profile || {};
+        currentHardwareMachineId = data.machineId || '';
+
+        const id = activePractitionerProfile.identity || {};
+        const contact = activePractitionerProfile.contact || {};
+        const isVerified = data.isVerified;
+
+        // Update Tab 5 Card
+        document.getElementById('dispProfName').textContent = id.fullName || 'Practitioner Name';
+        document.getElementById('dispProfDesignation').textContent = id.designation || 'Advocate & Insolvency Professional';
+        document.getElementById('dispProfUserId').textContent = id.userId || 'usr_unassigned';
+        document.getElementById('dispProfReg').textContent = id.ibbiRegNo || id.barEnrollmentNo || 'N/A';
+        document.getElementById('dispProfEmail').textContent = contact.email || 'Not configured';
+        document.getElementById('dispProfMachineId').textContent = currentHardwareMachineId || 'MAC-...';
+        document.getElementById('dispProfAddress').textContent = contact.officeAddress || 'No chamber address';
+        document.getElementById('dispProfFirm').textContent = id.firmName || 'Independent Practice';
+        document.getElementById('dispProfPhone').textContent = contact.phone || 'N/A';
+        document.getElementById('dispAttestationBox').textContent = data.attestationStamp || 'Attestation stamp pending';
+
+        const badge = document.getElementById('badgeIdentityStatus');
+        if (badge) {
+          if (isVerified) {
+            badge.textContent = '✓ Cryptographically Verified to Machine';
+            badge.style.background = 'rgba(16, 185, 129, 0.15)';
+            badge.style.color = 'var(--accent-emerald)';
+            badge.style.borderColor = 'var(--accent-emerald)';
+          } else {
+            badge.textContent = '⚠️ Unverified - Action Required';
+            badge.style.background = 'rgba(234, 179, 8, 0.15)';
+            badge.style.color = 'var(--accent-amber)';
+            badge.style.borderColor = 'var(--accent-amber)';
+          }
+        }
+
+        // Pre-fill Onboarding Modal Fields
+        document.getElementById('onbFullName').value = id.fullName || '';
+        document.getElementById('onbDesignation').value = id.designation || 'Advocate & Insolvency Professional';
+        document.getElementById('onbFirmName').value = id.firmName || '';
+        document.getElementById('onbIbbiReg').value = id.ibbiRegNo || '';
+        document.getElementById('onbBarReg').value = id.barEnrollmentNo || '';
+        document.getElementById('onbAfa').value = id.afaValidity || '';
+        document.getElementById('onbPhone').value = contact.phone || '';
+        document.getElementById('onbAddress').value = contact.officeAddress || '';
+        document.getElementById('onbEmail').value = contact.email || '';
+        document.getElementById('onbMachineIdDisp').textContent = currentHardwareMachineId || 'MAC-...';
+
+        const onbBadge = document.getElementById('onbOtpStatusBadge');
+        if (onbBadge) {
+          if (isVerified) {
+            onbBadge.textContent = '✓ Verified to Machine';
+            onbBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+            onbBadge.style.color = 'var(--accent-emerald)';
+            onbBadge.style.borderColor = 'var(--accent-emerald)';
+          } else {
+            onbBadge.textContent = 'Pending Verification';
+            onbBadge.style.background = 'rgba(234, 179, 8, 0.15)';
+            onbBadge.style.color = 'var(--accent-amber)';
+            onbBadge.style.borderColor = 'var(--accent-amber)';
+          }
+        }
+
+        updateLiveSignaturePreview();
+
+        // Auto-open onboarding modal on first run if unverified
+        if (!isVerified && !sessionStorage.getItem('onboardingDismissed')) {
+          openOnboardingModal();
+        }
+      } catch (_) {}
+    }
+
+    function openOnboardingModal() {
+      document.getElementById('onboardingModal').classList.add('active');
+      updateLiveSignaturePreview();
+    }
+
+    function closeOnboardingModal() {
+      document.getElementById('onboardingModal').classList.remove('active');
+      sessionStorage.setItem('onboardingDismissed', 'true');
+    }
+
+    function updateLiveSignaturePreview() {
+      const name = (document.getElementById('onbFullName').value || 'PRACTITIONER NAME').toUpperCase();
+      const designation = document.getElementById('onbDesignation').value || 'Insolvency Resolution Professional';
+      const firm = document.getElementById('onbFirmName').value ? ` • ${document.getElementById('onbFirmName').value}` : '';
+      const ibbi = document.getElementById('onbIbbiReg').value ? `IBBI Reg: ${document.getElementById('onbIbbiReg').value}` : '';
+      const bar = document.getElementById('onbBarReg').value ? `Bar Enrolment: ${document.getElementById('onbBarReg').value}` : '';
+      const afa = document.getElementById('onbAfa').value ? `AFA: ${document.getElementById('onbAfa').value}` : '';
+      const address = document.getElementById('onbAddress').value ? `Chambers: ${document.getElementById('onbAddress').value}` : 'Chambers: Not specified';
+      const email = document.getElementById('onbEmail').value ? `Email: ${document.getElementById('onbEmail').value}` : 'Email: Not specified';
+      const phone = document.getElementById('onbPhone').value ? `Phone: ${document.getElementById('onbPhone').value}` : '';
+      const mId = currentHardwareMachineId || 'DEVICE-LOCK-ACTIVE';
+
+      const credentials = [ibbi, bar, afa].filter(Boolean).join(' | ');
+      const contacts = [email, phone].filter(Boolean).join(' | ');
+
+      const previewText = 
+`__________________________________________________________________
+[${name}]
+${designation}${firm}
+${credentials || 'Statutory Credentials Pending'}
+${address}
+${contacts}
+[Workstation Anchor: ${mId} • Verified via Hayagriva]`;
+
+      const el = document.getElementById('liveAttestationStamp');
+      if (el) el.textContent = previewText;
+    }
+
+    async function sendOnboardingOtp() {
+      const email = (document.getElementById('onbEmail').value || '').trim();
+      if (!email || !email.includes('@')) {
+        showToast('Please enter a valid Master Email address', true);
+        return;
+      }
+
+      const btn = document.getElementById('btnSendOtp');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+
+      try {
+        const res = await fetch('/api/hayagriva/practitioner/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`✓ Verification code sent to ${email}`);
+          if (data.devHint) {
+            document.getElementById('otpDevHintText').innerHTML = 
+              `<strong>Dev Sandbox Code:</strong> <code style="color: var(--accent-cyan); font-size: 13px;">${data.devHint}</code> (Terminal Log)`;
+          }
+
+          // Start 60s countdown
+          let seconds = 60;
+          const countdownEl = document.getElementById('otpCountdown');
+          clearInterval(otpResendTimer);
+          otpResendTimer = setInterval(() => {
+            seconds--;
+            if (seconds <= 0) {
+              clearInterval(otpResendTimer);
+              btn.disabled = false;
+              btn.textContent = '✉️ Resend OTP';
+              countdownEl.textContent = '';
+            } else {
+              countdownEl.textContent = `(Resend in ${seconds}s)`;
+            }
+          }, 1000);
+        } else {
+          showToast(data.error || 'Failed to send OTP', true);
+          btn.disabled = false;
+          btn.textContent = '✉️ Send OTP';
+        }
+      } catch (err) {
+        showToast(`Send error: ${err.message}`, true);
+        btn.disabled = false;
+        btn.textContent = '✉️ Send OTP';
+      }
+    }
+
+    async function verifyOnboardingOtp() {
+      const email = (document.getElementById('onbEmail').value || '').trim();
+      const code = (document.getElementById('onbOtpCode').value || '').trim();
+
+      if (!code || code.length !== 6) {
+        showToast('Please enter the 6-digit verification code', true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/hayagriva/practitioner/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✓ Identity cryptographically verified & locked to device!');
+          const badge = document.getElementById('onbOtpStatusBadge');
+          if (badge) {
+            badge.textContent = '✓ Verified to Machine';
+            badge.style.background = 'rgba(16, 185, 129, 0.15)';
+            badge.style.color = 'var(--accent-emerald)';
+            badge.style.borderColor = 'var(--accent-emerald)';
+          }
+          await loadPractitionerIdentityUI();
+        } else {
+          showToast(data.error || 'Invalid code', true);
+        }
+      } catch (err) {
+        showToast(`Verification error: ${err.message}`, true);
+      }
+    }
+
+    async function savePractitionerProfile() {
+      const profileData = {
+        identity: {
+          fullName: document.getElementById('onbFullName').value.trim(),
+          designation: document.getElementById('onbDesignation').value,
+          firmName: document.getElementById('onbFirmName').value.trim(),
+          ibbiRegNo: document.getElementById('onbIbbiReg').value.trim(),
+          barEnrollmentNo: document.getElementById('onbBarReg').value.trim(),
+          afaValidity: document.getElementById('onbAfa').value.trim(),
+        },
+        contact: {
+          email: document.getElementById('onbEmail').value.trim(),
+          phone: document.getElementById('onbPhone').value.trim(),
+          officeAddress: document.getElementById('onbAddress').value.trim()
+        }
+      };
+
+      try {
+        const res = await fetch('/api/hayagriva/practitioner/save-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profileData)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✓ Practitioner profile saved successfully');
+          closeOnboardingModal();
+          await loadPractitionerIdentityUI();
+        } else {
+          showToast(data.error || 'Failed to save profile', true);
+        }
+      } catch (err) {
+        showToast(`Save error: ${err.message}`, true);
+      }
+    }
+
+    // ── New Case Creation Wizard UI ──
+    function openNewCaseModal() {
+      document.getElementById('newCaseModal').classList.add('active');
+      updateCanonicalCaseIdPreview();
+    }
+
+    function closeNewCaseModal() {
+      document.getElementById('newCaseModal').classList.remove('active');
+    }
+
+    function onCinInput(input) {
+      input.value = input.value.toUpperCase();
+      const val = input.value.trim();
+      const badge = document.getElementById('cinValidationBadge');
+      const cinRegex = /^[LUu][0-9]{5}[A-Za-z]{2}[0-9]{4}[A-Za-z]{3}[0-9]{6}$/;
+
+      if (!val) {
+        badge.textContent = '21-char MCA Format';
+        badge.style.color = 'var(--text-subtle)';
+      } else if (cinRegex.test(val)) {
+        badge.textContent = '✓ Valid MCA CIN Format';
+        badge.style.color = 'var(--accent-emerald)';
+      } else {
+        badge.textContent = `${val.length}/21 characters`;
+        badge.style.color = 'var(--accent-amber)';
+      }
+      updateCanonicalCaseIdPreview();
+    }
+
+    function updateCanonicalCaseIdPreview() {
+      const type = (document.getElementById('newCaseType').value || 'cirp').toUpperCase();
+      const name = (document.getElementById('newCaseName').value || '').trim();
+      const cin = (document.getElementById('newCaseCin').value || '').trim().toUpperCase();
+      const cp = (document.getElementById('newCaseCpNumber').value || '').trim();
+
+      let preview = `${type}_ESTATE`;
+      if (cin) {
+        const cleanCin = cin.replace(/[^A-Z0-9]/g, '');
+        const cleanCp = cp.replace(/[^A-Za-z0-9]/g, '').slice(-8);
+        preview = `${type}_${cleanCin}${cleanCp ? '_' + cleanCp : ''}`;
+      } else if (name) {
+        preview = `${type}_${name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      }
+
+      document.getElementById('dispCanonicalCaseId').textContent = preview;
+    }
+
+    async function submitNewCaseCreation() {
+      const matterName = (document.getElementById('newCaseName').value || '').trim();
+      if (!matterName) {
+        showToast('Please enter Corporate Debtor / Company Name', true);
+        return;
+      }
+
+      const matterType = document.getElementById('newCaseType').value;
+      const cin = (document.getElementById('newCaseCin').value || '').trim().toUpperCase();
+      const ncltBench = document.getElementById('newCaseBench').value;
+      const petitionNumber = (document.getElementById('newCaseCpNumber').value || '').trim();
+      const icd = (document.getElementById('newCaseIcd').value || '').trim();
+      const estateEmail = (document.getElementById('newCaseEstateEmail').value || '').trim();
+
+      const btn = document.getElementById('btnCreateCaseSubmit');
+      btn.disabled = true;
+      btn.textContent = '⏳ Bootstrapping Estate…';
+
+      try {
+        const res = await fetch('/api/hayagriva/cases/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            matterName,
+            matterType,
+            cin,
+            ncltBench,
+            petitionNumber,
+            icd,
+            estateEmail
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          showToast(`✓ Estate '${matterName}' bootstrapped successfully!`);
+          closeNewCaseModal();
+          
+          // Switch to newly created case
+          setTimeout(() => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('case', matterName);
+            url.searchParams.set('tab', 'hil');
+            window.location.href = url.toString();
+          }, 800);
+        } else {
+          showToast(data.error || 'Failed to create case', true);
+          btn.disabled = false;
+          btn.textContent = '🚀 Bootstrap Estate Workspace';
+        }
+      } catch (err) {
+        showToast(`Creation error: ${err.message}`, true);
+        btn.disabled = false;
+        btn.textContent = '🚀 Bootstrap Estate Workspace';
+      }
+    }
+
+    // ── HIL Statutory Gatekeeper & Agent Inbox ──
+    async function loadHilQueue() {
+      loadCaseLedgerUI();
+
+      try {
+        const res = await fetch(`/api/hayagriva/inbox?case=${encodeURIComponent(caseName)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = data.items || [];
+        const pendingItems = items.filter(i => i.state === 'pending');
+        
+        document.getElementById('badgeInboxCount').textContent = `${pendingItems.length} Inquest${pendingItems.length === 1 ? '' : 's'}`;
+        
+        const cloudPending = (activeCaseLedgerData && activeCaseLedgerData.pending_tasks) ? activeCaseLedgerData.pending_tasks.length : 0;
+        const totalPending = pendingItems.length + cloudPending;
+        const pillBadge = document.getElementById('pillHilCount');
+        if (pillBadge) {
+          pillBadge.textContent = totalPending;
+          pillBadge.className = 'pill-counter' + (totalPending > 0 ? ' counter-alert' : '');
+        }
+        const summaryBadge = document.getElementById('badgeHilSummaryCount');
+        if (summaryBadge) {
+          summaryBadge.textContent = `${totalPending} Pending Sign-off${totalPending === 1 ? '' : 's'}`;
+        }
+
+        const container = document.getElementById('inboxContainer');
+        if (pendingItems.length === 0) {
+          container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-subtle); font-size: 12px;">No pending agent clarifications for this matter.</div>';
+          return;
+        }
+
+        container.innerHTML = pendingItems.map(item => {
+          let actionButtons = '';
+          if (item.kind === 'approval') {
+            actionButtons = `
+              <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="btn-header btn-primary" style="padding: 4px 12px; font-size: 11px; background: var(--accent-emerald);" onclick="resolveInboxItem('${item.id}', 'allow')">✓ Allow</button>
+                <button class="btn-header btn-outline" style="padding: 4px 12px; font-size: 11px;" onclick="resolveInboxItem('${item.id}', 'deny')">✕ Decline</button>
+              </div>
+            `;
+          } else if (item.kind === 'question') {
+            const pills = (item.options || []).map(opt => `
+              <button class="btn-header btn-outline" style="padding: 3px 10px; font-size: 11px;" onclick="resolveInboxItem('${item.id}', '${opt}')">${opt}</button>
+            `).join('');
+            actionButtons = `
+              <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;">${pills}</div>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <input type="text" class="form-control" id="inboxInput-${item.id}" placeholder="Type instruction…" style="font-size: 12px; padding: 4px 10px;" onkeydown="if(event.key==='Enter') submitInboxText('${item.id}')">
+                <button class="btn-header btn-primary" style="padding: 4px 12px; font-size: 11px;" onclick="submitInboxText('${item.id}')">Send</button>
+              </div>
+            `;
+          } else {
+            actionButtons = `
+              <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="btn-header btn-primary" style="padding: 4px 12px; font-size: 11px;" onclick="resolveInboxItem('${item.id}', 'approve')">✓ Approve Plan</button>
+                <button class="btn-header btn-outline" style="padding: 4px 12px; font-size: 11px;" onclick="resolveInboxItem('${item.id}', 'reject')">Request Changes</button>
+              </div>
+            `;
+          }
+
+          return `
+            <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 0.5px;">${item.kind || 'INQUEST'}</span>
+                <span style="font-size: 10px; color: var(--text-subtle);">${item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : ''}</span>
+              </div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">${item.title || item.message || 'Procedural Question'}</div>
+              ${item.description ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${item.description}</div>` : ''}
+              ${actionButtons}
+            </div>
+          `;
+        }).join('');
+
+      } catch (_) {}
+    }
+
+    async function resolveInboxItem(itemId, resolution) {
+      try {
+        const res = await fetch('/api/hayagriva/inbox/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: caseName, itemId, resolution, resolvedBy: 'practitioner' })
+        });
+        if (res.ok) {
+          showToast(`✓ Action resolved (${resolution})`);
+          loadHilQueue();
+        }
+      } catch (err) {
+        showToast(`Resolution error: ${err.message}`, true);
+      }
+    }
+
+    function submitInboxText(itemId) {
+      const input = document.getElementById(`inboxInput-${itemId}`);
+      if (!input || !input.value.trim()) return;
+      resolveInboxItem(itemId, input.value.trim());
+    }
+
+    // ── Local Observability & Neural Telemetry ──
+    async function loadTelemetrySpans() {
+      try {
+        const res = await fetch(`/api/hayagriva/telemetry/spans?case=${encodeURIComponent(caseName)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success) return;
+
+        const summary = data.summary || {};
+        const spans = data.spans || [];
+
+        const totalTokens = summary.totalTokens || 0;
+        document.getElementById('statTotalTokens').textContent = totalTokens.toLocaleString();
+        document.getElementById('statTotalSpans').textContent = (summary.totalSpans || 0).toLocaleString();
+        document.getElementById('statTotalDuration').textContent = `${(summary.totalDurationMs || 0).toLocaleString()} ms`;
+        document.getElementById('badgeSpansFeedCount').textContent = `${spans.length} Operations`;
+
+        const tokFormatted = totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(1)}k tok` : `${totalTokens} tok`;
+        const pillBadge = document.getElementById('pillTelemetryTokens');
+        if (pillBadge) pillBadge.textContent = tokFormatted;
+
+        const tbody = document.getElementById('tbodyTelemetrySpans');
+        if (spans.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No local telemetry spans recorded for this matter.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = spans.map(s => {
+          const cat = s.category || 'LOCAL_COMPUTE';
+          const categoryBadgeClass = cat === 'DOCUMENT_INGESTION' ? 'badge-cyan' : (cat === 'SEMANTIC_SEARCH' ? 'badge-purple' : 'badge-emerald');
+          const dateStr = s.executed_at ? s.executed_at.split('T')[1].substring(0, 8) : '';
+          return `
+            <tr style="border-bottom: 1px solid var(--card-border);">
+              <td style="padding: 8px 10px;">
+                <span class="card-badge ${categoryBadgeClass}" style="font-size: 10px;">${cat}</span>
+              </td>
+              <td style="padding: 8px 10px; font-weight: 600; color: var(--text-main); font-size: 12px;">
+                ${s.task_name}
+              </td>
+              <td style="padding: 8px 10px; font-family: monospace; font-size: 11px; color: var(--text-muted);">
+                ${s.model_name}
+              </td>
+              <td style="padding: 8px 10px; font-weight: 700; color: var(--accent-cyan);">
+                ${(s.total_tokens || 0).toLocaleString()}
+              </td>
+              <td style="padding: 8px 10px; font-size: 11px; color: var(--text-muted);">
+                ${s.duration_ms} ms
+              </td>
+              <td style="padding: 8px 10px;">
+                <span class="card-badge badge-success" style="font-size: 10px;">✓ INCLUDED (₹0)</span>
+              </td>
+              <td style="padding: 8px 10px; text-align: right; font-size: 11px; color: var(--text-subtle); font-family: monospace;">
+                ${dateStr}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (_) {}
+    }
+
     // ── RBZ Outbound Queue & 1-to-1 Invoice Ledger ──
     let activeCaseLedgerData = null;
 
@@ -2243,18 +3476,33 @@
         if (!data.success || !data.ledger) return;
 
         activeCaseLedgerData = data.ledger;
+
+        // Financial balances
+        const totalDue = data.ledger.total_due_inr || 0;
+        const subtotal = data.ledger.unbilled_subtotal_inr || 0;
+        const gst = data.ledger.gst_18_pct_inr || 0;
+
+        const dueEl = document.getElementById('billingTotalDue');
+        if (dueEl) dueEl.textContent = `₹${totalDue.toFixed(2)}`;
+        const subtotalEl = document.getElementById('billingSubtotalBreakdown');
+        if (subtotalEl) subtotalEl.textContent = `Subtotal: ₹${subtotal.toFixed(2)} | GST (18%): ₹${gst.toFixed(2)}`;
+        const pillBillingDue = document.getElementById('pillBillingDue');
+        if (pillBillingDue) pillBillingDue.textContent = `₹${totalDue.toFixed(2)}`;
+
         renderPendingQueue(data.ledger.pending_tasks || []);
+        renderExecutedTasks(data.ledger.executed_tasks || []);
         renderReceiptsLedger(data.ledger.receipts || [], data.ledger.executed_tasks || []);
       } catch (_) {}
     }
 
     function renderPendingQueue(tasks) {
       const tbody = document.getElementById('tbodyPendingQueue');
+      if (!tbody) return;
       const badge = document.getElementById('badgePendingQueueCount');
-      badge.textContent = `${tasks.length} Pending Authorization${tasks.length === 1 ? '' : 's'}`;
+      if (badge) badge.textContent = `${tasks.length} Pending Authorization${tasks.length === 1 ? '' : 's'}`;
 
       if (tasks.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No pending cloud dispatches. Prompt <code>@Precedent</code> or <code>@Forensic</code> to stage research.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No pending cloud dispatches. Stage tasks via @Precedent or @Forensic.</td></tr>`;
         return;
       }
 
@@ -2277,7 +3525,47 @@
             </td>
             <td style="padding: 10px; text-align: right;">
               <button class="btn-header btn-primary" style="font-size: 11px; padding: 5px 12px; background: var(--accent-emerald);" onclick='payAndAuthorizeTask("${t.task_id}")'>
-                ⚡ Pay via UPI
+                ⚡ Authorize &amp; Pay
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderExecutedTasks(executedTasks) {
+      const tbody = document.getElementById('tbodyExecutedTasks');
+      if (!tbody) return;
+      const badge = document.getElementById('badgeExecutedCount');
+      if (badge) badge.textContent = `${executedTasks.length} Task${executedTasks.length === 1 ? '' : 's'}`;
+
+      if (!executedTasks || executedTasks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No executed diligence tasks in this case ledger.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = executedTasks.map(t => {
+        const gst = Math.round(t.rate_inr * 0.18 * 100) / 100;
+        const total = Math.round((t.rate_inr + gst) * 100) / 100;
+        const hashDisplay = t.task_hash ? `${t.task_hash.substring(0, 14)}…` : '⛓️ VERIFIED';
+        const isSettled = t.payment_status === 'settled';
+        const statusBadge = isSettled 
+          ? '<span class="card-badge badge-success" style="font-size: 10px;">✓ SETTLED</span>'
+          : '<span class="card-badge badge-warn" style="font-size: 10px;">UNBILLED</span>';
+
+        return `
+          <tr style="border-bottom: 1px solid var(--card-border);">
+            <td style="padding: 10px; font-family: monospace; color: var(--accent-cyan); font-size: 11px;">${t.task_id}</td>
+            <td style="padding: 10px; font-weight: 600; color: var(--text-main); font-size: 12px;">
+              ${t.task_title || t.tool_name}
+              <div style="font-size: 11px; color: var(--text-muted);">${t.target_name || ''}</div>
+            </td>
+            <td style="padding: 10px; font-weight: 700;">₹${total.toFixed(2)}</td>
+            <td style="padding: 10px;">${statusBadge}</td>
+            <td style="padding: 10px; font-family: monospace; font-size: 11px; color: var(--accent-emerald);">${hashDisplay}</td>
+            <td style="padding: 10px; text-align: right;">
+              <button class="btn-header btn-outline" style="font-size: 11px; padding: 4px 10px;" onclick='openAuditVoucher("${t.task_id}")'>
+                🔍 Audit Voucher
               </button>
             </td>
           </tr>
@@ -2287,6 +3575,10 @@
 
     function renderReceiptsLedger(receipts, executedTasks) {
       const tbody = document.getElementById('tbodyReceiptsLedger');
+      if (!tbody) return;
+      const badge = document.getElementById('badgeReceiptsCount');
+      if (badge) badge.textContent = `${receipts.length} Invoice${receipts.length === 1 ? '' : 's'}`;
+
       if (!receipts || receipts.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No paid reports in current case ledger.</td></tr>`;
         return;
@@ -2308,7 +3600,7 @@
             <td style="padding: 10px; font-weight: 700;">₹${r.total_inr.toFixed(2)}</td>
             <td style="padding: 10px;">
               <span class="card-badge badge-success" style="font-size: 10px;">✓ PAID &amp; AUDITED</span>
-              <div style="font-size: 10px; color: var(--text-subtle); margin-top: 2px;">${r.paid_at.split('T')[0]}</div>
+              <div style="font-size: 10px; color: var(--text-subtle); margin-top: 2px;">${r.paid_at ? r.paid_at.split('T')[0] : ''}</div>
             </td>
           </tr>
         `;
@@ -2323,6 +3615,65 @@
       try { pretty = JSON.stringify(JSON.parse(t.payload_json), null, 2); } catch (_) {}
       document.getElementById('prePayloadInspect').textContent = pretty || `{\n  "taskId": "${taskId}",\n  "tool": "${t.tool_name}",\n  "target": "${t.target_name}"\n}`;
       document.getElementById('payloadInspectModal').classList.add('active');
+    }
+
+    function openAuditVoucher(taskId) {
+      if (!activeCaseLedgerData) return;
+      const t = (activeCaseLedgerData.executed_tasks || []).find(x => x.task_id === taskId)
+             || (activeCaseLedgerData.pending_tasks || []).find(x => x.task_id === taskId);
+      if (!t) return;
+
+      const gst = Math.round(t.rate_inr * 0.18 * 100) / 100;
+      const total = Math.round((t.rate_inr + gst) * 100) / 100;
+      const hashShort = t.task_hash || 'SHA256-PENDING';
+      const prevHashShort = t.prev_hash ? `${t.prev_hash.substring(0, 16)}…` : 'GENESIS-0000';
+      const statusBadge = t.status === 'executed' 
+        ? '<span class="card-badge badge-success">✓ EXECUTED &amp; AUDITED</span>'
+        : '<span class="card-badge badge-warn">⏳ STAGED (PENDING SIGN-OFF)</span>';
+
+      const voucherHtml = `
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px;">
+          <div>
+            <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">STATUTORY TASK IDENTIFIER</div>
+            <div style="font-family: monospace; font-size: 13px; color: var(--accent-cyan); font-weight: 700;">${t.task_id}</div>
+          </div>
+          ${statusBadge}
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">DILIGENCE TITLE</div>
+          <div style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-top: 2px;">${t.task_title || t.tool_name}</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted);">Subject / Target:</div>
+            <div style="font-weight: 600; color: var(--text-main);">${t.target_name || 'Legal Research'}</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted);">Reimbursable Tariff:</div>
+            <div style="font-weight: 700; color: var(--accent-cyan);">₹${total.toFixed(2)} <span style="font-size: 10px; font-weight: normal; color: var(--text-subtle);">(₹${t.rate_inr} + 18% GST)</span></div>
+          </div>
+        </div>
+
+        <div style="background: var(--surface-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; margin-bottom: 10px;">
+          <div style="color: var(--text-muted); margin-bottom: 4px;">CRYPTOGRAPHIC HASH INTEGRITY:</div>
+          <div style="color: var(--accent-emerald); word-break: break-all;">Hash: ${hashShort}</div>
+          <div style="color: var(--text-subtle); word-break: break-all; margin-top: 2px;">Prev: ${prevHashShort}</div>
+        </div>
+      `;
+
+      document.getElementById('voucherContent').innerHTML = voucherHtml;
+
+      const langfuseBtn = document.getElementById('btnVoucherLangfuse');
+      if (t.langfuse_trace_id) {
+        langfuseBtn.style.display = 'inline-flex';
+        langfuseBtn.href = `https://cloud.langfuse.com/project/cmfdx62l20059hvd32e3h5m02/traces/${encodeURIComponent(t.langfuse_trace_id)}`;
+      } else {
+        langfuseBtn.style.display = 'none';
+      }
+
+      document.getElementById('voucherModal').classList.add('active');
     }
 
     async function payAndAuthorizeTask(taskId) {
@@ -2365,6 +3716,7 @@
               if (dispatchData.success) {
                 showToast(`✓ Report saved to ${dispatchData.delivery.report_path}! Tax invoice issued.`);
                 loadCaseLedgerUI();
+                loadHilQueue();
               } else {
                 showToast(`Dispatch error: ${dispatchData.error}`, true);
               }
@@ -2383,7 +3735,19 @@
 
     // Initial Load & Telemetry Loop
     loadSettings();
+    switchCockpitTab(currentCockpitTab);
     loadCaseLedgerUI();
+    loadHilQueue();
+    loadTelemetrySpans();
+    loadPractitionerIdentityUI();
+
+    if (urlParams.get('action') === 'new-case') {
+      setTimeout(openNewCaseModal, 200);
+    }
+    if (urlParams.get('action') === 'onboarding') {
+      setTimeout(openOnboardingModal, 200);
+    }
+
     setInterval(async () => {
       try {
         const res = await fetch(`/api/hayagriva/settings/v2?case=${encodeURIComponent(caseName)}`);

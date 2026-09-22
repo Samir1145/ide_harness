@@ -1469,8 +1469,11 @@ async function indexVectorsToSqlite(caseDir, result, profile) {
 
         console.log(`[Vector Index] Starting embedding generation (${vectorType}) for ${chunksToEmbed.length} chunks of "${relative}"...`);
         
+        const embedStart = Date.now();
+        let totalEmbeddedChars = 0;
         let count = 0;
         for (const item of chunksToEmbed) {
+            totalEmbeddedChars += (item.content ? item.content.length : 0);
             const vec = await getEmbedding(item.content, { filename: relative, vectorType, isQuery: false });
             if (vec && vec.length > 0) {
                 const floatArray = new Float32Array(vec);
@@ -1490,6 +1493,31 @@ async function indexVectorsToSqlite(caseDir, result, profile) {
             }
         }
         console.log(`[Vector Index] Successfully stored vector mappings for "${relative}" in case_vault.db`);
+
+        // Record embedded telemetry span
+        try {
+            const { logSpan } = require('../core/local-telemetry');
+            const { synthesizeIngestionTitle } = require('../core/task-namer');
+            const embedDuration = Date.now() - embedStart;
+            const totalTokens = Math.ceil(totalEmbeddedChars / 4);
+            const taskTitle = synthesizeIngestionTitle({
+                filename: relative,
+                chunkCount: chunksToEmbed.length
+            });
+            logSpan(caseDir, {
+                caseId: path.basename(caseDir),
+                taskName: taskTitle,
+                category: 'DOCUMENT_INGESTION',
+                targetSubject: relative,
+                tokensInput: totalTokens,
+                totalTokens: totalTokens,
+                durationMs: embedDuration,
+                modelName: vectorType === 'finance' ? 'finance-embeddings' : 'inlegal-sbert',
+                metadata: { relative, vectorType, chunkCount: chunksToEmbed.length }
+            });
+        } catch (telemetryErr) {
+            console.warn('[Vector Index] Telemetry logging skipped:', telemetryErr.message);
+        }
     } catch (err) {
         console.error(`[Vector Index Error] Failed to generate vectors for "${result.relative}":`, err.message);
     }

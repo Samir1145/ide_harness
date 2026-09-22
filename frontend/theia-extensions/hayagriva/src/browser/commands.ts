@@ -307,9 +307,44 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:openSettingsPanel`, label: 'Open Case Settings', iconClass: 'fa fa-cog' },
+      { id: `${HAYAGRIVA_NS}:openMissionControl`, label: 'Open Practice Governance Cockpit', iconClass: 'fa fa-shield' },
+      { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'hil'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openHilApprovals`, label: 'Human-In-The-Loop (HIL) Approvals', iconClass: 'fa fa-user-circle' },
+      { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'hil'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openBillingLedger`, label: 'CIRP Expense & Diligence Ledger', iconClass: 'fa fa-credit-card' },
+      { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'billing'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openLocalObservability`, label: 'Local Telemetry & Observability', iconClass: 'fa fa-line-chart' },
+      { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'telemetry'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openLicensePanel`, label: 'Software Licensing & Machine Identity', iconClass: 'fa fa-key' },
+      { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'license'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openNewCaseWizard`, label: 'New Matter / CIRP Estate…', iconClass: 'fa fa-folder-plus' },
+      { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'settings', 'new-case'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openOnboardingModal`, label: 'Verify Practitioner Identity & Stamp…', iconClass: 'fa fa-id-card' },
+      { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'license', 'onboarding'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openSettingsPanel`, label: 'Practice Settings & AI Engines', iconClass: 'fa fa-cog' },
       { 
-        execute: async () => { await this.contribution.openSettingsPanel(); },
+        execute: async () => { await this.contribution.openCockpitPanel(undefined, 'settings'); },
         isVisible: (widget: any) => {
           if (!widget) return true;
           const id = (widget.id || '').toLowerCase();

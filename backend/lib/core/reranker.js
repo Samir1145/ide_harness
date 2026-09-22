@@ -31,6 +31,8 @@ async function getRerankerPipeline() {
     const candidates = [
         process.env.HAYA_RERANKER_PATH ? process.env.HAYA_RERANKER_PATH : null,
         process.env.HAYA_MODELS_PATH ? path.join(process.env.HAYA_MODELS_PATH, 'reranker') : null,
+        path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'models', 'weights', 'reranker'),
+        path.join(__dirname, '..', '..', '..', 'models', 'weights', 'reranker'),
         path.join(os.homedir(), 'Desktop', 'ide_models', 'weights', 'reranker'),
         path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'models', 'reranker'),
         path.join(__dirname, '..', '..', 'models', 'default', 'reranker'),

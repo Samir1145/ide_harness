@@ -1,7 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const websiteRoot = '/Users/atulgrover/Desktop/website_apnet.co.in';
+const websiteCandidates = [
+  path.join(require('os').homedir(), 'Desktop', 'WEBSITES', 'apnet'),
+  path.join(require('os').homedir(), 'Desktop', 'website_apnet.co.in')
+];
+const websiteRoot = websiteCandidates.find(p => fs.existsSync(p)) || websiteCandidates[0];
 
 console.log('Synchronizing website_apnet.co.in pages with Hayagriva IDE capabilities...');
 

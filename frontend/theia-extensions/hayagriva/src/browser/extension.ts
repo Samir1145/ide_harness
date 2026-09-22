@@ -184,8 +184,7 @@ export class HayagrivaFrontendContribution
 
     this.initializeWikiExplorerWidget();
     this.initializeConceptsExplorerWidget();
-    this.initializeInboxExplorerWidget();
-    this.initializeBillingExplorerWidget();
+    // Inbox and Billing widgets shifted to Practice Governance & Cockpit in Top Menu
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
     this.startBackendMonitor();
     this.initializeRbzAdvisor();
@@ -300,9 +299,14 @@ export class HayagrivaFrontendContribution
     return this.previewManager.openDraftingPanel(caseName);
   }
 
+  async openCockpitPanel(caseName?: string, tab: string = 'hil', action?: string): Promise<Widget> {
+    const targetCase = caseName || this.getActiveCaseName();
+    return this.previewManager.openCockpitPanel(targetCase, tab, action);
+  }
+
   async openSettingsPanel(caseName?: string): Promise<Widget> {
     const targetCase = caseName || this.getActiveCaseName();
-    return this.previewManager.openSettingsPanel(targetCase);
+    return this.previewManager.openCockpitPanel(targetCase, 'settings');
   }
 
   async openChronologyPanel(caseName?: string): Promise<Widget> {
@@ -691,9 +695,7 @@ export class HayagrivaFrontendContribution
   }
 
   openBillingExplorer(): void {
-    if (this.billingWidget) {
-      this.shell.activateWidget(this.billingWidget.id);
-    }
+    this.openCockpitPanel(undefined, 'billing');
   }
 
   updateSidebarCase(caseName: string): void {

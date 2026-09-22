@@ -484,6 +484,31 @@ Hypothetical Answer:`;
     } else {
         console.log('[RAG] Direct RRF candidates returned (Reranker bypassed via DISABLE_RAG_RERANK)');
     }
+
+    // Record local semantic search & rerank telemetry
+    try {
+        const { logSpan } = require('./local-telemetry');
+        const { synthesizeSearchTitle } = require('./task-namer');
+        const searchTitle = synthesizeSearchTitle({
+            query: queryText,
+            domain: (legalQueryVec && financeQueryVec) ? 'hybrid' : 'statutory',
+            topSection: topCandidates.length > 0 ? topCandidates[0].title : null
+        });
+        const queryTokens = Math.ceil(queryText.length / 4);
+        const candidateTokens = candidateSnippets.reduce((sum, c) => sum + Math.ceil((c.body ? c.body.length : 0) / 4), 0);
+        logSpan(caseDir, {
+            caseId: path.basename(caseDir),
+            taskName: searchTitle,
+            category: 'SEMANTIC_SEARCH',
+            targetSubject: queryText.substring(0, 50),
+            tokensInput: queryTokens + candidateTokens,
+            totalTokens: queryTokens + candidateTokens,
+            modelName: 'hybrid-rrf-minilm',
+            metadata: { candidatesEvaluated: candidateSnippets.length, returnedCount: topCandidates.length }
+        });
+    } catch (telemetryErr) {
+        // Non-blocking telemetry fallback
+    }
     
     return topCandidates.map(c => ({
         title: c.title,

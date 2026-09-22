@@ -13,6 +13,12 @@ const os = require('os');
  */
 function resolveSkill(skillName, subpath = '') {
     const candidateRoots = [
+        path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'agents', 'packs', 'finance_agents.vlt', 'skills'),
+        path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'agents', 'packs', 'legal_agents.vlt', 'skills'),
+        path.join(__dirname, '..', '..', '..', '..', '..', 'agents', 'packs', 'finance_agents.vlt', 'skills'),
+        path.join(__dirname, '..', '..', '..', '..', '..', 'agents', 'packs', 'legal_agents.vlt', 'skills'),
+        path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'agents', 'skills'),
+        path.join(__dirname, '..', '..', '..', '..', '..', 'agents', 'skills'),
         path.join(os.homedir(), 'Desktop', 'ide_agents', 'packs', 'finance_agents.vlt', 'skills'),
         path.join(os.homedir(), 'Desktop', 'ide_agents', 'packs', 'legal_agents.vlt', 'skills'),
         path.join(__dirname, '..', '..', '..', '..', 'ide_agents', 'packs', 'finance_agents.vlt', 'skills'),

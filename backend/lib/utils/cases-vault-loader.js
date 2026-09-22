@@ -23,6 +23,12 @@ const USER_CASES_DIR = process.platform === 'win32'
 
 const DESKTOP_VAULTS_DIRS = [
   process.env.HAYAGRIVA_VAULTS_PATH,
+  path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'vaults', 'output', 'client_vaults', 'dist'),
+  path.join(__dirname, '..', '..', '..', '..', 'vaults', 'output', 'client_vaults', 'dist'),
+  path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'vaults', 'output'),
+  path.join(__dirname, '..', '..', '..', '..', 'vaults', 'output'),
+  path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'vaults'),
+  path.join(__dirname, '..', '..', '..', '..', 'vaults'),
   path.join(os.homedir(), 'Desktop', 'ide_vaults', 'output', 'client_vaults', 'dist'),
   path.join(os.homedir(), 'Desktop', 'ide_vaults', 'output'),
   path.join(os.homedir(), 'Desktop', 'ide_vaults')

@@ -24,6 +24,12 @@ function resolveCaseDir(docsRoot, caseParam) {
         }
         return clean;
     }
+    // Check Desktop/HAYA_MATTERS first if case exists there
+    const home = process.env.USERPROFILE || process.env.HOME || os.homedir() || '.';
+    const desktopMatter = path.join(home, 'Desktop', 'HAYA_MATTERS', caseName || '');
+    if (caseName && fs.existsSync(desktopMatter)) {
+        return desktopMatter;
+    }
     return path.join(docsRoot, caseName || '');
 }
 
@@ -2116,6 +2122,73 @@ module.exports = {
             }));
         },
 
+        '/api/hayagriva/telemetry/spans': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || parsedUrl.query.caseName || '';
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            try {
+                const { getAuditSummary, getRecentSpans } = require('./core/local-telemetry');
+                const summary = getAuditSummary(caseDir, caseName);
+                const spans = getRecentSpans(caseDir, 50);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    caseName,
+                    summary,
+                    spans
+                }));
+            } catch (err) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: false,
+                    error: err.message,
+                    summary: { totalSpans: 0, totalTokens: 0, totalDurationMs: 0, categories: [] },
+                    spans: []
+                }));
+            }
+        },
+
+        '/api/hayagriva/inbox': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || parsedUrl.query.caseName || '';
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            try {
+                const inboxManager = require('./agents/inbox-manager');
+                const filters = {
+                    state: parsedUrl.query.state || undefined,
+                    kind: parsedUrl.query.kind || undefined
+                };
+                const result = inboxManager.listItems(caseDir, filters);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, ...result }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/practitioner/profile': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const { getProfile, renderAttestationStamp } = require('./core/profile-manager');
+                const { getMachineId } = require('./utils/machine-fingerprint');
+                const caseParam = parsedUrl.query.case || parsedUrl.query.caseName || '';
+                const caseDir = resolveCaseDir(docsRoot, caseParam);
+                const profile = getProfile(caseDir);
+                const machineId = getMachineId();
+                const attestationStamp = renderAttestationStamp(profile, machineId);
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    profile,
+                    machineId,
+                    isVerified: !!(profile.identity && profile.identity.isVerified),
+                    attestationStamp
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
         '/api/hayagriva/settings/get': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
@@ -2188,6 +2261,8 @@ module.exports = {
             const checkFile = (paths) => paths.some(p => p && fs.existsSync(p));
 
             const legalModels = [
+                path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'models', 'weights', 'llm', 'llamafile', 'legalparam', 'legalparam-2.9b.gguf'),
+                path.join(__dirname, '..', '..', '..', 'models', 'weights', 'llm', 'llamafile', 'legalparam', 'legalparam-2.9b.gguf'),
                 path.join(os.homedir(), 'Desktop', 'ide_models', 'weights', 'llm', 'llamafile', 'legalparam', 'legalparam-2.9b.gguf'),
                 path.join(__dirname, '..', '..', 'models', 'llm', 'legalparam-2.9b.gguf'),
                 path.join(__dirname, '..', 'models', 'legal', 'legalparam-2.9b.gguf'),
@@ -2195,6 +2270,8 @@ module.exports = {
                 path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'models', 'llm', 'legalparam-2.9b.gguf')
             ];
             const financeModels = [
+                path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'models', 'weights', 'llm', 'llamafile', 'financeparam', 'financeparam-2.9b.gguf'),
+                path.join(__dirname, '..', '..', '..', 'models', 'weights', 'llm', 'llamafile', 'financeparam', 'financeparam-2.9b.gguf'),
                 path.join(os.homedir(), 'Desktop', 'ide_models', 'weights', 'llm', 'llamafile', 'financeparam', 'financeparam-2.9b.gguf'),
                 path.join(__dirname, '..', '..', 'models', 'llm', 'financeparam-2.9b.gguf'),
                 path.join(__dirname, '..', 'models', 'finance', 'financeparam-2.9b.gguf'),
@@ -2570,6 +2647,194 @@ module.exports = {
     },
 
     POST: {
+        '/api/hayagriva/practitioner/save-profile': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { saveProfile } = require('./core/profile-manager');
+                    const { getMachineId } = require('./utils/machine-fingerprint');
+                    const machineId = getMachineId();
+                    const saved = saveProfile(data, machineId);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, profile: saved, machineId }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/practitioner/send-otp': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const email = (data.email || '').trim();
+                    if (!email) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, error: 'Email address is required.' }));
+                    }
+
+                    const { sendOtp } = require('./core/profile-manager');
+                    const result = await sendOtp(email);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/practitioner/verify-otp': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const email = (data.email || '').trim();
+                    const code = (data.code || '').trim();
+                    if (!email || !code) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, error: 'Email and verification code are required.' }));
+                    }
+
+                    const { verifyOtp } = require('./core/profile-manager');
+                    const { getMachineId } = require('./utils/machine-fingerprint');
+                    const machineId = getMachineId();
+                    const result = verifyOtp(email, code, machineId);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (err) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/cases/create': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const matterName = (data.matterName || '').trim();
+                    if (!matterName) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, error: 'Corporate Debtor / Matter Name is required.' }));
+                    }
+
+                    const matterType = data.matterType || 'cirp';
+                    const cin = (data.cin || '').trim().toUpperCase();
+                    const ncltBench = (data.ncltBench || 'Principal Bench, New Delhi').trim();
+                    const petitionNumber = (data.petitionNumber || '').trim();
+                    const icd = (data.icd || '').trim();
+                    const estateEmail = (data.estateEmail || '').trim().toLowerCase();
+
+                    // Canonical Case ID derivation
+                    let canonicalCaseId;
+                    if (cin) {
+                        const cleanCin = cin.replace(/[^A-Z0-9]/g, '');
+                        const cleanCp = petitionNumber.replace(/[^A-Za-z0-9]/g, '').slice(-8);
+                        canonicalCaseId = `CIRP_${cleanCin}${cleanCp ? '_' + cleanCp : ''}`;
+                    } else {
+                        canonicalCaseId = `CIRP_${matterName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    }
+
+                    // Workspace location: ~/Desktop/HAYA_MATTERS/<matterName>
+                    const home = process.env.USERPROFILE || process.env.HOME || os.homedir() || '.';
+                    const hayaMattersRoot = path.join(home, 'Desktop', 'HAYA_MATTERS');
+                    if (!fs.existsSync(hayaMattersRoot)) {
+                        fs.mkdirSync(hayaMattersRoot, { recursive: true });
+                    }
+                    const caseDir = path.join(hayaMattersRoot, matterName);
+                    if (!fs.existsSync(caseDir)) {
+                        fs.mkdirSync(caseDir, { recursive: true });
+                    }
+
+                    // Bootstrap statutory folder taxonomy
+                    const statutoryFolders = [
+                        '01_Pleadings_and_Orders',
+                        '02_Public_Announcements',
+                        '03_Claims_and_Verification',
+                        '04_Financials_and_Audits',
+                        '05_CoC_Meetings',
+                        '06_Avoidance_PUFE',
+                        '07_Resolution_Plans',
+                        'RBZ_reports',
+                        'conversions',
+                        'ledgers',
+                        'drafts',
+                        'reviews'
+                    ];
+
+                    for (const folder of statutoryFolders) {
+                        const targetFolder = path.join(caseDir, folder);
+                        if (!fs.existsSync(targetFolder)) {
+                            fs.mkdirSync(targetFolder, { recursive: true });
+                        }
+                    }
+
+                    // Read current practitioner profile & machine ID
+                    const { getProfile } = require('./core/profile-manager');
+                    const { getMachineId } = require('./utils/machine-fingerprint');
+                    const profile = getProfile();
+                    const machineId = getMachineId();
+
+                    // Create case_manifest.json inside conversions/
+                    const manifestPath = path.join(caseDir, 'conversions', 'case_manifest.json');
+                    const manifest = {
+                        caseId: canonicalCaseId,
+                        caseName: matterName,
+                        matterType: matterType,
+                        cin: cin,
+                        ncltBench: ncltBench,
+                        petitionNumber: petitionNumber,
+                        insolvencyCommencementDate: icd,
+                        estateEmail: estateEmail,
+                        leadPractitioner: {
+                            userId: profile.identity?.userId || 'usr_lead',
+                            name: profile.identity?.fullName || 'Practitioner',
+                            regNo: profile.identity?.ibbiRegNo || profile.identity?.barEnrollmentNo || 'PENDING',
+                            masterEmail: profile.contact?.email || '',
+                            machineId: machineId
+                        },
+                        domain: 'insolvency',
+                        isDomainLicensed: true,
+                        activeLlmEngine: 'legalparam-2.9b.gguf',
+                        subscriptionTier: 'pro',
+                        mountedVaultPacks: ['legal_agents.vlt'],
+                        fileDomains: {},
+                        createdAt: new Date().toISOString()
+                    };
+                    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
+                    // Initialize case_billing.db
+                    const { getCaseBillingDb } = require('./core/case-billing-store');
+                    const db = getCaseBillingDb(caseDir);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        message: `Estate workspace '${matterName}' successfully bootstrapped.`,
+                        caseName: matterName,
+                        caseId: canonicalCaseId,
+                        caseDir: caseDir,
+                        manifest: manifest
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
         '/api/hayagriva/precedents/query': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);

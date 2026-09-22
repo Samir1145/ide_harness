@@ -53,6 +53,8 @@ class AgentCoordinator {
     findAgentPacksDirs() {
         const candidates = [
             process.env.HAYAGRIVA_AGENTS_PATH,
+            path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'agents', 'packs'),
+            path.join(__dirname, '..', '..', '..', '..', 'agents', 'packs'),
             path.join(os.homedir(), 'Desktop', 'ide_agents', 'packs'),
             path.join(__dirname, '..', '..', '..', 'ide_agents', 'packs'),
             path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'agents'),
@@ -403,7 +405,7 @@ Your local system clock does not match the tamper-evident ledger. Please restore
                 result = `### ⚠️ Agent Not Installed: @${target}\n\n` +
                     `The specialized agent **@${target}** is part of an external Agent Pack and is not currently loaded.\n\n` +
                     `**To enable this agent:**\n` +
-                    `1. Ensure **\`~/Desktop/ide_agents\`** is present on your Mac (or configure \`HAYAGRIVA_AGENTS_PATH\`).\n` +
+                    `1. Ensure **\`~/Desktop/HAYAGRIVA/agents\`** (or legacy \`~/Desktop/ide_agents\`) is present on your Mac (or configure \`HAYAGRIVA_AGENTS_PATH\`).\n` +
                     `2. Agent packs include \`legal_agents.vlt\`, \`finance_agents.vlt\`, and \`coding_agents.vlt\`.\n\n` +
                     (available ? `**Currently Available Agents:** ${available}\n\n` : '') +
                     `*The Core IDE continues operating in Sovereign Standalone Mode (Document Ingestion & Local BM25 RAG).*`;

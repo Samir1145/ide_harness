@@ -40,6 +40,13 @@ export class HayagrivaMenuContribution implements MenuContribution {
     // ═════════════════════════════════════════════════════════════════════════
     registry.registerSubmenu(HAYAGRIVA_MAIN_MENU, 'Hayagriva', { sortString: '3_hayagriva' });
 
+    // ── 0. New Matter / CIRP Estate Action ──
+    registry.registerMenuAction(HAYAGRIVA_MAIN_MENU, {
+      commandId: `${HAYAGRIVA_NS}:openNewCaseWizard`,
+      label: '➕ New Matter / CIRP Estate…',
+      order: '0'
+    });
+
     // ── 1. Document & Preview Submenu ──
     const DOCS_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '1_docs_submenu'];
     registry.registerSubmenu(DOCS_SUBMENU, '📄 Document & Preview', { sortString: '1_docs' });
@@ -80,11 +87,43 @@ export class HayagrivaMenuContribution implements MenuContribution {
     registry.registerMenuAction(VAULT_SUBMENU, { commandId: `${HAYAGRIVA_NS}:archiveCase`, label: 'Archive Case to Vault', order: '1' });
     registry.registerMenuAction(VAULT_SUBMENU, { commandId: `${HAYAGRIVA_NS}:restoreCase`, label: 'Restore Case from Vault', order: '2' });
 
-    // ── Direct Settings Action ──
-    registry.registerMenuAction([...HAYAGRIVA_MAIN_MENU, '9_settings'], {
-      commandId: `${HAYAGRIVA_NS}:openSettingsPanel`,
-      label: '⚙️ Case Settings & Licensing...',
+    // ── 6. Practice Governance & Cockpit Submenu ──
+    const GOV_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '6_governance_submenu'];
+    registry.registerSubmenu(GOV_SUBMENU, '🏛️ Practice Governance & Cockpit', { sortString: '6_gov' });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openMissionControl`,
+      label: '🚀 Open Practice Governance Cockpit...',
       order: '1'
+    });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openHilApprovals`,
+      label: '🛡️ Human-In-The-Loop (HIL) Approvals...',
+      order: '2'
+    });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openBillingLedger`,
+      label: '💳 CIRP Expense & Diligence Ledger...',
+      order: '3'
+    });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openLocalObservability`,
+      label: '📈 Local Telemetry & Observability...',
+      order: '4'
+    });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openSettingsPanel`,
+      label: '⚙️ Practice Settings & AI Engines...',
+      order: '5'
+    });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openLicensePanel`,
+      label: '🔑 Software Licensing & Machine Identity...',
+      order: '6'
+    });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openOnboardingModal`,
+      label: '👤 Verify Practitioner Identity & Stamp…',
+      order: '7'
     });
 
     // ── 6. Help & User Guides Submenu ──

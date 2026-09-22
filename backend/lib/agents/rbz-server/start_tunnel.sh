@@ -57,7 +57,7 @@ trap cleanup INT TERM HUP
 
 echo ""
 echo "▶ Connecting Permanent Cloudflare Tunnel (Tunnel ID: 5408c6f0-e518-4e46-a46f-4fb72d036e34)..."
-echo "   (Routing traffic to http://localhost:$PORT)..."
+echo "   Public Ingress: https://api.lexai.in -> http://localhost:$PORT"
 echo "--------------------------------------------------------------------------"
 
 # Launch permanent cloudflared tunnel using Cloudflare Zero Trust token

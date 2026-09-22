@@ -503,6 +503,8 @@ function resolveEmbeddingModel(vectorType) {
 
     const candidateBases = [
         process.env.HAYA_MODELS_PATH ? path.join(process.env.HAYA_MODELS_PATH, 'embeddings', domain) : null,
+        path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'models', 'weights', 'embeddings', domain),
+        path.join(__dirname, '..', '..', '..', 'models', 'weights', 'embeddings', domain),
         path.join(os.homedir(), 'Desktop', 'ide_models', 'weights', 'embeddings', domain),
         path.join(os.homedir(), 'Library', 'Application Support', 'Hayagriva', 'models', 'embeddings', domain)
     ].filter(Boolean);

@@ -94,6 +94,17 @@ async function bootstrapCase(caseDir) {
             settings['files.exclude']['**/CASE_AUDIT.md'] = true;
             settings['files.exclude']['**/hayagriva_settings.json'] = true;
             settings['files.exclude']['**/index.md'] = true;
+            settings['files.exclude']['**/ledgers'] = true;
+            settings['files.exclude']['**/ledgers/**'] = true;
+            settings['files.exclude']['ledgers'] = true;
+            settings['files.exclude']['ledgers/**'] = true;
+            settings['files.exclude']['**/case_billing.db'] = true;
+            settings['files.exclude']['**/*billing*.db'] = true;
+            settings['files.exclude']['**/*billing*.sql'] = true;
+            settings['files.exclude']['**/billing.sql'] = true;
+            settings['files.exclude']['**/*.sql'] = true;
+            settings['files.exclude']['**/*.db'] = true;
+            settings['files.exclude']['**/*.sqlite'] = true;
             settings['explorer.openEditors.visible'] = 0;
             fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
         } catch (e) {

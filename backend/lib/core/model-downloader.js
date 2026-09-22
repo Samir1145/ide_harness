@@ -18,12 +18,22 @@ class ModelDownloader extends EventEmitter {
      * Resolves the models directory dynamically relative to home or workspace.
      */
     getModelsBaseDir() {
-        const home = process.env.HOME || process.env.USERPROFILE || '.';
-        const desktopModels = path.join(home, 'Desktop', 'ide_models');
-        if (fs.existsSync(desktopModels)) {
-            return desktopModels;
+        if (process.env.HAYAGRIVA_MODELS_PATH && fs.existsSync(process.env.HAYAGRIVA_MODELS_PATH)) {
+            return process.env.HAYAGRIVA_MODELS_PATH;
         }
-        return path.join(__dirname, '..', '..', '..', 'ide_models');
+        const home = process.env.HOME || process.env.USERPROFILE || '.';
+        const candidates = [
+            path.join(home, 'Desktop', 'HAYAGRIVA', 'models'),
+            path.join(__dirname, '..', '..', '..', '..', 'models'),
+            path.join(home, 'Desktop', 'ide_models'),
+            path.join(__dirname, '..', '..', '..', 'ide_models')
+        ];
+        for (const cand of candidates) {
+            if (fs.existsSync(cand)) {
+                return cand;
+            }
+        }
+        return path.join(home, 'Desktop', 'HAYAGRIVA', 'models');
     }
 
     /**

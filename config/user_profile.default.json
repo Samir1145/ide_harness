@@ -1,0 +1,63 @@
+{
+  "identity": {
+    "fullName": "Atul Grover",
+    "designation": "Advocate & Insolvency Professional",
+    "firmName": "Grover & Associates | Resolution Bazaar",
+    "barEnrollmentNo": "P/2418/2006",
+    "ibbiRegNo": "IBBI/IPA-001/IP-P01234/2018-2019/11987",
+    "afaValidity": "Valid up to 31-Dec-2027",
+    "pan": "AAAPG1234F",
+    "gstin": "04AAAPG1234F1Z2"
+  },
+  "contact": {
+    "officeAddress": "SCO No. 165-166, Sector 43-B, Chandigarh - 160043",
+    "secondaryOffice": "Bar Association Library, NCLT Bench, New Delhi",
+    "email": "atul@resolutionbazaar.com",
+    "phone": "+91 98765 43210",
+    "website": "https://resolutionbazaar.com"
+  },
+  "branding": {
+    "letterheadHeader": "ATUL GROVER | ADVOCATE & INSOLVENCY PROFESSIONAL",
+    "tagline": "Corporate Restructuring, Insolvency Law, Forensic Diligence & Dispute Resolution",
+    "themeColor": "#0369a1",
+    "accentColor": "#0f172a",
+    "footerDisclaimer": "Strictly Confidential — Professional Engagement Proposal governed by the Advocates Act, 1961 & IBBI Code of Conduct."
+  },
+  "bankCoordinates": {
+    "accountName": "Atul Grover Legal Practice",
+    "bankName": "State Bank of India",
+    "accountNumber": "30489201928",
+    "ifscCode": "SBIN0001443",
+    "branch": "Sector 43, Chandigarh"
+  },
+  "standardRates": {
+    "sec29aDueDiligence": {
+      "ratePerApplicant": 125000,
+      "ratePerConnectedEntity": 25000,
+      "currency": "INR",
+      "tax": "GST @ 18% extra (RCM Applicable)"
+    },
+    "cirpMonthlyRetainer": {
+      "ratePerMonth": 200000,
+      "outOfPocketCap": 50000,
+      "currency": "INR",
+      "tax": "GST @ 18% extra"
+    },
+    "ncltPetitionLitigation": {
+      "draftingAdvance": 150000,
+      "appearancePerHearing": 35000,
+      "currency": "INR",
+      "tax": "GST @ 18% extra"
+    },
+    "personalGuarantorResolution": {
+      "packageFee": 250000,
+      "currency": "INR",
+      "tax": "GST @ 18% extra"
+    },
+    "corporateRetainer": {
+      "monthlyFee": 100000,
+      "currency": "INR",
+      "tax": "GST @ 18% extra"
+    }
+  }
+}

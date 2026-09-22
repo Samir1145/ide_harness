@@ -266,20 +266,29 @@ export class HayagrivaPreviewManager {
     return widget;
   }
 
-  async openSettingsPanel(caseName: string): Promise<Widget> {
+  async openCockpitPanel(caseName: string, initialTab: string = 'hil', action?: string): Promise<Widget> {
     const id = 'hayagriva-settings-panel';
     let widget = this.shell.getWidgets('main').find(w => w.id === id);
 
     if (widget) {
       this.shell.activateWidget(widget.id);
+      const iframe = widget.node.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'switch-tab', tab: initialTab, action }, '*');
+        if (action === 'new-case') {
+          iframe.contentWindow.postMessage({ type: 'open-new-case' }, '*');
+        } else if (action === 'onboarding') {
+          iframe.contentWindow.postMessage({ type: 'open-onboarding' }, '*');
+        }
+      }
       return widget;
     }
 
     widget = new Widget();
     widget.id = id;
-    widget.title.label = 'Hayagriva Settings';
-    widget.title.caption = 'Configure dynamic routing and performance profiles';
-    widget.title.iconClass = 'fa fa-cog';
+    widget.title.label = 'Practice Governance & Cockpit';
+    widget.title.caption = 'HIL Approvals, CIRP Ledger, Local Telemetry, Settings & Licensing';
+    widget.title.iconClass = 'fa fa-shield';
     widget.title.closable = true;
 
     const iframe = document.createElement('iframe');
@@ -289,12 +298,17 @@ export class HayagrivaPreviewManager {
     const currentTheme = this.themeService.getCurrentTheme();
     const isLight = currentTheme && currentTheme.id && currentTheme.id.toLowerCase().includes('light');
     const theme = isLight ? 'light' : 'dark';
-    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/settings/panel?case=${encodeURIComponent(caseName)}&theme=${theme}`;
+    const actionQuery = action ? `&action=${encodeURIComponent(action)}` : '';
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/settings/panel?case=${encodeURIComponent(caseName)}&theme=${theme}&tab=${encodeURIComponent(initialTab)}${actionQuery}`;
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });
     this.shell.activateWidget(widget.id);
     return widget;
+  }
+
+  async openSettingsPanel(caseName: string): Promise<Widget> {
+    return this.openCockpitPanel(caseName, 'settings');
   }
 
   async openChronologyPanel(caseName: string): Promise<Widget> {
