@@ -141,3 +141,58 @@ graph TD
 *   **Purpose:** Specialized automated associates checking quality and compliance.
 *   **Mechanism:** The subagents run in-context to audit draft quality, detect unresolved placeholders, verify timeline gaps, and output compliance audits (like `CASE_AUDIT.md`) and pre-filled corporate filings.
 
+---
+
+## 4. The Sovereign Legal Assembly Line (Document Factory Model)
+
+Hayagriva is designed not as an open-ended conversational bot, but as an **in-chamber legal document assembly line**:
+
+```mermaid
+graph LR
+    subgraph Inputs [1. Case Inputs]
+        NCLT[Admission Order]
+        Pet[Form 1 / Sanctions]
+        Bank[Bank Statements]
+        Claims[Creditor Claims B/C/CA]
+        Plans[Resolution Plans]
+    end
+
+    subgraph Factory [2. Legal Factory & Agents]
+        KV[(case_kv_dictionary)]
+        Templates[(220+ Chamber Formats)]
+        Vault[(Encrypted Laws Vault)]
+        
+        TypeA[Type A: Context Builders]
+        TypeB[Type B: LexAI Consumers]
+        TypeC[Type C: Statutory Auditors]
+        TypeD[Type D: Claim Verifiers]
+    end
+
+    subgraph Outputs [3. Final Outputs]
+        Drafts[Court-Ready Drafts in drafts/]
+        Affidavits[Forensic Affidavits & Dossiers]
+        Memos[CoC Minutes & Voting Packs]
+        Docx[Supreme Court .docx Exports]
+    end
+
+    Inputs --> KV
+    Inputs --> TypeA
+    Inputs --> TypeD
+    KV --> TypeA
+    Templates --> TypeA
+    Templates --> TypeB
+    Vault --> TypeC
+    
+    TypeA --> Drafts
+    TypeB --> Affidavits
+    TypeC --> Drafts
+    TypeD --> Memos
+    Drafts --> Docx
+```
+
+### The Four Agent Archetypes:
+1. **Type A (Case-Context Builders):** In-chamber administrative & statutory documents generated strictly from case facts + chamber formats (e.g. Form A Public Announcement, CoC 1st Meeting Notice & Minutes, IRP Fee & Budget Proposal). 100% local, air-gapped, zero-cost.
+2. **Type B (Report Synthesizers / LexAI Consumers):** Ingest external forensic dossiers dispatched by the global LexAI Desk (e.g., MCA-21 charge tracking, multi-registry director conflict checks, Section 65 collusive petition analysis) and synthesize Court-ready affidavits, Section 29A Eligibility Dossiers, and avoidance inquest applications (§§ 43, 45, 50, 66).
+3. **Type C (Statutory Compliance & Legal Auditors):** Audit draft documents (resolution plans, EoIs, creditor voting records) against encrypted legal databases (`vaults` / bare IBC Sections & IBBI Regulations), generating compliance audit notes (e.g. Section 30(2) checklist, Form H certification).
+4. **Type D (Claim Verification & Form Fillers):** Ingest raw claims (Forms B, C, CA, D) and bank ledgers to compute admitted vs disallowed amounts and produce formal verification memos (`C2`), creditor lists (`C3`), and condonation notes (`C4`).
+

@@ -523,6 +523,14 @@ function createWatcher(caseDir, onChange) {
         }
     });
 
+    try {
+        const lifecycleManager = require('../core/lifecycle-manager');
+        const scope = lifecycleManager.getScope(caseDir);
+        if (scope) {
+            scope.registerWatcher(watcher, `watcher_${path.basename(caseDir)}`);
+        }
+    } catch (_) {}
+
     return watcher;
 }
 
@@ -554,6 +562,104 @@ function ensureCaseWatcher(caseDir) {
     activeCaseWatchers.set(resolved, watcher);
     console.log(`[Watcher] Dynamic file watcher attached to: ${resolved}`);
     return watcher;
+}
+
+function detectAndEmitAdmissionOrder(caseDir, filePath, markdownContent) {
+    try {
+        if (!markdownContent || typeof markdownContent !== 'string') return;
+        const textUpper = markdownContent.toUpperCase();
+        const baseLower = path.basename(filePath).toLowerCase();
+
+        const hasNclt = textUpper.includes('NATIONAL COMPANY LAW TRIBUNAL') || textUpper.includes('NCLT');
+        const hasAdmission = textUpper.includes('ADMISSION') || textUpper.includes('ADMITTED') || 
+                             textUpper.includes('COMMENCEMENT OF THE CORPORATE INSOLVENCY') ||
+                             textUpper.includes('INTERIM RESOLUTION PROFESSIONAL') ||
+                             textUpper.includes('MORATORIUM') ||
+                             baseLower.includes('admission') || baseLower.includes('order');
+
+        if (hasNclt && hasAdmission) {
+            console.log(`[Watcher] ⚖️ NCLT Admission Order detected in ${path.basename(filePath)}! Emitting statutory event...`);
+
+            // Extract Corporate Debtor
+            let cdName = '';
+            const vsMatch = markdownContent.match(/Vs\.?\s*\n\s*([^\n\r]+)/i);
+            if (vsMatch && vsMatch[1]) {
+                cdName = vsMatch[1].split(/…|\.\.\.|\(Respondent/i)[0].trim();
+            } else {
+                const reMatch = markdownContent.match(/In the matter of\s*:?\s*([^\n\r]+)/i);
+                if (reMatch && reMatch[1]) {
+                    cdName = reMatch[1].split(/…|\.\.\.|\(Respondent/i)[0].trim();
+                }
+            }
+            if (!cdName) {
+                cdName = path.basename(caseDir);
+            }
+
+            // Extract Creditor / Applicant
+            let applicant = 'State Bank of India';
+            const fcMatch = markdownContent.match(/IN THE MATTER OF\s*:\s*\n\s*([^\n\r]+)/i);
+            if (fcMatch && fcMatch[1]) {
+                applicant = fcMatch[1].split(/…|\.\.\.|\(Petitioner/i)[0].trim();
+            }
+
+            // Extract NCLT Bench
+            let bench = 'NCLT';
+            const benchMatch = markdownContent.match(/NATIONAL COMPANY LAW TRIBUNAL\s*\n\s*([^\n\r]+?BENCH[^\n\r]*)/i);
+            if (benchMatch && benchMatch[1]) {
+                bench = benchMatch[1].trim();
+            }
+
+            // Extract IRP Name
+            let irpName = 'Interim Resolution Professional';
+            const irpMatch = markdownContent.match(/appoints\s+(?:Mr\.|Ms\.|Shri)?\s*([A-Z][a-zA-Z\s]+?),\s*Registration Number/i);
+            if (irpMatch && irpMatch[1]) {
+                irpName = irpMatch[1].trim();
+            }
+
+            // Extract Case Number
+            let caseNumber = '';
+            const cpMatch = markdownContent.match(/(?:Company Petition|CP)\s*\(?(?:IB|IBC)\)?\s*(?:No\.?)?\s*([0-9A-Za-z\/\-_]+)/i);
+            if (cpMatch && cpMatch[1]) {
+                caseNumber = cpMatch[1].trim();
+            }
+
+            // Extract Order Date
+            let orderDate = new Date().toISOString().split('T')[0];
+            const dateMatch = markdownContent.match(/Date of Order\s*:?\s*([0-9]{2}[.\/-][0-9]{2}[.\/-][0-9]{4})/i);
+            if (dateMatch && dateMatch[1]) {
+                orderDate = dateMatch[1].trim();
+            }
+
+            // Ensure Subagents registry is initialized so listeners are attached
+            try {
+                require('../agents/subagents');
+            } catch (e) {
+                console.warn('[Watcher] Warning initializing subagents registry:', e.message);
+            }
+
+            const { localEventBus, EVENT_TYPES } = require('../agents/event-bus');
+            localEventBus.emitStatutoryEvent(EVENT_TYPES.ADMISSION_ORDER_DETECTED, {
+                matter_dir: caseDir,
+                matter_name: path.basename(caseDir),
+                filePath: filePath,
+                filename: path.basename(filePath),
+                corporate_debtor: cdName,
+                cdName: cdName,
+                financial_creditor: applicant,
+                applicant: applicant,
+                nclt_bench: bench,
+                bench: bench,
+                irp_name: irpName,
+                irpName: irpName,
+                case_number: caseNumber,
+                admission_date: orderDate,
+                admissionDate: orderDate,
+                section: 'IBC Section 7'
+            });
+        }
+    } catch (err) {
+        console.error('[Watcher] Failed to detect/emit admission order event:', err.message);
+    }
 }
 
 async function _ingestFileInternal(caseDir, filePath, opts = {}) {
@@ -726,6 +832,28 @@ async function _ingestFileInternal(caseDir, filePath, opts = {}) {
                 } catch (e) {
                     console.error(`[extract-file error] Failed for ${path.basename(filePath)}:`, e.message);
                 }
+            }
+
+            // Detect and emit statutory admission order event
+            detectAndEmitAdmissionOrder(caseDir, filePath, result.markdown);
+
+            // Plan 18: Generate post-ingest briefing and post Action Card to inbox
+            try {
+                const { generatePostIngestBrief, postBriefToInbox } = require('../core/post-ingest-briefer');
+                const caseSession = require('../core/case-session');
+                const brief = generatePostIngestBrief(caseDir, relative, {
+                    text: result.markdown,
+                    pageCount: result.sections ? result.sections.length : 1
+                });
+                caseSession.recordDocumentIndexed(caseDir, {
+                    filename: relative,
+                    pages: result.sections ? result.sections.length : 1,
+                    status: 'indexed'
+                });
+                postBriefToInbox(caseDir, brief);
+                console.log(`[Watcher] Plan 18: Post-ingest brief emitted for ${relative} (Type: ${brief.docType})`);
+            } catch (briefErr) {
+                console.warn(`[Watcher] Post-ingest brief generation skipped:`, briefErr.message);
             }
 
             return {

@@ -1,0 +1,431 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-09-25",
+  "provider": "Resolution Bazaar (Powered by LEXAI)",
+  "signatory_authority": "M/s Resolution Bazaar (Adv. Atul Grover, Authorized Counsel)",
+  "compliance_framework": "IBC 2016 (IBC 2.0 Amendments), IBBI (CIRP) Regulations, eCourts LegalCheck v1.0",
+  "reports": [
+    {
+      "report_id": "REPORT_01",
+      "code": "RBZ-LEGALCHECK-01",
+      "title": "RBZ LegalCheck™: Counterparty & Vendor Judicial Due-Diligence Dossier",
+      "lifecycle_id": 0,
+      "lifecycle_name": "General Enterprise & Counterparty Compliance",
+      "category": "B2B SaaS / Procurement",
+      "target_audience": "Corporate Procurement, Supply Chain Heads, CFOs",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Pre-contractual vendor onboarding, high-value supplier credit screening, counterparty litigation audit.",
+      "statutory_citation": "Section 447 Companies Act 2013, eCourts Partner API v1.0",
+      "required_inputs": ["subject_type", "name", "cin_or_din", "father_name", "state"],
+      "receipt_prefix": "RB-ECI-LIVE-",
+      "pricing": {
+        "standard_inr": 999,
+        "bulk_api_inr": 499,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_02",
+      "code": "RBZ-EXEC-CLEARANCE-02",
+      "title": "Executive & Promoter Judicial Clearance Dossier",
+      "lifecycle_id": 0,
+      "lifecycle_name": "General Enterprise & Counterparty Compliance",
+      "category": "B2B SaaS / HR & Diligence",
+      "target_audience": "HR Heads (CXO Hires), PE/VC Investment Committees, Matrimonial & HNI Diligence",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Key managerial personnel appointment, promoter background check, adverse litigation history.",
+      "statutory_citation": "Section 164 & 196 Companies Act 2013",
+      "required_inputs": ["director_name", "din", "pan", "father_name", "date_of_birth"],
+      "receipt_prefix": "RB-ECI-EXEC-",
+      "pricing": {
+        "standard_inr": 1499,
+        "bulk_api_inr": 999,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_03",
+      "code": "RBZ-WILFUL-DEFAULT-03",
+      "title": "Borrower & Counterparty Wilful Defaulter Audit",
+      "lifecycle_id": 0,
+      "lifecycle_name": "General Enterprise & Counterparty Compliance",
+      "category": "Credit Underwriting & Risk",
+      "target_audience": "NBFC Credit Underwriters, Commercial Banks, Fintech Lenders",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Loan origination, credit facility review, Section 29A(b) preliminary screening.",
+      "statutory_citation": "RBI Master Circular on Wilful Defaulters, IBC Section 29A(b)",
+      "required_inputs": ["borrower_name", "pan", "cin_or_din"],
+      "receipt_prefix": "RB-CIBIL-WD-",
+      "pricing": {
+        "standard_inr": 499,
+        "bulk_api_inr": 299,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_04",
+      "code": "RBZ-SERIAL-LITIGANT-04",
+      "title": "Serial Litigant & Extortionate Case Pattern Radar",
+      "lifecycle_id": 0,
+      "lifecycle_name": "General Enterprise & Counterparty Compliance",
+      "category": "Litigation Defense",
+      "target_audience": "Corporate Legal Teams, Defense Counsels, Companies facing cross-state claims",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Receipt of multiple Section 138 NI Act notices, cross-state consumer complaints, or extortionate FIRs.",
+      "statutory_citation": "Section 138 NI Act, Section 482 CrPC / BNSS, Order VII Rule 11 CPC",
+      "required_inputs": ["complainant_name", "advocate_name", "pan_or_address"],
+      "receipt_prefix": "RB-ECI-RADAR-",
+      "pricing": {
+        "standard_inr": 2499,
+        "bulk_api_inr": 1499,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_05",
+      "code": "RBZ-IP-INTAKE-05",
+      "title": "IP Pre-Assignment Diagnostic & Complexity Dossier",
+      "lifecycle_id": 1,
+      "lifecycle_name": "Pre-Appointment & Intake Diagnostics",
+      "category": "Insolvency Professional Diagnostics",
+      "target_audience": "Insolvency Professionals (IPs), IPE Managing Partners",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Proposed appointment as IRP/RP before signing IBBI Form 2.",
+      "statutory_citation": "IBBI Regulation 3(1) and Form 2 under CIRP Regulations",
+      "required_inputs": ["target_cd_cin", "target_cd_name"],
+      "receipt_prefix": "RB-DIAG-",
+      "pricing": {
+        "standard_inr": 4999,
+        "bulk_api_inr": 2999,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_06",
+      "code": "RBZ-IP-FEE-PROPOSAL-06",
+      "title": "Formal IP Fee & IRPC Budget Proposal",
+      "lifecycle_id": 1,
+      "lifecycle_name": "Pre-Appointment & Intake Diagnostics",
+      "category": "Insolvency Professional Operations",
+      "target_audience": "Proposing Banks, Financial Creditors, CoC, NCLT",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Fixation of IRP/RP fee and IRPC budget for 1st CoC approval.",
+      "statutory_citation": "IBBI Regulation 34B read with Schedule II",
+      "execution_tier": "LOCAL",
+      "target_agent": "@document",
+      "required_inputs": ["target_cd_cin", "total_debt_admitted_approx", "complexity_tier"],
+      "receipt_prefix": "RB-FEE-",
+      "pricing": {
+        "standard_inr": 0,
+        "bulk_api_inr": 0,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_07",
+      "code": "RBZ-PPIRP-TRIAGE-07",
+      "title": "Pre-Pack (PPIRP) MSME Early Distress Triage",
+      "lifecycle_id": 1,
+      "lifecycle_name": "Pre-Appointment & Intake Diagnostics",
+      "category": "MSME Restructuring",
+      "target_audience": "MSME Promoters, Restructuring Advisors, Proposing Banks",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Pre-insolvency stress, Section 10A expiration, Section 54A MSME eligibility.",
+      "statutory_citation": "IBC Chapter III-A, Section 54A, Section 240A",
+      "required_inputs": ["msme_udyam_number", "target_cd_cin", "promoter_din"],
+      "receipt_prefix": "RB-PPIRP-",
+      "pricing": {
+        "standard_inr": 9999,
+        "bulk_api_inr": 4999,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_08",
+      "code": "RBZ-SEC65-INQUEST-08",
+      "title": "Section 65 Single-Petitioner Inquest Report",
+      "lifecycle_id": 2,
+      "lifecycle_name": "Moratorium Defense & Section 65 Collusive Petitions",
+      "category": "CIRP Fraud & Defense",
+      "target_audience": "Corporate Debtor Defense, Financial Creditors, NCLT",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Filing of Section 7 or Section 9 petition with suspicious invoices or collusive origin.",
+      "statutory_citation": "IBC Section 65 (Malicious Initiation of CIRP), NCLT Rules Rule 11",
+      "required_inputs": ["petitioner_cin_or_pan", "petitioner_name", "target_cd_cin"],
+      "receipt_prefix": "RB-S65-",
+      "pricing": {
+        "standard_inr": 15000,
+        "bulk_api_inr": 10000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_09",
+      "code": "RBZ-SEC65-COLLUSION-09",
+      "title": "Section 65 Multi-Petitioner Collusion & Stage-Managed Radar",
+      "lifecycle_id": 2,
+      "lifecycle_name": "Moratorium Defense & Section 65 Collusive Petitions",
+      "category": "CIRP Fraud & Defense",
+      "target_audience": "Intervening Creditors, Lead Financial Creditors, NCLT Benches",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Joint or sequential Section 7/9 filings with common DINs, addresses, or recent debt assignments.",
+      "statutory_citation": "IBC Section 65, Supreme Court Beacon Trusteeship & Amit Katyal doctrines",
+      "required_inputs": ["petitioner_cins_array", "target_cd_cin"],
+      "receipt_prefix": "RB-S65-COLLUDE-",
+      "pricing": {
+        "standard_inr": 25000,
+        "bulk_api_inr": 15000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_10",
+      "code": "RBZ-SEC65-PLEADING-10",
+      "title": "NCLT Section 65 Dismissal Application & Court Pleading",
+      "lifecycle_id": 2,
+      "lifecycle_name": "Moratorium Defense & Section 65 Collusive Petitions",
+      "category": "Court Pleading / Harness Agent",
+      "target_audience": "NCLT Adjudicating Authority, Senior Advocates, Defense Counsels",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Preparation of formal IA seeking dismissal of insolvency application and ₹1 Crore penalty.",
+      "statutory_citation": "IBC Section 65(1) & (2), NCLT Rules Form NCLT-1",
+      "required_inputs": ["matter_path", "petitioner_inquest_id", "cd_name"],
+      "receipt_prefix": "RB-PLEAD-65-",
+      "pricing": {
+        "standard_inr": 35000,
+        "bulk_api_inr": 25000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_11",
+      "code": "RBZ-SEC29A-ELIGIBILITY-11",
+      "title": "Statutory Section 29A Eligibility Report",
+      "lifecycle_id": 3,
+      "lifecycle_name": "Bidding, Resolution Applicants & Anti-Cartelization",
+      "category": "Statutory Diligence & Form H",
+      "target_audience": "Resolution Professionals (RPs), CoC Legal Counsel, NCLT Benches",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Submission of EOI or Resolution Plan under IBBI Regulation 36A / 39(1)(a).",
+      "statutory_citation": "IBC Section 29A(a) through (j), IBBI CIRP Reg 36A(8) & 39(1)(a)",
+      "required_inputs": ["ra_cin", "ra_name", "promoters_array", "cd_cin", "cd_name"],
+      "receipt_prefix": "RB-ECI-LIVE-29A-",
+      "pricing": {
+        "standard_inr": 25000,
+        "bulk_api_inr": 15000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_12",
+      "code": "RBZ-ANTI-CARTEL-12",
+      "title": "CIRP Multi-Applicant Independence & Anti-Cartel Dossier",
+      "lifecycle_id": 3,
+      "lifecycle_name": "Bidding, Resolution Applicants & Anti-Cartelization",
+      "category": "Anti-Cartelization Forensics",
+      "target_audience": "Committee of Creditors (CoC), Forensic Auditors, RP",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Evaluation of multiple resolution bids; verification against bidder syndicates under Regulation 39.",
+      "statutory_citation": "IBBI CIRP Regulation 39(1)(b), Competition Act 2002 Section 3",
+      "required_inputs": ["applicant_cins_array", "cd_cin"],
+      "receipt_prefix": "RB-CARTEL-",
+      "pricing": {
+        "standard_inr": 35000,
+        "bulk_api_inr": 20000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_13",
+      "code": "RBZ-DUAL-HAT-CONFLICT-13",
+      "title": "Creditor-cum-Applicant (IC ≡ RA) Dual-Hat Conflict Audit",
+      "lifecycle_id": 3,
+      "lifecycle_name": "Bidding, Resolution Applicants & Anti-Cartelization",
+      "category": "Deal Conflict Forensics",
+      "target_audience": "Competing Bidders, Dissenting Creditors, NCLAT Counsel",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Financial Creditor or related entity participating as Resolution Applicant (Loan-to-Own conflict).",
+      "statutory_citation": "IBC Section 21(2) proviso, IBBI Code of Conduct Reg. 4",
+      "required_inputs": ["creditor_cin", "applicant_cin", "voting_share_percent"],
+      "receipt_prefix": "RB-CONFLICT-",
+      "pricing": {
+        "standard_inr": 50000,
+        "bulk_api_inr": 35000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_14",
+      "code": "RBZ-COC-WISDOM-AUDIT-14",
+      "title": "CoC \"Commercial Wisdom\" & Fiduciary Governance Audit",
+      "lifecycle_id": 3,
+      "lifecycle_name": "Bidding, Resolution Applicants & Anti-Cartelization",
+      "category": "Fiduciary Governance Audit",
+      "target_audience": "Dissenting Creditors, Operational Creditors, NCLT",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Challenge to CoC plan approval based on liquidation entitlement breach or conflict of interest.",
+      "statutory_citation": "IBC Section 30(2)(b), Section 30(4), Supreme Court Essar Steel & Committee of Creditors doctrines",
+      "required_inputs": ["resolution_plan_outlay", "liquidation_value", "dissenting_payout_amount"],
+      "receipt_prefix": "RB-COC-AUDIT-",
+      "pricing": {
+        "standard_inr": 50000,
+        "bulk_api_inr": 35000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_15",
+      "code": "RBZ-CLAIM-VERIFICATION-15",
+      "title": "Creditor Claim Verification & Admission Dossier",
+      "lifecycle_id": 4,
+      "lifecycle_name": "Claims Verification & Avoidance Forensics (PUFE)",
+      "category": "Claims Audit / Harness Agent",
+      "target_audience": "RP, CoC, Operational & Financial Creditors",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Filing of Form B/C/D claims; reconciliation against CD books of accounts.",
+      "statutory_citation": "IBC Section 18(1)(b), IBBI CIRP Regulations 8, 8A, 9, 9A, 13",
+      "required_inputs": ["matter_path", "claims_folder_path", "cd_tally_or_ledger_path"],
+      "receipt_prefix": "RB-CLAIM-",
+      "pricing": {
+        "standard_inr": 25000,
+        "bulk_api_inr": 15000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_16",
+      "code": "RBZ-PUFE-AVOIDANCE-16",
+      "title": "Section 43/45/50/66 PUFE Avoidance Transaction Audit",
+      "lifecycle_id": 4,
+      "lifecycle_name": "Claims Verification & Avoidance Forensics (PUFE)",
+      "category": "Avoidance & Forensic Audit",
+      "target_audience": "RP, Transaction Auditor, CoC, NCLT",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Mandatory forensic audit of preferential, undervalued, extortionate, and fraudulent transactions.",
+      "statutory_citation": "IBC Sections 43, 45, 50, 66, IBBI CIRP Regulation 35A",
+      "required_inputs": ["matter_path", "bank_statement_csvs", "related_parties_list"],
+      "receipt_prefix": "RB-PUFE-",
+      "pricing": {
+        "standard_inr": 75000,
+        "bulk_api_inr": 50000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_17",
+      "code": "RBZ-LITIGATION-FUNDING-17",
+      "title": "PUFE Avoidance Recovery & Litigation Funding Prospectus",
+      "lifecycle_id": 4,
+      "lifecycle_name": "Claims Verification & Avoidance Forensics (PUFE)",
+      "category": "Litigation Finance Prospectus",
+      "target_audience": "Committee of Creditors, Third-Party Litigation Funds, Liquidator",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Unrecovered avoidance claims exceeding ₹10 Crore requiring external funding to litigate post-CIRP.",
+      "statutory_citation": "IBC Section 66, Regulation 38(1A), Supreme Court Tata Steel BSL doctrine",
+      "required_inputs": ["pufe_audit_id", "avoidance_amount_total"],
+      "receipt_prefix": "RB-LIT-FUND-",
+      "pricing": {
+        "standard_inr": 50000,
+        "bulk_api_inr": 35000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_18",
+      "code": "RBZ-PLAN-VERIFICATION-18",
+      "title": "Resolution Plan Verification & Form H Compliance Dossier",
+      "lifecycle_id": 5,
+      "lifecycle_name": "Plan Verification, Real Estate & Asset Realization",
+      "category": "Statutory Verification & Form H",
+      "target_audience": "RP, Committee of Creditors (CoC), NCLT Benches",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Receipt of binding Resolution Plan; mandatory certification before CoC vote and NCLT filing.",
+      "statutory_citation": "IBC Section 30(2)(a)–(f), CIRP Reg 38, Form H under Reg 39(4)",
+      "required_inputs": ["matter_path", "plan_pdf_path", "liquidation_value", "valuation_reports"],
+      "receipt_prefix": "RB-PLAN-FORMH-",
+      "pricing": {
+        "standard_inr": 75000,
+        "bulk_api_inr": 50000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_19",
+      "code": "RBZ-REAL-ESTATE-RINGFENCE-19",
+      "title": "Real Estate Project-Wise Ring-Fencing & Escrow Dossier",
+      "lifecycle_id": 5,
+      "lifecycle_name": "Plan Verification, Real Estate & Asset Realization",
+      "category": "Real Estate Insolvency",
+      "target_audience": "RPs, Homebuyers, RERA Authorities, NCLT",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Real estate CIRP involving homebuyers, solvent vs insolvent projects, RERA designated account audits.",
+      "statutory_citation": "Supreme Court Mansi Brar (2025) & Flat Buyers Association doctrines, RERA Section 4(2)(l)(D)",
+      "required_inputs": ["target_cd_cin", "project_names_array", "rera_registration_numbers"],
+      "receipt_prefix": "RB-RERA-RING-",
+      "pricing": {
+        "standard_inr": 50000,
+        "bulk_api_inr": 35000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_20",
+      "code": "RBZ-GROUP-INSOLVENCY-20",
+      "title": "Enterprise Group Insolvency & Section 28A Asset Pooling Matrix",
+      "lifecycle_id": 5,
+      "lifecycle_name": "Plan Verification, Real Estate & Asset Realization",
+      "category": "Group Restructuring",
+      "target_audience": "Large RPs, Lead Banks, NCLT Benches",
+      "delivery_vector": "HARNESS_AGENT",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Common business operations, cross-guarantees, inter-company loans across multiple group SPVs in CIRP.",
+      "statutory_citation": "IBC Section 28A proposals, NCLAT Videocon & Supreme Court Jaypee doctrines",
+      "required_inputs": ["group_cins_array", "holding_company_cin"],
+      "receipt_prefix": "RB-GROUP-POOL-",
+      "pricing": {
+        "standard_inr": 75000,
+        "bulk_api_inr": 50000,
+        "cirp_admissible": true
+      }
+    },
+    {
+      "report_id": "REPORT_21",
+      "code": "RBZ-PG-ASSET-TRACING-21",
+      "title": "Personal Guarantor & Global Asset Tracing Dossier",
+      "lifecycle_id": 5,
+      "lifecycle_name": "Plan Verification, Real Estate & Asset Realization",
+      "category": "Global Recovery Intelligence",
+      "target_audience": "Bank Recovery Teams, CoC, Foreign Counsel, Insolvency Liquidators",
+      "delivery_vector": "ADMIN_PANEL_WEB",
+      "dispatch_modes_supported": ["API", "EMAIL_DRAFT"],
+      "statutory_trigger": "Personal guarantor insolvency under Part III, invocation of guarantees, overseas asset concealment.",
+      "statutory_citation": "IBC Part III Section 94–100, Supreme Court Lalit Kumar Jain doctrine",
+      "required_inputs": ["guarantor_name", "pan", "din", "known_overseas_entities"],
+      "receipt_prefix": "RB-PG-TRACE-",
+      "pricing": {
+        "standard_inr": 50000,
+        "bulk_api_inr": 35000,
+        "cirp_admissible": true
+      }
+    }
+  ]
+}

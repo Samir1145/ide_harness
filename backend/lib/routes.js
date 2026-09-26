@@ -13,7 +13,15 @@ const { getConversionsDir, getConceptsDir, getWikiDir } = require('./pipeline/co
 const crypto = require('crypto');
 
 function resolveCaseDir(docsRoot, caseParam) {
-    const caseName = caseParam || getDefaultCaseName(docsRoot);
+    let caseName = caseParam;
+    if (caseName && typeof caseName === 'string') {
+        const trimmed = caseName.trim();
+        // Guard against queries or prompts inadvertently passed in place of case directory
+        if (trimmed.includes('?') || trimmed.includes('\n') || trimmed.length > 120 || /^what\s|^who\s|^where\s|^when\s|^why\s|^how\s/i.test(trimmed)) {
+            caseName = null;
+        }
+    }
+    caseName = caseName || getDefaultCaseName(docsRoot);
     if (caseName && (caseName.startsWith('/') || caseName.includes(':\\') || caseName.startsWith('file:///'))) {
         let clean = caseName;
         if (clean.startsWith('file:///')) {
@@ -32,6 +40,8 @@ function resolveCaseDir(docsRoot, caseParam) {
     }
     return path.join(docsRoot, caseName || '');
 }
+
+const _citationCache = new Map();
 
 const DEFAULT_SETTINGS = {
     processingProfile: 'lite',
@@ -157,12 +167,27 @@ function ensureCaseSettings(caseDir) {
                 '**/*.cache': true,
                 '**/index.json': true,
                 '**/index.sqlite': true,
-                '**/sqlite.db': true,
+                '**/compliance_queue.json': true,
+                '**/case_inbox.json': true,
+                '**/case_session.json': true,
+                '**/case_billing_ledger.json': true,
                 '**/case_manifest.json': true,
                 '**/case_kv_dictionary.json': true,
                 '**/CASE_AUDIT.md': true,
                 '**/hayagriva_settings.json': true,
                 '**/index.md': true,
+                '**/ledgers': true,
+                '**/ledgers/**': true,
+                'ledgers': true,
+                'ledgers/**': true,
+                'ledgers/': true,
+                '**/case_billing.db': true,
+                '**/*billing*.db': true,
+                '**/*billing*.sql': true,
+                '**/billing.sql': true,
+                '**/*.sql': true,
+                '**/*.db': true,
+                '**/*.sqlite': true,
                 '**/.last-launch-build-checksum': true
             };
             for (const [key, val] of Object.entries(excludeRules)) {
@@ -171,8 +196,8 @@ function ensureCaseSettings(caseDir) {
                     changed = true;
                 }
             }
-            // Ensure drafts, exports, and wiki are NEVER excluded
-            ['**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md', '**/drafts', 'drafts', '**/drafts/**', 'drafts/', '**/exports', 'exports', '**/exports/**', 'exports/'].forEach(visibleKey => {
+            // Ensure reports, drafts, exports, reviews, and wiki are NEVER excluded
+            ['**/reports', 'reports', '**/reports/**', 'reports/', '**/wiki', 'wiki', '**/wiki/**', 'wiki/', '**/*.md', '**/drafts', 'drafts', '**/drafts/**', 'drafts/', '**/exports', 'exports', '**/exports/**', 'exports/', '**/reviews', 'reviews', '**/reviews/**', 'reviews/'].forEach(visibleKey => {
                 if (settings['files.exclude'][visibleKey] !== undefined) {
                     delete settings['files.exclude'][visibleKey];
                     changed = true;
@@ -259,12 +284,27 @@ function ensureGlobalUserSettings() {
             '**/*.cache': true,
             '**/index.json': true,
             '**/index.sqlite': true,
-            '**/sqlite.db': true,
+            '**/compliance_queue.json': true,
+            '**/case_inbox.json': true,
+            '**/case_session.json': true,
+            '**/case_billing_ledger.json': true,
             '**/case_manifest.json': true,
             '**/case_kv_dictionary.json': true,
             '**/CASE_AUDIT.md': true,
             '**/hayagriva_settings.json': true,
-            '**/index.md': true
+            '**/index.md': true,
+            '**/ledgers': true,
+            '**/ledgers/**': true,
+            'ledgers': true,
+            'ledgers/**': true,
+            'ledgers/': true,
+            '**/case_billing.db': true,
+            '**/*billing*.db': true,
+            '**/*billing*.sql': true,
+            '**/billing.sql': true,
+            '**/*.sql': true,
+            '**/*.db': true,
+            '**/*.sqlite': true
         };
         for (const [key, val] of Object.entries(excludeRules)) {
             if (settings['files.exclude'][key] !== val) {
@@ -1382,6 +1422,93 @@ module.exports = {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(ver || { version: null, ready: isVaultReady() }));
         },
+        '/api/hayagriva/wiki/index': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            const { getWikiCatalog } = require('./pipeline/wiki/catalog');
+            const result = getWikiCatalog(caseDir);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result));
+        },
+
+        '/api/hayagriva/wiki/lint-summary': async (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const { getLintSummary } = require('./core/case-wiki-linter');
+                const result = await getLintSummary(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(result));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/case/session': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const caseSession = require('./core/case-session');
+                if (parsedUrl.query.sync === '1' || parsedUrl.query.sync === 'true') {
+                    caseSession.syncFromDisk(caseDir);
+                }
+                const session = caseSession.loadCaseSession(caseDir);
+                const formatted = caseSession.getFormattedSessionState(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, session, formatted }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/ingest/brief': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const filename = parsedUrl.query.file;
+                if (!filename) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Query parameter "file" is required' }));
+                    return;
+                }
+                const { generatePostIngestBrief } = require('./core/post-ingest-briefer');
+                const brief = generatePostIngestBrief(caseDir, filename);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, brief }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/ingest/emphasis': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const caseSession = require('./core/case-session');
+                const session = caseSession.loadCaseSession(caseDir);
+                const activeFocus = session.active_focus || 'general';
+                const FOCUS_TERMS = {
+                    waterfall: ['waterfall', 'section 53', 'regulation 38', 'secured creditor', 'liquidation value', 'payout schedule'],
+                    s29a: ['section 29a', 'disqualification', 'connected person', 'promoter', 'willful defaulter', 'din'],
+                    avoidance: ['section 43', 'section 45', 'section 50', 'section 66', 'preferential', 'undervalued', 'contra-sweep'],
+                    general: ['standard rank fusion']
+                };
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    active_focus: activeFocus,
+                    boost_multiplier: activeFocus === 'general' ? 1.0 : 2.0,
+                    focus_terms: FOCUS_TERMS[activeFocus] || []
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
         '/api/hayagriva/wiki-cards': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
             const caseDir = resolveCaseDir(docsRoot, caseName);
@@ -1397,19 +1524,39 @@ module.exports = {
 
             const allFiles = [];
             
-            // Read root wiki folder
+            // Read root wiki folder (excluding INDEX.md)
             fs.readdirSync(wikiDir).forEach(f => {
-                if (f.endsWith('.md')) {
-                    allFiles.push({ filename: f, fullPath: path.join(wikiDir, f) });
+                if (f.endsWith('.md') && f !== 'INDEX.md') {
+                    allFiles.push({ filename: f, fullPath: path.join(wikiDir, f), category: 'card' });
                 }
             });
             
+            // Read subfolder wiki/insights
+            const insightsDir = path.join(wikiDir, 'insights');
+            if (fs.existsSync(insightsDir)) {
+                fs.readdirSync(insightsDir).forEach(f => {
+                    if (f.endsWith('.md')) {
+                        allFiles.push({ filename: 'insights/' + f, fullPath: path.join(insightsDir, f), category: 'insight' });
+                    }
+                });
+            }
+
+            // Read subfolder wiki/sources
+            const sourcesDir = path.join(wikiDir, 'sources');
+            if (fs.existsSync(sourcesDir)) {
+                fs.readdirSync(sourcesDir).forEach(f => {
+                    if (f.endsWith('.md')) {
+                        allFiles.push({ filename: 'sources/' + f, fullPath: path.join(sourcesDir, f), category: 'source' });
+                    }
+                });
+            }
+
             // Read subfolder wiki/qna
             const qnaDir = path.join(wikiDir, 'qna');
             if (fs.existsSync(qnaDir)) {
                 fs.readdirSync(qnaDir).forEach(f => {
                     if (f.endsWith('.md')) {
-                        allFiles.push({ filename: 'qna/' + f, fullPath: path.join(qnaDir, f) });
+                        allFiles.push({ filename: 'qna/' + f, fullPath: path.join(qnaDir, f), category: 'qna' });
                     }
                 });
             }
@@ -1435,9 +1582,12 @@ module.exports = {
                     return {
                         filename: item.filename,
                         title: displayTitle,
+                        category: item.category || 'card',
                         tags: frontmatter.tags || [],
-                        sourceDocument: frontmatter.sourceDocument || 'General Wiki',
-                        answer: answer
+                        sourceDocument: frontmatter.sourceDocument || (item.category === 'insight' ? 'Synthesized Chamber Insight' : (item.category === 'source' ? 'Primary Document Summary' : 'General Wiki')),
+                        answer: answer,
+                        date: frontmatter.created_at || '',
+                        wordCount: frontmatter.word_count || 0
                     };
                 } catch (e) {
                     console.error('[API Server] Failed to parse wiki card file:', item.filename, e.message);
@@ -1542,7 +1692,18 @@ module.exports = {
             const caseName = parsedUrl.query.case || '';
             const fileName = parsedUrl.query.file || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
-            const targetPath = path.join(getWikiDir(caseDir), fileName);
+            let targetPath = path.join(getWikiDir(caseDir), fileName);
+
+            if (!fs.existsSync(targetPath)) {
+                const stripped = fileName.replace(/^reports[/\\]/, '');
+                const inReports = path.join(caseDir, 'reports', stripped);
+                const inCase = path.join(caseDir, fileName);
+                if (fs.existsSync(inReports)) {
+                    targetPath = inReports;
+                } else if (fs.existsSync(inCase)) {
+                    targetPath = inCase;
+                }
+            }
 
             if (!fs.existsSync(targetPath)) {
                 res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -1672,8 +1833,56 @@ module.exports = {
                 }
             }
 
+            // 4. Plan 21: Merge Typed Entities & Diagnostic Contradiction Edges
+            try {
+                const entityGraph = require('./core/entity-graph');
+                const unified = entityGraph.getUnifiedGraph(caseDir);
+                if (unified && unified.nodes && unified.nodes.length > 0) {
+                    for (const enNode of unified.nodes) {
+                        nodes.push(enNode);
+                        titleToNode.set(enNode.name.toLowerCase(), enNode.id);
+                        if (enNode.key) {
+                            titleToNode.set(enNode.key.toLowerCase(), enNode.id);
+                        }
+                    }
+                    for (const enLink of unified.links) {
+                        links.push(enLink);
+                    }
+                }
+            } catch (egErr) {
+                console.warn('[Routes] Could not merge entity graph into case-graph:', egErr.message);
+            }
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ nodes, links }));
+        },
+
+        '/api/hayagriva/entities': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            try {
+                const entityGraph = require('./core/entity-graph');
+                const entities = entityGraph.getEntities(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, count: entities.length, entities }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/contradictions': (req, res, parsedUrl, docsRoot) => {
+            const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
+            const caseDir = resolveCaseDir(docsRoot, caseName);
+            try {
+                const entityGraph = require('./core/entity-graph');
+                const contradictions = entityGraph.getContradictions(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, count: contradictions.length, contradictions }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
         },
 
         '/api/hayagriva/concepts': (req, res, parsedUrl, docsRoot) => {
@@ -1941,6 +2150,206 @@ module.exports = {
             res.end(content);
         },
 
+        '/api/hayagriva/citation/resolve': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || '';
+            const docName = parsedUrl.query.doc || '';
+            const pageNum = parseInt(parsedUrl.query.page || '1', 10);
+            const chunkIdx = parsedUrl.query.chunk !== undefined ? parseInt(parsedUrl.query.chunk, 10) : undefined;
+            const titleHint = parsedUrl.query.title || '';
+
+            if (!docName) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: 'Missing doc parameter' }));
+                return;
+            }
+
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            if (!caseDir || !fs.existsSync(caseDir)) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: 'Case directory not found' }));
+                return;
+            }
+
+            const cacheKey = `${caseDir}:${docName}:${pageNum}:${chunkIdx !== undefined ? chunkIdx : ''}`;
+            if (_citationCache.has(cacheKey)) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(_citationCache.get(cacheKey)));
+                return;
+            }
+
+            try {
+                const conceptsDir = getConceptsDir(caseDir);
+                let docConceptsDir = path.join(conceptsDir, docName);
+                
+                // Fallback: search subdirectories in conceptsDir if docConceptsDir does not exist
+                if (!fs.existsSync(docConceptsDir) && fs.existsSync(conceptsDir)) {
+                    const entries = fs.readdirSync(conceptsDir, { withFileTypes: true });
+                    for (const entry of entries) {
+                        if (entry.isDirectory()) {
+                            const candidate = path.join(conceptsDir, entry.name, docName);
+                            if (fs.existsSync(candidate)) {
+                                docConceptsDir = candidate;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                let targetNode = null;
+                let cardContent = '';
+                let sectionTitle = titleHint || docName;
+                let pageStart = pageNum;
+                let pageEnd = pageNum;
+
+                const treePath = path.join(docConceptsDir, 'pageindex_tree.json');
+                if (fs.existsSync(treePath)) {
+                    const treeData = JSON.parse(fs.readFileSync(treePath, 'utf8'));
+                    const flatNodes = [];
+                    const flatten = (node) => {
+                        if (!node) return;
+                        if (Array.isArray(node)) {
+                            for (const item of node) flatten(item);
+                        } else {
+                            flatNodes.push(node);
+                            if (Array.isArray(node.children)) {
+                                for (const child of node.children) flatten(child);
+                            }
+                        }
+                    };
+                    flatten(treeData.tree || treeData);
+
+                    // Find node covering pageNum
+                    targetNode = flatNodes.find(n => 
+                        (n.page === pageNum) ||
+                        (n.pageStart <= pageNum && n.pageEnd >= pageNum) ||
+                        (n.metadata && n.metadata.type === 'section' && n.pageStart <= pageNum && n.pageEnd >= pageNum)
+                    );
+
+                    // Fallback to title match or closest node if page match not found
+                    if (!targetNode && titleHint) {
+                        targetNode = flatNodes.find(n => 
+                            n.title && n.title.toLowerCase().includes(titleHint.toLowerCase())
+                        );
+                    }
+                    if (!targetNode && flatNodes.length > 0) {
+                        targetNode = flatNodes.find(n => n.metadata && n.metadata.type === 'section') || flatNodes[0];
+                    }
+
+                    if (targetNode) {
+                        sectionTitle = targetNode.title || sectionTitle;
+                        pageStart = targetNode.pageStart || targetNode.page || pageNum;
+                        pageEnd = targetNode.pageEnd || targetNode.page || pageNum;
+
+                        const safeTitle = targetNode.title ? targetNode.title.replace(/[^a-zA-Z0-9\s-_]/g, '').trim().replace(/\s+/g, '_') : 'untitled';
+                        let cardTitle = safeTitle;
+                        if (cardTitle.length > 60) {
+                            let hash = 0;
+                            for (let i = 0; i < targetNode.title.length; i++) {
+                                hash = (hash << 5) - hash + targetNode.title.charCodeAt(i);
+                                hash |= 0;
+                            }
+                            cardTitle = cardTitle.substring(0, 60) + '_' + Math.abs(hash);
+                        }
+
+                        const cardPath = path.join(docConceptsDir, `${cardTitle}.md`);
+                        if (fs.existsSync(cardPath)) {
+                            cardContent = fs.readFileSync(cardPath, 'utf8');
+                        }
+                    }
+                }
+
+                // If cardContent still empty, check companion markdown paths
+                if (!cardContent) {
+                    const convDir = getConversionsDir(caseDir);
+                    const stem = path.parse(docName).name;
+                    const possibleMds = [
+                        path.join(docConceptsDir, 'companion.md'),
+                        path.join(convDir, `${docName}.md`),
+                        path.join(convDir, `${stem}.md`),
+                        path.join(caseDir, `${docName}.md`),
+                        path.join(caseDir, `${stem}.md`)
+                    ];
+                    for (const p of possibleMds) {
+                        if (fs.existsSync(p)) {
+                            cardContent = fs.readFileSync(p, 'utf8');
+                            break;
+                        }
+                    }
+                }
+
+                // Clean excerpt for tooltip (first ~320 chars of body)
+                let excerpt = (cardContent || '')
+                    .replace(/^---[\s\S]*?---\r?\n?/, '')  // strip YAML frontmatter
+                    .replace(/^#+\s+.*$/gm, '')             // strip headings
+                    .replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g, '$1') // unwrap wikilinks
+                    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // unwrap markdown links
+                    .replace(/`([^`]+)`/g, '$1')            // strip inline code
+                    .replace(/\*\*?([^*]+)\*\*?/g, '$1')    // strip bold/italic
+                    .replace(/\r?\n+/g, ' ')                // collapse lines
+                    .replace(/\s+/g, ' ')                   // collapse spaces
+                    .trim();
+                
+                if (excerpt.length > 320) {
+                    excerpt = excerpt.substring(0, 320) + '…';
+                }
+                if (!excerpt) {
+                    excerpt = `Citation reference from Page ${pageNum} of ${docName}`;
+                }
+
+                // Locate original binary file
+                let binaryPath = '';
+                const possibleBinaries = [
+                    path.join(caseDir, docName),
+                    path.join(caseDir, 'raw', docName),
+                    path.join(caseDir, '00_inbox', docName),
+                    path.join(caseDir, '03_evidence_exhibits', docName)
+                ];
+                for (const b of possibleBinaries) {
+                    if (fs.existsSync(b)) {
+                        binaryPath = b;
+                        break;
+                    }
+                }
+                const isPdf = docName.toLowerCase().endsWith('.pdf');
+
+                if (!cardContent && !binaryPath && !fs.existsSync(docConceptsDir)) {
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ ok: false, success: false, error: `Document '${docName}' not found in case` }));
+                    return;
+                }
+
+                const responseData = {
+                    ok: true,
+                    success: true,
+                    docName,
+                    page: pageNum,
+                    pageNum,
+                    chunkIdx,
+                    sectionTitle,
+                    pageStart,
+                    pageEnd,
+                    excerpt,
+                    fullContent: cardContent || excerpt,
+                    hasBinary: !!binaryPath,
+                    binaryPath: binaryPath ? path.relative(caseDir, binaryPath) : '',
+                    isPdf
+                };
+
+                // Store in cache (cap at 100 entries)
+                if (_citationCache.size >= 100) {
+                    const firstKey = _citationCache.keys().next().value;
+                    if (firstKey) _citationCache.delete(firstKey);
+                }
+                _citationCache.set(cacheKey, responseData);
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(responseData));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: err.message }));
+            }
+        },
+
         '/api/forms/kv-dictionary': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);
@@ -2151,6 +2560,7 @@ module.exports = {
             const caseParam = parsedUrl.query.case || parsedUrl.query.caseName || '';
             const caseDir = resolveCaseDir(docsRoot, caseParam);
             try {
+                try { delete require.cache[require.resolve('./agents/inbox-manager')]; } catch (_) {}
                 const inboxManager = require('./agents/inbox-manager');
                 const filters = {
                     state: parsedUrl.query.state || undefined,
@@ -2159,6 +2569,119 @@ module.exports = {
                 const result = inboxManager.listItems(caseDir, filters);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, ...result }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/compliance/queue': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || parsedUrl.query.caseName || '';
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            const status = parsedUrl.query.status || '';
+            const tier = parsedUrl.query.tier || '';
+            try {
+                const { getQueue } = require('./gatekeeper/compliance_queue');
+                const items = getQueue(caseDir, { status, tier });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, count: items.length, items }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/compliance/panel': (req, res, parsedUrl, docsRoot) => {
+            const htmlPath = path.join(__dirname, 'assets', 'compliance-panel.html');
+            if (!fs.existsSync(htmlPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Compliance Panel view file not found');
+                return;
+            }
+            let content = fs.readFileSync(htmlPath, 'utf8');
+            const theme = parsedUrl.query.theme || 'dark';
+            if (theme === 'light') {
+                content = content.replace('<html lang="en">', '<html lang="en" data-theme="light">');
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(content);
+        },
+
+        '/api/hayagriva/case/audit-trail': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || parsedUrl.query.caseName || '';
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            const limit = parsedUrl.query.limit || 50;
+            const offset = parsedUrl.query.offset || 0;
+            const actor = parsedUrl.query.actor || '';
+            const event = parsedUrl.query.event || '';
+            try {
+                const auditTrail = require('./core/audit_trail');
+                const result = auditTrail.readEntries(caseDir, { limit, offset, actor, event });
+                const verification = auditTrail.verifyChain(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    total: result.total,
+                    limit: result.limit,
+                    offset: result.offset,
+                    entries: result.entries,
+                    is_valid: verification.valid,
+                    verification
+                }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/case/audit-trail/verify': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || parsedUrl.query.caseName || '';
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            try {
+                const auditTrail = require('./core/audit_trail');
+                const verification = auditTrail.verifyChain(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, verification }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/case/audit-trail/export': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || parsedUrl.query.caseName || '';
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            const ipName = parsedUrl.query.ip_name || '';
+            const ibbiRegNo = parsedUrl.query.ibbi_reg_no || '';
+            try {
+                const auditTrail = require('./core/audit_trail');
+                const cert = auditTrail.generateEvidenceCertificate(caseDir, {
+                    ip_name: ipName,
+                    ibbi_reg_no: ibbiRegNo
+                });
+                const format = parsedUrl.query.format || 'markdown';
+                if (format === 'json') {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, certificate: cert }));
+                } else {
+                    res.writeHead(200, {
+                        'Content-Type': 'text/markdown; charset=utf-8',
+                        'Content-Disposition': `attachment; filename="EVIDENCE_CERTIFICATE_SEC65B.md"`
+                    });
+                    res.end(cert);
+                }
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/matter/lifecycle-status': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const lifecycleManager = require('./core/lifecycle-manager');
+                const status = lifecycleManager.getStatus();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, status }));
             } catch (e) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: false, error: e.message }));
@@ -2647,6 +3170,181 @@ module.exports = {
     },
 
     POST: {
+        '/api/hayagriva/wiki/file-insight': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.caseName || parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const { fileInsight } = require('./pipeline/wiki/catalog');
+                    const result = await fileInsight(caseDir, data);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/wiki/reindex-catalog': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.caseName || parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const { recompileWikiCatalog } = require('./pipeline/wiki/catalog');
+                    const result = recompileWikiCatalog(caseDir);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/wiki/should-suggest-filing': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { shouldSuggestFiling } = require('./pipeline/wiki/catalog');
+                    const suggest = shouldSuggestFiling(data.answer, data.documentsUsed);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, suggest }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/wiki/lint': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.caseName || parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const { auditCaseWiki } = require('./core/case-wiki-linter');
+                    const report = await auditCaseWiki(caseDir, data);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, report }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/wiki/lint-resolve': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.caseName || parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const { resolveLintIssue } = require('./core/case-wiki-linter');
+                    const resolution = await resolveLintIssue(caseDir, data);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, resolution }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/case/session/focus': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const caseSession = require('./core/case-session');
+                    const session = caseSession.recordFocusMode(caseDir, data.focus || 'general');
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, active_focus: session.active_focus }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/entity-graph/sync': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const entityGraph = require('./core/entity-graph');
+                    const result = entityGraph.syncEntityGraph(caseDir);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, result }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/case/session/sync': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const caseSession = require('./core/case-session');
+                    const session = caseSession.syncFromDisk(caseDir);
+                    const formatted = caseSession.getFormattedSessionState(caseDir);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, session, formatted }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/ingest/set-emphasis': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseName = data.case || parsedUrl.query.case || getDefaultCaseName(docsRoot);
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const caseSession = require('./core/case-session');
+                    const session = caseSession.recordFocusMode(caseDir, data.focus || 'general');
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        active_focus: session.active_focus,
+                        filename: data.filename || null,
+                        message: `Intake focus updated to "${session.active_focus.toUpperCase()}". Relevant passages will receive 2.0x boost in retrieval.`
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
         '/api/hayagriva/practitioner/save-profile': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
@@ -4120,7 +4818,12 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
 
                 updateStatus(caseDir, relative, 'ingesting');
 
-                const companionPath = isWikiHtml ? file : file.replace(/\.[a-zA-Z0-9]+$/, '.md');
+                const subfolder = path.dirname(relative);
+                const conversionsPath = subfolder === '.' ?
+                    path.join(getConversionsDir(caseDir), `${basename}.md`) :
+                    path.join(getConversionsDir(caseDir), subfolder, `${basename}.md`);
+                const rootPath = file.replace(/\.[a-zA-Z0-9]+$/, '.md');
+                const companionPath = isWikiHtml ? file : (fs.existsSync(conversionsPath) ? conversionsPath : rootPath);
 
                 ingestFile(caseDir, companionPath, { 
                     conversionOnly: false,
@@ -4799,7 +5502,8 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                 try {
                     const filters = {
                         state: parsedUrl.query.state || undefined,
-                        kind: parsedUrl.query.kind || undefined
+                        kind: parsedUrl.query.kind || undefined,
+                        visibility: parsedUrl.query.visibility || undefined
                     };
                     const result = inboxManager.listItems(caseDir, filters);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -4835,12 +5539,398 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     const caseParam = data.case || parsedUrl.query.case || '';
                     const caseDir = resolveCaseDir(docsRoot, caseParam);
                     const inboxManager = require('./agents/inbox-manager');
-                    const result = inboxManager.resolveItem(caseDir, data.itemId, data.resolution, data.resolvedBy);
+                    const target = data.itemId || (data.toolCallId ? { sessionId: data.sessionId, toolCallId: data.toolCallId } : null);
+                    const result = inboxManager.resolveItem(caseDir, target, data.resolution, data.resolvedBy, {
+                        autoResume: data.autoResume !== false
+                    });
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true, ...result }));
                 } catch (e) {
                     const status = e.code === 'ERR_INBOX_ITEM_NOT_FOUND' ? 404 : 500;
                     res.writeHead(status, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/inbox/suspensions': (req, res, parsedUrl, docsRoot) => {
+            const caseParam = parsedUrl.query.case || '';
+            const caseDir = resolveCaseDir(docsRoot, caseParam);
+            const inboxManager = require('./agents/inbox-manager');
+            try {
+                const filters = {
+                    state: parsedUrl.query.state || undefined,
+                    agentName: parsedUrl.query.agent || parsedUrl.query.agentName || undefined,
+                    sessionId: parsedUrl.query.session || parsedUrl.query.sessionId || undefined
+                };
+                const result = inboxManager.listSuspensions(caseDir, filters);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, ...result }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        '/api/hayagriva/inbox/suspend': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const inboxManager = require('./agents/inbox-manager');
+                    const suspension = inboxManager.createSuspensionCheckpoint(caseDir, data);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, suspension }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/inbox/resume': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const resumeCoordinator = require('./agents/durable-resume-coordinator');
+                    const outcome = await resumeCoordinator.resumeSuspension(caseDir, data.suspensionId, {
+                        force: data.force === true
+                    });
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, ...outcome }));
+                } catch (e) {
+                    const status = e.code === 'ERR_SUSPENSION_NOT_FOUND' ? 404 : 500;
+                    res.writeHead(status, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/inbox/sweep': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const resumeCoordinator = require('./agents/durable-resume-coordinator');
+                    const outcome = await resumeCoordinator.sweepAndResumePending(caseDir);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, ...outcome }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/matter/switch': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const fromCaseParam = data.fromCase || data.previousMatter || '';
+                    const toCaseParam = data.toCase || data.activeMatter || '';
+
+                    const fromCaseDir = fromCaseParam ? resolveCaseDir(docsRoot, fromCaseParam) : null;
+                    const toCaseDir = toCaseParam ? resolveCaseDir(docsRoot, toCaseParam) : null;
+
+                    const lifecycleManager = require('./core/lifecycle-manager');
+                    const switchResult = await lifecycleManager.switchMatter(fromCaseDir, toCaseDir);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(switchResult));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/matter/teardown': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || data.matter || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+
+                    const lifecycleManager = require('./core/lifecycle-manager');
+                    const success = await lifecycleManager.teardownMatter(caseDir);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success, matter: path.basename(caseDir) }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/policy/evaluate': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const operation = data.operation || {};
+                    const context = data.context || {};
+
+                    const policyGuard = require('./security/policy_guard');
+                    const evalResult = await policyGuard.evaluate(caseDir, operation, context);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, evaluation: evalResult }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/compliance/approve': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const taskId = data.taskId || data.task_id;
+                    if (!taskId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'taskId is required' }));
+                        return;
+                    }
+
+                    const { getTaskById, updateTaskStatus } = require('./gatekeeper/compliance_queue');
+                    const task = getTaskById(caseDir, taskId);
+                    if (!task) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Task not found' }));
+                        return;
+                    }
+
+                    // 1. Mark task APPROVED
+                    updateTaskStatus(caseDir, taskId, 'APPROVED');
+
+                    // 2. Dispatch via Compliance Seam
+                    const complianceSeam = require('./seams/compliance');
+                    const serverUrl = data.serverUrl || process.env.LEXAI_API_URL || 'http://localhost:4000';
+                    const dispatchRes = await complianceSeam.dispatch(caseDir, task, {
+                        tier: task.execution_tier || 'GLOBAL',
+                        serverUrl
+                    });
+
+                    // 3. Mark corresponding inbox item resolved if exists
+                    try {
+                        const inboxManager = require('./agents/inbox-manager');
+                        inboxManager.resolveItem(caseDir, taskId, 'approved', 'Authorized Practitioner');
+                    } catch (_) {}
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, approved: true, dispatch: dispatchRes }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/compliance/dismiss': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const taskId = data.taskId || data.task_id;
+                    if (!taskId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'taskId is required' }));
+                        return;
+                    }
+
+                    const { updateTaskStatus } = require('./gatekeeper/compliance_queue');
+                    updateTaskStatus(caseDir, taskId, 'DISMISSED');
+
+                    try {
+                        const inboxManager = require('./agents/inbox-manager');
+                        inboxManager.resolveItem(caseDir, taskId, 'dismissed', 'Authorized Practitioner');
+                    } catch (_) {}
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, dismissed: true, taskId }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/compliance/run-local': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const taskId = data.taskId || data.task_id;
+                    if (!taskId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'taskId is required' }));
+                        return;
+                    }
+
+                    const { getTaskById } = require('./gatekeeper/compliance_queue');
+                    const task = getTaskById(caseDir, taskId);
+                    if (!task) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Task not found' }));
+                        return;
+                    }
+
+                    const complianceSeam = require('./seams/compliance');
+                    const result = await complianceSeam.dispatch(caseDir, task, { tier: 'LOCAL' });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/compliance/lexai-callback': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const taskId = data.taskId || data.task_id;
+                    if (!taskId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'taskId is required' }));
+                        return;
+                    }
+
+                    const complianceSeam = require('./seams/compliance');
+                    const result = await complianceSeam.ingest(caseDir, {
+                        taskId,
+                        reportId: data.reportId || data.report_id || 'REPORT_11',
+                        reportTitle: data.reportTitle || data.report_title || 'Section 29A Eligibility Dossier',
+                        tiddlers: data.tiddlers || [],
+                        metadata: data.metadata || {}
+                    }, { tier: 'GLOBAL' });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/compliance/simulate-lexai-delivery': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseParam = data.case || parsedUrl.query.case || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseParam);
+                    const taskId = data.taskId || data.task_id;
+                    if (!taskId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'taskId is required' }));
+                        return;
+                    }
+
+                    const { getTaskById } = require('./gatekeeper/compliance_queue');
+                    const task = getTaskById(caseDir, taskId) || {};
+                    const reportId = task.report_id || data.reportId || 'REPORT_11';
+                    const reportTitle = task.title || 'Section 29A Forensic Eligibility Dossier';
+                    const applicantName = (task.required_inputs && (task.required_inputs.applicant_name || task.required_inputs.ra_name)) || data.applicantName || 'Acme Consortium Pvt Ltd';
+                    const applicantCin = (task.required_inputs && (task.required_inputs.applicant_cin || task.required_inputs.ra_cin)) || data.applicantCin || 'U74999DL2018PTC333444';
+
+                    const simulateIneligible = data.simulateIneligible !== false;
+
+                    const tiddlers = [
+                        {
+                            title: `Summary — Eligibility Verification of ${applicantName}`,
+                            tags: 'ExecutiveSummary Section29A MultiRegistry',
+                            created: new Date().toISOString(),
+                            text: `! Forensic Due Diligence Summary\n\nScreening conducted across MCA-21, CIBIL/RBI Defaulters List, SEBI Debarment, and Judicial Portals (NCLT/NCLAT/Supreme Court).\n\n* Target Entity: ''${applicantName}'' (CIN: \`${applicantCin}\`)\n* Corporate Debtor: ''${path.basename(caseDir)}''\n* Overall Findings: ${simulateIneligible ? "''STATUTORY INELIGIBILITY DETECTED''" : "''CLEAR — NEGATIVE ASSURANCE SATISFIED''"}`
+                        },
+                        {
+                            title: 'MCA-21: Master Data & Director Network',
+                            tags: 'MCA21 Directors Screening',
+                            created: new Date().toISOString(),
+                            text: `! MCA-21 Corporate Registry Screening\n\n* Company Status: Active\n* Authorized Capital: INR 50,00,00,000\n* Paid-up Capital: INR 24,50,00,000\n* Directorship Audit:\n** DIN 01234567: Vikramaditya Singhania — Active\n** DIN 07654321: Rajesh Verma — ${simulateIneligible ? "''DISQUALIFIED under Section 164(2) of Companies Act, 2013'' (Default in filing financial statements for 3 consecutive financial years in associate company Apex Infra Ventures Ltd)." : "Active / Regular"}`
+                        },
+                        {
+                            title: 'CIBIL / RBI Wilful Defaulter Cross-Match',
+                            tags: 'RBI CIBIL CreditRisk',
+                            created: new Date().toISOString(),
+                            text: `! Credit Information Bureau & RBI Defaulter Lists\n\n* Search Parameters: PAN AAACB1234K / CIN ${applicantCin}\n* CIBIL Commercial Suit Filed Accounts: Zero records found.\n* RBI List of Wilful Defaulters: No record on file.`
+                        },
+                        {
+                            title: 'NeSL / Banking Non-Performing Asset (NPA) Inquest',
+                            tags: simulateIneligible ? 'Disqualified Flagged Section29A_c NPA' : 'Banking Clean Section29A_c',
+                            created: new Date().toISOString(),
+                            text: simulateIneligible 
+                                ? `! ⚠️ Section 29A(c) Disqualification Flag\n\n* Account: Apex Overseas Trading Ltd (Connected Subsidiary where ${applicantName} holds 64% equity)\n* Lending Consortium: State Bank of India & Punjab National Bank\n* Classification Date: 14-Aug-2023 (Classified as NPA > 1 Year)\n* Overdue Exposure: INR 28.40 Crores\n\nStatutory Bar: In terms of Section 29A(c), an applicant having an account classified as NPA for more than 1 year prior to the commencement of CIRP is ineligible unless all overdue amounts with interest and charges are paid before plan submission.`
+                                : `! Section 29A(c) Compliance Check\n\nNo accounts classified as Non-Performing Asset (NPA) for more than 1 year identified across NeSL or lending banking records.`
+                        },
+                        {
+                            title: 'SEBI Debarment & Capital Market Screening',
+                            tags: 'SEBI CapitalMarkets Clean',
+                            created: new Date().toISOString(),
+                            text: `! SEBI Enforcement & Debarment Orders\n\nNo restraint orders or debarment from accessing securities market detected under Section 29A(f).`
+                        },
+                        {
+                            title: 'Judicial Dockets: NCLT & Criminal Convictions',
+                            tags: 'Courts Docket Litigation Clean',
+                            created: new Date().toISOString(),
+                            text: `! Court Docket Tracking\n\n* Criminal Convictions (≥ 2 Years): None.\n* Disqualification under Section 29A(d): None.\n* PUFE Avoidance Inquests against Directors: None.`
+                        }
+                    ];
+
+                    const complianceSeam = require('./seams/compliance');
+                    const result = await complianceSeam.ingest(caseDir, {
+                        taskId,
+                        reportId,
+                        reportTitle,
+                        tiddlers,
+                        metadata: {
+                            applicant_name: applicantName,
+                            applicant_cin: applicantCin,
+                            cd_name: path.basename(caseDir)
+                        }
+                    }, { tier: 'GLOBAL', simulated: true });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: false, error: e.message }));
                 }
             });

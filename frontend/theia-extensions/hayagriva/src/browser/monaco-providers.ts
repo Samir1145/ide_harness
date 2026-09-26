@@ -27,8 +27,9 @@ export class HayagrivaMonacoProviders {
   registerAllProviders(getCaseNameFn: () => string): void {
     this.registerLinkProvider();
     this.registerLawCompletion(getCaseNameFn);
-    this.registerLawHoverProvider();
+    this.registerLawHoverProvider(getCaseNameFn);
     this.registerDraftLinterProvider();
+    this.registerMarkdownOutlineProvider();
   }
 
   // ─── 1. Citation Link Provider ─────────────────────────────────────────────
@@ -38,10 +39,11 @@ export class HayagrivaMonacoProviders {
           provideLinks: (model: any) => {
             const links: any[] = [];
             const text = model.getValue();
-            const regex = /\[\[([a-zA-Z0-9_\-.]+(?:\.pdf|\.docx|\.doc|\.xlsx|\.xls)?)(?:#page=(\d+))?\]\]/g;
-            let match;
 
-            while ((match = regex.exec(text)) !== null) {
+            // 1. Match [[doc.pdf#page=5]]
+            const wikiRegex = /\[\[([a-zA-Z0-9_\-.]+(?:\.pdf|\.docx|\.doc|\.xlsx|\.xls)?)(?:#page=(\d+))?\]\]/g;
+            let match;
+            while ((match = wikiRegex.exec(text)) !== null) {
               const startPos = model.getPositionAt(match.index);
               const endPos = model.getPositionAt(match.index + match[0].length);
               const docName = match[1];
@@ -56,10 +58,33 @@ export class HayagrivaMonacoProviders {
                     endPos.column
                   ),
                   url: `hayagriva-citation://${encodeURIComponent(docName)}?page=${pageNum}`,
-                  tooltip: `Open Citation Side-by-Side: ${docName} (Page ${pageNum})`
+                  tooltip: `Preview Citation: ${docName} (Page ${pageNum})`
                 });
               }
             }
+
+            // 2. Match [N](hayagriva-citation://...)
+            const mdCitationRegex = /\[([^\]]+)\]\((hayagriva-citation:\/\/[^)]+)\)/g;
+            let mdMatch;
+            while ((mdMatch = mdCitationRegex.exec(text)) !== null) {
+              const startPos = model.getPositionAt(mdMatch.index);
+              const endPos = model.getPositionAt(mdMatch.index + mdMatch[0].length);
+              const citationUrl = mdMatch[2];
+
+              if (monaco.Range) {
+                links.push({
+                  range: new monaco.Range(
+                    startPos.lineNumber,
+                    startPos.column,
+                    endPos.lineNumber,
+                    endPos.column
+                  ),
+                  url: citationUrl,
+                  tooltip: `Open Citation Preview Drawer`
+                });
+              }
+            }
+
             return { links };
           }
       });
@@ -300,6 +325,62 @@ export class HayagrivaMonacoProviders {
                     id: `${HAYAGRIVA_NS}:exportCourtPdf`,
                     arguments: [model.uri]
                   }
+                },
+                {
+                  label: '/audit - Audit Case Registers & Wiki (Lint Operation)',
+                  filterText: `${typedFromSlash} audit lint verify discrepancies contradictions compliance inquest`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'MindBase Inquest: Flags claim offsets, missing facts, and overdue milestones',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:auditCaseWiki`,
+                    arguments: []
+                  }
+                },
+                {
+                  label: '/brief - Show Ingestion Brief for Current File',
+                  filterText: `${typedFromSlash} brief ingest summary intake defect flags`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Executive 3-5 bullet intake briefing and defect checks',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:showIngestBrief`,
+                    arguments: [model.uri]
+                  }
+                },
+                {
+                  label: '/focus - Set Intake & Retrieval Emphasis Mode',
+                  filterText: `${typedFromSlash} focus emphasis priority waterfall s29a avoidance general`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '/focus ',
+                  range: replaceRange,
+                  detail: 'Switch active RAG retrieval priority (waterfall, s29a, avoidance, general)'
+                },
+                {
+                  label: '/contradictions - Audit Cross-Filing Contradictions',
+                  filterText: `${typedFromSlash} contradictions conflicts discrepancy claim avoidance 29a delta`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Diagnostic Inquest: Detects quantum discrepancies, avoidance collisions, and 29A risks',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:auditContradictions`,
+                    arguments: []
+                  }
+                },
+                {
+                  label: '/graph - Open Diagnostic Case Graph Viewer',
+                  filterText: `${typedFromSlash} graph map visual connections entities d3 relations`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Visual D3 Case Graph highlighting cross-filing conflict edges in red',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:openCaseGraph`,
+                    arguments: []
+                  }
                 }
               );
 
@@ -404,6 +485,48 @@ export class HayagrivaMonacoProviders {
                 } catch (_) {}
               }
 
+              // 4. /focus <mode> (Plan 18)
+              if (rawSlashLower.startsWith('focus')) {
+                suggestions.unshift(
+                  {
+                    label: '/focus waterfall - Financial Waterfall Priority',
+                    filterText: `${typedFromSlash} waterfall payout section 53 regulation 38`,
+                    kind: monaco.languages.CompletionItemKind.Value,
+                    insertText: '',
+                    range: replaceRange,
+                    detail: '2.0x boost to Section 53, Regulation 38, and liquidation payouts',
+                    command: { id: `${HAYAGRIVA_NS}:setFocusMode`, arguments: ['waterfall'] }
+                  },
+                  {
+                    label: '/focus s29a - Section 29A Eligibility Priority',
+                    filterText: `${typedFromSlash} s29a eligibility disqualification connected promoter`,
+                    kind: monaco.languages.CompletionItemKind.Value,
+                    insertText: '',
+                    range: replaceRange,
+                    detail: '2.0x boost to promoter conflict checks and Section 29A clauses',
+                    command: { id: `${HAYAGRIVA_NS}:setFocusMode`, arguments: ['s29a'] }
+                  },
+                  {
+                    label: '/focus avoidance - Avoidance Inquest Priority',
+                    filterText: `${typedFromSlash} avoidance forensic sections 43 45 50 66 contra-sweeps`,
+                    kind: monaco.languages.CompletionItemKind.Value,
+                    insertText: '',
+                    range: replaceRange,
+                    detail: '2.0x boost to look-back transactions and suspicious entries',
+                    command: { id: `${HAYAGRIVA_NS}:setFocusMode`, arguments: ['avoidance'] }
+                  },
+                  {
+                    label: '/focus general - Balanced Default Priority',
+                    filterText: `${typedFromSlash} general balanced reset uniform`,
+                    kind: monaco.languages.CompletionItemKind.Value,
+                    insertText: '',
+                    range: replaceRange,
+                    detail: 'Reset to uniform RRF rank fusion across all chapters',
+                    command: { id: `${HAYAGRIVA_NS}:setFocusMode`, arguments: ['general'] }
+                  }
+                );
+              }
+
               return { suggestions, incomplete: true };
             }
 
@@ -460,52 +583,141 @@ export class HayagrivaMonacoProviders {
   }
 
   // ─── 3. Law Hover Preview Provider ────────────────────────────────────────
-  registerLawHoverProvider(): void {
+  registerLawHoverProvider(getCaseNameFn?: () => string): void {
     const LANGS = ['markdown', 'plaintext'];
 
     for (const lang of LANGS) {
       monaco.languages.registerHoverProvider(lang, {
-          provideHover: async (model: any, position: any, token: any) => {
-            // Local & REST Provider for @@ and @ law citations
-            const lineText: string = model.getLineContent(position.lineNumber);
-            const citationRegex = /@@?([\w/.\-]+)/g;
-            let match: RegExpExecArray | null;
+        provideHover: async (model: any, position: any, token: any) => {
+          const lineText: string = model.getLineContent(position.lineNumber);
+          const currentCase = getCaseNameFn ? getCaseNameFn() : '';
 
-            while ((match = citationRegex.exec(lineText)) !== null) {
-              const startCol = match.index + 1;
-              const endCol = startCol + match[0].length;
+          // 1. Check for Document / Citation References
+          // Pattern A: [[doc.pdf#page=5]] or [[doc.pdf]]
+          const wikiRegex = /\[\[([a-zA-Z0-9_\-.]+(?:\.pdf|\.docx|\.doc|\.xlsx|\.xls)?)(?:#page=(\d+))?\]\]/g;
+          let match: RegExpExecArray | null;
+          while ((match = wikiRegex.exec(lineText)) !== null) {
+            const startCol = match.index + 1;
+            const endCol = startCol + match[0].length;
+            if (position.column >= startCol && position.column <= endCol) {
+              const docName = match[1];
+              const pageNum = match[2] || '1';
+              return this.fetchCitationHover(docName, pageNum, currentCase, position.lineNumber, startCol, endCol, token);
+            }
+          }
 
-              if (position.column >= startCol && position.column <= endCol) {
-                const triggerText = match[1];
-                try {
-                  const res = await fetch(
-                    `${this.getBackendUrl()}/api/laws/query?q=${encodeURIComponent(triggerText)}&n=1`
-                  );
-                  if (token.isCancellationRequested || !res.ok) return undefined;
-                  const json = await res.json();
-                  const results = json.results || [];
-                  if (results.length === 0) return undefined;
+          // Pattern B: [1](hayagriva-citation://docName?page=N&chunk=C&title=T)
+          const hayagrivaCitationRegex = /\[([^\]]+)\]\((hayagriva-citation:\/\/[^)]+)\)/g;
+          while ((match = hayagrivaCitationRegex.exec(lineText)) !== null) {
+            const startCol = match.index + 1;
+            const endCol = startCol + match[0].length;
+            if (position.column >= startCol && position.column <= endCol) {
+              const uriStr = match[2];
+              try {
+                const url = new URL(uriStr);
+                const docName = decodeURIComponent(url.hostname || url.pathname.replace(/^\/\//, ''));
+                const pageNum = url.searchParams.get('page') || '1';
+                return this.fetchCitationHover(docName, pageNum, currentCase, position.lineNumber, startCol, endCol, token);
+              } catch (_) {}
+            }
+          }
 
-                  const r = results[0];
-                  const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
-                  return {
-                    range: new monaco.Range(position.lineNumber, startCol, position.lineNumber, endCol),
-                    contents: [
-                      { value: `**§ ${r.id}** — *${r.title || `Section ${r.section}`}*\n\n---\n\n${cleanText}` }
-                    ]
-                  };
-                } catch {
-                  return undefined;
-                }
+          // Pattern C: [source:doc.pdf:p.5] or [source:doc.pdf]
+          const sourceRegex = /\[source:([a-zA-Z0-9_\-.]+(?:\.pdf|\.docx|\.doc|\.xlsx|\.xls)?)(?::p(?:age)?\.?(\d+))?\]/gi;
+          while ((match = sourceRegex.exec(lineText)) !== null) {
+            const startCol = match.index + 1;
+            const endCol = startCol + match[0].length;
+            if (position.column >= startCol && position.column <= endCol) {
+              const docName = match[1];
+              const pageNum = match[2] || '1';
+              return this.fetchCitationHover(docName, pageNum, currentCase, position.lineNumber, startCol, endCol, token);
+            }
+          }
+
+          // 2. Check for @@ and @ law citations (Statutes Vault)
+          const citationRegex = /@@?([\w/.\-]+)/g;
+          while ((match = citationRegex.exec(lineText)) !== null) {
+            const startCol = match.index + 1;
+            const endCol = startCol + match[0].length;
+
+            if (position.column >= startCol && position.column <= endCol) {
+              const triggerText = match[1];
+              try {
+                const res = await fetch(
+                  `${this.getBackendUrl()}/api/laws/query?q=${encodeURIComponent(triggerText)}&n=1`
+                );
+                if (token.isCancellationRequested || !res.ok) return undefined;
+                const json = await res.json();
+                const results = json.results || [];
+                if (results.length === 0) return undefined;
+
+                const r = results[0];
+                const cleanText = (r.text as string).replace(/^---[\s\S]*?---\r?\n?/, '').trimStart();
+                return {
+                  range: new monaco.Range(position.lineNumber, startCol, position.lineNumber, endCol),
+                  contents: [
+                    { value: `**§ ${r.id}** — *${r.title || `Section ${r.section}`}*\n\n---\n\n${cleanText}` }
+                  ]
+                };
+              } catch {
+                return undefined;
               }
             }
-
-            return undefined;
           }
-        });
-      }
 
-    this.logger.info('[HAYAGRIVA] Law hover preview provider registered for markdown and plaintext.');
+          return undefined;
+        }
+      });
+    }
+
+    this.logger.info('[HAYAGRIVA] Law and citation hover preview provider registered for markdown and plaintext.');
+  }
+
+  protected async fetchCitationHover(
+    docName: string,
+    pageNum: string,
+    caseName: string,
+    line: number,
+    startCol: number,
+    endCol: number,
+    token: any
+  ): Promise<any> {
+    const defaultCard = {
+      range: new monaco.Range(line, startCol, line, endCol),
+      contents: [
+        {
+          value: `📁 **${docName}** (Page ${pageNum})\n\n---\n[📖 Open in Side Drawer](command:hayagriva.openCitationPreview?${encodeURIComponent(JSON.stringify([docName, pageNum]))}) &nbsp;&nbsp;|&nbsp;&nbsp; [⚡ Open Side-by-Side](command:hayagriva.openCitationSideBySide?${encodeURIComponent(JSON.stringify([docName, pageNum]))})`,
+          isTrusted: true
+        }
+      ]
+    };
+
+    try {
+      const res = await fetch(
+        `${this.getBackendUrl()}/api/hayagriva/citation/resolve?case=${encodeURIComponent(caseName)}&doc=${encodeURIComponent(docName)}&page=${encodeURIComponent(pageNum)}`
+      );
+      if (token.isCancellationRequested || !res.ok) {
+        return defaultCard;
+      }
+      const data = await res.json();
+      if (!data.success) return defaultCard;
+
+      const titleStr = data.sectionTitle ? ` — *${data.sectionTitle}*` : '';
+      const excerptStr = data.excerpt ? `\n\n> "${data.excerpt}"\n\n` : '\n\n';
+      const binaryBadge = data.isPdf ? ' 📕 `PDF`' : '';
+
+      return {
+        range: new monaco.Range(line, startCol, line, endCol),
+        contents: [
+          {
+            value: `### 📄 ${data.docName}${titleStr}${binaryBadge}\n\n**Page:** ${data.page || pageNum}${excerptStr}---\n[📖 Open in Side Drawer](command:hayagriva.openCitationPreview?${encodeURIComponent(JSON.stringify([docName, pageNum]))}) &nbsp;&nbsp;|&nbsp;&nbsp; [⚡ Open Side-by-Side](command:hayagriva.openCitationSideBySide?${encodeURIComponent(JSON.stringify([docName, pageNum]))})`,
+            isTrusted: true
+          }
+        ]
+      };
+    } catch (_) {
+      return defaultCard;
+    }
   }
 
   // ─── 4. In-Process Statutory & Antecedent Basis Drafting Linter ─────────────
@@ -623,6 +835,92 @@ export class HayagrivaMonacoProviders {
     }
 
     this.logger.info('[HAYAGRIVA] In-process statutory & antecedent basis drafting linter registered.');
+  }
+
+  // ─── 5. Markdown Document Symbol Provider (Theia Outline View & Breadcrumbs) ──
+  registerMarkdownOutlineProvider(): void {
+    if (monaco && monaco.languages && monaco.languages.registerDocumentSymbolProvider) {
+      monaco.languages.registerDocumentSymbolProvider('markdown', {
+        displayName: 'Markdown Outline',
+        provideDocumentSymbols: (model: any) => {
+          const totalLines = model.getLineCount();
+          const headings: { level: number; text: string; line: number; endLine?: number }[] = [];
+          let inCode = false;
+
+          for (let i = 1; i <= totalLines; i++) {
+            const lineContent = model.getLineContent(i);
+            const trimmed = lineContent.trim();
+            if (trimmed.startsWith('```')) {
+              inCode = !inCode;
+              continue;
+            }
+            if (inCode) continue;
+
+            const match = lineContent.match(/^(#{1,6})\s+(.+)$/);
+            if (match) {
+              headings.push({
+                level: match[1].length,
+                text: match[2].trim().replace(/\s+#+$/, ''),
+                line: i
+              });
+            }
+          }
+
+          if (headings.length === 0) {
+            return [];
+          }
+
+          // Calculate hierarchical range bounds
+          for (let i = 0; i < headings.length; i++) {
+            let endLine = totalLines;
+            for (let j = i + 1; j < headings.length; j++) {
+              if (headings[j].level <= headings[i].level) {
+                endLine = headings[j].line - 1;
+                break;
+              }
+            }
+            headings[i].endLine = Math.max(headings[i].line, endLine);
+          }
+
+          // Build nested DocumentSymbol tree
+          const stack: { level: number; symbol: any }[] = [];
+          const roots: any[] = [];
+
+          for (const h of headings) {
+            const maxCol = model.getLineMaxColumn(h.line);
+            const endMaxCol = model.getLineMaxColumn(h.endLine || h.line);
+
+            // SymbolKind: 1 (Module/H1), 4 (Class/H2), 5 (Method/H3), 7 (Field/H4), 14 (String/H5-6)
+            const kind = h.level === 1 ? 1 : (h.level === 2 ? 4 : (h.level === 3 ? 5 : (h.level === 4 ? 7 : 14)));
+
+            const symbol: any = {
+              name: h.text,
+              detail: `H${h.level}`,
+              kind: kind,
+              tags: [],
+              range: new monaco.Range(h.line, 1, h.endLine || h.line, endMaxCol),
+              selectionRange: new monaco.Range(h.line, 1, h.line, maxCol),
+              children: []
+            };
+
+            while (stack.length > 0 && stack[stack.length - 1].level >= h.level) {
+              stack.pop();
+            }
+
+            if (stack.length === 0) {
+              roots.push(symbol);
+            } else {
+              stack[stack.length - 1].symbol.children.push(symbol);
+            }
+
+            stack.push({ level: h.level, symbol });
+          }
+
+          return roots;
+        }
+      });
+      this.logger.info('[HAYAGRIVA] Successfully registered Monaco Document Symbol Provider for Markdown Outline.');
+    }
   }
 }
 

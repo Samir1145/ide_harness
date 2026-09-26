@@ -158,16 +158,31 @@ function isTiddlyWikiHtml(filePath) {
     }
 }
 
+function isValidCaseDir(caseDir) {
+    if (!caseDir || typeof caseDir !== 'string') return false;
+    const trimmed = caseDir.trim();
+    if (!trimmed) return false;
+    // Query strings, questions, prompts, or newlines are not valid case directories
+    if (trimmed.includes('?') || trimmed.includes('\n') || trimmed.length > 150) return false;
+    try {
+        return fs.existsSync(trimmed) && fs.statSync(trimmed).isDirectory();
+    } catch (_) {
+        return false;
+    }
+}
+
 /**
  * Dynamic Directory Resolvers for Case Subfolders:
  * Target format: <case_name>_<type>_haya (e.g., ipie_conversions_haya)
  * Auto-syncs subfolder prefixes if parent case directory is renamed.
  */
 function getConversionsDir(caseDir) {
-    if (!caseDir) return '';
+    if (!isValidCaseDir(caseDir)) return '';
     const caseName = path.basename(caseDir);
     const targetDir = path.join(caseDir, `${caseName}_conversions_haya`);
-    fs.mkdirSync(targetDir, { recursive: true });
+    if (!fs.existsSync(targetDir)) {
+        try { fs.mkdirSync(targetDir); } catch (_) {}
+    }
 
     if (fs.existsSync(caseDir)) {
         try {
@@ -184,10 +199,12 @@ function getConversionsDir(caseDir) {
 }
 
 function getConceptsDir(caseDir) {
-    if (!caseDir) return '';
+    if (!isValidCaseDir(caseDir)) return '';
     const caseName = path.basename(caseDir);
     const targetDir = path.join(caseDir, `${caseName}_concepts_haya`);
-    fs.mkdirSync(targetDir, { recursive: true });
+    if (!fs.existsSync(targetDir)) {
+        try { fs.mkdirSync(targetDir); } catch (_) {}
+    }
 
     if (fs.existsSync(caseDir)) {
         try {
@@ -204,10 +221,12 @@ function getConceptsDir(caseDir) {
 }
 
 function getWikiDir(caseDir) {
-    if (!caseDir) return '';
+    if (!isValidCaseDir(caseDir)) return '';
     const caseName = path.basename(caseDir);
     const targetDir = path.join(caseDir, `${caseName}_wiki_haya`);
-    fs.mkdirSync(targetDir, { recursive: true });
+    if (!fs.existsSync(targetDir)) {
+        try { fs.mkdirSync(targetDir); } catch (_) {}
+    }
 
     if (fs.existsSync(caseDir)) {
         try {
@@ -254,6 +273,7 @@ module.exports = {
     setupConceptsDir,
     cleanBm25Index,
     isTiddlyWikiHtml,
+    isValidCaseDir,
     getConversionsDir,
     getConceptsDir,
     getWikiDir,

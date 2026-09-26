@@ -26,6 +26,8 @@ function getSkeletonSearchDirs(repoRoot) {
 
     const candidatePacksDirs = [
         process.env.HAYAGRIVA_AGENTS_PATH,
+        path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'formats'),
+        path.join(os.homedir(), 'Desktop', 'hayagriva', 'formats'),
         path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'agents', 'packs'),
         path.join(os.homedir(), 'Desktop', 'HAYAGRIVA', 'agents', 'suites', 'ibc_forms'),
         path.join(__dirname, '..', '..', '..', '..', 'agents', 'packs'),

@@ -21,7 +21,7 @@ const DEFAULT_CAP_TOKENS = 1600;     // Hard ceiling for 2,048-token window
 const KEEP_RECENT_FRACTION = 0.25;  // ~400 tokens of working memory
 const SPAN_TOOL_RESULT_CLIP = 400;  // Stale tool dumps clipped to 400 chars
 const USER_MESSAGE_CLIP = 400;      // Historical user prompts clipped to 400 chars
-const USER_MESSAGES_MAX = 20;       // Max historical user prompts preserved
+const USER_MESSAGES_MAX = 40;       // Max historical user prompts preserved (Plan 14 cap)
 
 /**
  * Estimates token count as (chars / 4) over serialized messages.
@@ -93,6 +93,31 @@ function _turnStarts(messages, start = 0) {
 }
 
 /**
+ * Ensures candidate boundary index does not cut mid-tool-result (Plan 14).
+ * A safe cut never splits an assistant tool_call from its tool responses.
+ */
+function _isSafeCut(messages, idx) {
+    if (idx <= 0 || idx >= messages.length) return true;
+    const target = messages[idx];
+    if (target && target.role === 'tool') return false; // Never start the tail on a tool response!
+    // Check if an earlier assistant had tool_calls whose answers are at or after idx
+    for (let j = idx - 1; j >= 0; j--) {
+        const m = messages[j];
+        if (m && m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+            const callIds = new Set(m.tool_calls.map(tc => tc && tc.id).filter(Boolean));
+            for (let k = idx; k < messages.length; k++) {
+                if (messages[k] && messages[k].role === 'tool' && callIds.has(messages[k].tool_call_id)) {
+                    return false; // Cuts between assistant tool_call and its tool response
+                }
+            }
+            break;
+        }
+        if (m && (m.role === 'user' || m.role === 'system')) break;
+    }
+    return true;
+}
+
+/**
  * Picks the boundary index dividing the historical span from the verbatim tail.
  * Returns the earliest index whose tail fits within the keep budget.
  * 
@@ -105,9 +130,9 @@ function pickBoundary(messages, keepTokens) {
     const start = messages[0] && messages[0].role === 'system' ? 1 : 0;
     const { users, assistants } = _turnStarts(messages, start);
 
-    // Try earliest-first among user turn boundaries
+    // Try earliest-first among user turn boundaries (preferred, never cut mid-tool)
     for (const i of users) {
-        if (estimateTokens(messages.slice(i)) <= keepTokens) {
+        if (_isSafeCut(messages, i) && estimateTokens(messages.slice(i)) <= keepTokens) {
             return i;
         }
     }
@@ -117,26 +142,27 @@ function pickBoundary(messages, keepTokens) {
         const lastUser = users[users.length - 1];
         const inside = assistants.filter(i => i > lastUser);
         for (const i of inside) {
-            if (estimateTokens(messages.slice(i)) <= keepTokens) {
+            if (_isSafeCut(messages, i) && estimateTokens(messages.slice(i)) <= keepTokens) {
                 return i;
             }
         }
         if (inside.length > 0) {
-            return inside[inside.length - 1];
+            const safeInside = inside.filter(i => _isSafeCut(messages, i));
+            if (safeInside.length > 0) return safeInside[safeInside.length - 1];
         }
-        return lastUser;
+        if (_isSafeCut(messages, lastUser)) return lastUser;
     }
 
     // Fallback to assistants
     for (const i of assistants) {
-        if (estimateTokens(messages.slice(i)) <= keepTokens) {
+        if (_isSafeCut(messages, i) && estimateTokens(messages.slice(i)) <= keepTokens) {
             return i;
         }
     }
 
-    // Safety fallback: keep at least the last message
+    // Safety fallback: keep at least the last message if safe
     const fallback = messages.length - 1;
-    return fallback > start ? fallback : null;
+    return fallback > start && _isSafeCut(messages, fallback) ? fallback : (fallback > start ? fallback : null);
 }
 
 /**
@@ -266,7 +292,7 @@ function clipStaleToolOutputs(span, clipChars = SPAN_TOOL_RESULT_CLIP) {
 /**
  * Formats the structured compacted context divider block.
  */
-function buildCompactedBlock(summaryText, workingState, userDirectives) {
+function buildCompactedBlock(summaryText, workingState, userDirectives, mechanicalSession) {
     const sections = [
         '[Context auto-compacted — earlier turns summarized to fit 2,048-token local LLM budget]'
     ];
@@ -277,6 +303,10 @@ function buildCompactedBlock(summaryText, workingState, userDirectives) {
 
     if (workingState && workingState.trim()) {
         sections.push(`## Mechanical Working State\n${workingState.trim()}`);
+    }
+
+    if (mechanicalSession && mechanicalSession.trim()) {
+        sections.push(`## Active Case Session Ledger\n${mechanicalSession.trim()}`);
     }
 
     if (Array.isArray(userDirectives) && userDirectives.length > 0) {
@@ -358,8 +388,19 @@ async function compactHistory(messages, options = {}, summarizerFn = null) {
 
     // Mechanical extraction (zero hallucination)
     const workingState = extractWorkingState(span);
-    const userDirectives = extractUserDirectives(span);
-    const clippedSpan = clipStaleToolOutputs(span);
+    const userDirectives = extractUserDirectives(span, options.userMessagesMax || USER_MESSAGES_MAX, options.userMessageClip || USER_MESSAGE_CLIP);
+    const clippedSpan = clipStaleToolOutputs(span, options.spanToolResultClip || SPAN_TOOL_RESULT_CLIP);
+
+    // Mechanical case working state from case_session.json (Plan 14)
+    let mechanicalSession = '';
+    if (options.caseDir) {
+        try {
+            const caseSession = require('./case-session');
+            mechanicalSession = caseSession.getFormattedSessionState(options.caseDir);
+        } catch (err) {
+            console.warn('[History Compactor] Could not load mechanical case session:', err.message);
+        }
+    }
 
     // Bridging summary synthesis
     let summaryText = '';
@@ -374,7 +415,7 @@ async function compactHistory(messages, options = {}, summarizerFn = null) {
         summaryText = deterministicFallbackSummary(span);
     }
 
-    const compactedBlockContent = buildCompactedBlock(summaryText, workingState, userDirectives);
+    const compactedBlockContent = buildCompactedBlock(summaryText, workingState, userDirectives, mechanicalSession);
     const compactedMessage = {
         role: 'system',
         content: compactedBlockContent
@@ -513,6 +554,53 @@ function repairToolPairing(messages) {
     return repaired;
 }
 
+/**
+ * Detects whether an error represents a context window / token budget overflow (Plan 15).
+ * 
+ * Intercepts provider 400 Bad Request error strings (e.g. "context_length_exceeded",
+ * "prompt is too long", "too many tokens", "maximum context length") and pre-flight codes.
+ * 
+ * @param {Error|Object|string} err 
+ * @returns {boolean}
+ */
+function isContextOverflow(err) {
+    if (!err) return false;
+    if (err.code === 'CONTEXT_EXCEEDED' || err.code === 'context_length_exceeded' || err.status === 413) return true;
+    const msg = String(err.message || err.error || err || '').toLowerCase();
+    const overflowPatterns = [
+        /context.*(?:length|window|limit|exceed|budget|overflow|maximum)/i,
+        /maximum context length/i,
+        /prompt.*(?:too long|exceeds)/i,
+        /too many tokens/i,
+        /token.*limit.*exceeded/i,
+        /exceeds.*context window/i,
+        /input.*length.*exceed/i,
+        /model's maximum context/i
+    ];
+    return overflowPatterns.some(pattern => pattern.test(msg));
+}
+
+/**
+ * Emergency compaction pass when provider reports context overflow (Plan 15).
+ * Forces aggressive compression to guarantee fitting under strict local budgets.
+ * 
+ * @param {Array<Object>} messages 
+ * @param {Object} [options] 
+ * @param {Function} [summarizerFn] 
+ * @returns {Promise<Object>}
+ */
+async function emergencyCompact(messages, options = {}, summarizerFn = null) {
+    return compactHistory(messages, {
+        ...options,
+        force: true,
+        keepRecentFraction: 0.15,
+        spanToolResultClip: 150,
+        userMessagesMax: 5,
+        userMessageClip: 150,
+        thresholdPct: 0.5
+    }, summarizerFn);
+}
+
 module.exports = {
     DEFAULT_CONTEXT_WINDOW,
     DEFAULT_THRESHOLD_PCT,
@@ -531,6 +619,9 @@ module.exports = {
     buildCompactedBlock,
     deterministicFallbackSummary,
     compactHistory,
-    repairToolPairing
+    repairToolPairing,
+    isContextOverflow,
+    is_context_overflow: isContextOverflow,
+    emergencyCompact
 };
 

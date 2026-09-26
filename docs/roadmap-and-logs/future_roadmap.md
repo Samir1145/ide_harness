@@ -109,7 +109,7 @@ These items establish baseline reliability, thread-safety, user context configur
 
 ---
 
-### 29. Clickable Citation & Preview Pipeline
+### [Implemented] 29. Clickable Citation & Preview Pipeline
 * **Goal:** Embed clickable, interactive citation anchors in LLM responses that allow lawyers to inspect underlying legal sources without leaving the drafting view.
 * **Architecture:**
   * **Prose Citation Standard:** Instruct the LLM in its system prompt to cite sources using raw bracketed IDs, e.g., `[source:doc_123]` or `[note:fact_abc]`.
@@ -165,7 +165,7 @@ These items strengthen contextual retrieval, semantic search capabilities, and f
 
 ---
 
-### 2. TiddlyWiki Bidirectional Write-Back Sync
+### [Implemented] 2. TiddlyWiki Bidirectional Write-Back Sync
 * **Goal:** Restore complete portability to `.wiki.html` files. Changes and annotations made to the decomposed Markdown cards (`/concepts/<wiki>/*.md`) inside the IDE should sync back into the single-file HTML wiki.
 * **Architecture:**
   * **Save Hook:** Monitor change events on `concepts/<wiki>/*.md` cards. On save (`Cmd+S`), read the card's YAML frontmatter tags/links and markdown body.
@@ -184,7 +184,7 @@ These items strengthen contextual retrieval, semantic search capabilities, and f
 
 ---
 
-### 31. Dual-Vector Search Loop (Hybrid Legal/Finance Cases)
+### [Implemented] 31. Dual-Vector Search Loop (Hybrid Legal/Finance Cases)
 * **Goal:** Enable mixed cases containing both legal files and financial sheets to query the appropriate domain-specific embedding space without vector space contamination.
 * **Architecture:**
   * **Domain Column Schema:** Add a `model_domain` string column to the SQLite `document_vectors` table (defaulting to `'legal'`).
@@ -222,7 +222,7 @@ These items build the central parsing capabilities of the LDE to convert raw mar
 
 ---
 
-### 12. Bi-Directional ORM (Text-to-Data Bridge)
+### [Implemented] 12. Bi-Directional ORM (Text-to-Data Bridge)
 * **Goal:** Establish a real-time, two-way synchronization binding human-readable document prose to structured variables in the case metadata store.
 * **Architecture:**
   * **Text-to-Data Sync:** When a user manually edits a value inside document prose (e.g., changing `₹12,00,00,000` to `₹15,00,00,000`), a deterministic regex/AST watcher detects the change and instantly updates the corresponding field in `case_kv_dictionary.json` — without waiting for a slow background LLM extraction pass.
@@ -304,7 +304,7 @@ These items establish standard software engineering conventions and secure appen
 
 ---
 
-### 23. Audit Trail & Tamper-Evident Logging
+### [Implemented] 23. Audit Trail & Tamper-Evident Logging
 * **Goal:** Maintain a forensic-grade, append-only audit log of every material change to case data, suitable for production as evidence in court proceedings.
 * **Architecture:**
   * **Event Log:** Every write operation to `case_kv_dictionary.json`, `index.json`, or any companion `.md` file is recorded with: timestamp, user identity, field name, old value, new value, and source (manual edit / agent extraction / dashboard update).
@@ -337,7 +337,7 @@ These items govern multiple users, compile court-ready documents, execute signat
 
 ---
 
-### 21. Document Signing & Attestation Pipeline
+### [Implemented] 21. Document Signing & Attestation Pipeline
 * **Goal:** Integrate digital signature workflows into the build output so that compiled documents are legally valid and tamper-evident.
 * **Architecture:**
   * **DSC Integration:** Support Digital Signature Certificate (DSC) signing of final PDF build artifacts using PKCS#7 or PAdES standards.
@@ -346,7 +346,7 @@ These items govern multiple users, compile court-ready documents, execute signat
 
 ---
 
-### 20. Statutory Deadline & Limitation Period Tracker
+### [Implemented] 20. Statutory Deadline & Limitation Period Tracker
 * **Goal:** Track and enforce statutory deadlines, limitation periods, and procedural timelines as first-class state-machine timers within the LDE.
 * **Architecture:**
   * **Timer Engine:** Model key deadlines as countdown timers linked to case metadata:
@@ -421,39 +421,244 @@ These items establish external standard dependencies, metrics dashboarding, and 
 
 ## Summary: The Full Compiler Toolchain Analogy
 
-| Software Compiler Concept | HAYAGRIVA LDE Equivalent | Roadmap Item |
-|---|---|---|
-| Source Files | Legal documents (Markdown companions) | Existing |
-| Preprocessor | Document Ingestion & OCR | Existing (IMS) |
-| Lexer / Tokenizer | Chunker & Inverted Index | Existing (CMS) |
-| Queue Runner | Asynchronous Ingestion & Task Queue Manager | **#30** |
-| Hash Tracking | Document Rename & Hash Tracking | **#4** |
-| Inline Citations | Clickable Citation & Preview Pipeline | **#29** |
-| Workspace Context | Granular Active-Context Control Matrix | **#28** |
-| Query Parallelization | Map-Reduce Multi-Query RAG Orchestrator | **#27** |
-| Symbol Table | Lightweight Local GraphRAG | **#1** |
-| Tiddler Sync | TiddlyWiki Write-Back Sync | **#2** |
-| Visual Spreadsheet | Headless LibreOffice spreadsheet fallback | **#3** |
-| Parser / AST | Legal AST parser & diagnostics | **#6** |
-| Type Checker | Variable schema enforcement | **#7** |
-| IDE Plugins | Bi-directional ORM (Text-to-Data Bridge) | **#12** |
-| Language Server (LSP) | Standalone LSP server | **#17** |
-| Linker | Cross-file integrity compiler | **#10** |
-| Precedent Map | Precedent-Override Semantic Resolution | **#11** |
-| Unit Tests | Legal unit testing engine | **#8** |
-| Formal Verification | Constraint solver completeness proofs | **#9** |
-| Debugger | Breakpoints & waterfall logic tracing | **#15** |
-| Refactoring Tools | Symbol renaming & DRY detection | **#16** |
-| Audit Logs | Tamper-evident cryptographic chain | **#23** |
-| Access Control | RBAC & privilege tagging | **#24** |
-| Build System | Legal build pipeline & export gate | **#18** |
-| CI/CD Pipeline | Deadline tracking & attestation | **#20, #21** |
-| Code Review | Multi-user approval workflows | **#25** |
-| Dependency Scanning | Conflict of interest scanner | **#26** |
-| Process Runner | Multi-agent process runner | **#5** |
-| Package Manager | Legal dependency registry | **#14** |
-| Analytics | Case Analytics dashboard | **#22** |
-| Runtime / Deployment | Contract API endpoints | **#19** |
+| Software Compiler Concept | HAYAGRIVA LDE Equivalent | Roadmap Item | Status |
+|---|---|---|---|
+| Source Files | Legal documents (Markdown companions) | Existing | **Implemented** |
+| Preprocessor | Document Ingestion & OCR | Existing (IMS) | **Implemented** |
+| Lexer / Tokenizer | Chunker & Inverted Index | Existing (CMS) | **Implemented** |
+| Queue Runner | Asynchronous Ingestion & Task Queue Manager | **#30** (Plan 1) | **[Implemented]** |
+| Hash Tracking | Document Rename & Hash Tracking | **#4** (Plan 2) | **[Implemented]** |
+| Inline Citations | Clickable Citation & Preview Pipeline | **#29** (Plan 3) | *Shelved for Future* |
+| Workspace Context | Granular Active-Context Control Matrix | **#28** (Plan 4) | **[Implemented]** |
+| Query Parallelization | Map-Reduce Multi-Query RAG Orchestrator | **#27** (Plan 5) | *Shelved for Future* |
+| Symbol Table | Lightweight Local GraphRAG / Entity Graph | **#1** (Plan 21) | *Shelved for Future* |
+| Tiddler Sync | TiddlyWiki Write-Back Sync | **#2** | **[Implemented]** |
+| Visual Spreadsheet | Headless LibreOffice spreadsheet fallback | **#3** (Plan 6) | *Shelved for Future* |
+| Dual-Vector Retrieval | Domain-specific legal/finance vector spaces | **#31** (Plan 7) | **[Implemented]** |
+| Parser / AST | Legal AST parser & diagnostics | **#6** | *Shelved for Future* |
+| Type Checker | Variable schema enforcement | **#7** | *Shelved for Future* |
+| IDE Plugins | Bi-directional ORM (Text-to-Data Bridge) | **#12** | **[Implemented]** |
+| Language Server (LSP) | Standalone LSP server | **#17** | *Shelved for Future* |
+| Linker | Cross-file integrity compiler | **#10** | *Shelved for Future* |
+| Precedent Map | Precedent-Override Semantic Resolution | **#11** | *Shelved for Future* |
+| Unit Tests | Legal unit testing engine | **#8** | *Shelved for Future* |
+| Formal Verification | Constraint solver completeness proofs | **#9** | *Shelved for Future* |
+| Debugger | Breakpoints & waterfall logic tracing | **#15** | *Shelved for Future* |
+| Refactoring Tools | Symbol renaming & DRY detection | **#16** | *Shelved for Future* |
+| Audit Logs | Tamper-evident cryptographic chain (audit_trail.jsonl) | **#23** (Plan 22 M2) | **[Implemented]** |
+| Access Control | RBAC & privilege tagging | **#24** | *Shelved for Future* |
+| Build System | Legal build pipeline & export gate | **#18** | *Shelved for Future* |
+| CI/CD Pipeline | Deadline tracking & attestation | **#20, #21** | **[Implemented]** |
+| Code Review | Multi-user approval workflows | **#25** | *Shelved for Future* |
+| Dependency Scanning | Conflict of interest scanner | **#26** | *Shelved for Future* |
+| Process Runner | Multi-agent process runner & seams | **#5** (Plan 22 M1) | **[Implemented]** |
+| Package Manager | Legal dependency registry | **#14** | *Shelved for Future* |
+| Analytics | Case Analytics dashboard | **#22** | *Shelved for Future* |
+| Runtime / Deployment | Contract API endpoints | **#19** | *Shelved for Future* |
+| **Capability Seams** | Pluggable Service/Provider/Consumer layers | **Plan 22 M1** | **[Implemented]** |
+| **Lifecycle Teardown** | Cordis-style LIFO disposal fibers & matter scope | **Plan 22 M3** | **[Implemented]** |
+| **Policy Guard** | 5 Hard Floors, arg-executor blacklist, compound split | **Plan 22 M4 / #41** | **[Implemented]** |
+| **HITL Attention Queue** | Non-blocking Case Action Inbox (`case_inbox.json`) | **Plan 9 / #33** | **[Implemented]** |
+| **Context Compactor** | Mathematical 2,048-token window compaction | **Plan 10 / #34** | **[Implemented]** |
+| **Overflow Guard** | Provider 400 error string detection & fallback | **Plan 15 / #39** | **[Implemented]** |
+
+---
+
+## Phase 8: DeepSeek-Harness Modernization & Sovereign Chamber Hardening (Plan 22 - Implemented)
+
+These items modernize the core architecture by decoupling domain capabilities from execution backends, establishing forensic fiduciary evidentiary ledgers, implementing leak-proof resource disposal, and enforcing inviolable security hard floors.
+
+---
+
+### [Implemented] Plan 22 - Modification 1: Pluggable Capability Seams
+* **Goal:** Eliminate hard-coded provider couplings and conditional branching across statutory compliance, legal auditing, and LLM inference.
+* **Architecture:**
+  * **Seam Service Layer:** `ComplianceService` (`backend/lib/seams/compliance/compliance-service.js`) and `LLMService` (`backend/lib/seams/llm/llm-service.js`) define clean capability contracts without binding to execution environments.
+  * **Concrete Providers:**
+    * `LocalSubagentProvider`: Routes compliance tasks to in-chamber deterministic subagents (`@statutory_auditor`, `@document`).
+    * `LexAICloudProvider`: Dispatches forensic tasks to the LexAI Cloud Desk with offline fallback staging and TiddlyWiki ingestion.
+    * `AirGappedStagedProvider`: Zero-network outbox envelope staging for isolated court chambers.
+    * `LlamaServerProvider` & `DeterministicProvider`: Pluggable local LLM inference engines.
+  * **Seam HTTP Routes:** Exposes `/api/hayagriva/compliance/providers`, `/api/hayagriva/compliance/evaluate`, and `/api/hayagriva/compliance/switch-provider`.
+
+---
+
+### [Implemented] Plan 22 - Modification 2: Immutable Fiduciary Audit Trail (`audit_trail.jsonl`)
+* **Goal:** Provide forensic-grade evidentiary proof of all agent actions, document mutations, and human approvals for court proceedings under Section 65B of the Indian Evidence Act, 1872 and Section 63 of the Bharatiya Sakshya Adhiniyam, 2023.
+* **Architecture:**
+  * **Append-Only Hash Chaining:** Every entry records monotonic `seq`, ISO timestamp, actor, input digests, output artifact fingerprints, and SHA-256 chaining (`curr_hash = SHA256(prev_hash + seq + timestamp + actor + action + data)`).
+  * **Serialized Write Queue:** In-memory queue (`_writeQueues`) per case directory serializes concurrent writes, eliminating race conditions.
+  * **Section 65B / 63 Certificate Generator:** Formats the audit ledger into an official, signed evidentiary certificate for NCLT/High Court filing.
+  * **Audit HTTP Routes:** Exposes `GET /api/hayagriva/case/audit-trail`, `GET /api/hayagriva/case/audit-trail/verify`, and `GET /api/hayagriva/case/audit-trail/export`.
+
+---
+
+### [Implemented] Plan 22 - Modification 3: Cordis-Style Lifecycle Teardown Protocol
+* **Goal:** Guarantee 100% clean resource cleanup when switching cases or exiting the application, preventing orphaned file watchers, memory leaks, and SQLite `SQLITE_BUSY` database lock crashes.
+* **Architecture:**
+  * **MatterScope (`backend/lib/core/lifecycle-manager.js`):** Tracks all reversible side-effects (Chokidar file watchers, intervals, timers, event listeners, child processes, SQLite database handles).
+  * **LIFO Teardown Protocol:** Disposes resources in strict reverse order of registration upon matter switch or app shutdown.
+  * **Matter Switching API:** `switchMatter(fromCaseDir, toCaseDir)` awaits full teardown of the previous matter before initializing the new matter.
+  * **Process Exit Hooks:** Binds `SIGINT` and `SIGTERM` signals in `cli.js` to trigger graceful asynchronous teardown across all active matter scopes.
+
+---
+
+### [Implemented] Plan 22 - Modification 4: Declarative Risk-Tiered Policy Guard & Hard Floors
+* **Goal:** Guarantee that autonomous agent actions can never violate chamber safety, tamper with verified human facts, leak privileged case data, or execute arbitrary shell exploits.
+* **Architecture:**
+  * **5 Inviolable Hard Floors (`backend/lib/security/policy_guard.js`):**
+    1. `MUTATE_VERIFIED_KEY`: Blocks overwriting any `case_kv_dictionary.json` fact where `verified_by_user = 1`.
+    2. `OVERWRITE_DRAFT`: Blocks overwriting existing legal pleadings in `drafts/` without explicit snapshotting.
+    3. `EXTERNAL_NETWORK`: Enforces air-gap boundary; blocks egress to non-localhost addresses without authorization.
+    4. `TERMINATE_ENGINE`: Protects active local LLM inference engines from accidental shutdown.
+    5. `BLACKLISTED_ARG_EXECUTOR`: Splits compound commands (`&&`, `||`, `;`, `|`) and blacklists arg-executors (`xargs`, `npx`, `sudo`, `docker`, `ssh`) from auto-execution.
+  * **Non-Blocking HITL Interception:** Violations automatically route to the Case Action Inbox (`reviews/case_inbox.json`) and seal tamper-evident `HARD_FLOOR_INTERCEPTED` events in `audit_trail.jsonl`.
+  * **Policy HTTP Route:** Exposes `POST /api/hayagriva/policy/evaluate`.
+
+---
+
+## Phase 9: Sovereign Autonomous Chamber Roadmap (Shelved for Future)
+
+These items represent advanced architectural capabilities designed and cataloged for subsequent implementation passes to elevate Hayagriva into a fully autonomous, self-auditing in-chamber legal factory.
+
+---
+
+### [Implemented] 29. Clickable Citation & Preview Pipeline (Plan 3)
+* **Goal:** Allow advocates to inspect underlying case exhibits, bank statements, or statutory provisions without leaving the drafting editor.
+* **Architecture:** LLM emits bracketed references `[source:doc_123]`. The frontend parser converts them to inline links `[1](#ref-source-doc_123)` and binds an interposed click handler opening a Monaco popup drawer with the exact pageindex snippet.
+
+---
+
+### 27. Map-Reduce Multi-Query RAG Orchestrator (Plan 5)
+* **Goal:** Answer complex cross-statute and forensic inquiries spanning multiple filings and transaction years.
+* **Architecture:** Decomposes user query into 3–5 sub-queries via strategy prompt; executes concurrent FTS5/vector searches in parallel; synthesizes a unified reduction with cross-file citation attribution.
+
+---
+
+### 3. Headless LibreOffice + Gemini Excel Parser Fallback (Plan 6)
+* **Goal:** Ingest complex, messy Excel spreadsheets with merged headers and embedded charts with 100% cell fidelity.
+* **Architecture:** Auto-detects `soffice` CLI; converts spreadsheet to headless PDF; passes pages through the visual parser to transcribe columns and tables into clean markdown grids.
+
+---
+
+### [Implemented] 35. Zero-Idle Self-Wake State Machine (Plan 11 & Plan 20)
+* **Goal:** Maintain 0% CPU and 0 MB RAM idle footprint while actively tracking statutory CIRP deadlines ($T_0 \to T_{330}$).
+* **Architecture:** `node-cron` scheduler inside `cli.js` daemon registers statutory milestone countdowns on case open. Wakes event-driven handlers when wall-clock crosses a deadline, dropping structured action cards into the Case Action Inbox without active CPU polling loops.
+
+---
+
+### [Implemented] 36. Wiki as Compounding Knowledge Artifact & Answer Filing (Plan 12 & Plan 19)
+* **Goal:** Prevent repeated LLM re-computation by compounding high-quality answers into a permanent chamber knowledge wiki.
+* **Architecture:** Adds a "Save to Case Wiki" button and auto-suggest chip (`/api/hayagriva/wiki/should-suggest-filing`) to agent responses; compiles answers into `wiki/insights/<slug>.md` with frontmatter; maintains a machine-written `wiki/INDEX.md` catalog; indexes into SQLite FTS5 with 2.0x priority boost in RAG retrieval loop.
+
+---
+
+### [Implemented] 37. Case Wiki Lint Operation (Plan 13)
+* **Goal:** Continuous background audit detecting discrepancies across case registers before filing with NCLT.
+* **Architecture:** Dedicated agent pass over `wiki/*.md`, `claims_registry.md`, `avoidance_ledger.md`, and `case_kv_dictionary.json` flagging: (a) cross-register claim vs avoidance contradictions, (b) blank facts derivable from ingested files, (c) statutory CIRP milestone compliance lag, (d) broken wikilinks, and (e) orphan document chunks. Diagnostic action cards are posted directly into the Case Action Inbox (`case_inbox.json`) with one-click remediation.
+
+---
+
+### [Implemented] 38. Mechanical Working-State Extraction & Overflow Guard (Plan 14 & Plan 15)
+* **Goal:** Eliminate LLM summarization hallucinations during conversational history compaction and provide automated recovery from provider context overflow errors.
+* **Architecture:**
+  * **Mechanical Working State (`backend/lib/core/case-session.js`):** Lightweight, non-LLM `reviews/case_session.json` tracking documents indexed, verified KV facts, chamber wiki pages, active legal drafts, and focus mode. Injects a deterministic factual block verbatim into mathematical context compaction dividers.
+  * **Boundary Safety & Directive Cap:** Implements safe cut checking in `pickBoundary()` (never splitting tool calls from tool results) and caps preserved historical user directives to 40 (`USER_MESSAGES_MAX = 40`).
+  * **Context Overflow Marker Detection (`isContextOverflow`):** Intercepts provider HTTP 400 Bad Request error strings (`context_length_exceeded`, `prompt is too long`, `too many tokens`, `maximum context length`) and pre-flight overflows.
+  * **Self-Healing Emergency Compaction (`emergencyCompact`):** Automatically triggers aggressive 60%+ compression and retries outbound streams seamlessly without exposing raw engine crashes to the user.
+  * **Session HTTP Routes:** `GET /api/hayagriva/case/session`, `POST /api/hayagriva/case/session/focus`, and `POST /api/hayagriva/case/session/sync`.
+
+---
+
+### [Implemented] 40. Inbox Visibility Modes & Durable Resume (Plan 16)
+* **Goal:** Enable multi-turn subagent runs to suspend, park approval requests cross-session, and durably resume upon human decision.
+* **Architecture:** Implements `VIS_INLINE` (attended chat prompt) vs `VIS_INBOX` (background unattended queue); coordinator resumes subagent execution from exact suspension point on approval; idempotent resolution keyed by `(session_id, tool_call_id)`.
+
+---
+
+### [Implemented] 42. Conversational Post-Ingest Brief & Interactive Emphasis Mode (Plan 18)
+* **Goal:** Transform black-box file ingestion into an interactive intake conversation with automated defect checks and dynamic retrieval prioritization.
+* **Architecture:**
+  * **Ingestion Intelligence (`backend/lib/core/post-ingest-briefer.js`):** Classifies documents across statutory archetypes (Resolution Plan, CIRP Admission Order, Forensic Audit, Claim Form, CoC Minutes), extracts key parties and quantum, flags scanned low-density pages (<35 chars/page), and synthesizes an executive 3–5 bullet briefing.
+  * **Case Action Inbox Integration:** Automatically posts an `INGEST_BRIEF` action card into `reviews/case_inbox.json` upon file upload with interactive emphasis selector buttons.
+  * **Dynamic CMS RAG Boosting (`backend/lib/core/rag.js`):** Applies a **2.0x relevance multiplier** to chunks matching the active intake priority (`waterfall`, `s29a`, `avoidance`, `general`) during reciprocal rank fusion.
+  * **Monaco Slash Commands & Theia Bindings:** Registered `/brief` and `/focus [mode]` slash commands and corresponding command palette actions.
+  * **HTTP Routes:** `GET /api/hayagriva/ingest/brief`, `GET /api/hayagriva/ingest/emphasis`, and `POST /api/hayagriva/ingest/set-emphasis`.
+
+---
+
+### [Implemented] 45. Typed Entity Graph & Contradiction Edges / GraphRAG (Plan 21 & Roadmap #1)
+* **Goal:** Transform flat document chunks into a diagnostic relational network highlighting factual conflicts.
+* **Architecture:**
+  * **Relational Schema:** SQLite `case_entities` and `case_entity_edges` tables in `case_vault.db` with cascading indexes and canonical slug normalizers.
+  * **Diagnostic Inquest Engine (`entity-graph.js`):** Detects cross-filing collisions across 4 statutory vectors (Quantum Discrepancy between Proof of Claim vs Admitted Registry, Avoidance Collisions where a creditor faces § 43/45/50/66 prosecution, and Section 29A Ineligibility risks).
+  * **GraphRAG Prompt Guard (`rag.js`):** Intercepts queries, detects entity mentions, and injects immutable `[DIAGNOSTIC FACTUAL CONFLICT WARNING]` blocks into prompts and lite responses.
+  * **D3.js Diagnostic Case Graph (`templates.ts` & `preview-manager.ts`):** 2D/3D force-directed case graph with pulsating `#ef4444` red contradiction links, orange related-party edges, interactive hover conflict deltas, and node clusters.
+  * **Concepts Sidebar Conflict Radar:** Live warning banner in the Concepts Explorer alerting practitioners to active contradictions with 1-click graph inspection.
+  * **Monaco Slash Commands & Theia Palette:** `/contradictions` (inserts markdown audit table) and `/graph` (opens D3 case graph panel), plus `hayagriva.openCaseGraph` and `hayagriva.auditContradictions` commands.
+  * **RESTful HTTP Routes:** `GET /api/hayagriva/case-graph`, `GET /api/hayagriva/entities`, `GET /api/hayagriva/contradictions`, and `POST /api/hayagriva/entity-graph/sync`.
+  * **Unit & Integration Suite:** Verified via `backend/tests/test_entity_graph.js` (100% pass).
+
+---
+
+### 32. Out-of-the-Box (OOB) iPIE Platform Integration Bridge
+* **Goal:** Offline client-side IDE bridge for the Ministry of Corporate Affairs (MCA) Central iPIE Portal.
+* **Architecture:** Compiles case database slices into signed, encrypted `.ipie.pack` bundles; manages offline Digital Signature Certificates (DSC) in VMS; synchronizes dynamic MCA form schemas; automates temporary-to-permanent case ID migration upon NCLT admission.
+
+---
+
+### 46. Self-Evolving Agent Skills via WikiSkill Closed Loop (Plan 23)
+* **Goal:** Compile real-world practitioner corrections and execution traces into permanent chamber patterns, allowing legal agent skills and prompt skeletons to self-improve over time.
+* **Inspiration:** WikiSkill (Google Research, arXiv:2608.27454) & `github_codes/ide Enhancements/github.com_ashutoshsinghpr7_wikiskill.git`.
+* **Architecture:**
+  - **Trace Harvest (`reviews/traces/*.jsonl`):** Records agent tool invocations, user prompt directives, and human Monaco diff adjustments during legal drafting sessions.
+  - **Wiki Pattern Maintainer:** Distills failed or corrected attempts into permanent diagnostic pattern pages (`wiki/patterns/<skill_pattern>.md`) capturing root cause, statutory reasoning, and remediation.
+  - **Skill Proposer:** Reads pattern distillations and proposes atomic patches to `.agents/skills/*` and `backend/lib/pipeline/forms/skeletons/`.
+  - **Held-Out Regression Gate:** Validates proposed patches against historical test fixtures (`backend/tests/fixtures/`). Only commits patches that preserve or increase verification pass rates, ensuring zero regression. The wiki retains all insights permanently without rollback.
+
+---
+
+### 47. SignalX & Section 29A Multi-Registry Due Diligence Inquest (Plan 24)
+* **Goal:** Automate statutory Section 29A ineligibility checks across corporate registries, forensic dossiers, and connected person networks.
+* **Inspiration:** SignalX Section 29A forensic profiles in `Desktop/SIgnalX/`.
+* **Architecture:**
+  - **Dossier Ingest:** Ingests forensic audit profiles, MCA-21 director filings, and CIBIL/CRILC defaulter lists.
+  - **10-Gate Section 29A Evaluator:** Evaluates Resolution Applicants and connected persons against Section 29A clauses (a)–(j): undischarged insolvents, wilful defaulters, NPA accounts exceeding 1 year with overdue interest, criminal convictions, disqualified directors, and prohibited securities trading.
+  - **Graph Integration:** Pipes identified ineligibilities into the **Plan 21 Typed Entity Graph** as `disqualified_under_s29a` and `connected_party` edges, surfacing red conflict halos in the D3.js Case Graph.
+  - **Automated Pleading Output:** Emits a court-ready Section 29A Due Diligence Certificate and compliance affidavit for the Resolution Professional.
+
+---
+
+### 48. Multi-Bank Statement Forensic Parser & Ledger Normalizer (Plan 25)
+* **Goal:** Ingest raw multi-bank statements across divergent commercial banks (SBI, HDFC, ICICI, Axis, PNB) and normalize them into structured forensic transaction ledgers for avoidance inquests.
+* **Inspiration:** `github_codes/Financial Analysis/` (`BANK-STATEMENT-ANALYSIS`, `bankstatementparser`, `Teller`, `kharchalens`) and `HAYA_MATTERS/MATTER_STATE_BANK_CLAIMS`.
+* **Architecture:**
+  - **Offline Multi-Bank Layout Normalizer (`backend/lib/pipeline/xls/` & `pdf/`):** Identifies bank format signatures (date formats, debit/credit columns, value dates) completely locally.
+  - **Transaction Categorization & Pattern Detector:** Flags internal contra-sweeps (inter-bank churning), high-velocity round-tripping, and suspicious cash withdrawals within statutory look-back periods (1 year for regular, 2 years for related parties).
+  - **Ledger Sync:** Compiles normalized transactions into `ledgers/bank_forensic_ledger.json`, directly feeding the Section 43 (Preferential), 45 (Undervalued), 50 (Extortionate), and 66 (Fraudulent) avoidance inquest drafters.
+
+---
+
+### 49. Commercial Courts & Interlocutory Relief Drafter (Order 38 Rule 5 / Order 39 CPC) (Plan 26)
+* **Goal:** Extend Hayagriva's drafting repertoire beyond pure IBC insolvency into mainstream Commercial Court litigation and interlocutory injunctions.
+* **Inspiration:** `Desktop/Commercial Court Rules and Forms.pdf` and `Desktop/attachment_before_judgment_application.pdf`.
+* **Architecture:**
+  - **Commercial Court Skeleton Registry (`backend/lib/pipeline/forms/skeletons/commercial_courts/`):** Houses structured templates conforming to Commercial Courts Act, 2015 and High Court Original Side Rules.
+  - **Pleading Generators:**
+    - **Order 38 Rule 5 CPC Application:** Urgent petition for Attachment Before Judgment to secure disputed assets from being dissipated or transferred.
+    - **Order 39 Rules 1 & 2 CPC Application:** Ad-interim ex-parte temporary injunction restraining third-party rights.
+    - **Section 12A Pre-Institution Mediation Notice:** Statutory mediation memo and non-starter certification tracker.
+  - **FormsAgent Statutory Checklist:** Validates Statement of Truth, Urgency Affidavits, and Court Fee schedules.
+
+---
+
+### 50. FrameCode Scoped Drafting Memory & Matter Session Sandboxing (Plan 27)
+* **Goal:** Enforce strict declarative workspace and memory boundaries across concurrent client matters, eliminating cross-matter hallucination and DB collisions.
+* **Inspiration:** `github_codes/ide Enhancements/github.com_Sistema2D_FrameCode-VibeWork.git`.
+* **Architecture:**
+  - **Declarative Matter Scope:** Strictly isolates LLM working context, active document vector caches, and KV dictionaries to the active case folder (`HAYA_MATTERS/<matter_name>`).
+  - **Clean Context Swapping:** Integrates with the LIFO Lifecycle Manager (`lifecycle-manager.js`) to flush prompt cache, clear in-memory embeddings, and close SQLite locks before mounting a new matter.
+  - **Regression-Protected Memory Guard:** Prevents entity names, creditor sums, or case facts from one client matter from bleeding into drafts of another matter.
 
 ---
 
@@ -900,20 +1105,20 @@ Implementing the full roadmap expands HAYAGRIVA from its original 6 management s
 
 ### System Ownership Summary Table
 
-| System | Abbrev. | Status | Roadmap Items Owned | Core Responsibility |
+| System | Abbrev. | Status | Roadmap & Plan Items Owned | Core Responsibility |
 |---|---|---|---|---|
-| Workspace Management | WMS | Existing | #4 | Case isolation, API server, config |
-| Ingestion Management | IMS | Existing | #2, #3, #30 | Document parsing, OCR, format conversion |
-| Context Management | CMS | Existing | #1, #12, #27, #28, #31 | Indexing, search, retrieval, variable binding, dual-vector routing |
-| Vault Management | VMS | Existing | #11, #29 | Encrypted law databases, Monaco providers, precedent resolution |
-| Drafting Management | DMS | Existing | — | Templates, placeholders, version archiving |
-| Agent Management | AMS | Existing | #5 | Subagents, delegation, process isolation |
+| Workspace Management | WMS | Existing | **#4 [Implemented]**, **Plan 22 M3 (Lifecycle Teardown) [Implemented]** | Case isolation, API server, config, LIFO resource teardown |
+| Ingestion Management | IMS | Existing | **#2 [Implemented]**, **#30 [Implemented]**, #3 (Plan 6) | Document parsing, OCR, format conversion, task queue |
+| Context Management | CMS | Existing | **#12 [Implemented]**, **#28 [Implemented]**, **#31 [Implemented]**, **Plan 10 (Compactor) [Implemented]**, **Plan 15 (Overflow Guard) [Implemented]**, #1 (Plan 21), #27 (Plan 5) | Indexing, dual-vector routing, bi-directional ORM, context compaction |
+| Vault Management | VMS | Existing | #11, #29 (Plan 3) | Encrypted law databases, Monaco providers, precedent resolution |
+| Drafting Management | DMS | Existing | Standard Skeletons & Practice Suites | Templates, placeholders, statutory practice suites, Pandoc SC export |
+| Agent Management | AMS | Existing | **Plan 22 M1 (Capability Seams) [Implemented]**, **Plan 22 M4 / #41 (Policy Guard) [Implemented]**, **Plan 9 / #33 (Case Action Inbox) [Implemented]**, #5 | Subagents, delegation, capability seams, hard floors, attention queue |
 | **Compiler Management** | **CompMS** | **New** | **#6, #7, #10, #16, #17** | **AST, types, linker, refactoring, LSP** |
 | **Verification Management** | **VerMS** | **New** | **#8, #9, #15** | **Unit tests, formal proofs, debugger** |
-| **Build & Deployment** | **BDMS** | **New** | **#18, #19, #21** | **build pipeline, signing, API deployment** |
+| **Build & Deployment** | **BDMS** | **New** | **#21 [Implemented]**, **#18, #19** | **Signing & attestation [Implemented], build pipeline, API deployment** |
 | **Registry Management** | **RegMS** | **New** | **#14** | **Package registry, dependency management** |
-| **Lifecycle Management** | **LMS** | **New** | **#13, #20, #22** | **Semantic git, deadlines, analytics** |
-| **Governance & Collaboration** | **GovMS** | **New** | **#23, #24, #25, #26** | **Audit trail, RBAC, reviews, conflict scanning** |
+| **Lifecycle Management** | **LMS** | **New** | **#20 [Implemented]**, **#13, #22** | **Statutory deadlines & timeline [Implemented], semantic git, analytics** |
+| **Governance & Collaboration** | **GovMS** | **New** | **#23 [Implemented] (Plan 22 M2 Audit Trail)**, **#24, #25, #26** | **Tamper-evident audit trail [Implemented], RBAC, reviews, conflict scanning** |
 
 ---
 

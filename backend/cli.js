@@ -101,7 +101,12 @@ async function bootstrapCase(caseDir) {
             settings['files.exclude']['**/case_billing.db'] = true;
             settings['files.exclude']['**/*billing*.db'] = true;
             settings['files.exclude']['**/*billing*.sql'] = true;
-            settings['files.exclude']['**/billing.sql'] = true;
+            settings['files.exclude']['**/compliance_queue.json'] = true;
+            settings['files.exclude']['**/case_inbox.json'] = true;
+            settings['files.exclude']['**/case_session.json'] = true;
+            settings['files.exclude']['**/case_billing_ledger.json'] = true;
+            settings['files.exclude']['**/case_manifest.json'] = true;
+            settings['files.exclude']['**/case_kv_dictionary.json'] = true;
             settings['files.exclude']['**/*.sql'] = true;
             settings['files.exclude']['**/*.db'] = true;
             settings['files.exclude']['**/*.sqlite'] = true;
@@ -270,7 +275,13 @@ async function main() {
             command = 'query';
             commandArg = argv[++i];
         } else if (!argv[i].startsWith('-')) {
-            caseArg = argv[i];
+            const arg = argv[i];
+            if (arg.includes('?') || arg.includes('\n') || arg.length > 80 || /^what\s|^who\s|^where\s|^when\s|^why\s|^how\s/i.test(arg)) {
+                command = 'query';
+                commandArg = arg;
+            } else {
+                caseArg = arg;
+            }
         }
     }
 
@@ -293,9 +304,16 @@ async function main() {
     }
 
     // Single case mode
-    let caseDir = fs.realpathSync(caseArg || process.cwd());
-    if (isProjectRepoRoot(caseDir)) {
-        console.warn(`[hayagriva] ⚠️ Refusing to treat IDE repository root as a case directory: ${caseDir}`);
+    let caseDir;
+    try {
+        caseDir = caseArg ? fs.realpathSync(caseArg) : process.cwd();
+    } catch (_) {
+        caseDir = null;
+    }
+    if (!caseDir || isProjectRepoRoot(caseDir) || !fs.existsSync(caseDir) || !fs.statSync(caseDir).isDirectory()) {
+        if (caseDir && isProjectRepoRoot(caseDir)) {
+            console.warn(`[hayagriva] ⚠️ Refusing to treat IDE repository root as a case directory: ${caseDir}`);
+        }
         const defaultCase = path.join(getDocumentsDir(), 'Demo_Case');
         if (!fs.existsSync(defaultCase)) fs.mkdirSync(defaultCase, { recursive: true });
         caseDir = defaultCase;
@@ -430,8 +448,12 @@ async function runWatchAll(docsRoot) {
 
     console.log(`[hayagriva] watching ${watchers.size} directories for changes...`);
 
-    process.on('SIGINT', () => {
+    process.on('SIGINT', async () => {
         console.log('\n[hayagriva] shutting down');
+        try {
+            const lifecycleManager = require('./lib/core/lifecycle-manager');
+            await lifecycleManager.teardownAll();
+        } catch (_) {}
         watchers.forEach(w => w.close());
         apiServer.close();
         process.exit(0);

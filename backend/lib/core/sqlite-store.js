@@ -2,7 +2,7 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
-const { getConceptsDir } = require('../pipeline/common/helper');
+const { getConceptsDir, isValidCaseDir } = require('../pipeline/common/helper');
 
 const connections = new Map();
 const repoRoot = path.resolve(__dirname, '../..');
@@ -26,10 +26,10 @@ function getDb(caseDir) {
     }
 
     let dbPath;
-    if (isProjectRepoRoot(caseDir)) {
+    const dbDir = getConceptsDir(caseDir);
+    if (!caseDir || isProjectRepoRoot(caseDir) || !dbDir || !isValidCaseDir(caseDir)) {
         dbPath = ':memory:';
     } else {
-        const dbDir = getConceptsDir(caseDir);
         dbPath = path.join(dbDir, 'case_vault.db');
     }
     
@@ -163,6 +163,37 @@ function getDb(caseDir) {
             forensic_notes TEXT,
             last_updated TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS case_entities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_key TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            entity_type TEXT NOT NULL,
+            aliases_json TEXT,
+            primary_doc TEXT,
+            properties_json TEXT,
+            created_at TEXT NOT NULL,
+            last_updated TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_entities_type ON case_entities(entity_type);
+        CREATE INDEX IF NOT EXISTS idx_entities_key ON case_entities(entity_key);
+
+        CREATE TABLE IF NOT EXISTS case_entity_edges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_key TEXT NOT NULL,
+            target_key TEXT NOT NULL,
+            edge_type TEXT NOT NULL,
+            severity TEXT DEFAULT 'info',
+            source_doc TEXT,
+            target_doc TEXT,
+            details_json TEXT,
+            created_at TEXT NOT NULL,
+            last_updated TEXT NOT NULL,
+            UNIQUE(source_key, target_key, edge_type) ON CONFLICT REPLACE
+        );
+        CREATE INDEX IF NOT EXISTS idx_edges_source ON case_entity_edges(source_key);
+        CREATE INDEX IF NOT EXISTS idx_edges_target ON case_entity_edges(target_key);
+        CREATE INDEX IF NOT EXISTS idx_edges_type ON case_entity_edges(edge_type);
     `);
 
     // Self-healing migration: Add 'hash' column to documents if it does not exist

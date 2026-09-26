@@ -91,6 +91,9 @@ export class HayagrivaFrontendContribution
 
   // ── OpenHandler ────────────────────────────────────────────────────────────
   canHandle(uri: URI): number {
+    if (uri.scheme === 'hayagriva-citation') {
+      return 600;
+    }
     const p = uri.path.toString().toLowerCase();
     if (p.endsWith('.pdf') || p.endsWith('.docx') || p.endsWith('.doc') || p.endsWith('.xlsx') || p.endsWith('.xls') || p.endsWith('.wiki.html')) {
       return 500;
@@ -99,6 +102,13 @@ export class HayagrivaFrontendContribution
   }
 
   async open(uri: URI, _options?: OpenerOptions): Promise<Widget> {
+    if (uri.scheme === 'hayagriva-citation') {
+      const docName = decodeURIComponent(uri.authority || uri.path.toString().replace(/^\/+/, ''));
+      const query = new URLSearchParams(uri.query);
+      const pageNum = parseInt(query.get('page') || '1', 10);
+      return this.previewManager.openCitationPreview(docName, pageNum);
+    }
+
     const filePath = decodeURIComponent(uri.path.toString());
     const caseName = this.getCaseName(filePath);
 
@@ -146,6 +156,10 @@ export class HayagrivaFrontendContribution
       return previewWidget;
     }
 
+    if (filePath.toLowerCase().endsWith('.wiki.html')) {
+      return this.openWikiHtmlViewer(filePath, caseName);
+    }
+
     const base = getBasename(filePath);
     const docName = base.replace(/\.wiki\.html$/i, '');
     await this.openWiki(docName, caseName);
@@ -188,6 +202,18 @@ export class HayagrivaFrontendContribution
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
     this.startBackendMonitor();
     this.initializeRbzAdvisor();
+
+    // Global click interceptor for hayagriva-citation:// links (e.g. inside AI Chat bubbles or rendered markdown)
+    try {
+      document.addEventListener('click', (e: MouseEvent) => {
+        const target = (e.target as HTMLElement).closest('a');
+        if (target && target.href && target.href.startsWith('hayagriva-citation://')) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.open(new URI(target.href));
+        }
+      }, true);
+    } catch (_) {}
 
     // Dynamically sync theme changes
     this.themeService.onDidColorThemeChange(() => {
@@ -259,9 +285,9 @@ export class HayagrivaFrontendContribution
     });
     registry.registerItem({
       id: 'hayagriva-md-live-preview-toolbar-item',
-      command: 'hayagriva:openCompanionWithLivePreview',
-      tooltip: 'Open Live Markdown Preview to the Side',
-      icon: 'fa fa-columns',
+      command: 'hayagriva:viewAsHtml',
+      tooltip: '📖 View as HTML (Live Formatted Preview)',
+      icon: 'fa fa-book',
       priority: 0
     });
   }
@@ -309,6 +335,11 @@ export class HayagrivaFrontendContribution
     return this.previewManager.openCockpitPanel(targetCase, 'settings');
   }
 
+  async openComplianceQueue(caseName?: string, tier: string = 'ALL'): Promise<Widget> {
+    const targetCase = caseName || this.getActiveCaseName();
+    return this.previewManager.openComplianceQueue(targetCase, tier);
+  }
+
   async openChronologyPanel(caseName?: string): Promise<Widget> {
     const targetCase = caseName || this.getActiveCaseName();
     return this.previewManager.openChronologyPanel(targetCase);
@@ -335,6 +366,11 @@ export class HayagrivaFrontendContribution
   async openMonacoVaultsHelpPanel(caseName?: string): Promise<Widget> {
     const targetCase = caseName || this.getActiveCaseName();
     return this.previewManager.openMonacoVaultsHelpPanel(targetCase);
+  }
+
+  async openCaseGraphPanel(caseName?: string): Promise<Widget> {
+    const targetCase = caseName || this.getActiveCaseName();
+    return this.previewManager.openCaseGraphPanel(targetCase);
   }
 
   toggleTheme(): void {
@@ -546,7 +582,13 @@ export class HayagrivaFrontendContribution
             if (workspaceRoot) {
               const uri = new URI(workspaceRoot.toString()).resolve(pathParam);
               if (uri.toString() !== workspaceRoot.toString()) {
-                await this.editorManager.open(uri);
+                const filePathStr = decodeURIComponent(uri.path.toString());
+                if (filePathStr.toLowerCase().endsWith('.wiki.html')) {
+                  const caseName = this.getCaseName(filePathStr);
+                  await this.openWikiHtmlViewer(filePathStr, caseName);
+                } else {
+                  await this.editorManager.open(uri);
+                }
               }
             }
           }
@@ -1005,23 +1047,29 @@ export class HayagrivaFrontendContribution
         currentToastEl = null;
       }
 
+      const isLocal = (suggestion.executionTier || 'LOCAL').toUpperCase() === 'LOCAL';
+      const tierBadgeHtml = isLocal
+        ? `<span style="display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">🏠 In-Chamber Agent</span>`
+        : `<span style="display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3);">🌐 LexAI Desk</span>`;
+
       const toast = document.createElement('div');
       toast.id = 'rbz-advisor-toast';
       toast.style.cssText = `
         position: fixed;
         bottom: 34px;
         right: 24px;
-        width: 330px;
+        width: 340px;
         background: rgba(13, 17, 23, 0.95);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(56, 189, 248, 0.4);
         border-radius: 12px;
-        padding: 16px;
+        padding: 16px 16px 18px 16px;
         box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 12px rgba(56, 189, 248, 0.2);
         z-index: 10000;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         color: #e2e8f0;
         animation: slideUpFade 0.3s ease-out;
+        overflow: hidden;
       `;
 
       toast.innerHTML = `
@@ -1044,24 +1092,68 @@ export class HayagrivaFrontendContribution
           ${suggestion.description}
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
-          <div style="font-size: 11px; font-weight: 700; color: #10b981;">
-            ₹${suggestion.totalInr} <span style="font-size: 9px; color: #64748b; font-weight: normal;">(incl. GST)</span>
+          <div>
+            ${tierBadgeHtml}
           </div>
           <div style="display: flex; gap: 6px;">
-            <button id="btnStageRbzToast" style="background: #0284c7; hover: background: #0369a1; color: #ffffff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">
+            <button id="btnStageRbzToast" style="background: #0284c7; color: #ffffff; border: none; border-radius: 6px; padding: 5px 12px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.15s ease;">
               ⚡ Review &amp; Stage
             </button>
           </div>
         </div>
+        <div id="rbzToastProgressBar" style="position: absolute; bottom: 0; left: 0; height: 3px; background: ${isLocal ? '#38bdf8' : '#10b981'}; width: 100%; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; transition: width 5s linear;"></div>
       `;
 
       document.body.appendChild(toast);
       currentToastEl = toast;
 
+      // ── 5-Second Ambient Auto-Dismiss with Hover Pause ──
+      let autoDismissTimer: any = null;
+      const progressBar = toast.querySelector('#rbzToastProgressBar') as HTMLElement;
+
+      const triggerFadeOut = () => {
+        if (currentToastEl === toast) {
+          toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(16px)';
+          setTimeout(() => {
+            toast.remove();
+            if (currentToastEl === toast) currentToastEl = null;
+          }, 400);
+        }
+      };
+
+      const startDismissCountdown = (ms: number) => {
+        if (autoDismissTimer) clearTimeout(autoDismissTimer);
+        autoDismissTimer = setTimeout(triggerFadeOut, ms);
+      };
+
+      // Kick off 5s countdown
+      setTimeout(() => {
+        if (progressBar) progressBar.style.width = '0%';
+      }, 50);
+      startDismissCountdown(5000);
+
+      // Pause when user hovers to read
+      toast.addEventListener('mouseenter', () => {
+        if (autoDismissTimer) clearTimeout(autoDismissTimer);
+        if (progressBar) progressBar.style.transition = 'none';
+      });
+
+      // Resume on mouse leave (grace period 2.5s)
+      toast.addEventListener('mouseleave', () => {
+        if (progressBar) {
+          progressBar.style.transition = 'width 2.5s linear';
+          progressBar.style.width = '0%';
+        }
+        startDismissCountdown(2500);
+      });
+
       // Bind Dismiss
       const btnDismiss = toast.querySelector('#btnDismissRbzToast');
       if (btnDismiss) {
         btnDismiss.addEventListener('click', async () => {
+          if (autoDismissTimer) clearTimeout(autoDismissTimer);
           toast.remove();
           currentToastEl = null;
           const apiPort = this.getApiPort();
@@ -1075,10 +1167,11 @@ export class HayagrivaFrontendContribution
         });
       }
 
-      // Bind Stage & Review
+      // Bind Stage & Review -> Direct to Relevant Compliance Page
       const btnStage = toast.querySelector('#btnStageRbzToast');
       if (btnStage) {
         btnStage.addEventListener('click', async () => {
+          if (autoDismissTimer) clearTimeout(autoDismissTimer);
           btnStage.textContent = 'Staging…';
           const apiPort = this.getApiPort();
           const caseName = this.getActiveCaseName();
@@ -1092,8 +1185,9 @@ export class HayagrivaFrontendContribution
             toast.remove();
             currentToastEl = null;
             if (stageData.success) {
-              this.messageService.info(`⚡ ${suggestion.title} staged in Settings Queue! Opening review…`);
-              this.openSettingsPanel(caseName);
+              const tier = (stageData.executionTier || suggestion.executionTier || 'LOCAL').toUpperCase();
+              this.messageService.info(`⚡ Staged in ${tier === 'LOCAL' ? 'Local' : 'Global'} Compliance Queue!`);
+              this.openComplianceQueue(caseName, tier);
             }
           } catch (err: any) {
             this.messageService.error(`Failed to stage task: ${err.message}`);

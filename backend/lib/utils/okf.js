@@ -1,12 +1,13 @@
 const matter = require('gray-matter');
 
-function formatMarkdownWithFrontmatter({ title, docName, tags = [], links = [], content, pageIndex, pageEnd, sourceDocument, ancestors = [] }) {
+function formatMarkdownWithFrontmatter({ title, docName, tags = [], links = [], content, pageIndex, pageEnd, sourceDocument, ancestors = [], ...customData }) {
     const data = {
         title,
         tags,
         links,
         timestamp: new Date().toISOString(),
-        okf_version: '0.1'
+        okf_version: '0.1',
+        ...customData
     };
     if (ancestors && ancestors.length > 0) {
         data.ancestors = ancestors;

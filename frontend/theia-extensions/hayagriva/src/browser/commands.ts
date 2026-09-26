@@ -61,10 +61,27 @@ export class HayagrivaCommandContribution implements CommandContribution {
     if (uri && typeof uri === 'object' && ('path' in uri || 'scheme' in uri) && typeof uri.toString === 'function') {
       try {
         const res = new URI(uri.toString());
-        console.log('[HAYAGRIVA-CMD] resolveUri matched URI object:', res.toString());
         return res;
-      } catch (e: any) {
-        console.log('[HAYAGRIVA-CMD] resolveUri URI object parse error:', e.message);
+      } catch (e: any) {}
+    }
+
+    // Check if the input is a Widget or EditorWidget (from TabBar, TabBarToolbar, or Tab context menu)
+    if (uri && typeof uri === 'object') {
+      if (typeof uri.getResourceUri === 'function') {
+        const res = uri.getResourceUri();
+        if (res) return res;
+      }
+      if (uri.editor) {
+        if (typeof uri.editor.getResourceUri === 'function') {
+          const res = uri.editor.getResourceUri();
+          if (res) return res;
+        }
+        if (uri.editor.uri) {
+          return new URI(uri.editor.uri.toString());
+        }
+        if (uri.editor.document && uri.editor.document.uri) {
+          return new URI(uri.editor.document.uri.toString());
+        }
       }
     }
     
@@ -72,16 +89,12 @@ export class HayagrivaCommandContribution implements CommandContribution {
     if (uri && typeof uri === 'object' && uri.uri) {
       try {
         const res = new URI(uri.uri.toString());
-        console.log('[HAYAGRIVA-CMD] resolveUri matched node.uri object:', res.toString());
         return res;
-      } catch (e: any) {
-        console.log('[HAYAGRIVA-CMD] resolveUri node.uri parse error:', e.message);
-      }
+      } catch (e: any) {}
     }
     
     // Check if the input is an array (e.g. multi-selection list)
     if (Array.isArray(uri) && uri.length > 0) {
-      console.log('[HAYAGRIVA-CMD] resolveUri matched array, parsing first item');
       return this.resolveUri(uri[0]);
     }
 
@@ -92,25 +105,18 @@ export class HayagrivaCommandContribution implements CommandContribution {
         const selUri = UriSelection.getUri(activeSelection);
         if (selUri) {
           const res = new URI(selUri.toString());
-          console.log('[HAYAGRIVA-CMD] resolveUri resolved via SelectionService:', res.toString());
           return res;
         }
       }
-    } catch (e: any) {
-      console.log('[HAYAGRIVA-CMD] resolveUri SelectionService error:', e.message);
-    }
+    } catch (e: any) {}
 
     // Secondary fallback: active editor
-    if (!uri || (typeof uri === 'object' && 'x' in uri && 'y' in uri)) {
-      const activeEditor = this.editorManager.activeEditor;
-      if (activeEditor) {
-        const res = activeEditor.getResourceUri();
-        console.log('[HAYAGRIVA-CMD] resolveUri fallback to active editor:', res?.toString());
-        return res;
-      }
+    const activeEditor = this.editorManager.activeEditor;
+    if (activeEditor) {
+      const res = activeEditor.getResourceUri();
+      if (res) return res;
     }
 
-    console.log('[HAYAGRIVA-CMD] resolveUri failed to resolve');
     return undefined;
   }
 
@@ -154,6 +160,211 @@ export class HayagrivaCommandContribution implements CommandContribution {
         const docName = base.replace(/\.(wiki\.html|pdf|docx|doc|xlsx|xls|pptx|csv|md|txt)$/i, '');
         const caseName = this.contribution.getCaseName(filePath);
         await this.contribution.openWiki(docName, caseName);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCitationPreview`, label: 'Preview Citation' },
+      { execute: async (docName: string, pageNum: number = 1) => {
+        if (!docName) return;
+        await this.contribution.openCitationPreview(docName, Number(pageNum) || 1);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: 'hayagriva.openCitationPreview', label: 'Preview Citation' },
+      { execute: async (docName: string, pageNum: number = 1) => {
+        if (!docName) return;
+        await this.contribution.openCitationPreview(docName, Number(pageNum) || 1);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCitationSideBySide`, label: 'Open Citation Side-by-Side' },
+      { execute: async (docName: string, pageNum: number = 1) => {
+        if (!docName) return;
+        await this.contribution.openCitationSideBySide(docName, Number(pageNum) || 1);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: 'hayagriva.openCitationSideBySide', label: 'Open Citation Side-by-Side' },
+      { execute: async (docName: string, pageNum: number = 1) => {
+        if (!docName) return;
+        await this.contribution.openCitationSideBySide(docName, Number(pageNum) || 1);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:fileInsight`, label: 'File Answer to Case Wiki' },
+      { execute: async (options?: any) => {
+        if (!options || !options.answer) {
+          this.messageService.warn('No answer content provided to file to Case Wiki.');
+          return;
+        }
+        const casePath = this.getCasePath();
+        const caseName = this.contribution.getCaseName(casePath);
+        try {
+          const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/wiki/file-insight`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ caseName, ...options })
+          });
+          const data = await res.json();
+          if (data.success) {
+            this.messageService.info(`✓ Filed to Case Wiki: wiki/insights/${data.slug}.md`);
+          } else {
+            this.messageService.error(`Failed to file insight: ${data.error}`);
+          }
+        } catch (e: any) {
+          this.messageService.error(`Network error filing insight: ${e.message}`);
+        }
+      }}
+    );
+
+    registry.registerCommand(
+      { id: 'hayagriva.fileInsight', label: 'File Answer to Case Wiki' },
+      { execute: async (options?: any) => {
+        await registry.executeCommand(`${HAYAGRIVA_NS}:fileInsight`, options);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:reindexWikiCatalog`, label: 'Reindex Case Wiki Catalog' },
+      { execute: async () => {
+        const casePath = this.getCasePath();
+        const caseName = this.contribution.getCaseName(casePath);
+        try {
+          const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/wiki/reindex-catalog`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ caseName })
+          });
+          const data = await res.json();
+          if (data.success) {
+            this.messageService.info(`✓ Case Wiki catalog reindexed (${data.counts ? data.counts.insights : 0} insights, ${data.counts ? data.counts.sources : 0} sources).`);
+          } else {
+            this.messageService.error(`Failed to reindex catalog: ${data.error}`);
+          }
+        } catch (e: any) {
+          this.messageService.error(`Network error: ${e.message}`);
+        }
+      }}
+    );
+
+    registry.registerCommand(
+      { id: 'hayagriva.reindexWikiCatalog', label: 'Reindex Case Wiki Catalog' },
+      { execute: async () => {
+        await registry.executeCommand(`${HAYAGRIVA_NS}:reindexWikiCatalog`);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:auditCaseWiki`, label: 'Audit Case Wiki & Discrepancies (Lint Operation)' },
+      { execute: async () => {
+        const casePath = this.getCasePath();
+        const caseName = this.contribution.getCaseName(casePath);
+        try {
+          this.messageService.info('🔍 Running Case Wiki Lint Audit across all registers...');
+          const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/wiki/lint`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ caseName, autoPostToInbox: true })
+          });
+          const data = await res.json();
+          if (data.success && data.report) {
+            const count = data.report.stats ? data.report.stats.issuesFound : 0;
+            const inboxCount = data.report.inboxItemsCreated || 0;
+            if (count === 0) {
+              this.messageService.info('✓ Case Wiki Audit: 0 discrepancies detected. All registers, facts, and milestones are clean.');
+            } else {
+              this.messageService.warn(`⚠️ Case Wiki Audit: ${count} issues detected (${inboxCount} action cards posted to Case Action Inbox).`);
+            }
+          } else {
+            this.messageService.error(`Audit failed: ${data.error}`);
+          }
+        } catch (e: any) {
+          this.messageService.error(`Network error running audit: ${e.message}`);
+        }
+      }}
+    );
+
+    registry.registerCommand(
+      { id: 'hayagriva.auditCaseWiki', label: 'Audit Case Wiki & Discrepancies (Lint Operation)' },
+      { execute: async () => {
+        await registry.executeCommand(`${HAYAGRIVA_NS}:auditCaseWiki`);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:showIngestBrief`, label: 'Show Ingestion Brief & Integrity Flags' },
+      { execute: async (uri?: any) => {
+        const resourceUri = this.resolveUri(uri) || this.editorManager.currentEditor?.editor.uri;
+        if (!resourceUri) {
+          this.messageService.warn('Please open or select a file to view its ingestion brief.');
+          return;
+        }
+        const casePath = this.getCasePath();
+        const caseName = this.contribution.getCaseName(casePath);
+        const rel = this.getRelativePath(resourceUri);
+
+        try {
+          this.messageService.info(`📄 Fetching ingestion brief for ${rel}...`);
+          const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/ingest/brief?case=${encodeURIComponent(caseName)}&file=${encodeURIComponent(rel)}`);
+          const data = await res.json();
+          if (data.success && data.brief) {
+            const b = data.brief;
+            const summary = `${b.title}\n` + b.bullets.map((x: string) => `• ${x}`).join('\n');
+            if (b.integrity && b.integrity.scannedFlag) {
+              this.messageService.warn(summary);
+            } else {
+              this.messageService.info(summary);
+            }
+          } else {
+            this.messageService.error(`Could not generate brief: ${data.error || 'Unknown error'}`);
+          }
+        } catch (e: any) {
+          this.messageService.error(`Failed to load brief: ${e.message}`);
+        }
+      }}
+    );
+
+    registry.registerCommand(
+      { id: 'hayagriva.showIngestBrief', label: 'Show Ingestion Brief & Integrity Flags' },
+      { execute: async (uri?: any) => {
+        await registry.executeCommand(`${HAYAGRIVA_NS}:showIngestBrief`, uri);
+      }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:setFocusMode`, label: 'Set Case Intake & RAG Focus Mode' },
+      { execute: async (focusMode?: string) => {
+        const mode = focusMode || 'general';
+        const casePath = this.getCasePath();
+        const caseName = this.contribution.getCaseName(casePath);
+
+        try {
+          const res = await fetch(`http://127.0.0.1:3210/api/hayagriva/ingest/set-emphasis`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case: caseName, focus: mode })
+          });
+          const data = await res.json();
+          if (data.success) {
+            this.messageService.info(`🎯 Intake Focus Mode: ${mode.toUpperCase()} (2.0x retrieval boost active)`);
+          } else {
+            this.messageService.error(`Could not set focus mode: ${data.error}`);
+          }
+        } catch (e: any) {
+          this.messageService.error(`Failed to update focus mode: ${e.message}`);
+        }
+      }}
+    );
+
+    registry.registerCommand(
+      { id: 'hayagriva.setFocusMode', label: 'Set Case Intake & RAG Focus Mode' },
+      { execute: async (focusMode?: string) => {
+        await registry.executeCommand(`${HAYAGRIVA_NS}:setFocusMode`, focusMode);
       }}
     );
 
@@ -229,6 +440,14 @@ export class HayagrivaCommandContribution implements CommandContribution {
 
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openCompanionWithLivePreview`, label: '🟢 1. Review Companion (Edit & Live Preview)' },
+      {
+        execute: handleOpenCompanionLivePreview,
+        isEnabled: isCompanionApplicable
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:viewAsHtml`, label: '📖 View as HTML (Live Formatted Preview)' },
       {
         execute: handleOpenCompanionLivePreview,
         isEnabled: isCompanionApplicable
@@ -314,6 +533,21 @@ export class HayagrivaCommandContribution implements CommandContribution {
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openHilApprovals`, label: 'Human-In-The-Loop (HIL) Approvals', iconClass: 'fa fa-user-circle' },
       { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'hil'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openComplianceQueue`, label: 'Statutory Compliance Queue', iconClass: 'fa fa-tasks' },
+      { execute: async () => { await this.contribution.openComplianceQueue(undefined, 'ALL'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openComplianceQueueLocal`, label: 'Local In-Chamber Tasks (@Agents)', iconClass: 'fa fa-home' },
+      { execute: async () => { await this.contribution.openComplianceQueue(undefined, 'LOCAL'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openComplianceQueueGlobal`, label: 'Global Forensic Sweeps (LexAI Desk)', iconClass: 'fa fa-globe' },
+      { execute: async () => { await this.contribution.openComplianceQueue(undefined, 'GLOBAL'); }}
     );
 
     registry.registerCommand(
@@ -1426,6 +1660,71 @@ export class HayagrivaCommandContribution implements CommandContribution {
         execute: async () => {
           const caseName = this.getCasePath();
           await this.contribution.openMonacoVaultsHelpPanel(caseName);
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCaseGraph`, label: 'Hayagriva: Open Diagnostic Case Graph Viewer' },
+      {
+        execute: async () => {
+          const caseName = this.getCasePath();
+          await this.contribution.openCaseGraphPanel(caseName);
+        }
+      }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.openCaseGraph', label: 'Hayagriva: Open Diagnostic Case Graph Viewer' },
+      {
+        execute: async () => {
+          const caseName = this.getCasePath();
+          await this.contribution.openCaseGraphPanel(caseName);
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:auditContradictions`, label: 'Hayagriva: Audit Cross-Filing Contradictions' },
+      {
+        execute: async () => {
+          const apiPort = this.contribution.getApiPort();
+          const caseName = this.getCasePath().split(/[\\/]/).pop() || '';
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/contradictions?case=${encodeURIComponent(caseName)}`);
+            const data = await res.json();
+            if (!data.contradictions || data.contradictions.length === 0) {
+              this.messageService.info('✓ No cross-filing contradictions detected. Case registers are consistent.');
+              return;
+            }
+            
+            let markdown = `### ⚠️ Detected Cross-Filing Contradictions (${data.contradictions.length})\n\n`;
+            markdown += `| Severity | Entity | Target / CD | Finding & Sources |\n`;
+            markdown += `|:---|:---|:---|:---|\n`;
+            data.contradictions.forEach((c: any) => {
+              markdown += `| **${c.severity.toUpperCase()}** | ${c.source_name} | ${c.target_name} | ${c.narrative} (\`${c.source_doc}\` vs \`${c.target_doc}\`) |\n`;
+            });
+
+            const activeEditor = this.editorManager.activeEditor;
+            if (activeEditor) {
+              activeEditor.editor.executeEdits([{
+                range: activeEditor.editor.selection,
+                newText: markdown + '\n'
+              }]);
+              this.messageService.warn(`Inserted ${data.contradictions.length} contradiction findings into active editor.`);
+            } else {
+              this.messageService.warn(`Found ${data.contradictions.length} contradiction(s). Open the Case Graph Viewer to inspect.`);
+            }
+          } catch (err: any) {
+            this.messageService.error(`Failed to audit contradictions: ${err.message}`);
+          }
+        }
+      }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.auditContradictions', label: 'Hayagriva: Audit Cross-Filing Contradictions' },
+      {
+        execute: async () => {
+          return registry.executeCommand(`${HAYAGRIVA_NS}:auditContradictions`);
         }
       }
     );

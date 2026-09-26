@@ -47,6 +47,13 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '0'
     });
 
+    // ── 0.5 Compliance Submenu ──
+    const COMPLIANCE_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '0_compliance_submenu'];
+    registry.registerSubmenu(COMPLIANCE_SUBMENU, '📋 Statutory Compliance Queue', { sortString: '0_compliance' });
+    registry.registerMenuAction(COMPLIANCE_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openComplianceQueue`, label: '📑 View All Requisitions…', order: '1' });
+    registry.registerMenuAction(COMPLIANCE_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openComplianceQueueLocal`, label: '🏠 Local In-Chamber Tasks (@Agents)…', order: '2' });
+    registry.registerMenuAction(COMPLIANCE_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openComplianceQueueGlobal`, label: '🌐 Global Forensic Sweeps (LexAI Desk)…', order: '3' });
+
     // ── 1. Document & Preview Submenu ──
     const DOCS_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '1_docs_submenu'];
     registry.registerSubmenu(DOCS_SUBMENU, '📄 Document & Preview', { sortString: '1_docs' });
@@ -99,6 +106,11 @@ export class HayagrivaMenuContribution implements MenuContribution {
       commandId: `${HAYAGRIVA_NS}:openHilApprovals`,
       label: '🛡️ Human-In-The-Loop (HIL) Approvals...',
       order: '2'
+    });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: `${HAYAGRIVA_NS}:openComplianceQueue`,
+      label: '📋 Statutory Compliance Queue (LexAI)...',
+      order: '2.5'
     });
     registry.registerMenuAction(GOV_SUBMENU, {
       commandId: `${HAYAGRIVA_NS}:openBillingLedger`,
@@ -162,6 +174,12 @@ export class HayagrivaMenuContribution implements MenuContribution {
 
     // ── Group 1: Viewing & Preview ──
     registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:viewAsHtml`,
+      label: '📖 View as HTML (Live Formatted Preview)',
+      order: '1_html'
+    });
+
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
       commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
       label: '📄 Open Preview in Middle Panel',
       order: '1'
@@ -196,8 +214,26 @@ export class HayagrivaMenuContribution implements MenuContribution {
 
 
     // ═════════════════════════════════════════════════════════════════════════
-    // 3. EDITOR CONTEXT MENU & AUXILIARY MENUS
+    // 3. TAB BAR CONTEXT MENU (Right-click on Editor Tab)
     // ═════════════════════════════════════════════════════════════════════════
+    const SHELL_TABBAR_CONTEXT_MENU: MenuPath = ['shell-tabbar-context-menu'];
+    const SHELL_TABBAR_HAYAGRIVA: MenuPath = [...SHELL_TABBAR_CONTEXT_MENU, '1_hayagriva'];
+    registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
+      commandId: `${HAYAGRIVA_NS}:viewAsHtml`,
+      label: '📖 View as HTML (Live Formatted Preview)',
+      order: '0'
+    });
+
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // 4. EDITOR CONTEXT MENU & AUXILIARY MENUS
+    // ═════════════════════════════════════════════════════════════════════════
+    registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:viewAsHtml`,
+      label: '📖 View as HTML (Live Formatted Preview)',
+      order: '0_preview'
+    });
+
     registry.registerMenuAction(['editor_context_menu'], {
       commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
       label: '📄 Open Preview in Middle Panel',

@@ -311,6 +311,43 @@ export class HayagrivaPreviewManager {
     return this.openCockpitPanel(caseName, 'settings');
   }
 
+  async openComplianceQueue(caseName: string, tier: string = 'ALL'): Promise<Widget> {
+    const id = 'hayagriva-compliance-queue-panel';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      const iframe = widget.node.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'switch-tier', tier }, '*');
+        iframe.contentWindow.postMessage({ type: 'refresh' }, '*');
+      }
+      return widget;
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Compliance Queue';
+    widget.title.caption = 'Statutory Compliance Requisition Queue (Local & LexAI)';
+    widget.title.iconClass = 'fa fa-tasks';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    const currentTheme = this.themeService.getCurrentTheme();
+    const isLight = currentTheme && currentTheme.id && currentTheme.id.toLowerCase().includes('light');
+    const theme = isLight ? 'light' : 'dark';
+    const tierQuery = tier ? `&tier=${encodeURIComponent(tier)}` : '';
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/compliance/panel?case=${encodeURIComponent(caseName)}&theme=${theme}${tierQuery}`;
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
   async openChronologyPanel(caseName: string): Promise<Widget> {
     const id = 'hayagriva-chronology-panel';
     let widget = this.shell.getWidgets('main').find(w => w.id === id);
@@ -384,55 +421,36 @@ export class HayagrivaPreviewManager {
     widget.title.closable = true;
 
     let cardContent = `### Citation Source: ${docName}\n\nLoading preview from page ${pageNum}...`;
+    let isPdf = docName.toLowerCase().endsWith('.pdf');
+    let pdfUrl = '';
+    let sectionTitle = '';
 
     try {
       const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
-      if (workspaceRoot) {
-        const conceptsUri = new URI(workspaceRoot.toString()).resolve(`concepts/${docName}`);
-        const treeUri = conceptsUri.resolve('pageindex_tree.json');
-        const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(treeUri.path.toString())}`);
-        if (res.ok) {
-          const treeData = await res.json();
-          const flatNodes: any[] = [];
-          const flatten = (node: any) => {
-            flatNodes.push(node);
-            if (node.children) {
-              for (const child of node.children) flatten(child);
-            }
-          };
-          flatten(treeData.tree);
-
-          const targetNode = flatNodes.find(n => n.metadata && n.metadata.type === 'section' && n.pageStart <= pageNum && n.pageEnd >= pageNum);
-          if (targetNode) {
-            const safeTitle = targetNode.title.replace(/[^a-zA-Z0-9\s-_]/g, '').trim().replace(/\s+/g, '_') || 'untitled';
-            let cardTitle = safeTitle;
-            if (cardTitle.length > 60) {
-              let hash = 0;
-              for (let i = 0; i < targetNode.title.length; i++) {
-                hash = (hash << 5) - hash + targetNode.title.charCodeAt(i);
-                hash |= 0;
-              }
-              cardTitle = cardTitle.substring(0, 60) + '_' + Math.abs(hash);
-            }
-
-            const cardUri = conceptsUri.resolve(`${cardTitle}.md`);
-            const cardRes = await fetch(`${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(cardUri.path.toString())}`);
-            if (cardRes.ok) {
-              const fileData = await cardRes.json();
-              cardContent = fileData.content || cardContent;
-            }
+      const casePath = workspaceRoot ? decodeURIComponent(workspaceRoot.path.toString()) : '';
+      const resolveUrl = `${this.getBackendUrl()}/api/hayagriva/citation/resolve?case=${encodeURIComponent(casePath)}&doc=${encodeURIComponent(docName)}&page=${pageNum}`;
+      const res = await fetch(resolveUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok) {
+          cardContent = data.fullContent || cardContent;
+          isPdf = !!data.isPdf;
+          sectionTitle = data.sectionTitle || '';
+          if (data.isPdf) {
+            const targetPdf = data.binaryPath ? `${casePath}/${data.binaryPath}` : `${casePath}/${docName}`;
+            pdfUrl = `${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(targetPdf)}#page=${pageNum}&view=FitH`;
           }
         }
       }
     } catch (e: any) {
-      this.logger.error(`[HAYAGRIVA] Failed to load card details for preview: ${e.message}`);
+      this.logger.error(`[HAYAGRIVA] Failed to resolve citation preview: ${e.message}`);
     }
 
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = 'none';
-    iframe.srcdoc = citationPreviewPanelHtml(docName, pageNum, cardContent);
+    iframe.srcdoc = citationPreviewPanelHtml(docName, pageNum, cardContent, isPdf, pdfUrl, sectionTitle);
     widget.node.appendChild(iframe);
 
     const messageListener = (event: MessageEvent) => {
@@ -460,45 +478,33 @@ export class HayagrivaPreviewManager {
     const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
     if (!workspaceRoot) return;
 
-    const conceptsUri = new URI(workspaceRoot.toString()).resolve(`concepts/${docName}`);
-
     try {
-      const treeUri = conceptsUri.resolve('pageindex_tree.json');
-      const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(treeUri.path.toString())}`);
-      if (!res.ok) throw new Error();
+      const casePath = decodeURIComponent(workspaceRoot.path.toString());
+      const stem = docName.replace(/\.[a-zA-Z0-9]+$/, '');
+      const caseNameOnly = casePath.split('/').filter(Boolean).pop() || 'case';
+      const possibleCandidates = [
+        `${casePath}/${caseNameOnly}_conversions_haya/${stem}.md`,
+        `${casePath}/${caseNameOnly}_conversions_haya/${docName}.md`,
+        `${casePath}/${stem}.md`,
+        `${casePath}/${docName}.md`
+      ];
 
-      const treeData = await res.json();
-      const flatNodes: any[] = [];
-      const flatten = (node: any) => {
-        flatNodes.push(node);
-        if (node.children) {
-          for (const child of node.children) flatten(child);
-        }
-      };
-      flatten(treeData.tree);
-
-      const targetNode = flatNodes.find(n => n.metadata && n.metadata.type === 'section' && n.pageStart <= pageNum && n.pageEnd >= pageNum);
-      if (targetNode) {
-        const safeTitle = targetNode.title.replace(/[^a-zA-Z0-9\s-_]/g, '').trim().replace(/\s+/g, '_') || 'untitled';
-        let cardTitle = safeTitle;
-        if (cardTitle.length > 60) {
-          let hash = 0;
-          for (let i = 0; i < targetNode.title.length; i++) {
-            hash = (hash << 5) - hash + targetNode.title.charCodeAt(i);
-            hash |= 0;
+      for (const cand of possibleCandidates) {
+        const checkUrl = `${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(cand)}`;
+        try {
+          const checkRes = await fetch(checkUrl);
+          if (checkRes.ok) {
+            const cardUri = new URI(cand);
+            const editor = await this.editorManager.openToSide(cardUri, {
+              selection: {
+                start: { line: 0, character: 0 },
+                end: { line: 0, character: 99 }
+              }
+            });
+            this.decorator.applyHighlight(editor, 0);
+            return;
           }
-          cardTitle = cardTitle.substring(0, 60) + '_' + Math.abs(hash);
-        }
-
-        const cardUri = conceptsUri.resolve(`${cardTitle}.md`);
-        const editor = await this.editorManager.openToSide(cardUri, {
-          selection: {
-            start: { line: 0, character: 0 },
-            end: { line: 0, character: 99 }
-          }
-        });
-
-        this.decorator.applyHighlight(editor, 0);
+        } catch (_) {}
       }
     } catch {
       this.logger.warn(`[HAYAGRIVA] No PageIndex concept node found for page ${pageNum} in ${docName}`);
@@ -560,6 +566,35 @@ export class HayagrivaPreviewManager {
     const isLight = currentTheme && currentTheme.id && currentTheme.id.toLowerCase().includes('light');
     const theme = isLight ? 'light' : 'dark';
     iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/help/vaults?case=${encodeURIComponent(caseName)}&theme=${theme}`;
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
+  async openCaseGraphPanel(caseName: string): Promise<Widget> {
+    const id = 'hayagriva-case-graph-panel';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    const { caseGraphHtml } = require('./templates');
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Case Graph';
+    widget.title.caption = 'Diagnostic Case Graph & Contradictions';
+    widget.title.iconClass = 'fa fa-sitemap';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = caseGraphHtml(caseName, this.getApiPort());
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });

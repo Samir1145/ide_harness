@@ -26,7 +26,8 @@
         "applicationName": "Hayagriva",
         "reloadOnReconnect": true,
         "preferences": {
-          "toolbar.showToolbar": true
+          "toolbar.showToolbar": true,
+          "explorer.openEditors.visible": 0
         },
         "electron": {
           "showWindowEarly": false,

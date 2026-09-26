@@ -1089,6 +1089,31 @@ export function conceptsExplorerHtml(caseName: string, apiPort: number = 3210): 
           });
         }
 
+        // Plan 21: Check for active case contradictions
+        try {
+          const cRes = await fetch('http://127.0.0.1:${apiPort}/api/hayagriva/contradictions?case=' + encodeURIComponent(currentCase));
+          if (cRes.ok) {
+            const cData = await cRes.json();
+            if (cData.contradictions && cData.contradictions.length > 0) {
+              const banner = document.createElement('div');
+              banner.className = 'conflict-radar-banner';
+              banner.style.cssText = 'background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 11px; cursor: pointer; display: flex; align-items: flex-start; gap: 8px;';
+              banner.innerHTML = \`
+                <span style="font-size: 14px;">⚠️</span>
+                <div style="flex:1;">
+                  <strong style="color: #ef4444;">\${cData.contradictions.length} Active Conflict\${cData.contradictions.length > 1 ? 's' : ''} Detected</strong>
+                  <div style="color: var(--theia-ui-font-color1, #ccc); margin-top: 2px; font-size: 10px;">\${cData.contradictions[0].narrative}</div>
+                  <div style="color: #60a5fa; margin-top: 4px; font-size: 9px; font-weight: 500;">Click to open Diagnostic Case Graph ➔</div>
+                </div>
+              \`;
+              banner.onclick = () => {
+                window.parent.postMessage({ type: 'execute-command', commandId: 'hayagriva.openCaseGraph' }, '*');
+              };
+              container.appendChild(banner);
+            }
+          }
+        } catch (_) {}
+
         if (indexedDocs.length > 0) {
           const globalControls = document.createElement('div');
           globalControls.className = 'global-controls';
@@ -2166,8 +2191,14 @@ export function draftingPanelHtml(caseName: string, apiPort: number = 3210): str
 </html>`;
 }
 
-export function citationPreviewPanelHtml(docName: string, pageNum: number, contentMarkdown: string): string {
-  // Convert markdown newlines and basic headers/cards into HTML tags for presentation.
+export function citationPreviewPanelHtml(
+  docName: string,
+  pageNum: number,
+  contentMarkdown: string,
+  isPdf: boolean = false,
+  pdfViewerUrl: string = '',
+  sectionTitle: string = ''
+): string {
   const escapeHtml = (text: string) => text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -2178,9 +2209,16 @@ export function citationPreviewPanelHtml(docName: string, pageNum: number, conte
   const formattedContent = escapeHtml(contentMarkdown)
     .replace(/\n\n/g, '<br/><br/>')
     .replace(/\n/g, '<br/>')
-    .replace(/###\s+(.*)/g, '<h4>$1</h4>')
+    .replace(/###\s+(.*)/g, '<h4 style="margin:8px 0 4px 0; color:var(--theia-brand-color1, #0ea5e9);">$1</h4>')
+    .replace(/##\s+(.*)/g, '<h3 style="margin:10px 0 6px 0; color:var(--theia-brand-color1, #0ea5e9);">$1</h3>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  const cleanRawText = contentMarkdown
+    .replace(/^---[\s\S]*?---\r?\n?/, '')
+    .replace(/^#+\s+.*$/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   return `<!DOCTYPE html>
 <html>
@@ -2191,7 +2229,7 @@ export function citationPreviewPanelHtml(docName: string, pageNum: number, conte
     font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
     font-size: var(--theia-ui-font-size1, 13px);
     margin: 0;
-    padding: 15px;
+    padding: 14px;
     background: var(--theia-layout-color1, #f3f3f3);
     color: var(--theia-ui-font-color1, #333333);
     display: flex;
@@ -2203,41 +2241,93 @@ export function citationPreviewPanelHtml(docName: string, pageNum: number, conte
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     border-bottom: 1px solid var(--theia-border-color, #e0e0e0);
     padding-bottom: 8px;
+  }
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .header-container h3 {
     margin: 0;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
     color: var(--theia-brand-color1, #0ea5e9);
   }
   .close-btn {
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
     opacity: 0.6;
     transition: opacity 0.2s;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
   }
   .close-btn:hover {
     opacity: 1;
+    background: rgba(0,0,0,0.08);
   }
   .metadata {
     font-size: 11px;
-    opacity: 0.75;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     display: flex;
     gap: 8px;
     align-items: center;
+    flex-wrap: wrap;
   }
   .badge {
     background: var(--theia-brand-color0, #0ea5e9);
     color: #ffffff;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 11px;
+  }
+  .section-tag {
+    font-size: 11px;
+    opacity: 0.8;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    background: var(--theia-layout-color2, #e5e7eb);
+    padding: 3px;
+    border-radius: 6px;
+  }
+  .tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--theia-ui-font-color2, #4b5563);
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--theia-layout-color3, #ffffff);
+    color: var(--theia-brand-color1, #0ea5e9);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .view-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 12px;
   }
   .content-card {
     flex: 1;
@@ -2245,34 +2335,39 @@ export function citationPreviewPanelHtml(docName: string, pageNum: number, conte
     background: var(--theia-layout-color3, #ffffff);
     border: 1px solid var(--theia-border-color, #e0e0e0);
     border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 15px;
-    line-height: 1.5;
+    padding: 14px;
+    line-height: 1.6;
     font-size: 13px;
     white-space: pre-wrap;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
-  .content-card h4 {
-    margin: 0 0 8px 0;
-    color: var(--theia-brand-color1, #0ea5e9);
+  .pdf-frame {
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--theia-border-color, #e0e0e0);
+    border-radius: 6px;
+    background: #525659;
   }
   .actions {
     display: flex;
     gap: 8px;
-    padding-bottom: 10px;
   }
   .btn {
     flex: 1;
     background: var(--theia-brand-color1, #0ea5e9);
     color: #ffffff;
     border: none;
-    padding: 8px 12px;
-    font-weight: bold;
+    padding: 8px 10px;
+    font-weight: 600;
     border-radius: 4px;
     cursor: pointer;
-    transition: background 0.2s;
-    font-size: 12px;
+    transition: all 0.2s;
+    font-size: 11px;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
   }
   .btn:hover {
     background: #0284c7;
@@ -2285,31 +2380,112 @@ export function citationPreviewPanelHtml(docName: string, pageNum: number, conte
   .btn.secondary:hover {
     background: rgba(0,0,0,0.05);
   }
+  .toast {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    color: #38bdf8;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .toast.show {
+    opacity: 1;
+  }
 </style>
 </head>
 <body>
   <div class="header-container">
-    <h3>Citation Preview</h3>
-    <span class="close-btn" onclick="closeDrawer()">&times;</span>
+    <div class="header-title">
+      <span>📖</span>
+      <h3>Citation Preview</h3>
+    </div>
+    <span class="close-btn" onclick="closeDrawer()" title="Close">&times;</span>
   </div>
   <div class="metadata">
-    <span>Document: <strong>${escapeHtml(docName)}</strong></span>
+    <span><strong>${escapeHtml(docName)}</strong></span>
     <span class="badge">Page ${pageNum}</span>
-  </div>
-  <div class="content-card">
-    ${formattedContent}
-  </div>
-  <div class="actions">
-    <button class="btn secondary" onclick="closeDrawer()">Close</button>
-    <button class="btn" onclick="openFull()">Open Full Document</button>
+    ${sectionTitle ? `<span class="section-tag" title="${escapeHtml(sectionTitle)}">— ${escapeHtml(sectionTitle)}</span>` : ''}
   </div>
 
+  ${isPdf && pdfViewerUrl ? `
+  <div class="tab-bar">
+    <button id="tab-text" class="tab-btn active" onclick="switchTab('text')">📝 Verbatim Excerpt</button>
+    <button id="tab-pdf" class="tab-btn" onclick="switchTab('pdf')">📑 Original PDF Page</button>
+  </div>` : ''}
+
+  <div class="view-container">
+    <div id="view-text" class="content-card">
+      ${formattedContent}
+    </div>
+    ${isPdf && pdfViewerUrl ? `
+    <iframe id="view-pdf" class="pdf-frame" src="${escapeHtml(pdfViewerUrl)}" style="display:none;"></iframe>` : ''}
+  </div>
+
+  <div class="actions">
+    <button class="btn secondary" onclick="copyQuote()">📋 Copy Quote</button>
+    <button class="btn" onclick="openSideBySide()">📑 Open Side-by-Side</button>
+  </div>
+
+  <div id="toast" class="toast">Quote copied to clipboard!</div>
+
   <script>
+    const rawQuote = ${JSON.stringify(cleanRawText.slice(0, 600))};
+    const docSource = ${JSON.stringify(docName)};
+    const pageNumber = ${pageNum};
+
+    function switchTab(mode) {
+      const textBtn = document.getElementById('tab-text');
+      const pdfBtn = document.getElementById('tab-pdf');
+      const textView = document.getElementById('view-text');
+      const pdfView = document.getElementById('view-pdf');
+
+      if (!textBtn || !pdfBtn || !textView || !pdfView) return;
+
+      if (mode === 'text') {
+        textBtn.classList.add('active');
+        pdfBtn.classList.remove('active');
+        textView.style.display = 'block';
+        pdfView.style.display = 'none';
+      } else {
+        pdfBtn.classList.add('active');
+        textBtn.classList.remove('active');
+        pdfView.style.display = 'block';
+        textView.style.display = 'none';
+      }
+    }
+
     function closeDrawer() {
       window.parent.postMessage({ type: 'close-citation-preview' }, '*');
     }
-    function openFull() {
+
+    function openSideBySide() {
       window.parent.postMessage({ type: 'open-full-citation' }, '*');
+    }
+
+    function copyQuote() {
+      const textToCopy = '"' + rawQuote + '"\\n— ' + docSource + ' (Page ' + pageNumber + ')';
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        showToast('Quote copied to clipboard!');
+      }).catch(() => {
+        showToast('Failed to copy');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
     }
   </script>
 </body>
@@ -2398,6 +2574,46 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
   .tab-btn.active {
     color: var(--theia-brand-color1, #0ea5e9);
     border-bottom-color: var(--theia-brand-color1, #0ea5e9);
+  }
+  .filter-pills {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .filter-pill {
+    background: transparent;
+    border: 1px solid var(--theia-border-color, #444);
+    color: var(--theia-ui-font-color2, #888);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+  .filter-pill.active {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+    border-color: rgba(14, 165, 233, 0.5);
+  }
+  .visibility-pill {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .visibility-pill.inbox {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.35);
+  }
+  .visibility-pill.inline {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.35);
   }
   .items-container {
     flex: 1;
@@ -2560,12 +2776,20 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
     <button class="tab-btn" onclick="setTab('resolved', this)">Resolved</button>
   </div>
 
+  <div class="filter-pills">
+    <span style="font-size: 10px; color: #888; font-weight: 600;">MODE:</span>
+    <button class="filter-pill active" onclick="setVisibilityFilter('all', this)">All</button>
+    <button class="filter-pill" onclick="setVisibilityFilter('inbox', this)">📥 Inbox Only</button>
+    <button class="filter-pill" onclick="setVisibilityFilter('inline', this)">💬 Chat Inline</button>
+  </div>
+
   <div id="items-list" class="items-container">
     <div class="empty-state">Loading inbox items…</div>
   </div>
 
   <script>
     let activeTab = 'pending';
+    let activeVisibility = 'all';
     let currentCase = '${caseName}';
     const apiPort = ${apiPort};
 
@@ -2579,6 +2803,13 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
     function setTab(tab, btn) {
       activeTab = tab;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderItems();
+    }
+
+    function setVisibilityFilter(vis, btn) {
+      activeVisibility = vis;
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       renderItems();
     }
@@ -2611,6 +2842,9 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
         filtered = allItems.filter(i => i.state === 'pending');
       } else if (activeTab === 'resolved') {
         filtered = allItems.filter(i => i.state === 'resolved');
+      }
+      if (activeVisibility !== 'all') {
+        filtered = filtered.filter(i => (i.visibility || 'inbox') === activeVisibility);
       }
 
       if (filtered.length === 0) {
@@ -2662,6 +2896,10 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
         }
 
         const riskPill = item.riskClass ? \`<span class="badge">\${item.riskClass}</span>\` : '';
+        const visPill = item.visibility === 'inline' 
+          ? '<span class="visibility-pill inline">💬 Inline</span>'
+          : '<span class="visibility-pill inbox">📥 Inbox</span>';
+
         const dataSnippet = item.data && Object.keys(item.data).length > 0 
           ? \`<div class="card-data">\${JSON.stringify(item.data, null, 1)}</div>\` 
           : '';
@@ -2670,7 +2908,10 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
           <div class="item-card \${item.state}">
             <div class="card-top">
               <span class="card-kind kind-\${item.kind}">\${item.kind}</span>
-              \${riskPill}
+              <div style="display: flex; gap: 4px; align-items: center;">
+                \${visPill}
+                \${riskPill}
+              </div>
             </div>
             <div class="card-title">\${item.title}</div>
             <div class="card-body">\${item.body}</div>
@@ -3283,6 +3524,306 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
 
     loadLedger();
     setInterval(loadLedger, 5000);
+  </script>
+</body>
+</html>`;
+}
+
+export function caseGraphHtml(caseName: string, apiPort: number = 3210): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Diagnostic Case Graph & Contradictions</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--theia-layout-color0, #141414);
+      color: var(--theia-ui-font-color0, #f3f3f3);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+    .node {
+      stroke-width: 1.5px;
+      cursor: pointer;
+      transition: r 0.2s, stroke-width 0.2s;
+    }
+    .node:hover {
+      stroke-width: 3px !important;
+    }
+    .link {
+      stroke-opacity: 0.75;
+      stroke-linecap: round;
+      cursor: pointer;
+    }
+    .link-conflict {
+      stroke: #ef4444 !important;
+      stroke-width: 3px !important;
+      stroke-dasharray: 4, 3;
+      animation: dash 1.5s linear infinite;
+    }
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -14;
+      }
+    }
+    .label {
+      font-size: 11px;
+      pointer-events: none;
+      font-weight: 500;
+      fill: var(--theia-ui-font-color1, #e0e0e0);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    }
+    .control-panel {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(20, 20, 20, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--theia-border-color, #333);
+      font-size: 11px;
+      z-index: 10;
+      max-width: 260px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .legend-title {
+      font-weight: 600;
+      font-size: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-section {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 10.5px;
+      gap: 6px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .legend-line {
+      width: 14px;
+      height: 3px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .tooltip {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #334155;
+      padding: 8px 12px;
+      border-radius: 6px;
+      color: #f8fafc;
+      font-size: 11px;
+      pointer-events: none;
+      display: none;
+      z-index: 100;
+      max-width: 320px;
+      line-height: 1.4;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <div class="control-panel">
+      <div class="legend-title">⚖️ Case Diagnostic Graph</div>
+      <div style="font-size: 10px; opacity: 0.7; margin-bottom: 8px;">\${caseName}</div>
+
+      <div class="legend-item"><div class="legend-line" style="background:#ef4444;"></div> <strong>Contradiction / Conflict</strong></div>
+      <div class="legend-item"><div class="legend-line" style="background:#f97316;"></div> Related Party / Avoidance</div>
+      <div class="legend-item"><div class="legend-line" style="background:#a855f7;"></div> Supersedes / Replaces</div>
+      <div class="legend-item"><div class="legend-line" style="background:#38bdf8;"></div> Cites / Cross-Reference</div>
+      <div class="legend-item"><div class="legend-line" style="background:#10b981;"></div> Hierarchy / Claim</div>
+
+      <div class="legend-section">
+        <div class="legend-item"><div class="legend-dot" style="background:#eab308;"></div> Corporate Debtor</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div> Financial / Op Creditor</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f97316;"></div> Avoidance / Related Party</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#6366f1;"></div> Documents & Concepts</div>
+      </div>
+      
+      <div style="margin-top:10px; font-size:9.5px; opacity:0.65;">
+        • Drag nodes to inspect clusters.<br>
+        • Hover on red edges to see conflict deltas.
+      </div>
+    </div>
+    
+    <div id="graph-tooltip" class="tooltip"></div>
+    <svg id="graph-svg"></svg>
+  </div>
+
+  <script>
+    async function initGraph() {
+      try {
+        const res = await fetch('http://127.0.0.1:\${apiPort}/api/hayagriva/case-graph?case=' + encodeURIComponent('\${caseName}'));
+        if (!res.ok) throw new Error("Failed to load graph data");
+        const graph = await res.json();
+
+        const svg = d3.select("#graph-svg");
+        const tooltip = d3.select("#graph-tooltip");
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const g = svg.append("g");
+        svg.call(d3.zoom().scaleExtent([0.2, 5]).on("zoom", (event) => {
+          g.attr("transform", event.transform);
+        }));
+
+        const simulation = d3.forceSimulation(graph.nodes)
+            .force("link", d3.forceLink(graph.links).id(d => d.id).distance(d => d.type === 'contradicts' ? 120 : 85))
+            .force("charge", d3.forceManyBody().strength(-220))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(32));
+
+        // Links
+        const link = g.append("g")
+            .attr("class", "links")
+          .selectAll("line")
+          .data(graph.links)
+          .join("line")
+            .attr("class", d => d.type === 'contradicts' || d.type === 'avoidance_conflict' ? 'link link-conflict' : 'link')
+            .attr("stroke", d => d.color || '#555')
+            .attr("stroke-width", d => d.type === 'contradicts' || d.type === 'avoidance_conflict' ? 3 : 1.5)
+            .on("mouseover", (event, d) => {
+              if (d.details && (d.details.narrative || d.details.conflict_type)) {
+                tooltip.style("display", "block")
+                       .html('<strong>⚠️ ' + (d.type.toUpperCase()) + '</strong><br>' + (d.details.narrative || 'Factual Conflict'))
+                       .style("left", (event.pageX + 10) + "px")
+                       .style("top", (event.pageY + 10) + "px");
+              }
+            })
+            .on("mouseout", () => tooltip.style("display", "none"));
+
+        // Helper for Node Colors
+        function getNodeColor(d) {
+          if (d.type === 'corporate_debtor') return '#eab308';
+          if (d.type === 'financial_creditor') return '#3b82f6';
+          if (d.type === 'operational_creditor') return '#0ea5e9';
+          if (d.type === 'related_party' || d.type === 'avoidance_respondent') return '#f97316';
+          if (d.type === 'resolution_applicant') return '#8b5cf6';
+          if (d.type === 'document') return '#6366f1';
+          if (d.type === 'wiki') return '#10b981';
+          return '#38bdf8';
+        }
+
+        function getNodeRadius(d) {
+          if (d.type === 'corporate_debtor') return 18;
+          if (d.type === 'financial_creditor' || d.type === 'resolution_applicant') return 14;
+          if (d.type === 'document') return 12;
+          if (d.type === 'wiki') return 10;
+          return 8;
+        }
+
+        // Nodes
+        const node = g.append("g")
+            .attr("class", "nodes")
+          .selectAll("circle")
+          .data(graph.nodes)
+          .join("circle")
+            .attr("class", "node")
+            .attr("r", getNodeRadius)
+            .attr("fill", getNodeColor)
+            .attr("stroke", "#ffffff")
+            .attr("stroke-opacity", 0.8)
+            .call(d3.drag()
+                .on("start", (event, d) => {
+                  if (!event.active) simulation.alphaTarget(0.3).restart();
+                  d.fx = d.x;
+                  d.fy = d.y;
+                })
+                .on("drag", (event, d) => {
+                  d.fx = event.x;
+                  d.fy = event.y;
+                })
+                .on("end", (event, d) => {
+                  if (!event.active) simulation.alphaTarget(0);
+                  d.fx = null;
+                  d.fy = null;
+                }))
+            .on("mouseover", (event, d) => {
+              let info = '<strong>' + d.name + '</strong> [' + (d.type || 'node') + ']';
+              if (d.properties) {
+                if (d.properties.claimed_amount) info += '<br>• Claimed: ₹' + Number(d.properties.claimed_amount).toLocaleString('en-IN');
+                if (d.properties.admitted_amount) info += '<br>• Admitted: ₹' + Number(d.properties.admitted_amount).toLocaleString('en-IN');
+                if (d.properties.avoidance_amount) info += '<br>• Avoidance (§' + (d.properties.applicable_section || '66') + '): ₹' + Number(d.properties.avoidance_amount).toLocaleString('en-IN');
+              }
+              tooltip.style("display", "block")
+                     .html(info)
+                     .style("left", (event.pageX + 10) + "px")
+                     .style("top", (event.pageY + 10) + "px");
+            })
+            .on("mouseout", () => tooltip.style("display", "none"))
+            .on("click", (event, d) => {
+              if (d.path) {
+                window.parent.postMessage({ type: 'open-concept-chunk', relativePath: d.path }, '*');
+              }
+            });
+
+        // Labels
+        const label = g.append("g")
+            .attr("class", "labels")
+          .selectAll("text")
+          .data(graph.nodes)
+          .join("text")
+            .attr("class", "label")
+            .attr("dx", d => getNodeRadius(d) + 4)
+            .attr("dy", 4)
+            .text(d => d.name);
+
+        simulation.on("tick", () => {
+          link
+              .attr("x1", d => d.source.x)
+              .attr("y1", d => d.source.y)
+              .attr("x2", d => d.target.x)
+              .attr("y2", d => d.target.y);
+
+          node
+              .attr("cx", d => d.x)
+              .attr("cy", d => d.y);
+
+          label
+              .attr("x", d => d.x)
+              .attr("y", d => d.y);
+        });
+
+        window.addEventListener("resize", () => {
+          simulation.force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2));
+          simulation.alpha(0.3).restart();
+        });
+
+      } catch (err) {
+        console.error("Graph init error:", err);
+      }
+    }
+
+    window.onload = initGraph;
   </script>
 </body>
 </html>`;

@@ -1,0 +1,803 @@
+{
+  "source_root": "/Users/atulgrover/Desktop/HAYAGRIVA/formats",
+  "total_formats": 131,
+  "scanned_at": "2026-09-25T23:49:09.854Z",
+  "categories": {
+    "Atticus": [
+      {
+        "file_name": "README.md",
+        "relative_path": "Atticus/acord/README.md",
+        "extension": ".md",
+        "size_bytes": 4269
+      },
+      {
+        "file_name": "readme.md",
+        "relative_path": "Atticus/caud/readme.md",
+        "extension": ".md",
+        "size_bytes": 2140
+      },
+      {
+        "file_name": "README.md",
+        "relative_path": "Atticus/maud/README.md",
+        "extension": ".md",
+        "size_bytes": 1526
+      },
+      {
+        "file_name": "README.md",
+        "relative_path": "Atticus/maud/best_found_hps/README.md",
+        "extension": ".md",
+        "size_bytes": 651
+      },
+      {
+        "file_name": "multi_task.md",
+        "relative_path": "Atticus/maud/best_found_hps/multi_task.md",
+        "extension": ".md",
+        "size_bytes": 3764
+      },
+      {
+        "file_name": "multi_task_no_abridged.md",
+        "relative_path": "Atticus/maud/best_found_hps/multi_task_no_abridged.md",
+        "extension": ".md",
+        "size_bytes": 1094
+      },
+      {
+        "file_name": "requirements.txt",
+        "relative_path": "Atticus/maud/requirements.txt",
+        "extension": ".txt",
+        "size_bytes": 176
+      }
+    ],
+    "IBC Forms": [
+      {
+        "file_name": "FORM-H-COMPLIANCE-CERTIFICATE-2016.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/FORM-H-COMPLIANCE-CERTIFICATE-2016.pdf",
+        "extension": ".pdf",
+        "size_bytes": 73030
+      },
+      {
+        "file_name": "Form_A_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_A_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 149353
+      },
+      {
+        "file_name": "Form_B_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_B_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 52512
+      },
+      {
+        "file_name": "Form_C_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_C_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 108038
+      },
+      {
+        "file_name": "Form_D_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_D_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 110769
+      },
+      {
+        "file_name": "Form_E_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_E_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 273968
+      },
+      {
+        "file_name": "Form_F_1_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_F_1_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 165342
+      },
+      {
+        "file_name": "Form_G_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_G_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 322126
+      },
+      {
+        "file_name": "Form_I_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_I_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 77698
+      },
+      {
+        "file_name": "Form_J_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Form_J_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 77488
+      },
+      {
+        "file_name": "Schedule_III_LP.pdf",
+        "relative_path": "IBC Forms/liquidation cilp forms/Schedule_III_LP.pdf",
+        "extension": ".pdf",
+        "size_bytes": 229538
+      },
+      {
+        "file_name": "Bankruptcy Reg Form A.docx",
+        "relative_path": "IBC Forms/personal guarantor forms/Bankruptcy Reg Form A.docx",
+        "extension": ".docx",
+        "size_bytes": 35660
+      },
+      {
+        "file_name": "Bankruptcy Reg Form B.docx",
+        "relative_path": "IBC Forms/personal guarantor forms/Bankruptcy Reg Form B.docx",
+        "extension": ".docx",
+        "size_bytes": 36774
+      },
+      {
+        "file_name": "IIRP_Reg_Form_A.docx",
+        "relative_path": "IBC Forms/personal guarantor forms/IIRP_Reg_Form_A.docx",
+        "extension": ".docx",
+        "size_bytes": 38948
+      },
+      {
+        "file_name": "IIRP_Reg_Form_B.docx",
+        "relative_path": "IBC Forms/personal guarantor forms/IIRP_Reg_Form_B.docx",
+        "extension": ".docx",
+        "size_bytes": 43154
+      },
+      {
+        "file_name": "IIRP_Reg_Form_C.docx",
+        "relative_path": "IBC Forms/personal guarantor forms/IIRP_Reg_Form_C.docx",
+        "extension": ".docx",
+        "size_bytes": 39855
+      },
+      {
+        "file_name": "Form P1.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P1.docx",
+        "extension": ".docx",
+        "size_bytes": 42888
+      },
+      {
+        "file_name": "Form P10.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P10.docx",
+        "extension": ".docx",
+        "size_bytes": 49233
+      },
+      {
+        "file_name": "Form P11.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P11.docx",
+        "extension": ".docx",
+        "size_bytes": 17151
+      },
+      {
+        "file_name": "Form P12.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P12.docx",
+        "extension": ".docx",
+        "size_bytes": 34715
+      },
+      {
+        "file_name": "Form P13.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P13.docx",
+        "extension": ".docx",
+        "size_bytes": 14084
+      },
+      {
+        "file_name": "Form P14.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P14.docx",
+        "extension": ".docx",
+        "size_bytes": 13988
+      },
+      {
+        "file_name": "Form P2.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P2.docx",
+        "extension": ".docx",
+        "size_bytes": 16953
+      },
+      {
+        "file_name": "Form P3.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P3.docx",
+        "extension": ".docx",
+        "size_bytes": 17528
+      },
+      {
+        "file_name": "Form P4.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P4.docx",
+        "extension": ".docx",
+        "size_bytes": 16718
+      },
+      {
+        "file_name": "Form P5.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P5.docx",
+        "extension": ".docx",
+        "size_bytes": 17178
+      },
+      {
+        "file_name": "Form P6.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P6.docx",
+        "extension": ".docx",
+        "size_bytes": 17253
+      },
+      {
+        "file_name": "Form P7.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P7.docx",
+        "extension": ".docx",
+        "size_bytes": 15996
+      },
+      {
+        "file_name": "Form P8.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P8.docx",
+        "extension": ".docx",
+        "size_bytes": 16327
+      },
+      {
+        "file_name": "Form P9.docx",
+        "relative_path": "IBC Forms/prepack forms/Form P9.docx",
+        "extension": ".docx",
+        "size_bytes": 15829
+      },
+      {
+        "file_name": "Form_A.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_A.docx",
+        "extension": ".docx",
+        "size_bytes": 17141
+      },
+      {
+        "file_name": "Form_AA.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_AA.docx",
+        "extension": ".docx",
+        "size_bytes": 15995
+      },
+      {
+        "file_name": "Form_AB.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_AB.docx",
+        "extension": ".docx",
+        "size_bytes": 16133
+      },
+      {
+        "file_name": "Form_B.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_B.docx",
+        "extension": ".docx",
+        "size_bytes": 20523
+      },
+      {
+        "file_name": "Form_C.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_C.docx",
+        "extension": ".docx",
+        "size_bytes": 22590
+      },
+      {
+        "file_name": "Form_CA.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_CA.docx",
+        "extension": ".docx",
+        "size_bytes": 18789
+      },
+      {
+        "file_name": "Form_D.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_D.docx",
+        "extension": ".docx",
+        "size_bytes": 20488
+      },
+      {
+        "file_name": "Form_E.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_E.docx",
+        "extension": ".docx",
+        "size_bytes": 20096
+      },
+      {
+        "file_name": "Form_F.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_F.docx",
+        "extension": ".docx",
+        "size_bytes": 20074
+      },
+      {
+        "file_name": "Form_FA.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_FA.docx",
+        "extension": ".docx",
+        "size_bytes": 13569
+      },
+      {
+        "file_name": "Form_G.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_G.docx",
+        "extension": ".docx",
+        "size_bytes": 16488
+      },
+      {
+        "file_name": "Form_H.docx",
+        "relative_path": "IBC Forms/resolution cirp forms/Form_H.docx",
+        "extension": ".docx",
+        "size_bytes": 63513
+      },
+      {
+        "file_name": "Form_A_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Form_A_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 17220
+      },
+      {
+        "file_name": "Form_B_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Form_B_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 274165
+      },
+      {
+        "file_name": "Form_C_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Form_C_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 274501
+      },
+      {
+        "file_name": "Form_D_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Form_D_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 271998
+      },
+      {
+        "file_name": "Form_E_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Form_E_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 166154
+      },
+      {
+        "file_name": "Form_F_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Form_F_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 273728
+      },
+      {
+        "file_name": "Form_G_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Form_G_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 114923
+      },
+      {
+        "file_name": "Form_H_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Form_H_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 99168
+      },
+      {
+        "file_name": "Schedule_II_VL.pdf",
+        "relative_path": "IBC Forms/vol liquidation civlp forms/Schedule_II_VL.pdf",
+        "extension": ".pdf",
+        "size_bytes": 228970
+      }
+    ],
+    "General": [
+      {
+        "file_name": "README.md",
+        "relative_path": "README.md",
+        "extension": ".md",
+        "size_bytes": 719
+      }
+    ],
+    "blogs & articles": [
+      {
+        "file_name": "10 years of IBC.pdf",
+        "relative_path": "blogs & articles/10 years of IBC.pdf",
+        "extension": ".pdf",
+        "size_bytes": 14499222
+      },
+      {
+        "file_name": "E- journal Publication JUNE 2026 IPA-ICMAI.pdf",
+        "relative_path": "blogs & articles/E- journal Publication JUNE 2026 IPA-ICMAI.pdf",
+        "extension": ".pdf",
+        "size_bytes": 4802571
+      },
+      {
+        "file_name": "Gist of DC Cases-Issue Wise.pdf",
+        "relative_path": "blogs & articles/Gist of DC Cases-Issue Wise.pdf",
+        "extension": ".pdf",
+        "size_bytes": 670137
+      },
+      {
+        "file_name": "Gist of IBBI Document-10 years on.docx",
+        "relative_path": "blogs & articles/Gist of IBBI Document-10 years on.docx",
+        "extension": ".docx",
+        "size_bytes": 44723
+      },
+      {
+        "file_name": "IBC Code and IBBI Regulations.pdf",
+        "relative_path": "blogs & articles/IBC Code and IBBI Regulations.pdf",
+        "extension": ".pdf",
+        "size_bytes": 10020480
+      },
+      {
+        "file_name": "Merger-Acquisition-GST- Ashu Dalmia.pdf",
+        "relative_path": "blogs & articles/Merger-Acquisition-GST- Ashu Dalmia.pdf",
+        "extension": ".pdf",
+        "size_bytes": 535396
+      },
+      {
+        "file_name": "Process Chart Doc.pdf",
+        "relative_path": "blogs & articles/Process Chart Doc.pdf",
+        "extension": ".pdf",
+        "size_bytes": 52366
+      }
+    ],
+    "sources": [
+      {
+        "file_name": "20260629_1943_IST_Master_Index_PG_Individual.docx",
+        "relative_path": "sources/ca_rk_gupta/20260629_1943_IST_Master_Index_PG_Individual.docx",
+        "extension": ".docx",
+        "size_bytes": 15213
+      },
+      {
+        "file_name": "20260629_1943_IST_PG_SET1_Individual_MASTER_COMPENDIUM.docx",
+        "relative_path": "sources/ca_rk_gupta/20260629_1943_IST_PG_SET1_Individual_MASTER_COMPENDIUM.docx",
+        "extension": ".docx",
+        "size_bytes": 47375
+      },
+      {
+        "file_name": "20260717_1839_IST_OL_Sale_Reversal_and_Transfer_to_NCLT.docx",
+        "relative_path": "sources/ca_rk_gupta/20260717_1839_IST_OL_Sale_Reversal_and_Transfer_to_NCLT.docx",
+        "extension": ".docx",
+        "size_bytes": 11440
+      },
+      {
+        "file_name": "20260808_2130_IST_Progress_Report_Annexures_Compliance_Note.docx",
+        "relative_path": "sources/ca_rk_gupta/20260808_2130_IST_Progress_Report_Annexures_Compliance_Note.docx",
+        "extension": ".docx",
+        "size_bytes": 14572
+      },
+      {
+        "file_name": "2_Liquidation Regulations_02.06.2026_with comments.pdf",
+        "relative_path": "sources/ca_rk_gupta/2_Liquidation Regulations_02.06.2026_with comments.pdf",
+        "extension": ".pdf",
+        "size_bytes": 1247917
+      },
+      {
+        "file_name": "2a_IBBI_Liqidation_Formats_with comments.pdf",
+        "relative_path": "sources/ca_rk_gupta/2a_IBBI_Liqidation_Formats_with comments.pdf",
+        "extension": ".pdf",
+        "size_bytes": 622473
+      },
+      {
+        "file_name": "Confidentiality_Undertaking_Related_Party_Disclosure_Format.docx",
+        "relative_path": "sources/ca_rk_gupta/Confidentiality_Undertaking_Related_Party_Disclosure_Format.docx",
+        "extension": ".docx",
+        "size_bytes": 12108
+      },
+      {
+        "file_name": "Dissolution_Application_Draft.docx",
+        "relative_path": "sources/ca_rk_gupta/Dissolution_Application_Draft.docx",
+        "extension": ".docx",
+        "size_bytes": 16761
+      },
+      {
+        "file_name": "FORM B PROOF OF CLAIM BY OPERATIONAL CREDITORS EXCEPT WORKMEN AND EMPLOYEES.docx",
+        "relative_path": "sources/ca_rk_gupta/FORM B PROOF OF CLAIM BY OPERATIONAL CREDITORS EXCEPT WORKMEN AND EMPLOYEES.docx",
+        "extension": ".docx",
+        "size_bytes": 16585
+      },
+      {
+        "file_name": "Form_EA_Statement_of_Fee_Fillable_Template.docx",
+        "relative_path": "sources/ca_rk_gupta/Form_EA_Statement_of_Fee_Fillable_Template.docx",
+        "extension": ".docx",
+        "size_bytes": 12537
+      },
+      {
+        "file_name": "Formats_Compendium.docx",
+        "relative_path": "sources/ca_rk_gupta/Formats_Compendium.docx",
+        "extension": ".docx",
+        "size_bytes": 65763
+      },
+      {
+        "file_name": "IBC_SARFAESI_Interface_Case_Study_10_MCQs_20260703_1810_IST.docx",
+        "relative_path": "sources/ca_rk_gupta/IBC_SARFAESI_Interface_Case_Study_10_MCQs_20260703_1810_IST.docx",
+        "extension": ".docx",
+        "size_bytes": 18949
+      },
+      {
+        "file_name": "IBC_Section7_Redrafted.docx",
+        "relative_path": "sources/ca_rk_gupta/IBC_Section7_Redrafted.docx",
+        "extension": ".docx",
+        "size_bytes": 13206
+      },
+      {
+        "file_name": "Ineligibility_Amendment_Note_Anonymised.docx",
+        "relative_path": "sources/ca_rk_gupta/Ineligibility_Amendment_Note_Anonymised.docx",
+        "extension": ".docx",
+        "size_bytes": 13911
+      },
+      {
+        "file_name": "NCLT_Reserved_to_Pronouncement_Delay_Note.docx",
+        "relative_path": "sources/ca_rk_gupta/NCLT_Reserved_to_Pronouncement_Delay_Note.docx",
+        "extension": ".docx",
+        "size_bytes": 11640
+      },
+      {
+        "file_name": "Public_Notice_Personal_Insolvency_Format.docx",
+        "relative_path": "sources/ca_rk_gupta/Public_Notice_Personal_Insolvency_Format.docx",
+        "extension": ".docx",
+        "size_bytes": 12776
+      },
+      {
+        "file_name": "Reg_15_Progress_Reports_Committee_NCLT_Board_Process_Timing_and_Flow_Chart.docx",
+        "relative_path": "sources/ca_rk_gupta/Reg_15_Progress_Reports_Committee_NCLT_Board_Process_Timing_and_Flow_Chart.docx",
+        "extension": ".docx",
+        "size_bytes": 322438
+      },
+      {
+        "file_name": "Reg_8A_Facilitation_of_Transfer_of_Assets_Process_Illustration_Agenda_Checklist.docx",
+        "relative_path": "sources/ca_rk_gupta/Reg_8A_Facilitation_of_Transfer_of_Assets_Process_Illustration_Agenda_Checklist.docx",
+        "extension": ".docx",
+        "size_bytes": 26138
+      },
+      {
+        "file_name": "SEBI_Exchange_Compliances_CIRP_Listed_CD.docx",
+        "relative_path": "sources/ca_rk_gupta/SEBI_Exchange_Compliances_CIRP_Listed_CD.docx",
+        "extension": ".docx",
+        "size_bytes": 18562
+      },
+      {
+        "file_name": "Section_94_IBC_Two_Personal_Guarantees_Note.docx",
+        "relative_path": "sources/ca_rk_gupta/Section_94_IBC_Two_Personal_Guarantees_Note.docx",
+        "extension": ".docx",
+        "size_bytes": 16417
+      },
+      {
+        "file_name": "Signing_of_Financial_Statements_under_CIRP-2.docx",
+        "relative_path": "sources/ca_rk_gupta/Signing_of_Financial_Statements_under_CIRP-2.docx",
+        "extension": ".docx",
+        "size_bytes": 16021
+      },
+      {
+        "file_name": "Signing_of_Financial_Statements_under_CIRP.docx",
+        "relative_path": "sources/ca_rk_gupta/Signing_of_Financial_Statements_under_CIRP.docx",
+        "extension": ".docx",
+        "size_bytes": 13336
+      },
+      {
+        "file_name": "cirp forms.pdf",
+        "relative_path": "sources/ca_rk_gupta/cirp forms.pdf",
+        "extension": ".pdf",
+        "size_bytes": 3812014
+      },
+      {
+        "file_name": "form_e-cirp.docx",
+        "relative_path": "sources/ca_rk_gupta/form_e-cirp.docx",
+        "extension": ".docx",
+        "size_bytes": 20611
+      },
+      {
+        "file_name": "liquidation forms.pdf",
+        "relative_path": "sources/ca_rk_gupta/liquidation forms.pdf",
+        "extension": ".pdf",
+        "size_bytes": 550288
+      },
+      {
+        "file_name": "Affidavit of atul in section 13 (3 cases)-2.docx",
+        "relative_path": "sources/litigation_pleadings/Affidavit of atul in section 13 (3 cases)-2.docx",
+        "extension": ".docx",
+        "size_bytes": 10669
+      },
+      {
+        "file_name": "Affidavit of atul in section 13 (3 cases)-2.pdf",
+        "relative_path": "sources/litigation_pleadings/Affidavit of atul in section 13 (3 cases)-2.pdf",
+        "extension": ".pdf",
+        "size_bytes": 97467
+      },
+      {
+        "file_name": "Affidavit of atul in section 13 (3 cases)-3.pdf",
+        "relative_path": "sources/litigation_pleadings/Affidavit of atul in section 13 (3 cases)-3.pdf",
+        "extension": ".pdf",
+        "size_bytes": 111361
+      },
+      {
+        "file_name": "Affidavit of atul in section 13 (3 cases)-4.pdf",
+        "relative_path": "sources/litigation_pleadings/Affidavit of atul in section 13 (3 cases)-4.pdf",
+        "extension": ".pdf",
+        "size_bytes": 142461
+      },
+      {
+        "file_name": "Affidavit of atul in section 13 (3 cases).docx",
+        "relative_path": "sources/litigation_pleadings/Affidavit of atul in section 13 (3 cases).docx",
+        "extension": ".docx",
+        "size_bytes": 10640
+      },
+      {
+        "file_name": "Affidavit of atul in section 13 (3 cases).pdf",
+        "relative_path": "sources/litigation_pleadings/Affidavit of atul in section 13 (3 cases).pdf",
+        "extension": ".pdf",
+        "size_bytes": 106333
+      },
+      {
+        "file_name": "Affidavit of rent case new by atul as adv.pdf",
+        "relative_path": "sources/litigation_pleadings/Affidavit of rent case new by atul as adv.pdf",
+        "extension": ".pdf",
+        "size_bytes": 106563
+      },
+      {
+        "file_name": "WRIT-PETITION-Revised-and-Formatted-Draft-7.7.2016-2.docx",
+        "relative_path": "sources/litigation_pleadings/WRIT-PETITION-Revised-and-Formatted-Draft-7.7.2016-2.docx",
+        "extension": ".docx",
+        "size_bytes": 99266
+      },
+      {
+        "file_name": "preponement_application_sdm.md",
+        "relative_path": "sources/litigation_pleadings/preponement_application_sdm.md",
+        "extension": ".md",
+        "size_bytes": 4513
+      },
+      {
+        "file_name": "rent case 2-2.pdf",
+        "relative_path": "sources/litigation_pleadings/rent case 2-2.pdf",
+        "extension": ".pdf",
+        "size_bytes": 133465
+      },
+      {
+        "file_name": "rent case 2-3.pdf",
+        "relative_path": "sources/litigation_pleadings/rent case 2-3.pdf",
+        "extension": ".pdf",
+        "size_bytes": 124878
+      },
+      {
+        "file_name": "rent case 2-4.pdf",
+        "relative_path": "sources/litigation_pleadings/rent case 2-4.pdf",
+        "extension": ".pdf",
+        "size_bytes": 125369
+      },
+      {
+        "file_name": "rent case 2-7.pdf",
+        "relative_path": "sources/litigation_pleadings/rent case 2-7.pdf",
+        "extension": ".pdf",
+        "size_bytes": 125267
+      },
+      {
+        "file_name": "rent case 2.docx",
+        "relative_path": "sources/litigation_pleadings/rent case 2.docx",
+        "extension": ".docx",
+        "size_bytes": 13210
+      },
+      {
+        "file_name": "rent case 2.pdf",
+        "relative_path": "sources/litigation_pleadings/rent case 2.pdf",
+        "extension": ".pdf",
+        "size_bytes": 105979
+      },
+      {
+        "file_name": "rent case new by atul as adv.docx",
+        "relative_path": "sources/litigation_pleadings/rent case new by atul as adv.docx",
+        "extension": ".docx",
+        "size_bytes": 13748
+      },
+      {
+        "file_name": "rent case new by atul as adv.pdf",
+        "relative_path": "sources/litigation_pleadings/rent case new by atul as adv.pdf",
+        "extension": ".pdf",
+        "size_bytes": 202894
+      },
+      {
+        "file_name": "20260718_0810_IST_CoC_Agenda_Note_Project-wise_Assessment_Real_Estate.docx",
+        "relative_path": "sources/real_estate_and_rera/20260718_0810_IST_CoC_Agenda_Note_Project-wise_Assessment_Real_Estate.docx",
+        "extension": ".docx",
+        "size_bytes": 19256
+      },
+      {
+        "file_name": "20260718_0835_IST_Real_Estate_CIRP_Action_Checklist_Single-Project.docx",
+        "relative_path": "sources/real_estate_and_rera/20260718_0835_IST_Real_Estate_CIRP_Action_Checklist_Single-Project.docx",
+        "extension": ".docx",
+        "size_bytes": 18624
+      },
+      {
+        "file_name": "20260718_0840_IST_Model_Letter_RERA_Request_for_Project_Information.docx",
+        "relative_path": "sources/real_estate_and_rera/20260718_0840_IST_Model_Letter_RERA_Request_for_Project_Information.docx",
+        "extension": ".docx",
+        "size_bytes": 11850
+      },
+      {
+        "file_name": "Real_Estate_Insolvency_Summary 40 pages.docx",
+        "relative_path": "sources/real_estate_and_rera/Real_Estate_Insolvency_Summary 40 pages.docx",
+        "extension": ".docx",
+        "size_bytes": 53461
+      },
+      {
+        "file_name": "Changes_in_Waterfall_mechanism_&_PPIRP_framework_as_proposed_in_IBC_Amendment_Bill_2025.txt",
+        "relative_path": "sources/regulations_and_working_papers/Changes_in_Waterfall_mechanism_&_PPIRP_framework_as_proposed_in_IBC_Amendment_Bill_2025.txt",
+        "extension": ".txt",
+        "size_bytes": 62475
+      },
+      {
+        "file_name": "DPDP_IBC_Case_Study.docx",
+        "relative_path": "sources/regulations_and_working_papers/DPDP_IBC_Case_Study.docx",
+        "extension": ".docx",
+        "size_bytes": 19533
+      },
+      {
+        "file_name": "IBBI_Discussion_Paper_Due_Diligence_CIRP_Sec65_Tabular.docx",
+        "relative_path": "sources/regulations_and_working_papers/IBBI_Discussion_Paper_Due_Diligence_CIRP_Sec65_Tabular.docx",
+        "extension": ".docx",
+        "size_bytes": 12577
+      },
+      {
+        "file_name": "iPIE_Consultation_Paper_Full_Text.docx",
+        "relative_path": "sources/regulations_and_working_papers/iPIE_Consultation_Paper_Full_Text.docx",
+        "extension": ".docx",
+        "size_bytes": 104018
+      },
+      {
+        "file_name": "iPIE_IBBI_Expectations_from_IPs.docx",
+        "relative_path": "sources/regulations_and_working_papers/iPIE_IBBI_Expectations_from_IPs.docx",
+        "extension": ".docx",
+        "size_bytes": 12723
+      },
+      {
+        "file_name": "ipie21-41.md",
+        "relative_path": "sources/regulations_and_working_papers/ipie21-41.md",
+        "extension": ".md",
+        "size_bytes": 68194
+      },
+      {
+        "file_name": "ipie21-41.pdf",
+        "relative_path": "sources/regulations_and_working_papers/ipie21-41.pdf",
+        "extension": ".pdf",
+        "size_bytes": 1105034
+      },
+      {
+        "file_name": "20260723_1048_IST_Taxation_of_Liability_Write_Back_Section_31_Resolution_Plan.docx",
+        "relative_path": "sources/resolution_plans/20260723_1048_IST_Taxation_of_Liability_Write_Back_Section_31_Resolution_Plan.docx",
+        "extension": ".docx",
+        "size_bytes": 15999
+      },
+      {
+        "file_name": "20260804_0909_IST_PRA_Undertakings_Affidavits_Checklist.docx",
+        "relative_path": "sources/resolution_plans/20260804_0909_IST_PRA_Undertakings_Affidavits_Checklist.docx",
+        "extension": ".docx",
+        "size_bytes": 12633
+      },
+      {
+        "file_name": "20260804_PRA_Undertakings_Gap-Fill_Instruments_49A-49Q.docx",
+        "relative_path": "sources/resolution_plans/20260804_PRA_Undertakings_Gap-Fill_Instruments_49A-49Q.docx",
+        "extension": ".docx",
+        "size_bytes": 22307
+      },
+      {
+        "file_name": "20260804_Resolution_Plan_Instruments_44-55_Consolidated_with_PRA_Undertakings_49A-49S.docx",
+        "relative_path": "sources/resolution_plans/20260804_Resolution_Plan_Instruments_44-55_Consolidated_with_PRA_Undertakings_49A-49S.docx",
+        "extension": ".docx",
+        "size_bytes": 35617
+      },
+      {
+        "file_name": "Format  EOI 2026.docx",
+        "relative_path": "sources/resolution_plans/Format  EOI 2026.docx",
+        "extension": ".docx",
+        "size_bytes": 157826
+      },
+      {
+        "file_name": "Formats for submission of EoI.docx",
+        "relative_path": "sources/resolution_plans/Formats for submission of EoI.docx",
+        "extension": ".docx",
+        "size_bytes": 74830
+      },
+      {
+        "file_name": "20260701_1719-Advisory_Gift_Between_Brothers_After_Adoption.docx",
+        "relative_path": "sources/tax_and_corporate/20260701_1719-Advisory_Gift_Between_Brothers_After_Adoption.docx",
+        "extension": ".docx",
+        "size_bytes": 13794
+      },
+      {
+        "file_name": "20260905_0542_IST_Valuation_Minority_Stake_IVF_Company.docx",
+        "relative_path": "sources/tax_and_corporate/20260905_0542_IST_Valuation_Minority_Stake_IVF_Company.docx",
+        "extension": ".docx",
+        "size_bytes": 25816
+      },
+      {
+        "file_name": "AOC-4 AGM Date - Voluntary Liquidation Note.docx",
+        "relative_path": "sources/tax_and_corporate/AOC-4 AGM Date - Voluntary Liquidation Note.docx",
+        "extension": ".docx",
+        "size_bytes": 14377
+      },
+      {
+        "file_name": "Application_Winding_Up_Committee_S277.docx",
+        "relative_path": "sources/tax_and_corporate/Application_Winding_Up_Committee_S277.docx",
+        "extension": ".docx",
+        "size_bytes": 10607
+      },
+      {
+        "file_name": "Form No. 88_reference.docx",
+        "relative_path": "sources/tax_and_corporate/Form No. 88_reference.docx",
+        "extension": ".docx",
+        "size_bytes": 20846
+      },
+      {
+        "file_name": "GST_Registration_Representation_Letter-1.docx",
+        "relative_path": "sources/tax_and_corporate/GST_Registration_Representation_Letter-1.docx",
+        "extension": ".docx",
+        "size_bytes": 12094
+      }
+    ]
+  }
+}

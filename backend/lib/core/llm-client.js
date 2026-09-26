@@ -3,7 +3,7 @@ const https = require('https');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
-const { repairToolPairing } = require('./history-compactor');
+const { repairToolPairing, isContextOverflow, emergencyCompact } = require('./history-compactor');
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 const DEFAULT_OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:latest';
@@ -610,30 +610,39 @@ async function getEmbedding(text, options = {}) {
 
 async function* streamChat(messages, opts = {}) {
     const config = loadLlmConfig(opts);
-    const { compactHistory, shouldCompact, estimateTokens, repairToolPairing } = require('./history-compactor');
+    const { compactHistory, shouldCompact, estimateTokens, repairToolPairing, isContextOverflow, emergencyCompact } = require('./history-compactor');
 
     // Self-healing: ensure all tool calls and results are paired and sequenced correctly
     // Prevents unrecoverable HTTP 400 Bad Request provider errors on interrupted turns
     let outboundMessages = repairToolPairing(messages);
 
     // Mathematical context auto-compaction before outbound model dispatch
-    if (shouldCompact(outboundMessages, 2048)) {
+    if (shouldCompact(outboundMessages, 2048, opts)) {
         const est = estimateTokens(outboundMessages);
         console.log(`[LLM Client] Context window threshold reached (~${est} tokens). Auto-compacting outbound history...`);
-        const result = await compactHistory(outboundMessages, { contextWindow: 2048 });
+        const result = await compactHistory(outboundMessages, { contextWindow: 2048, caseDir: opts.caseDir });
         if (result.compacted) {
             console.log(`[LLM Client] Context auto-compacted: ${result.originalTokens} tokens -> ${result.compactedTokens} tokens (Boundary: Turn ${result.boundaryIndex})`);
             outboundMessages = result.messages;
         }
     }
 
-    // Strict 1,500 token input budget pre-flight check
-    const approxTokens = estimateTokens(outboundMessages);
+    // Strict 1,500 token input budget pre-flight check with emergency fallback (Plan 15)
+    let approxTokens = estimateTokens(outboundMessages);
     if (approxTokens > 1500) {
-        console.warn(`[LLM Client] Warning: Prompt size (~${approxTokens} tokens) exceeds LegalParam context budget (1,500 tokens max).`);
-        const err = new Error(`⚠️ Context Window Exceeded: LegalParam context budget is 2,048 tokens (~1,500 tokens max). Please refine selection or shorten prompt.`);
-        err.code = 'CONTEXT_EXCEEDED';
-        throw err;
+        console.warn(`[LLM Client] Pre-flight warning: Prompt size (~${approxTokens} tokens) exceeds budget. Attempting emergency compaction...`);
+        const emergency = await emergencyCompact(outboundMessages, { contextWindow: 2048, caseDir: opts.caseDir });
+        if (emergency.compacted && emergency.compactedTokens < approxTokens) {
+            console.log(`[LLM Client] Pre-flight emergency compaction reduced tokens: ${approxTokens} -> ${emergency.compactedTokens}`);
+            outboundMessages = emergency.messages;
+            approxTokens = emergency.compactedTokens;
+        }
+        if (approxTokens > 1500) {
+            console.warn(`[LLM Client] Prompt size (~${approxTokens} tokens) still exceeds LegalParam context budget (1,500 tokens max).`);
+            const err = new Error(`⚠️ Context Window Exceeded: LegalParam context budget is 2,048 tokens (~1,500 tokens max, found ${approxTokens} tokens). Please refine selection in Active-Context Control Matrix or shorten prompt.`);
+            err.code = 'CONTEXT_EXCEEDED';
+            throw err;
+        }
     }
 
     // Unified single LLM engine port (8090) with hot-swapping
@@ -652,6 +661,16 @@ async function* streamChat(messages, opts = {}) {
             yield* streamLlamafile(outboundMessages, targetEndpoint);
             return;
         } catch (e) {
+            // Plan 15: Intercept provider-level context overflow and retry with emergency compaction
+            if (isContextOverflow(e) && !opts._didEmergencyRetry) {
+                console.warn(`[LLM Client] Context overflow detected from engine: "${e.message}". Attempting emergency compaction retry...`);
+                const emergency = await emergencyCompact(outboundMessages, { contextWindow: 2048, caseDir: opts.caseDir });
+                if (emergency.compacted && emergency.compactedTokens < approxTokens) {
+                    console.log(`[LLM Client] Emergency compaction reduced tokens: ${approxTokens} -> ${emergency.compactedTokens}. Retrying stream...`);
+                    yield* streamChat(emergency.messages, { ...opts, _didEmergencyRetry: true });
+                    return;
+                }
+            }
             console.error('[LLM Client] Llamafile stream failed:', e.message);
             throw e;
         }
@@ -676,5 +695,23 @@ async function getChatResponse(messages, opts = {}) {
     return Promise.race([fetchPromise, timeoutPromise]);
 }
 
-module.exports = { streamChat, getChatResponse, getEmbedding, detectDocumentVectorType, warmupEmbeddingPipeline, checkLlamafileHealth, streamLlamafile, checkOllamaHealth, streamOllama, streamGemini, streamOpenAI, streamOpenRouter, loadLlmConfig, repairToolPairing };
+module.exports = {
+    streamChat,
+    getChatResponse,
+    getEmbedding,
+    detectDocumentVectorType,
+    warmupEmbeddingPipeline,
+    checkLlamafileHealth,
+    streamLlamafile,
+    checkOllamaHealth,
+    streamOllama,
+    streamGemini,
+    streamOpenAI,
+    streamOpenRouter,
+    loadLlmConfig,
+    repairToolPairing,
+    isContextOverflow,
+    is_context_overflow: isContextOverflow,
+    emergencyCompact
+};
 

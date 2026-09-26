@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statutory Compliance Requisition Queue</title>
+  <style>
+    :root {
+      --bg-color: #0b1120;
+      --surface-bg: #131d33;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --card-border-focus: #38bdf8;
+      --card-bg-active: rgba(56, 189, 248, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --accent-blue: #0284c7;
+      --accent-cyan: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #8b5cf6;
+      --input-bg: #0b1120;
+      --input-border: #334155;
+      --badge-bg: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="light"] {
+      --bg-color: #f1f5f9;
+      --surface-bg: #ffffff;
+      --card-bg: #ffffff;
+      --card-border: #cbd5e1;
+      --card-border-focus: #0284c7;
+      --card-bg-active: rgba(2, 132, 199, 0.06);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #94a3b8;
+      --accent-blue: #0284c7;
+      --accent-cyan: #0284c7;
+      --accent-emerald: #059669;
+      --accent-amber: #d97706;
+      --accent-rose: #e11d48;
+      --accent-purple: #7c3aed;
+      --input-bg: #f8fafc;
+      --input-border: #cbd5e1;
+      --badge-bg: rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.5;
+      font-size: 13px;
+      padding-bottom: 60px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    /* ── Sticky Top Bar ────────────────────────────────────────── */
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: var(--surface-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .header-icon {
+      font-size: 26px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+    }
+
+    .header-title-wrap h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+    }
+
+    .header-title-wrap p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border-color: var(--card-border);
+      color: var(--text-main);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      border-color: var(--accent-cyan);
+      background: var(--card-bg-active);
+    }
+
+    .btn-local {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #38bdf8;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+    }
+
+    .btn-local:hover:not(:disabled) {
+      background: #0369a1;
+      transform: translateY(-1px);
+    }
+
+    .btn-global {
+      background: #059669;
+      color: #ffffff;
+      border-color: #10b981;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-global:hover:not(:disabled) {
+      background: #10b981;
+      transform: translateY(-1px);
+    }
+
+    .btn-dismiss {
+      background: transparent;
+      color: var(--text-subtle);
+      border-color: transparent;
+    }
+
+    .btn-dismiss:hover:not(:disabled) {
+      color: var(--accent-rose);
+      background: rgba(244, 63, 94, 0.1);
+    }
+
+    /* ── Tier Navigation Tabs ──────────────────────────────────── */
+    .tier-nav-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 12px;
+    }
+
+    .tier-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      background: var(--surface-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tier-tab-btn:hover {
+      color: var(--text-main);
+      border-color: var(--card-border-focus);
+    }
+
+    .tier-tab-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .tier-count-chip {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+    }
+
+    .tier-tab-btn.active .tier-count-chip {
+      background: var(--accent-cyan);
+      color: #0b1120;
+      font-weight: 700;
+    }
+
+    /* ── Table Card ────────────────────────────────────────────── */
+    .card {
+      background: var(--surface-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    }
+
+    .table-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .search-filter {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-control {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-main);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--card-border-focus);
+    }
+
+    .queue-table-wrap {
+      overflow-x: auto;
+    }
+
+    table.queue-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    table.queue-table th {
+      padding: 12px 14px;
+      background: var(--card-bg);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    table.queue-table td {
+      padding: 14px;
+      border-bottom: 1px solid var(--card-border);
+      vertical-align: middle;
+    }
+
+    table.queue-table tr:hover td {
+      background: var(--card-bg-active);
+    }
+
+    .report-code-badge {
+      display: inline-block;
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 11px;
+      color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      margin-bottom: 4px;
+    }
+
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .tier-badge-local {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .tier-badge-global {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .report-title {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    .target-scope-line {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .citation-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-purple);
+      background: rgba(139, 92, 246, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+
+    .trigger-brief {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .status-pending {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-approved, .status-completed {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .status-dispatched {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .status-dismissed {
+      background: rgba(100, 116, 139, 0.15);
+      color: var(--text-subtle);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+    }
+
+    /* ── Toast Notification ────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card-bg);
+      color: var(--text-main);
+      padding: 12px 18px;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .toast.toast-success {
+      border-color: var(--accent-emerald);
+    }
+
+    .toast.toast-error {
+      border-color: var(--accent-rose);
+      color: var(--accent-rose);
+    }
+
+    /* Modal / Drawer */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      width: 90%;
+      max-width: 640px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .details-grid {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .details-row {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 10px 14px;
+    }
+
+    .details-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .details-val {
+      font-size: 12px;
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    .json-box {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--text-main);
+      max-height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header Bar -->
+    <div class="header-bar">
+      <div class="header-left">
+        <div class="header-icon">📋</div>
+        <div class="header-title-wrap">
+          <h1 id="matterTitle">Statutory Compliance Requisition Queue</h1>
+          <p id="matterSubtitle">Autonomous Insolvency Fiduciary Queue &bull; In-Chamber Sovereign AI &amp; LexAI Operations Desk</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline" id="btnRefresh" onclick="loadQueue()">🔄 Refresh Queue</button>
+      </div>
+    </div>
+
+    <!-- Tier Navigation Tabs -->
+    <div class="tier-nav-bar">
+      <button class="tier-tab-btn active" id="tabAll" onclick="setTierFilter('ALL')">
+        <span>📑 All Requisitions</span>
+        <span class="tier-count-chip" id="chipCountAll">0</span>
+      </button>
+      <button class="tier-tab-btn" id="tabLocal" onclick="setTierFilter('LOCAL')">
+        <span>🏠 Local In-Chamber Tasks (@Agents)</span>
+        <span class="tier-count-chip" id="chipCountLocal">0</span>
+      </button>
+      <button class="tier-tab-btn" id="tabGlobal" onclick="setTierFilter('GLOBAL')">
+        <span>🌐 Global Forensic Sweeps (LexAI Desk)</span>
+        <span class="tier-count-chip" id="chipCountGlobal">0</span>
+      </button>
+    </div>
+
+    <!-- Table Card -->
+    <div class="card">
+      <div class="table-top-bar">
+        <div>
+          <h2 style="font-size: 14px; font-weight: 700; color: var(--text-main);" id="tableHeaderTitle">All Compliance Requisitions</h2>
+          <p style="font-size: 11px; color: var(--text-muted);">Execute local drafts in-chamber or dispatch external negative assurance sweeps to the LexAI desk.</p>
+        </div>
+        <div class="search-filter">
+          <select class="form-control" id="statusFilter" onchange="filterQueue()">
+            <option value="ALL" selected>All Statuses</option>
+            <option value="PENDING_REVIEW">Pending Review</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="DISPATCHED">Dispatched</option>
+            <option value="DISMISSED">Dismissed</option>
+          </select>
+          <input type="text" class="form-control" id="searchBox" placeholder="Filter by report, subject, or agent…" oninput="filterQueue()" style="width: 220px;">
+        </div>
+      </div>
+
+      <div class="queue-table-wrap">
+        <table class="queue-table">
+          <thead>
+            <tr>
+              <th style="width: 38%;">Requisition &amp; Target Scope</th>
+              <th style="width: 28%;">Statutory Mandate &amp; Basis</th>
+              <th style="width: 14%;">Status</th>
+              <th style="width: 20%; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="queueTbody">
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 32px; color: var(--text-subtle);">
+                Loading compliance queue…
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Detailed Modal -->
+  <div class="modal-backdrop" id="inspectModal" onclick="closeInspectModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title" id="inspectModalTitle">Requisition Details</div>
+        <button class="btn btn-outline" onclick="closeInspectModal()" style="padding: 2px 8px;">✕</button>
+      </div>
+      <div class="details-grid">
+        <div class="details-row">
+          <div class="details-label">Statutory Citation</div>
+          <div class="details-val" id="modalCitation"></div>
+        </div>
+        <div class="details-row">
+          <div class="details-label">Regulatory Rationale &amp; Trigger</div>
+          <div class="details-val" id="modalTrigger"></div>
+        </div>
+        <div class="details-row">
+          <div class="details-label">Executor &amp; Scope</div>
+          <div class="details-val" id="modalExecutor"></div>
+        </div>
+      </div>
+      <div class="details-label" style="margin-bottom: 6px;">Input Parameters (JSON)</div>
+      <div class="json-box" id="inspectModalBody">{}</div>
+      <div style="text-align: right; margin-top: 14px;">
+        <button class="btn btn-outline" onclick="closeInspectModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toastBox">
+    <span id="toastIcon">✓</span>
+    <span id="toastMsg">Operation completed</span>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const caseName = urlParams.get('case') || '';
+    const theme = urlParams.get('theme') || 'dark';
+    let currentTier = (urlParams.get('tier') || 'ALL').toUpperCase();
+
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+
+    if (caseName) {
+      document.getElementById('matterTitle').textContent = `Compliance Queue — ${caseName}`;
+    }
+
+    let allQueueItems = [];
+
+    // Message listener for host IDE refresh / tab switch events
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'refresh') {
+        loadQueue();
+      }
+      if (event.data && event.data.type === 'switch-tier' && event.data.tier) {
+        setTierFilter(event.data.tier);
+      }
+    });
+
+    function setTierFilter(tier) {
+      currentTier = tier.toUpperCase();
+      document.querySelectorAll('.tier-tab-btn').forEach(btn => btn.classList.remove('active'));
+      if (currentTier === 'LOCAL') {
+        document.getElementById('tabLocal').classList.add('active');
+        document.getElementById('tableHeaderTitle').textContent = '🏠 Local In-Chamber Tasks (@Agents)';
+      } else if (currentTier === 'GLOBAL') {
+        document.getElementById('tabGlobal').classList.add('active');
+        document.getElementById('tableHeaderTitle').textContent = '🌐 Global Forensic Requisitions (LexAI Desk)';
+      } else {
+        document.getElementById('tabAll').classList.add('active');
+        document.getElementById('tableHeaderTitle').textContent = '📑 All Compliance Requisitions';
+      }
+      filterQueue();
+    }
+
+    async function loadQueue() {
+      const tbody = document.getElementById('queueTbody');
+      try {
+        const res = await fetch(`/api/hayagriva/compliance/queue?case=${encodeURIComponent(caseName)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        allQueueItems = data.items || [];
+
+        updatePillCounts(allQueueItems);
+        setTierFilter(currentTier);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 24px; color: var(--accent-rose);">Failed to load compliance queue: ${err.message}</td></tr>`;
+      }
+    }
+
+    function updatePillCounts(items) {
+      const localCount = items.filter(it => (it.execution_tier || 'GLOBAL').toUpperCase() === 'LOCAL').length;
+      const globalCount = items.filter(it => (it.execution_tier || 'GLOBAL').toUpperCase() === 'GLOBAL').length;
+      document.getElementById('chipCountAll').textContent = items.length;
+      document.getElementById('chipCountLocal').textContent = localCount;
+      document.getElementById('chipCountGlobal').textContent = globalCount;
+    }
+
+    function filterQueue() {
+      const statusFilter = document.getElementById('statusFilter').value;
+      const search = (document.getElementById('searchBox').value || '').toLowerCase().trim();
+
+      let filtered = allQueueItems;
+
+      // Tier filter
+      if (currentTier !== 'ALL') {
+        filtered = filtered.filter(it => (it.execution_tier || 'GLOBAL').toUpperCase() === currentTier);
+      }
+
+      // Status filter
+      if (statusFilter !== 'ALL') {
+        filtered = filtered.filter(it => it.status === statusFilter);
+      }
+
+      // Search keyword
+      if (search) {
+        filtered = filtered.filter(it => 
+          (it.title || '').toLowerCase().includes(search) ||
+          (it.report_code || '').toLowerCase().includes(search) ||
+          (it.report_id || '').toLowerCase().includes(search) ||
+          (it.subject || '').toLowerCase().includes(search) ||
+          (it.target_agent || '').toLowerCase().includes(search) ||
+          (it.statutory_trigger || '').toLowerCase().includes(search)
+        );
+      }
+
+      renderTable(filtered);
+    }
+
+    function openDraftInEditor(draftPath) {
+      if (!draftPath) return;
+      window.parent.postMessage({
+        type: 'open-concept-chunk',
+        relativePath: draftPath
+      }, '*');
+      showToast(`Opening ${draftPath} in editor…`, false);
+    }
+
+    function renderTable(items) {
+      const tbody = document.getElementById('queueTbody');
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 36px; color: var(--text-subtle);">No compliance requisitions matching the selected criteria.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => {
+        const isLocal = (item.execution_tier || 'GLOBAL').toUpperCase() === 'LOCAL';
+        const targetAgent = item.target_agent || (isLocal ? '@document' : 'LEXAI');
+
+        let statusClass = 'status-pending';
+        let statusLabel = item.status || 'PENDING_REVIEW';
+        if (item.status === 'APPROVED' || item.status === 'COMPLETED') statusClass = 'status-completed';
+        if (item.status === 'DISPATCHED') statusClass = 'status-dispatched';
+        if (item.status === 'DISMISSED') statusClass = 'status-dismissed';
+
+        let actionCell = '';
+        if (item.status === 'PENDING_REVIEW') {
+          if (isLocal) {
+            actionCell = `
+              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 6px;">
+                <button class="btn btn-local" id="btnAction-${item.task_id}" onclick="runLocalTask('${item.task_id}')">
+                  ▶ Run ${escapeHtml(targetAgent)}
+                </button>
+                <button class="btn btn-dismiss" title="Dismiss Requisition" onclick="dismissTask('${item.task_id}')">
+                  ✕
+                </button>
+              </div>
+            `;
+          } else {
+            actionCell = `
+              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 6px;">
+                <button class="btn btn-global" id="btnAction-${item.task_id}" onclick="proceedWithGlobalTask('${item.task_id}')">
+                  ⚡ Dispatch LexAI
+                </button>
+                <button class="btn btn-dismiss" title="Dismiss Requisition" onclick="dismissTask('${item.task_id}')">
+                  ✕
+                </button>
+              </div>
+            `;
+          }
+        } else if (item.status === 'COMPLETED') {
+          const res = item.dispatch_result || {};
+          let buttons = [];
+
+          if (res.audit_note_rel) {
+            buttons.push(`
+              <button class="btn btn-local" style="padding: 4px 10px; font-size: 11px; background: #0284c7; color: #fff;" onclick="openDraftInEditor('${escapeHtml(res.audit_note_rel)}')">
+                📝 Audit Note
+              </button>
+            `);
+          }
+
+          if (res.wiki_html_rel) {
+            buttons.push(`
+              <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #7c3aed; border-color: #8b5cf6; color: #fff;" onclick="openDraftInEditor('${escapeHtml(res.wiki_html_rel)}')">
+                📖 TiddlyWiki
+              </button>
+            `);
+          }
+
+          if (res.cure_draft_rel) {
+            buttons.push(`
+              <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #dc2626; border-color: #ef4444; color: #fff; font-weight: 700; box-shadow: 0 0 8px rgba(220,38,38,0.4);" onclick="openDraftInEditor('${escapeHtml(res.cure_draft_rel)}')">
+                ⚠️ Reg 36A(8) Cure Notice
+              </button>
+            `);
+          }
+
+          if (buttons.length === 0) {
+            const draft = res.draft_file || 'drafts/rbz-ip-fee-proposal-06.md';
+            buttons.push(`
+              <button class="btn btn-local" style="padding: 5px 12px; font-size: 11px; background: #0284c7; color: #fff;" onclick="openDraftInEditor('${escapeHtml(draft)}')">
+                📝 Open Draft
+              </button>
+            `);
+          }
+
+          actionCell = `
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 6px; flex-wrap: wrap;">
+              ${buttons.join('')}
+            </div>
+          `;
+        } else if (item.status === 'DISPATCHED') {
+          const receipt = (item.dispatch_result && item.dispatch_result.receipt_id) ? item.dispatch_result.receipt_id : 'VERIFIED';
+          actionCell = `
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-emerald);">✓ Commissioned</div>
+              <div style="font-size: 10px; color: var(--text-subtle); font-family: monospace;">${escapeHtml(receipt)}</div>
+              <button class="btn" style="padding: 2px 8px; font-size: 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 4px; cursor: pointer; margin-top: 2px;" onclick="simulateLexAiDelivery('${item.task_id}')">
+                📥 Deliver &amp; Audit Dossier
+              </button>
+            </div>
+          `;
+        } else {
+          actionCell = `
+            <div style="text-align: right; color: var(--text-subtle); font-size: 11px;">
+              ${statusLabel}
+            </div>
+          `;
+        }
+
+        const tierBadge = isLocal 
+          ? `<span class="tier-badge tier-badge-local">🏠 ${escapeHtml(targetAgent)}</span>`
+          : `<span class="tier-badge tier-badge-global">🌐 LexAI Desk</span>`;
+
+        return `
+          <tr id="row-${item.task_id}">
+            <!-- Column 1: Requisition & Target Scope -->
+            <td>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span class="report-code-badge">${escapeHtml(item.report_code || item.report_id || 'REPORT')}</span>
+                ${tierBadge}
+              </div>
+              <div class="report-title">${escapeHtml(item.title || 'Statutory Requisition')}</div>
+              <div class="target-scope-line">🎯 ${escapeHtml(item.summary_scope || item.subject || 'Matter Scope')}</div>
+            </td>
+
+            <!-- Column 2: Statutory Mandate & Citation -->
+            <td>
+              <div>
+                <span class="citation-tag">⚖️ ${escapeHtml(item.statutory_citation || 'IBC 2016')}</span>
+                <button class="btn-outline" style="font-size: 10px; padding: 1px 6px; margin-left: 6px; border-radius: 4px; cursor: pointer;" onclick='inspectTask(${JSON.stringify(JSON.stringify(item))})'>ℹ️ Details</button>
+              </div>
+              <div class="trigger-brief">${escapeHtml(item.statutory_trigger || 'Mandatory statutory diagnostic requirement.')}</div>
+            </td>
+
+            <!-- Column 3: Status -->
+            <td>
+              <span class="status-badge ${statusClass}">
+                ${statusLabel === 'PENDING_REVIEW' ? '⏳ Pending' : (statusLabel === 'COMPLETED' ? '✓ Ready' : (statusLabel === 'DISPATCHED' ? '🚀 Commissioned' : statusLabel))}
+              </span>
+            </td>
+
+            <!-- Column 4: Action -->
+            <td>
+              ${actionCell}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function runLocalTask(taskId) {
+      const btn = document.getElementById(`btnAction-${taskId}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⚙️ Executing…';
+      }
+
+      try {
+        const res = await fetch('/api/hayagriva/compliance/run-local', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: caseName, taskId })
+        });
+        const result = await res.json();
+        if (!res.ok || !result.success) throw new Error(result.error || 'Execution failed');
+
+        showToast(result.message || '✓ Local agent draft compiled', false);
+        await loadQueue();
+        if (result.draftFile) {
+          openDraftInEditor(result.draftFile);
+        }
+      } catch (err) {
+        showToast(`Agent execution error: ${err.message}`, true);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '▶ Retry';
+        }
+      }
+    }
+
+    async function proceedWithGlobalTask(taskId) {
+      const btn = document.getElementById(`btnAction-${taskId}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Commissioning…';
+      }
+
+      try {
+        const res = await fetch('/api/hayagriva/compliance/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: caseName, taskId })
+        });
+        const result = await res.json();
+        if (!res.ok || !result.success) throw new Error(result.error || 'Dispatch failed');
+
+        const receipt = (result.dispatch && result.dispatch.receipt_id) ? result.dispatch.receipt_id : 'Receipt generated';
+        showToast(`🚀 Dispatched to LexAI MCP Desk (${receipt})`, false);
+        await loadQueue();
+      } catch (err) {
+        showToast(`Dispatch failed: ${err.message}`, true);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '⚡ Dispatch LexAI';
+        }
+      }
+    }
+
+    async function dismissTask(taskId) {
+      if (!confirm('Are you sure you want to dismiss this compliance requisition?')) return;
+      try {
+        const res = await fetch('/api/hayagriva/compliance/dismiss', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: caseName, taskId })
+        });
+        const result = await res.json();
+        if (!res.ok || !result.success) throw new Error(result.error || 'Dismiss failed');
+        showToast('✓ Requisition dismissed');
+        await loadQueue();
+      } catch (err) {
+        showToast(`Dismiss error: ${err.message}`, true);
+      }
+    }
+
+    async function simulateLexAiDelivery(taskId) {
+      showToast('Ingesting LexAI Forensic Tiddlers & running @statutory_auditor…', false);
+      try {
+        const res = await fetch('/api/hayagriva/compliance/simulate-lexai-delivery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: caseName, taskId, simulateIneligible: true })
+        });
+        const result = await res.json();
+        if (!res.ok || !result.success) throw new Error(result.error || 'Delivery simulation failed');
+        showToast('✓ LexAI TiddlyWiki ingested! Audit note & Reg 36A(8) cure notice generated', false);
+        await loadQueue();
+        if (result.auditResult && result.auditResult.audit_note_rel) {
+          openDraftInEditor(result.auditResult.audit_note_rel);
+        }
+      } catch (err) {
+        showToast(`Simulation error: ${err.message}`, true);
+      }
+    }
+
+    function inspectTask(itemJsonStr) {
+      try {
+        const item = JSON.parse(itemJsonStr);
+        document.getElementById('inspectModalTitle').textContent = `${item.title} [${item.report_code || item.report_id}]`;
+        document.getElementById('modalCitation').textContent = item.statutory_citation || 'IBC 2016';
+        document.getElementById('modalTrigger').textContent = item.statutory_trigger || 'Statutory requirement.';
+        document.getElementById('modalExecutor').textContent = `${item.execution_tier || 'GLOBAL'} Tier &bull; Target: ${item.target_agent || 'LEXAI'} &bull; Scope: ${item.subject || 'All'}`;
+        document.getElementById('inspectModalBody').textContent = JSON.stringify(item.required_inputs || {}, null, 2);
+        document.getElementById('inspectModal').classList.add('open');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function closeInspectModal(e) {
+      document.getElementById('inspectModal').classList.remove('open');
+    }
+
+    function showToast(msg, isError = false) {
+      const box = document.getElementById('toastBox');
+      const text = document.getElementById('toastMsg');
+      const icon = document.getElementById('toastIcon');
+      text.textContent = msg;
+      icon.textContent = isError ? '⚠️' : '✓';
+      box.className = 'toast show ' + (isError ? 'toast-error' : 'toast-success');
+      setTimeout(() => {
+        box.classList.remove('show');
+      }, 4000);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Initial load
+    loadQueue();
+  </script>
+</body>
+</html>

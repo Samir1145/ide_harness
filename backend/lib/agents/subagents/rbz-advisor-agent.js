@@ -64,6 +64,9 @@ class RBZAdvisorAgent {
             subtitle: data.subtitle,
             message: data.subtitle,
             description: data.description,
+            executionTier: data.executionTier || 'LOCAL',
+            targetAgent: data.targetAgent || (data.executionTier === 'GLOBAL' ? 'LEXAI' : '@advisor'),
+            citation: data.citation || 'IBC 2016',
             rateInr: data.rateInr,
             gstInr: data.gstInr,
             totalInr: data.totalInr,
@@ -137,6 +140,9 @@ class RBZAdvisorAgent {
                 title: '⚡ Section 29A Disqualification Check',
                 subtitle: `Recommended for: ${entityName}`,
                 description: 'Screen applicant promoters, DINs, and connected entities against MCA wilful defaulters and CIBIL lists.',
+                executionTier: 'GLOBAL',
+                targetAgent: 'LEXAI',
+                citation: 'IBC Section 29A read with Reg 39(1)(a)',
                 rateInr: 350.00,
                 gstInr: 63.00,
                 totalInr: 413.00,
@@ -167,6 +173,9 @@ class RBZAdvisorAgent {
                 title: '🔍 Multi-Bank Contra & Avoidance Inquest',
                 subtitle: `Audit: ${fileName}`,
                 description: 'Eliminate circular contra-sweeps and uncover §§ 43, 45, 50 & 66 avoidance transactions.',
+                executionTier: 'LOCAL',
+                targetAgent: '@avoidance',
+                citation: 'IBC Sections 43, 45, 50, 66',
                 rateInr: 1200.00,
                 gstInr: 216.00,
                 totalInr: 1416.00,
@@ -195,6 +204,9 @@ class RBZAdvisorAgent {
                 title: '⚖️ NCLAT Limitation Precedent Memo',
                 subtitle: 'Judicial Ratio on IBC Limitation & Section 18',
                 description: 'Pull binding Supreme Court and NCLAT rulings on debt acknowledgment and Article 137 applicability.',
+                executionTier: 'LOCAL',
+                targetAgent: '@advisor',
+                citation: 'Limitation Act §18 read with IBC §7',
                 rateInr: 150.00,
                 gstInr: 27.00,
                 totalInr: 177.00,
@@ -236,6 +248,9 @@ class RBZAdvisorAgent {
                 title: '⚖️ Section 65 Collusive CIRP Inquest',
                 subtitle: `Audit Corporate Debtor: ${entityName}`,
                 description: 'Screen 21 IBBI forensic indicators, examine twilight board resignations, shell creditors, and prepare petition dismissal grounds (₹1 Crore penalty).',
+                executionTier: 'GLOBAL',
+                targetAgent: 'LEXAI',
+                citation: 'IBC Section 65 & IBBI CIRP Reg 6',
                 rateInr: 2500.00,
                 gstInr: 450.00,
                 totalInr: 2950.00,
@@ -277,17 +292,42 @@ class RBZAdvisorAgent {
             payload: suggestionData.payload || {}
         });
 
+        // Enqueue directly into Compliance Queue for Local / Global action
+        let complianceTask = null;
+        try {
+            const { enqueueRequisition } = require('../../gatekeeper/compliance_queue');
+            complianceTask = enqueueRequisition(caseDir, {
+                report_id: suggestionData.toolName || suggestionData.triggerType || 'ADVISOR_TASK',
+                report_code: `RBZ-${suggestionData.triggerType || 'TASK'}`,
+                title: suggestionData.title || 'Statutory Compliance Requisition',
+                execution_tier: suggestionData.executionTier || 'LOCAL',
+                target_agent: suggestionData.targetAgent || (suggestionData.executionTier === 'GLOBAL' ? 'LEXAI' : '@advisor'),
+                subject: suggestionData.subtitle || suggestionData.targetKey || 'Active Document Perimeter',
+                summary_scope: suggestionData.subtitle || suggestionData.targetKey || 'Active Document Perimeter',
+                statutory_trigger: suggestionData.description || 'Proactive advisory suggestion based on document context.',
+                statutory_citation: suggestionData.citation || 'IBC 2016',
+                required_inputs: suggestionData.payload || {}
+            });
+        } catch (e) {
+            console.warn('[RBZAdvisor] Warning enqueuing to compliance queue:', e.message);
+        }
+
         // Add to dismissed set so we don't prompt again for the same target
         if (suggestionData.targetKey) {
             this._dismissedEntities.add(suggestionData.targetKey.toLowerCase());
         }
 
+        const taskId = (complianceTask && complianceTask.task_id) ? complianceTask.task_id : task.task_id;
+        const executionTier = suggestionData.executionTier || 'LOCAL';
+
         return {
             success: true,
-            taskId: task.task_id,
+            taskId,
+            executionTier,
+            targetAgent: suggestionData.targetAgent || (executionTier === 'GLOBAL' ? 'LEXAI' : '@advisor'),
             toolName: task.tool_name,
             totalInr: Math.round(task.rate_inr * 1.18 * 100) / 100,
-            message: `Task ${task.task_id} successfully staged in Settings Outbound Queue.`
+            message: `Task ${taskId} staged in Compliance Queue under ${executionTier} tier.`
         };
     }
 }

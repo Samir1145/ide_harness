@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T10:54:19.825Z",
+  "generatedAt": "2026-09-25T09:41:59.467Z",
   "caseMeta": {
     "companyName": "New Pearl Vitrified Private Limited",
     "cin": "U26914GJ2017PTC098234",
@@ -183,47 +183,6 @@
       "entity": "Banking Clearing Systems",
       "totalVolume": 1250,
       "earliestDishonorDate": "2023-11-20"
-    },
-    {
-      "type": "PDF_TAMPERING_SUSPECTED",
-      "severity": "CRITICAL",
-      "statutorySection": "§66 (Fraudulent Statements / Concealment) & IPC §463/§465 (Document Forgery)",
-      "title": "PDF Statement Manipulation Risk: sbi_tampered_statement.pdf (HIGH_RISK_TAMPERED)",
-      "description": "Automated byte-level forensics on 'sbi_tampered_statement.pdf' identified document alteration risk (Risk Score: 1). Indicators: Statement was produced or modified using consumer graphic editing software 'photoshop'.; PDF contains 3 incremental revision trailers (%%EOF markers), indicating post-generation alteration.; PDF modification timestamp differs from original creation timestamp.",
-      "entity": "Canva Online PDF Editor",
-      "totalVolume": 0,
-      "forensicDetails": {
-        "filename": "sbi_tampered_statement.pdf",
-        "verdict": "HIGH_RISK_TAMPERED",
-        "riskScore": 1,
-        "isTampered": true,
-        "creationDate": "D:20231101120000",
-        "modificationDate": "D:20240315183000",
-        "producer": "Canva Online PDF Editor",
-        "creator": "Photoshop 24.0",
-        "revisionCount": 3,
-        "fontsCount": 1,
-        "findings": [
-          {
-            "category": "SOFTWARE_PROVENANCE",
-            "severity": "HIGH",
-            "description": "Statement was produced or modified using consumer graphic editing software 'photoshop'.",
-            "evidence": "Producer: 'Canva Online PDF Editor', Creator: 'Photoshop 24.0'"
-          },
-          {
-            "category": "REVISION_TREE",
-            "severity": "HIGH",
-            "description": "PDF contains 3 incremental revision trailers (%%EOF markers), indicating post-generation alteration.",
-            "evidence": "Found 3 EOF trailers"
-          },
-          {
-            "category": "METADATA_DRIFT",
-            "severity": "LOW",
-            "description": "PDF modification timestamp differs from original creation timestamp.",
-            "evidence": "Creation: 'D:20231101120000', Modified: 'D:20240315183000'"
-          }
-        ]
-      }
     }
   ],
   "distressMetrics": {

@@ -144,7 +144,15 @@ function getSafeFilename(title) {
     }
     return safe;
 }
-function buildPrompt(query, contexts) {
+function buildPrompt(query, contexts, options = {}) {
+    let graphContextBlock = options.graphContext || '';
+    if (!graphContextBlock && options.caseDir) {
+        try {
+            const { getGraphRAGContext } = require('./entity-graph');
+            graphContextBlock = getGraphRAGContext(options.caseDir, query) || '';
+        } catch (_) {}
+    }
+
     const contextText = contexts.map((c, idx) => {
         return `--- [Source: [source:${idx}] | Name: ${c.docName} | Section: ${c.title}] ---\nTags: ${c.tags.join(', ')}\n\n${c.content}`;
     }).join('\n\n');
@@ -154,7 +162,7 @@ You must cite your sources using the exact placeholder [source:N] (e.g. [source:
 If you cannot find the answer, explain what parts of the document sources you checked.
 If the sources contain conflicting information, explicitly note the conflict and cite both sources with their dates.
 
-Context:
+${graphContextBlock ? graphContextBlock + '\n' : ''}Context:
 ${contextText}
 
 Question: ${query}
@@ -243,9 +251,11 @@ Hypothetical Answer:`;
     // Convert FTS rows to standard hits
     let ftsHits = ftsRows.map(r => {
         const isWiki = r.filename.startsWith('wiki/');
+        const isInsight = r.filename.startsWith('wiki/insights/');
+        const isCatalog = r.filename === 'wiki/INDEX.md';
         const ext = path.extname(r.filename).toLowerCase();
-        const docName = isWiki ? 'Wiki' : path.basename(r.filename, ext);
-        const docId = isWiki ? `wiki::${r.section_title}` : `${docName}::${r.section_title}::${r.chunk_index}`;
+        const docName = isWiki ? (isInsight ? 'Wiki Insight' : (isCatalog ? 'Wiki Catalog' : 'Wiki')) : path.basename(r.filename, ext);
+        const docId = isInsight ? `wiki::insights::${r.section_title}` : (isWiki ? `wiki::${r.section_title}` : `${docName}::${r.section_title}::${r.chunk_index}`);
         return {
             docId,
             score: -r.ftsScore,
@@ -431,9 +441,27 @@ Hypothetical Answer:`;
         caseIndex = readIndex(caseDir);
     } catch (_) {}
 
+    // Plan 18: Interactive Emphasis Mode scoring boost
+    let activeFocus = 'general';
+    try {
+        const caseSession = require('./case-session');
+        const session = caseSession.loadCaseSession(caseDir);
+        activeFocus = (session && session.active_focus) || 'general';
+    } catch (_) {}
+
+    const EMPHASIS_PATTERNS = {
+        waterfall: /waterfall|section\s*53|regulation\s*38|secured\s*creditor|unsecured\s*creditor|operational\s*creditor|liquidation\s*value|fair\s*value|payout|distribution/i,
+        s29a: /section\s*29a|disqualification|connected\s*person|promoter|willful\s*defaulter|npa\s*account|director\s*identification|din\b|ineligible/i,
+        avoidance: /section\s*43|section\s*45|section\s*50|section\s*66|preferential|undervalued|extortionate|fraudulent|look-back|contra-sweep|suspicious/i
+    };
+    const focusPattern = EMPHASIS_PATTERNS[activeFocus];
+    let boostedCount = 0;
+
     for (const hit of hits) {
         let score = hit.score;
-        if (hit.docId.startsWith('wiki::')) {
+        if (hit.docId.startsWith('wiki::insights') || (hit.filename && (hit.filename.startsWith('wiki/insights/') || hit.filename === 'wiki/INDEX.md'))) {
+            score *= 2.0; // Compiled Insight / Central Catalog Priority Boost (Karpathy LLM-Wiki)
+        } else if (hit.docId.startsWith('wiki::') || (hit.filename && hit.filename.startsWith('wiki/'))) {
             score *= 1.5; // Curated Case Wiki override boost
         } else {
             const parts = hit.docId.split('::');
@@ -445,7 +473,21 @@ Hypothetical Answer:`;
                 score += priorityBoost;
             }
         }
+
+        // Plan 18: Apply 2.0x emphasis boost for chunks matching active intake priority
+        if (focusPattern) {
+            const hay = `${hit.section_title || ''} ${hit.content || ''}`;
+            if (focusPattern.test(hay)) {
+                score *= 2.0;
+                hit.emphasisMatch = true;
+                boostedCount++;
+            }
+        }
+
         hit.score = score;
+    }
+    if (boostedCount > 0) {
+        console.log(`[RAG] Applied 2.0x emphasis boost (focus: ${activeFocus}) to ${boostedCount} candidate chunks.`);
     }
     
     // Sort again by boosted relevance
@@ -455,14 +497,17 @@ Hypothetical Answer:`;
     const candidateSnippets = [];
     for (const hit of hits) {
         const parts = hit.docId.split('::');
-        const docName = parts[0];
-        const isWiki = docName === 'Wiki';
+        const isInsight = hit.docId.startsWith('wiki::insights') || (hit.filename && hit.filename.startsWith('wiki/insights/'));
+        const isCatalog = hit.filename === 'wiki/INDEX.md';
+        const isWiki = hit.docId.startsWith('wiki::') || (hit.filename && hit.filename.startsWith('wiki/'));
+        const docName = isInsight ? 'Wiki Insight' : (isCatalog ? 'Wiki Catalog' : (isWiki ? 'Wiki' : parts[0]));
+        const title = isWiki ? hit.section_title : (parts.length === 3 && !isNaN(parseInt(parts[2], 10)) ? `${parts[1]} [Part ${parseInt(parts[2], 10) + 1}]` : (parts[1] || hit.section_title || docName));
         candidateSnippets.push({
             hit,
-            title: isWiki ? hit.section_title : (parts.length === 3 ? `${parts[1]} [Part ${parseInt(parts[2], 10) + 1}]` : parts[1]),
+            title,
             docName,
             body: hit.content,
-            tags: [docName, isWiki ? 'wiki' : 'section'],
+            tags: [docName, isWiki ? 'wiki' : 'section', isInsight ? 'insight' : 'general'],
             links: []
         });
     }
@@ -517,20 +562,32 @@ Hypothetical Answer:`;
         content: expandContextUsingTree(caseDir, c.docName, c.title, c.body),
         tags: c.tags,
         links: c.links,
-        score: c.rerankerScore !== undefined ? c.rerankerScore : (c.hit ? c.hit.score : 0)
+        score: c.rerankerScore !== undefined ? c.rerankerScore : (c.hit ? c.hit.score : 0),
+        emphasisMatch: c.hit ? !!c.hit.emphasisMatch : false
     }));
 }
 
 function replaceCitations(text, contexts) {
     if (!text || !contexts || contexts.length === 0) return text;
     
+    const citedIndices = new Set();
+
+    const getContextInfo = (ctx, idx) => {
+        const docName = ctx.docName || ctx.filename || 'Document';
+        const page = ctx.page_number || (ctx.metadata && (ctx.metadata.page || ctx.metadata.page_number)) || ctx.page || 1;
+        const title = ctx.title || (ctx.metadata && (ctx.metadata.section_title || ctx.metadata.title)) || ctx.section_title || '';
+        const chunk = ctx.chunk !== undefined ? ctx.chunk : (ctx.metadata && ctx.metadata.chunk !== undefined ? ctx.metadata.chunk : idx);
+        return { docName, page, title, chunk };
+    };
+
     // Replaces [source:N] with custom hayagriva-citation links
     let replaced = text.replace(/\[source:(\d+)\]/g, (match, idxStr) => {
         const idx = parseInt(idxStr, 10);
         if (idx >= 0 && idx < contexts.length) {
-            const ctx = contexts[idx];
-            const page = ctx.page_number || 1;
-            return `[${idx + 1}](hayagriva-citation://${encodeURIComponent(ctx.docName)}?page=${page})`;
+            citedIndices.add(idx);
+            const { docName, page, title, chunk } = getContextInfo(contexts[idx], idx);
+            const titleParam = encodeURIComponent(title);
+            return `[${idx + 1}](hayagriva-citation://${encodeURIComponent(docName)}?page=${page}&chunk=${chunk}&title=${titleParam})`;
         }
         return match;
     });
@@ -539,12 +596,25 @@ function replaceCitations(text, contexts) {
     replaced = replaced.replace(/\[Reference\s*(\d+)\]/gi, (match, idxStr) => {
         const idx = parseInt(idxStr, 10) - 1;
         if (idx >= 0 && idx < contexts.length) {
-            const ctx = contexts[idx];
-            const page = ctx.page_number || 1;
-            return `[${idx + 1}](hayagriva-citation://${encodeURIComponent(ctx.docName)}?page=${page})`;
+            citedIndices.add(idx);
+            const { docName, page, title, chunk } = getContextInfo(contexts[idx], idx);
+            const titleParam = encodeURIComponent(title);
+            return `[${idx + 1}](hayagriva-citation://${encodeURIComponent(docName)}?page=${page}&chunk=${chunk}&title=${titleParam})`;
         }
         return match;
     });
+
+    // If citations were cited and no "Sources Cited" footer is present, append bibliography
+    if (citedIndices.size > 0 && !replaced.includes('**Sources Cited:**') && !replaced.includes('**Sources Cited**')) {
+        const sortedIndices = Array.from(citedIndices).sort((a, b) => a - b);
+        const bibliography = sortedIndices.map(idx => {
+            const { docName, page, title, chunk } = getContextInfo(contexts[idx], idx);
+            const titleStr = title ? ` — *${title}*` : '';
+            const titleParam = encodeURIComponent(title);
+            return `- [${idx + 1}] [**${docName}** (p. ${page})${titleStr}](hayagriva-citation://${encodeURIComponent(docName)}?page=${page}&chunk=${chunk}&title=${titleParam})`;
+        }).join('\n');
+        replaced += `\n\n---\n**Sources Cited:**\n${bibliography}`;
+    }
 
     return replaced;
 }
@@ -658,18 +728,28 @@ async function query(caseDir, queryText, opts = {}) {
             };
         }
         
+        let graphContext = null;
+        try {
+            const { getGraphRAGContext } = require('./entity-graph');
+            graphContext = getGraphRAGContext(caseDir, queryText);
+        } catch (_) {}
+
         if (config.activeMode === 'lite') {
-            return buildLiteResponse(queryText, contexts);
+            const liteRes = buildLiteResponse(queryText, contexts);
+            if (graphContext) {
+                liteRes.answer = `${graphContext}\n\n${liteRes.answer}`;
+            }
+            return liteRes;
         }
         
-        let prompt = buildPrompt(queryText, contexts);
+        let prompt = buildPrompt(queryText, contexts, { graphContext, caseDir });
         let tokenCount = estimateTokenCount(prompt);
         
         // Iterative truncation to fit within local model 1,500-token input budget
         while (tokenCount > 1500 && contexts.length > 1) {
             console.warn(`[RAG] Prompt has ${tokenCount} tokens (exceeds 1500 limit). Truncating context chunks from ${contexts.length} down to ${contexts.length - 1}...`);
             contexts.pop();
-            prompt = buildPrompt(queryText, contexts);
+            prompt = buildPrompt(queryText, contexts, { graphContext, caseDir });
             tokenCount = estimateTokenCount(prompt);
         }
         

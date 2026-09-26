@@ -9,6 +9,7 @@ const OperationalClaimSubAgent = require('./claim-operational');
 const WorkmenClaimSubAgent = require('./claim-workmen');
 const OtherClaimSubAgent = require('./claim-other');
 const BankAnalyzerSubAgent = require('./bank-analyzer');
+const StatutoryAuditorSubAgent = require('./statutory-auditor');
 
 const subAgentRegistry = {
     'CLASS_OF_CREDITORS': new ClassOfCreditorsClaimSubAgent(),
@@ -16,7 +17,8 @@ const subAgentRegistry = {
     'OPERATIONAL_CREDITOR': new OperationalClaimSubAgent(),
     'WORKMEN_EMPLOYEE': new WorkmenClaimSubAgent(),
     'OTHER_CREDITOR': new OtherClaimSubAgent(),
-    'BANK_ANALYZER': new BankAnalyzerSubAgent()
+    'BANK_ANALYZER': new BankAnalyzerSubAgent(),
+    'STATUTORY_AUDITOR': new StatutoryAuditorSubAgent()
 };
 
 /**
@@ -36,6 +38,7 @@ module.exports = {
     WorkmenClaimSubAgent,
     OtherClaimSubAgent,
     BankAnalyzerSubAgent,
+    StatutoryAuditorSubAgent,
     subAgentRegistry,
     getSubAgentForType
 };

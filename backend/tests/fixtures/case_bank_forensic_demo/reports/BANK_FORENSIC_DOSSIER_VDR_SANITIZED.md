@@ -1,6 +1,6 @@
 # CONSOLIDATED MULTI-BANK FORENSIC CASH FLOW & COUNTERPARTY DOSSIER
 **Matter:** New Pearl Vitrified Private Limited | **CIN:** `U26914GJ2017PTC098234`
-**Bench / Forum:** CP(IB) No. 412/AHM/2023 | **Dossier Generated:** 13 Sept 2026
+**Bench / Forum:** CP(IB) No. 412/AHM/2023 | **Dossier Generated:** 25 Sept 2026
 **Audit Engine:** HAYAGRIVA Forensic Banking Sub-Agent (`@bank_analyzer`)
 
 ---
@@ -18,7 +18,7 @@ This forensic dossier synthesizes **23 day-to-day banking transactions** across 
 | **Net External Outflows (True Expenses)** | **₹ 1.66 Cr** | Payouts to external third parties / lenders / KMPs |
 | **Net External Inflows (True Realizations)**| **₹ 51.73 L**| Actual operational collections & external advances |
 | **High-Velocity Cash Drain** | **₹ 20.00 L** | 2 cash / bearer instrument withdrawals |
-| **Forensic Red-Flag Findings** | **6 Anomalies Flagged** | Triggers under IBC §§ 43, 45, 66 and PMLA |
+| **Forensic Red-Flag Findings** | **5 Anomalies Flagged** | Triggers under IBC §§ 43, 45, 66 and PMLA |
 
 ### 1.1 Mathematical Balance Proof & Statement Integrity
 $$\text{Opening Balance} + \sum \text{Credits} - \sum \text{Debits} = \text{Closing Balance}$$
@@ -33,28 +33,16 @@ $$\text{Opening Balance} + \sum \text{Credits} - \sum \text{Debits} = \text{Clos
 | **Reconciliation Audit Verdict** | — | 🟢 **100% Mathematically Balanced** (Variance < ₹100) |
 
 
-### 1.2 Document Authenticity & Anti-Tampering Forensics (Sebastien Rousseau Architecture)
-
-The forensic engine audited raw byte streams, software provenance, metadata timestamps, and revision trees for all submitted statement files:
-
-| S.No | Statement Document | Software / Producer | Revisions (`%%EOF`) | Fonts | Risk Score | Forensic Verdict |
-| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
-| 1 | `sbi_genuine_statement.pdf` | `Oracle BI Publisher 12c` | 1 | 1 | `0` | 🟢 **GENUINE** |
-| 2 | `sbi_tampered_statement.pdf` | `Canva Online PDF Editor` | 3 | 1 | `1` | 🔴 **HIGH RISK (TAMPERED)** |
-
-> [!CAUTION]
-> **Forensic Document Tampering Warning**: One or more bank statements exhibit clear markers of post-issuance modification (consumer graphic editor signatures or revision trailer overlays). Under Section 66 of the IBC, 2016, submitting falsified banking records to the Resolution Professional constitutes fraudulent conduct and concealment.
-
 ---
 
 ## 2. Ingested Bank Account Footprint & Contra Sweep Reconciliation
 
 | S.No | Bank Name | Account No | Source File | Total Transactions | Status |
 | :---: | :--- | :--- | :--- | :---: | :---: |
-| 1 | **Bank of Baroda** | `XXXXXXXXXX1029` | `bob_ca_1029.csv` | 4 | 🟢 Reconciled |
-| 2 | **HDFC Bank** | `XXXXXXXXXX8371` | `hdfc_od_9102.csv` | 6 | 🟢 Reconciled |
-| 3 | **State Bank of India** | `XXXXXXX1999` | `sbi_ca_split_year_999.csv` | 4 | 🟢 Reconciled |
-| 4 | **State Bank of India** | `XXXXXXX1920` | `sbi_current_4819.xlsx` | 7 | 🟢 Reconciled |
+| 1 | **Bank of Baroda** | `01920200001029` | `bob_ca_1029.csv` | 4 | 🟢 Reconciled |
+| 2 | **HDFC Bank** | `50200091028371` | `hdfc_od_9102.csv` | 6 | 🟢 Reconciled |
+| 3 | **State Bank of India** | `39120481999` | `sbi_ca_split_year_999.csv` | 4 | 🟢 Reconciled |
+| 4 | **State Bank of India** | `39120481920` | `sbi_current_4819.xlsx` | 7 | 🟢 Reconciled |
 | 5 | **Unknown Bank** | `SCBL0099881122` | `scb_mt940_statement.sta` | 2 | 🟢 Reconciled |
 
 > [!NOTE]
@@ -149,13 +137,6 @@ Classification of all net external debit disbursements mapped against IBC statut
 * **Forensic Evidence Ratio:** Earliest recorded cheque bounce or NACH/ECS return occurred on 2023-11-20. Cumulative return penalties and bounced instruments total ₹0.01 Lakhs across 2 instances. This prima facie establishes commercial insolvency and default prior to formal CIRP admission, legally anchoring the lookback period for Section 43 Preferential avoidance petitions.
 
 
-### 5.6 [CRITICAL] PDF Statement Manipulation Risk: sbi_tampered_statement.pdf (HIGH_RISK_TAMPERED)
-* **Statutory Ground:** `§66 (Fraudulent Statements / Concealment) & IPC §463/§465 (Document Forgery)`
-* **Target Entity / Instrument:** `Canva Online PDF Editor`
-* **Total Exposure Volume:** **₹ 0.00**
-* **Forensic Evidence Ratio:** Automated byte-level forensics on 'sbi_tampered_statement.pdf' identified document alteration risk (Risk Score: 1). Indicators: Statement was produced or modified using consumer graphic editing software 'photoshop'.; PDF contains 3 incremental revision trailers (%%EOF markers), indicating post-generation alteration.; PDF modification timestamp differs from original creation timestamp.
-
-
 
 ### 5.2 Chronology of Commercial Insolvency & Dishonored Instruments (Akshat / IBC §43 Inquest)
 
@@ -163,8 +144,8 @@ The forensic engine audited dishonored cheques, ECS bounces, NACH returns, and p
 
 | S.No | Date | Bank | Account No | Amount / Fee | Narration / Dishonor Reason | Chq / Ref No |
 | :---: | :--- | :--- | :--- | :---: | :--- | :--- |
-| 1 | 2023-11-20 | HDFC Bank | `XXXXXXXXXX8371` | ₹ 500 | `NACH RET INSUFFICIENT FUNDS LOAN EMI` | UTR991122 |
-| 2 | 2023-11-22 | HDFC Bank | `XXXXXXXXXX8371` | ₹ 750 | `CHQ RTN CHARGES UNPAID CHQ 1029` | CHQ1029 |
+| 1 | 2023-11-20 | HDFC Bank | `50200091028371` | ₹ 500 | `NACH RET INSUFFICIENT FUNDS LOAN EMI` | UTR991122 |
+| 2 | 2023-11-22 | HDFC Bank | `50200091028371` | ₹ 750 | `CHQ RTN CHARGES UNPAID CHQ 1029` | CHQ1029 |
 
 > [!WARNING]
 > **Statutory Twilight Inquest Finding**: The earliest dishonored banking transaction was recorded on **2023-11-20**. Under Section 43(4) of the IBC, 2016, this objectively substantiates the onset of commercial insolvency, providing critical evidentiary backing for the Resolution Professional to challenge subsequent preferential payments made during the statutory lookback window.

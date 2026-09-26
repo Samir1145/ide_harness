@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { startLazyWorker } = require('./daemon/watcher');
 const routes = require('./routes');
+// Pre-initialize subagents and statutory event listeners
+try { require('./agents/subagents'); } catch (_) {}
 
 function startApiServer(docsRoot, port = 3210) {
     const server = http.createServer(async (req, res) => {
