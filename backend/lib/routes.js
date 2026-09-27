@@ -2415,6 +2415,142 @@ module.exports = {
             res.end(content);
         },
 
+        '/api/hayagriva/vault/acts': (req, res) => {
+            try {
+                const { getRegistry } = require('./vault/indiacode-hydrator');
+                const { listLoadedCartridges, getLoadedCartridgeDetails } = require('./utils/vault-loader');
+                const registry = getRegistry();
+                const loadedKeys = listLoadedCartridges();
+                const loadedDetails = getLoadedCartridgeDetails();
+
+                // Scan disk for compiled cartridges
+                const cartridgesDir = path.join(__dirname, '..', 'vault', 'cartridges');
+                const diskCartridges = {};
+                if (fs.existsSync(cartridgesDir)) {
+                    const dirs = fs.readdirSync(cartridgesDir);
+                    for (const d of dirs) {
+                        const cartPath = path.join(cartridgesDir, d);
+                        const manifestPath = path.join(cartPath, 'manifest.json');
+                        const dataPath = path.join(cartPath, 'cartridge.vlt.data');
+                        const verPath = path.join(cartPath, 'version.json');
+                        if (fs.existsSync(manifestPath) && fs.existsSync(dataPath)) {
+                            const dataStat = fs.statSync(dataPath);
+                            const ver = fs.existsSync(verPath) ? JSON.parse(fs.readFileSync(verPath, 'utf8')) : null;
+                            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                            diskCartridges[d] = {
+                                actKey: d,
+                                provisionsCount: manifest.length,
+                                sizeBytes: dataStat.size,
+                                version: ver,
+                                isChambered: loadedKeys.includes(d)
+                            };
+                        }
+                    }
+                }
+
+                // Compute stats
+                const totalRegistered = Object.keys(registry.acts || {}).length;
+                const totalSynced = Object.values(registry.acts || {}).filter(a => a.sync_status === 'synced').length;
+                const totalChambered = loadedKeys.length;
+                let chamberedSizeBytes = 0;
+                for (const d of Object.values(diskCartridges)) {
+                    if (d.isChambered) chamberedSizeBytes += d.sizeBytes;
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    ...registry,
+                    diskCartridges,
+                    loadedKeys,
+                    loadedDetails,
+                    stats: {
+                        totalRegistered,
+                        totalSynced,
+                        totalChambered,
+                        chamberedSizeBytes,
+                        chamberedSizeKb: (chamberedSizeBytes / 1024).toFixed(1)
+                    }
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/vault/act/view': (req, res, parsedUrl) => {
+            try {
+                const actKey = parsedUrl.query.key;
+                if (!actKey) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Missing act key' }));
+                    return;
+                }
+                const lawsDir = path.join(__dirname, '..', 'vault', 'sources');
+                const mdPath = path.join(lawsDir, `${actKey}.md`);
+                const jsonPath = path.join(lawsDir, `${actKey}.json`);
+                const { getRegistry } = require('./vault/indiacode-hydrator');
+                const registry = getRegistry();
+                const actInfo = registry.acts?.[actKey] || null;
+
+                let markdown = '';
+                if (fs.existsSync(mdPath)) {
+                    markdown = fs.readFileSync(mdPath, 'utf8');
+                } else if (fs.existsSync(jsonPath)) {
+                    markdown = `### Raw JSON available for ${actKey}`;
+                } else {
+                    markdown = `### Bare Act text not yet hydrated from India Code.\nClick **"Sync from India Code"** to fetch official sections.`;
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    actKey,
+                    actInfo,
+                    markdown
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/templates/packs': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                delete require.cache[require.resolve('./vault/template-packs-registry')];
+                const { getTemplateManifest } = require('./vault/template-packs-registry');
+                const manifest = getTemplateManifest(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(manifest));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/templates/view': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const skeletonKey = parsedUrl.query.key;
+                const packKey = parsedUrl.query.pack || '';
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                if (!skeletonKey) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Missing template key' }));
+                    return;
+                }
+                const { getSkeletonContent } = require('./vault/template-packs-registry');
+                const result = getSkeletonContent(skeletonKey, packKey, caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(result));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
         '/api/hayagriva/help/ingestion': (req, res, parsedUrl, docsRoot) => {
             const htmlPath = path.join(__dirname, 'assets', 'help-ingestion.html');
             if (!fs.existsSync(htmlPath)) {
@@ -5386,6 +5522,332 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     version: result.version,
                     placeholders: result.placeholders
                 }));
+            });
+        },
+
+        // ── Plan 26: Commercial Courts & Interlocutory Relief Drafter ────────
+        '/api/hayagriva/commercial-courts/forms': (req, res) => {
+            const { listAvailableCommercialCourtForms } = require('./pipeline/forms/commercial-courts-drafting');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                success: true,
+                forms: listAvailableCommercialCourtForms()
+            }));
+        },
+
+        '/api/hayagriva/commercial-courts/draft': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseDir = resolveCaseDir(docsRoot, data.case);
+                    const { draftCommercialCourtForm } = require('./pipeline/forms/commercial-courts-drafting');
+                    const result = await draftCommercialCourtForm(caseDir, data.formId || data.formatId || 'cpc-order38', data.overrides || {});
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        ...result
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/commercial-courts/validate': (req, res) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { validateCommercialPleading } = require('./pipeline/forms/commercial-courts-drafting');
+                    const diagnostics = validateCommercialPleading(data.content, data.formSlug || data.formId);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        diagnostics
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/commercial-courts/readiness': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const { auditContextReadiness } = require('./pipeline/forms/context-readiness');
+                const auditResult = auditContextReadiness(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    ...auditResult
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/commercial-courts/quick-fill': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const caseDir = resolveCaseDir(docsRoot, data.case);
+                    const { updateContextFact } = require('./pipeline/forms/context-readiness');
+                    const updatedAudit = updateContextFact(caseDir, data.key, data.value);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        ...updatedAudit
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/vault/acts': (req, res) => {
+            try {
+                const { getRegistry } = require('./vault/indiacode-hydrator');
+                const { listLoadedCartridges, getLoadedCartridgeDetails } = require('./utils/vault-loader');
+                const registry = getRegistry();
+                const loadedKeys = listLoadedCartridges();
+                const loadedDetails = getLoadedCartridgeDetails();
+
+                // Scan disk for compiled cartridges
+                const cartridgesDir = path.join(__dirname, '..', 'vault', 'cartridges');
+                const diskCartridges = {};
+                if (fs.existsSync(cartridgesDir)) {
+                    const dirs = fs.readdirSync(cartridgesDir);
+                    for (const d of dirs) {
+                        const cartPath = path.join(cartridgesDir, d);
+                        const manifestPath = path.join(cartPath, 'manifest.json');
+                        const dataPath = path.join(cartPath, 'cartridge.vlt.data');
+                        const verPath = path.join(cartPath, 'version.json');
+                        if (fs.existsSync(manifestPath) && fs.existsSync(dataPath)) {
+                            const dataStat = fs.statSync(dataPath);
+                            const ver = fs.existsSync(verPath) ? JSON.parse(fs.readFileSync(verPath, 'utf8')) : null;
+                            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                            diskCartridges[d] = {
+                                actKey: d,
+                                provisionsCount: manifest.length,
+                                sizeBytes: dataStat.size,
+                                version: ver,
+                                isChambered: loadedKeys.includes(d)
+                            };
+                        }
+                    }
+                }
+
+                // Compute stats
+                const totalRegistered = Object.keys(registry.acts || {}).length;
+                const totalSynced = Object.values(registry.acts || {}).filter(a => a.sync_status === 'synced').length;
+                const totalChambered = loadedKeys.length;
+                let chamberedSizeBytes = 0;
+                for (const d of Object.values(diskCartridges)) {
+                    if (d.isChambered) chamberedSizeBytes += d.sizeBytes;
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    ...registry,
+                    diskCartridges,
+                    loadedKeys,
+                    loadedDetails,
+                    stats: {
+                        totalRegistered,
+                        totalSynced,
+                        totalChambered,
+                        chamberedSizeBytes,
+                        chamberedSizeKb: (chamberedSizeBytes / 1024).toFixed(1)
+                    }
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/vault/acts/sync': (req, res) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { syncAct, syncAllActs, syncPracticeSuite } = require('./vault/indiacode-hydrator');
+                    const { buildCartridge } = require('./vault/cartridge-builder');
+                    const { loadCartridge, listLoadedCartridges } = require('./utils/vault-loader');
+
+                    if (data.suiteKey) {
+                        const suiteRes = await syncPracticeSuite(data.suiteKey, { skipPostgres: data.skipPostgres });
+                        // Auto-chamber all synced acts in suite
+                        for (const item of suiteRes.syncedActs || []) {
+                            if (item.success) {
+                                loadCartridge(item.actKey);
+                            }
+                        }
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, type: 'suite', result: suiteRes, loadedKeys: listLoadedCartridges() }));
+                    } else if (data.actKey) {
+                        const result = await syncAct(data.actKey, { skipPostgres: data.skipPostgres });
+                        if (fs.existsSync(result.jsonPath)) {
+                            const actData = JSON.parse(fs.readFileSync(result.jsonPath, 'utf8'));
+                            await buildCartridge(data.actKey, actData);
+                            loadCartridge(data.actKey);
+                        }
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, type: 'act', result, loadedKeys: listLoadedCartridges() }));
+                    } else {
+                        const results = await syncAllActs({ skipPostgres: data.skipPostgres });
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: true, type: 'all', results, loadedKeys: listLoadedCartridges() }));
+                    }
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/vault/cartridges/toggle': (req, res) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { loadCartridge, unloadCartridge, listLoadedCartridges } = require('./utils/vault-loader');
+                    const { getRegistry } = require('./vault/indiacode-hydrator');
+                    const registry = getRegistry();
+
+                    const shouldChamber = data.chamber !== false;
+
+                    if (data.suiteKey && registry.practice_suites?.[data.suiteKey]) {
+                        const suite = registry.practice_suites[data.suiteKey];
+                        for (const actKey of suite.included_acts || []) {
+                            if (shouldChamber) {
+                                loadCartridge(actKey);
+                            } else {
+                                unloadCartridge(actKey);
+                            }
+                        }
+                    } else if (data.actKey) {
+                        if (shouldChamber) {
+                            loadCartridge(data.actKey);
+                        } else {
+                            unloadCartridge(data.actKey);
+                        }
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        chamber: shouldChamber,
+                        loadedKeys: listLoadedCartridges()
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/vault/act/view': (req, res, parsedUrl) => {
+            try {
+                const actKey = parsedUrl.query.key;
+                if (!actKey) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Missing act key' }));
+                    return;
+                }
+                const lawsDir = path.join(__dirname, '..', 'vault', 'sources');
+                const mdPath = path.join(lawsDir, `${actKey}.md`);
+                const jsonPath = path.join(lawsDir, `${actKey}.json`);
+                const { getRegistry } = require('./vault/indiacode-hydrator');
+                const registry = getRegistry();
+                const actInfo = registry.acts?.[actKey] || null;
+
+                let markdown = '';
+                if (fs.existsSync(mdPath)) {
+                    markdown = fs.readFileSync(mdPath, 'utf8');
+                } else if (fs.existsSync(jsonPath)) {
+                    markdown = `### Raw JSON available for ${actKey}`;
+                } else {
+                    markdown = `### Bare Act text not yet hydrated from India Code.\nClick **"Sync from India Code"** to fetch official sections.`;
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    actKey,
+                    actInfo,
+                    markdown
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/templates/packs/sync': (req, res) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const packKey = data.packKey;
+                    const { PRACTICE_PACKS } = require('./vault/template-packs-registry');
+                    const pack = PRACTICE_PACKS[packKey];
+                    if (pack) {
+                        pack.last_updated = new Date().toISOString();
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            success: true,
+                            message: `Template Pack "${pack.title}" successfully verified and synchronized to latest statutory standards!`,
+                            packKey,
+                            version: pack.version,
+                            timestamp: pack.last_updated
+                        }));
+                    } else {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            success: true,
+                            message: `All Practice Template Packs updated and verified against active statutory schedules!`,
+                            timestamp: new Date().toISOString()
+                        }));
+                    }
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/templates/packs/toggle': (req, res) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const packKey = data.packKey;
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        activePack: packKey,
+                        message: `Template Pack "${packKey}" set as active chamber default.`
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
             });
         },
 

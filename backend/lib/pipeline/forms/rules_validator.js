@@ -84,4 +84,14 @@ function validateFormRules(flatData, rules) {
     return failures;
 }
 
-module.exports = { validateFormRules };
+/**
+ * Validates a commercial court pleading against mandatory statutory checklists
+ * (Order VI Rule 15A Statement of Truth, Order 38 Rule 5 property schedule,
+ * Order 39 Rule 3 proviso undertaking, Section 12A PIMS urgency grounds).
+ */
+function validateCommercialPleading(content, formSlug) {
+    const { validateCommercialPleading: vcp } = require('./commercial-courts-drafting');
+    return vcp(content, formSlug);
+}
+
+module.exports = { validateFormRules, validateCommercialPleading };

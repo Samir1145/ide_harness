@@ -381,6 +381,115 @@ export class HayagrivaMonacoProviders {
                     id: `${HAYAGRIVA_NS}:openCaseGraph`,
                     arguments: []
                   }
+                },
+                // ── Plan 26: Commercial Courts & Interlocutory Relief Drafter ──
+                {
+                  label: '/cpc-order38 - Attachment Before Judgment (Order XXXVIII Rule 5 CPC)',
+                  filterText: `${typedFromSlash} cpc order 38 rule 5 attachment commercial courts interim relief civil procedure raman tech red entry draft-order38`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Order XXXVIII Rule 5 r/w Sec 151 CPC: Freeze asset alienation & Sub-Registrar red entry (Raman Tech standard)',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`,
+                    arguments: ['cpc-order38']
+                  }
+                },
+                {
+                  label: '/cpc-order39 - Ad-Interim Temporary Injunction (Order XXXIX Rules 1 & 2 CPC)',
+                  filterText: `${typedFromSlash} cpc order 39 rules 1 2 temporary injunction status quo civil procedure interim relief draft-order39`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Order XXXIX Rules 1 & 2 CPC: 3-Prong test (Prima facie, balance of convenience, irreparable injury)',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`,
+                    arguments: ['cpc-order39']
+                  }
+                },
+                {
+                  label: '/cpc-truth - Statement of Truth (Order VI Rule 15A CPC)',
+                  filterText: `${typedFromSlash} cpc truth statement of truth order 6 rule 15a commercial courts electronic record 63 bsa 65b ea draft-truth`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Order VI Rule 15A CPC: Mandatory verification for commercial suits & digital records certification',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`,
+                    arguments: ['cpc-truth']
+                  }
+                },
+                {
+                  label: '/cpc-order11 - Statement of Documents & Disclosure (Order XI Rule 1 CPC)',
+                  filterText: `${typedFromSlash} cpc order 11 statement documents disclosure commercial discovery`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Order XI Rule 1 CPC: Commercial disclosure of documents in custody / not in custody',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`,
+                    arguments: ['cpc-order11']
+                  }
+                },
+                {
+                  label: '/cca-sec12a-pims - Pre-Institution Mediation (Form 1 CCA)',
+                  filterText: `${typedFromSlash} cca sec 12a pims mediation commercial courts form 1 patil automation draft-pims`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Section 12A CCA: Pre-Institution Mediation Form 1 under Rule 3(1) PIMS Rules, 2018',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`,
+                    arguments: ['cca-sec12a-pims']
+                  }
+                },
+                {
+                  label: '/cca-urgency - Section 12A Exemption Application (Urgent Interim Relief)',
+                  filterText: `${typedFromSlash} cca urgency dispense pims interim relief section 12a proviso patil automation`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Section 12A(1) Proviso: Application to dispense with mediation due to urgent interim relief',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`,
+                    arguments: ['cca-urgency']
+                  }
+                },
+                {
+                  label: '/cca-nonstarter - Non-Starter Report (Form 3 CCA)',
+                  filterText: `${typedFromSlash} cca nonstarter form 3 mediation failed refused certificate`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Form 3 Non-Starter Certificate enabling direct institution of Commercial Suit',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`,
+                    arguments: ['cca-nonstarter']
+                  }
+                },
+                {
+                  label: '/cpc-email-affidavit - Affidavit of Correct Email & Mobile (PIMS Rule 3)',
+                  filterText: `${typedFromSlash} cpc email affidavit correct mobile service pims mediation contacts draft-email-affidavit`,
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'PIMS Rule 3(2)/(3): Mandatory sworn affidavit verifying electronic service coordinates of Opposite Parties',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`,
+                    arguments: ['cpc-email-affidavit']
+                  }
+                },
+                {
+                  label: '/cpc-readiness - Pre-Flight Context Readiness Audit (Found vs Missing)',
+                  filterText: `${typedFromSlash} cpc readiness context checklist missing found audit commercial pre-flight facts`,
+                  kind: monaco.languages.CompletionItemKind.Keyword,
+                  insertText: '',
+                  range: replaceRange,
+                  detail: 'Audits ingested files against 5 statutory fact buckets before filing petitions or interim relief',
+                  command: {
+                    id: `${HAYAGRIVA_NS}:auditCommercialReadiness`,
+                    arguments: []
+                  }
                 }
               );
 

@@ -1,0 +1,13 @@
+{
+  "cartridge": "arbitration",
+  "actName": "The Arbitration and Conciliation Act, 1996",
+  "actNumber": "26",
+  "actYear": "1996",
+  "totalProvisions": 118,
+  "sectionsCount": 106,
+  "scheduleCount": 8,
+  "rulesCount": 4,
+  "builtAt": "2026-09-27T07:48:17.989Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "73edb5d05e13924910c56dc15fab7ed0f732a52a68dd7fe26cd91e86000c383c"
+}

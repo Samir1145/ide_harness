@@ -43,6 +43,7 @@ const DESKTOP_VAULTS_DIRS = [
 
 const BUNDLED_DATA_VAULT_DIR = path.join(__dirname, '..', '..', 'vault', 'data_vaults', 'laws');
 const BUNDLED_VAULT_DIR      = path.join(__dirname, '..', '..', 'vault');
+const CARTRIDGES_DIR         = path.join(__dirname, '..', '..', 'vault', 'cartridges');
 
 function resolveVaultDir() {
   // 1. User-downloaded vault in Application Support
@@ -89,10 +90,14 @@ function _resolvePaths() {
 _resolvePaths();
 
 // ── State ─────────────────────────────────────────────────────────
-let _index       = null;
-let _ready       = false;
-let _version     = null;
-const _overlays  = new Map();
+let _index           = null;
+let _ready           = false;
+let _version         = null;
+const _overlays      = new Map();
+const _cartridgeCache = new Map(); // actKey -> { actKey, manifest, dataBuf, key, version, aliases }
+
+// Default reproducible chamber key for development cartridges
+const DEFAULT_DEV_KEY = crypto.createHash('sha256').update('hayagriva_sovereign_cartridge_chamber_key_2026').digest('hex');
 
 // ── VAULT_KEY via Keychain ────────────────────────────────────────
 const KEYCHAIN_SERVICE = 'hayagriva';
@@ -343,6 +348,146 @@ function loadPackVaults() {
     }
 }
 
+function _getCartridgeVaultKey() {
+    const envKey = process.env.VAULT_KEY || '';
+    if (envKey.length === 64) return Buffer.from(envKey, 'hex');
+    return Buffer.from(DEFAULT_DEV_KEY, 'hex');
+}
+
+function loadCartridge(actKey, options = {}) {
+    const cartDir = path.join(CARTRIDGES_DIR, actKey);
+    const manifestPath = path.join(cartDir, 'manifest.json');
+    const dataPath = path.join(cartDir, 'cartridge.vlt.data');
+    const verPath = path.join(cartDir, 'version.json');
+
+    if (!fs.existsSync(manifestPath) || !fs.existsSync(dataPath)) {
+        return false;
+    }
+
+    try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const dataBuf = fs.readFileSync(dataPath);
+        const version = fs.existsSync(verPath) ? JSON.parse(fs.readFileSync(verPath, 'utf8')) : null;
+        const key = options.vaultKey ? Buffer.from(options.vaultKey, 'hex') : _getCartridgeVaultKey();
+
+        const aliases = Array.isArray(version?.aliases) ? [...version.aliases] : [];
+        if (actKey === 'commercial_courts' && !aliases.includes('cca')) aliases.push('cca');
+
+        _cartridgeCache.set(actKey, {
+            actKey,
+            manifest,
+            dataBuf,
+            key,
+            version,
+            aliases
+        });
+
+        if (!_index) _index = [];
+
+        for (const entry of manifest) {
+            const existingIdx = _index.findIndex(e => e.id === entry.id);
+            const indexEntry = {
+                id: entry.id,
+                title: entry.title,
+                section: entry.section,
+                tokens: entry.tokens || [],
+                offset: entry.offset,
+                length: entry.length,
+                actKey: actKey
+            };
+
+            if (existingIdx !== -1) {
+                _index[existingIdx] = indexEntry;
+            } else {
+                _index.push(indexEntry);
+            }
+
+            for (const alias of aliases) {
+                const aliasId = `${alias}/${entry.id.slice(entry.id.indexOf('/') + 1)}`;
+                if (!_index.some(e => e.id === aliasId)) {
+                    _index.push({
+                        ...indexEntry,
+                        id: aliasId
+                    });
+                }
+            }
+        }
+
+        _ready = true;
+        console.log(`[VaultLoader] ✓ Cartridge "${actKey}" chambered (${manifest.length} provisions loaded)`);
+        return true;
+    } catch (err) {
+        console.error(`[VaultLoader] Failed to load cartridge ${actKey}:`, err.message);
+        return false;
+    }
+}
+
+function unloadCartridge(actKey) {
+    if (!_cartridgeCache.has(actKey)) return false;
+    const cData = _cartridgeCache.get(actKey);
+    const aliases = cData.aliases || [];
+    _cartridgeCache.delete(actKey);
+
+    if (_index) {
+        _index = _index.filter(entry => {
+            if (entry.actKey === actKey) return false;
+            if (entry.id.startsWith(`${actKey}/`)) return false;
+            for (const al of aliases) {
+                if (entry.id.startsWith(`${al}/`)) return false;
+            }
+            return true;
+        });
+    }
+    console.log(`[VaultLoader] Cartridge "${actKey}" unloaded from chamber`);
+    return true;
+}
+
+function getLoadedCartridgeDetails() {
+    const list = [];
+    for (const [key, cData] of _cartridgeCache.entries()) {
+        list.push({
+            actKey: key,
+            provisionsCount: cData.manifest?.length || 0,
+            version: cData.version || null,
+            sizeBytes: cData.dataBuf ? cData.dataBuf.length : 0,
+            aliases: cData.aliases || []
+        });
+    }
+    return list;
+}
+
+function loadModularCartridges() {
+    if (!fs.existsSync(CARTRIDGES_DIR)) return;
+    try {
+        const dirs = fs.readdirSync(CARTRIDGES_DIR);
+        for (const dir of dirs) {
+            const cartDir = path.join(CARTRIDGES_DIR, dir);
+            if (fs.existsSync(path.join(cartDir, 'manifest.json'))) {
+                loadCartridge(dir);
+            }
+        }
+    } catch (_) {}
+}
+
+function _decryptCartridgeEntry(cData, entry) {
+    try {
+        const offset = entry.offset;
+        const len = cData.dataBuf.readUInt32LE(offset);
+        const encChunk = cData.dataBuf.subarray(offset + 4, offset + 4 + len);
+        const iv = encChunk.subarray(0, 12);
+        const authTag = encChunk.subarray(12, 28);
+        const ciphertext = encChunk.subarray(28);
+
+        const decipher = crypto.createDecipheriv('aes-256-gcm', cData.key, iv);
+        decipher.setAuthTag(authTag);
+        const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+        return zlib.gunzipSync(decrypted).toString('utf8');
+    } catch (err) {
+        console.error(`[VaultLoader] Cartridge decryption failed for ${entry.id}:`, err.message);
+        return null;
+    }
+}
+
 function loadVault() {
     _resolvePaths();
 
@@ -365,6 +510,10 @@ function loadVault() {
 
     // Always load targeted pack vaults (works 100% key-free)
     loadPackVaults();
+
+    // Load all compiled modular cartridges (e.g. Commercial Courts)
+    loadModularCartridges();
+
     return _ready;
 }
 
@@ -417,6 +566,18 @@ function getLawText(id) {
 
     if (_overlays.has(id)) {
         return _overlays.get(id);
+    }
+
+    // Check if id belongs to an active cartridge (e.g. commercial_courts/sec_12a or cca/sec_12a)
+    for (const [cKey, cData] of _cartridgeCache.entries()) {
+        const prefix = id.split('/')[0];
+        if (prefix === cKey || (cData.aliases && cData.aliases.includes(prefix))) {
+            const rawId = `${cKey}/${id.slice(id.indexOf('/') + 1)}`;
+            const cEntry = cData.manifest.find(e => e.id === id || e.id === rawId);
+            if (cEntry) {
+                return _decryptCartridgeEntry(cData, cEntry);
+            }
+        }
     }
 
     const entry = _index.find(e => e.id === id);
@@ -572,5 +733,10 @@ module.exports = {
     getLawText,
     searchLaws,
     resolveTrigger,
-    getVaultVersion
+    getVaultVersion,
+    loadCartridge,
+    unloadCartridge,
+    loadModularCartridges,
+    listLoadedCartridges: () => Array.from(_cartridgeCache.keys()),
+    getLoadedCartridgeDetails
 };

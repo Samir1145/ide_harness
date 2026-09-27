@@ -373,6 +373,11 @@ export class HayagrivaFrontendContribution
     return this.previewManager.openCaseGraphPanel(targetCase);
   }
 
+  async openCommercialReadinessPanel(caseName?: string): Promise<Widget> {
+    const targetCase = caseName || this.getActiveCaseName();
+    return this.previewManager.openCommercialReadinessPanel(targetCase);
+  }
+
   toggleTheme(): void {
     const currentTheme = this.themeService.getCurrentTheme();
     const isLight = currentTheme && currentTheme.id && currentTheme.id.toLowerCase().includes('light');

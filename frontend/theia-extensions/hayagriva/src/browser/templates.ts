@@ -3829,5 +3829,421 @@ export function caseGraphHtml(caseName: string, apiPort: number = 3210): string 
 </html>`;
 }
 
+export function commercialReadinessHtml(caseName: string, apiPort: number = 3210): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    --bg-main: var(--theia-layout-color1, #1e1e1e);
+    --bg-card: var(--theia-layout-color2, #252526);
+    --bg-card-sub: var(--theia-layout-color3, #2d2d2d);
+    --border-color: var(--theia-border-color, #3e3e42);
+    --text-main: var(--theia-ui-font-color1, #cccccc);
+    --text-muted: var(--theia-ui-font-color2, #888888);
+    --brand-color: var(--theia-brand-color1, #0ea5e9);
+    --success-color: #22c55e;
+    --warning-color: #eab308;
+    --danger-color: #ef4444;
+  }
+  body {
+    font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+    font-size: 13px;
+    margin: 0;
+    padding: 16px;
+    background: var(--bg-main);
+    color: var(--text-main);
+  }
+  .header-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .title-row h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--brand-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .score-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .score-badge.ready { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+  .score-badge.attention { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+  .score-badge.blocked { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+  .progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-card-sub);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    transition: width 0.4s ease;
+    border-radius: 4px;
+  }
+  .metrics-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .tabs-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tab-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .tab-btn.active {
+    background: var(--brand-color);
+    color: #fff;
+    border-color: var(--brand-color);
+  }
+
+  .category-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .category-header {
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .fact-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .fact-item:last-child {
+    border-bottom: none;
+  }
+  .fact-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .fact-label {
+    font-weight: 500;
+    color: var(--text-main);
+  }
+  .status-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .status-tag.found { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+  .status-tag.inferred { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+  .status-tag.missing { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+  .fact-value-box {
+    font-family: monospace;
+    font-size: 11px;
+    background: var(--bg-card-sub);
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #e2e8f0;
+    word-break: break-all;
+  }
+  .fact-source {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .fact-req {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.4;
+  }
+
+  .quick-fill-box {
+    margin-top: 6px;
+    display: flex;
+    gap: 6px;
+  }
+  .quick-fill-input {
+    flex: 1;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    color: #fff;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .quick-fill-input:focus {
+    outline: none;
+    border-color: var(--brand-color);
+  }
+  .quick-fill-btn {
+    background: var(--brand-color);
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .quick-fill-btn:hover {
+    background: #0284c7;
+  }
+  .actions-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .action-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-main);
+    text-align: center;
+  }
+  .action-btn.primary {
+    background: var(--brand-color);
+    color: #fff;
+    border-color: var(--brand-color);
+  }
+  .action-btn:hover {
+    filter: brightness(1.1);
+  }
+</style>
+</head>
+<body>
+  <div class="header-card">
+    <div class="title-row">
+      <h2>⚖️ Commercial Court Context Readiness</h2>
+      <div id="grade-badge" class="score-badge">Auditing...</div>
+    </div>
+    <div class="progress-bar-container">
+      <div id="progress-bar" class="progress-bar-fill" style="width: 0%; background: #38bdf8;"></div>
+    </div>
+    <div class="metrics-row">
+      <span id="readiness-text">Scanning ingested files & facts...</span>
+      <span id="ratio-text">0 / 0</span>
+    </div>
+  </div>
+
+  <div class="tabs-row">
+    <button class="tab-btn active" onclick="setFilter('all')">All Facts</button>
+    <button class="tab-btn" onclick="setFilter('missing')">Missing Context ⚠️</button>
+    <button class="tab-btn" onclick="setFilter('found')">Extracted Context ✓</button>
+  </div>
+
+  <div id="categories-container"></div>
+
+  <div class="actions-bar">
+    <button class="action-btn primary" onclick="draftPleading('cpc-order38')">Draft Order 38 Attachment</button>
+    <button class="action-btn" onclick="draftPleading('cpc-order39')">Draft Order 39 Injunction</button>
+    <button class="action-btn" onclick="loadReadiness()">↻ Refresh Audit</button>
+  </div>
+
+  <script>
+    const caseName = "${caseName}";
+    const apiPort = ${apiPort};
+    let currentAudit = null;
+    let activeFilter = 'all';
+
+    async function loadReadiness() {
+      try {
+        const res = await fetch(\`http://127.0.0.1:\${apiPort}/api/hayagriva/commercial-courts/readiness?case=\${encodeURIComponent(caseName)}\`);
+        const data = await res.json();
+        if (data.success) {
+          currentAudit = data;
+          renderAudit();
+        }
+      } catch (err) {
+        console.error("Readiness audit error:", err);
+      }
+    }
+
+    function setFilter(filter) {
+      activeFilter = filter;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderCategories();
+    }
+
+    function renderAudit() {
+      if (!currentAudit) return;
+      const { summary } = currentAudit;
+      const score = summary.readinessScore;
+      const badge = document.getElementById('grade-badge');
+      const bar = document.getElementById('progress-bar');
+      const text = document.getElementById('readiness-text');
+      const ratio = document.getElementById('ratio-text');
+
+      ratio.textContent = \`\${summary.foundCount} / \${summary.totalFacts} Verified\`;
+      bar.style.width = score + '%';
+
+      if (summary.readinessGrade === 'READY') {
+        badge.className = 'score-badge ready';
+        badge.textContent = \`\${score}% COURT READY\`;
+        bar.style.background = '#22c55e';
+        text.textContent = 'Mandatory statutory context fully discovered. Ready to draft.';
+      } else if (summary.readinessGrade === 'NEEDS_ATTENTION') {
+        badge.className = 'score-badge attention';
+        badge.textContent = \`\${score}% NEEDS ATTENTION\`;
+        bar.style.background = '#eab308';
+        text.textContent = \`\${summary.missingCount} context elements missing. Court may reject prayers without these.\`;
+      } else {
+        badge.className = 'score-badge blocked';
+        badge.textContent = \`\${score}% BLOCKED\`;
+        bar.style.background = '#ef4444';
+        text.textContent = 'Crucial facts missing. Please review red checklist items below.';
+      }
+
+      renderCategories();
+    }
+
+    function renderCategories() {
+      if (!currentAudit) return;
+      const container = document.getElementById('categories-container');
+      container.innerHTML = '';
+
+      for (const [key, b] of Object.entries(currentAudit.buckets)) {
+        let items = b.items;
+        if (activeFilter === 'missing') {
+          items = items.filter(i => i.status === 'MISSING');
+        } else if (activeFilter === 'found') {
+          items = items.filter(i => i.status !== 'MISSING');
+        }
+
+        if (items.length === 0) continue;
+
+        const sec = document.createElement('div');
+        sec.className = 'category-section';
+
+        const head = document.createElement('div');
+        head.className = 'category-header';
+        head.innerHTML = \`<span>\${b.title}</span><span style="color: var(--text-muted);">\${b.bucketFoundCount}/\${b.bucketTotalCount}</span>\`;
+        sec.appendChild(head);
+
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'fact-item';
+
+          let statusTag = '';
+          if (item.status === 'FOUND') {
+            statusTag = '<span class="status-tag found">✓ EXTRACTED</span>';
+          } else if (item.status === 'INFERRED') {
+            statusTag = '<span class="status-tag inferred">🔍 INFERRED</span>';
+          } else {
+            statusTag = '<span class="status-tag missing">⚠️ NOT FOUND</span>';
+          }
+
+          let valueHtml = '';
+          if (item.value) {
+            valueHtml = \`<div class="fact-value-box">\${item.value}</div>\`;
+          }
+
+          let sourceHtml = '';
+          if (item.source) {
+            sourceHtml = \`<div class="fact-source">Source: \${item.source}</div>\`;
+          }
+
+          let quickFillHtml = '';
+          if (item.status === 'MISSING') {
+            quickFillHtml = \`
+              <div class="quick-fill-box">
+                <input id="input-\${item.key}" class="quick-fill-input" placeholder="\${item.suggestedDefault || 'Enter value...'}" />
+                <button class="quick-fill-btn" onclick="saveQuickFill('\${item.key}')">Save Fact</button>
+              </div>
+            \`;
+          }
+
+          row.innerHTML = \`
+            <div class="fact-top">
+              <span class="fact-label">\${item.label}</span>
+              \${statusTag}
+            </div>
+            \${valueHtml}
+            \${sourceHtml}
+            <div class="fact-req">\${item.courtRequirement}</div>
+            \${quickFillHtml}
+          \`;
+
+          sec.appendChild(row);
+        });
+
+        container.appendChild(sec);
+      }
+    }
+
+    async function saveQuickFill(key) {
+      const input = document.getElementById(\`input-\${key}\`);
+      if (!input || !input.value.trim()) return;
+
+      try {
+        const res = await fetch(\`http://127.0.0.1:\${apiPort}/api/hayagriva/commercial-courts/quick-fill\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case: caseName, key, value: input.value.trim() })
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentAudit = data;
+          renderAudit();
+        }
+      } catch (err) {
+        console.error("Save quick-fill error:", err);
+      }
+    }
+
+    function draftPleading(formId) {
+      window.parent.postMessage({ type: 'EXECUTE_COMMAND', command: 'hayagriva:draftCommercialCourtForm', args: [formId] }, '*');
+    }
+
+    window.onload = loadReadiness;
+  </script>
+</body>
+</html>`;
+}
+
+
 
 

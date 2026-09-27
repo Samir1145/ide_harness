@@ -1,0 +1,16 @@
+{
+  "cartridge": "personal_guarantors_pack",
+  "packTitle": "Personal Guarantors & Individual Bankruptcy Sovereign Practice Pack",
+  "alias": "pg",
+  "aliases": [
+    "pg",
+    "personal_guarantors",
+    "pg_pack"
+  ],
+  "domain": "ibc_part_iii",
+  "description": "68-instrument Part III statutory compendium: Section 94/95 guarantor insolvency, repayment plans, creditor meetings, Section 121 bankruptcy petitions, and trustee asset vesting.",
+  "totalTemplates": 68,
+  "builtAt": "2026-09-27T17:15:46.762Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "6db781fb837616cb551946007761237a7765f94f5f129a500e9f88da5548ed55"
+}

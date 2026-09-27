@@ -271,6 +271,9 @@ async function main() {
         } else if (argv[i] === '--ingest') {
             command = 'ingest';
             commandArg = argv[++i];
+        } else if (argv[i] === '--sync-acts' || argv[i] === '--hydrate-laws') {
+            command = 'sync-acts';
+            commandArg = argv[i + 1] && !argv[i + 1].startsWith('-') ? argv[++i] : null;
         } else if (argv[i] === '--query') {
             command = 'query';
             commandArg = argv[++i];
@@ -281,6 +284,31 @@ async function main() {
                 commandArg = arg;
             } else {
                 caseArg = arg;
+            }
+        }
+    }
+
+    if (command === 'sync-acts') {
+        const { syncAct, syncAllActs, getRegistry } = require('./lib/vault/indiacode-hydrator');
+        console.log('🏛️  [Hayagriva] Sovereign India Code Statutory Hydration Engine');
+        console.log('─────────────────────────────────────────────────────────────────');
+        if (commandArg) {
+            try {
+                const res = await syncAct(commandArg, { onProgress: msg => console.log(`  ${msg}`) });
+                console.log(`\n✅ Hydration complete for ${res.actName} (${res.totalProvisions} provisions synced, duration: ${res.durationMs}ms).`);
+                process.exit(0);
+            } catch (err) {
+                console.error(`\n❌ Hydration failed: ${err.message}`);
+                process.exit(1);
+            }
+        } else {
+            try {
+                const results = await syncAllActs({ onProgress: msg => console.log(`  ${msg}`) });
+                console.log(`\n✅ Hydrated ${results.length} registered acts.`);
+                process.exit(0);
+            } catch (err) {
+                console.error(`\n❌ Batch hydration failed: ${err.message}`);
+                process.exit(1);
             }
         }
     }

@@ -1,0 +1,13 @@
+{
+  "cartridge": "commercial_courts",
+  "actName": "The Commercial Courts Act, 2015",
+  "actNumber": "",
+  "actYear": "",
+  "totalProvisions": 62,
+  "sectionsCount": 26,
+  "scheduleCount": 32,
+  "rulesCount": 4,
+  "builtAt": "2026-09-27T07:44:34.517Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "927c0de1694b4640b387d5be0f223b2e2467d00d600d974da3151ecbc655bb34"
+}

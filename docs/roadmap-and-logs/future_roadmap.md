@@ -461,6 +461,8 @@ These items establish external standard dependencies, metrics dashboarding, and 
 | **HITL Attention Queue** | Non-blocking Case Action Inbox (`case_inbox.json`) | **Plan 9 / #33** | **[Implemented]** |
 | **Context Compactor** | Mathematical 2,048-token window compaction | **Plan 10 / #34** | **[Implemented]** |
 | **Overflow Guard** | Provider 400 error string detection & fallback | **Plan 15 / #39** | **[Implemented]** |
+| **Commercial Courts Drafter** | Interlocutory relief skeletons & readiness checker | **Plan 26 / #49** | **[Implemented]** |
+| **India Code Hydrator** | Sovereign continuous statutory hydration & vault sync | **Plan 28 / #51** | **[Implemented]** |
 
 ---
 
@@ -639,16 +641,23 @@ These items represent advanced architectural capabilities designed and cataloged
 
 ---
 
-### 49. Commercial Courts & Interlocutory Relief Drafter (Order 38 Rule 5 / Order 39 CPC) (Plan 26)
+### [Implemented] 49. Commercial Courts & Interlocutory Relief Drafter (Order 38 Rule 5 / Order 39 CPC) (Plan 26)
 * **Goal:** Extend Hayagriva's drafting repertoire beyond pure IBC insolvency into mainstream Commercial Court litigation and interlocutory injunctions.
 * **Inspiration:** `Desktop/Commercial Court Rules and Forms.pdf` and `Desktop/attachment_before_judgment_application.pdf`.
 * **Architecture:**
-  - **Commercial Court Skeleton Registry (`backend/lib/pipeline/forms/skeletons/commercial_courts/`):** Houses structured templates conforming to Commercial Courts Act, 2015 and High Court Original Side Rules.
-  - **Pleading Generators:**
-    - **Order 38 Rule 5 CPC Application:** Urgent petition for Attachment Before Judgment to secure disputed assets from being dissipated or transferred.
-    - **Order 39 Rules 1 & 2 CPC Application:** Ad-interim ex-parte temporary injunction restraining third-party rights.
-    - **Section 12A Pre-Institution Mediation Notice:** Statutory mediation memo and non-starter certification tracker.
-  - **FormsAgent Statutory Checklist:** Validates Statement of Truth, Urgency Affidavits, and Court Fee schedules.
+  - **Commercial Court Skeleton Registry (`backend/lib/pipeline/forms/skeletons/commercial_courts/`):**
+    - `cpc_order_38_rule_5_attachment.md`: Attachment Before Judgment, solvent security prayer, schedule of property, Raman Tech standard, and Sub-Registrar red-entry notices with supporting affidavit.
+    - `cpc_order_39_rules_1_2_injunction.md`: Ad-interim ex-parte temporary injunction with 3-prong test and Order 39 Rule 3 proviso 24-hour service undertaking.
+    - `cpc_statement_of_truth.md`: Mandatory Order VI Rule 15A CPC Statement of Truth with § 63 BSA / § 65B EA electronic records certificate.
+    - `cpc_order_11_statement_of_documents.md`: Commercial Courts disclosure schedule and declaration on oath under amended Order XI Rule 1 CPC.
+    - `cca_section_12a_pims_form_1.md`: Pre-Institution Mediation Application under Rule 3(1) PIMS Rules, 2018.
+    - `cca_section_12a_urgency_application.md`: Application under Section 12A(1) Proviso to dispense with mediation due to urgent interim relief (Patil Automation standard).
+    - `cca_section_12a_form_3_non_starter.md`: Non-Starter Report certificate under Rule 3(4)/(6).
+  - **Unified Drafter Engine (`backend/lib/pipeline/forms/commercial-courts-drafting.js`):** Resolves slugs and aliases (`cpc-order38`, `cpc-order39`, `cpc-truth`, `cpc-order11`, `cca-sec12a-pims`, `cca-urgency`, `cca-nonstarter`), populates KV dictionary variables, and outputs drafts to `drafts/`.
+  - **Statutory Checklist Validator (`rules_validator.js`):** Enforces rules CC_01 through CC_05 (Statement of Truth, property schedules, Sub-Registrar red entry, Raman Tech standard, and Rule 3 proviso undertaking).
+  - **Monaco Slash Commands & Theia Palette:** `/cpc-order38`, `/cpc-order39`, `/cpc-truth`, `/cpc-order11`, `/cca-sec12a-pims`, `/cca-urgency`, `/cca-nonstarter` registered in `monaco-providers.ts` and `commands.ts`.
+  - **REST API Routes:** `GET /api/hayagriva/commercial-courts/forms`, `POST /api/hayagriva/commercial-courts/draft`, and `POST /api/hayagriva/commercial-courts/validate`.
+  - **Automated Test Suite:** 100% verified via `backend/tests/test_commercial_courts_drafter.js`.
 
 ---
 

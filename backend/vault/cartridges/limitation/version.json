@@ -1,0 +1,13 @@
+{
+  "cartridge": "limitation",
+  "actName": "The Limitation Act, 1963",
+  "actNumber": "36",
+  "actYear": "1963",
+  "totalProvisions": 33,
+  "sectionsCount": 32,
+  "scheduleCount": 1,
+  "rulesCount": 0,
+  "builtAt": "2026-09-27T07:48:18.619Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "a7beb7af0be6eba8fb4d4ee3de19f26a4e8a5b30639b5e72d422c0d501de3e45"
+}

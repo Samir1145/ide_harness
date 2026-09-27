@@ -1,0 +1,17 @@
+{
+  "cartridge": "commercial_litigation_pack",
+  "packTitle": "Commercial Court & Interlocutory Relief Pack",
+  "alias": "cca",
+  "aliases": [
+    "cca",
+    "commercial",
+    "commercial_courts",
+    "cpc"
+  ],
+  "domain": "commercial_courts",
+  "description": "Court-ready pleadings conforming to Commercial Courts Act 2015 and CPC: Order 38 Rule 5 attachment, Order 39 injunction, Statement of Truth (§ 63 BSA), and Section 12A PIMS mediation.",
+  "totalTemplates": 8,
+  "builtAt": "2026-09-27T17:15:46.826Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "361f1cf2dae7124a46b1e58abebfeab9ce84d90e00bf78d227da19bbad4d3d57"
+}

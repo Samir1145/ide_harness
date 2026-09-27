@@ -1,0 +1,17 @@
+{
+  "cartridge": "voluntary_liquidation_pack",
+  "packTitle": "Voluntary Liquidation Process (Section 59) Sovereign Practice Pack",
+  "alias": "vl",
+  "aliases": [
+    "vl",
+    "voluntary_liquidation",
+    "vl_pack",
+    "section59"
+  ],
+  "domain": "voluntary_liquidation",
+  "description": "35-instrument Section 59 master compendium: Declaration of solvency, special resolutions, creditors approval, liquidator preliminary & final reports, in-specie distribution, and dissolution applications.",
+  "totalTemplates": 35,
+  "builtAt": "2026-09-27T17:15:46.818Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "c90594bc2646ecf96453495a5c8796856bee1a0fe901107a1d1a6b75304c4127"
+}

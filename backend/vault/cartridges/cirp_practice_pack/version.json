@@ -1,0 +1,17 @@
+{
+  "cartridge": "cirp_practice_pack",
+  "packTitle": "Corporate Insolvency Resolution Process (CIRP) Sovereign Practice Pack",
+  "alias": "cirp",
+  "aliases": [
+    "cirp",
+    "cirp_pack",
+    "ibc_cirp",
+    "cirp_insolvency_pack"
+  ],
+  "domain": "ibc",
+  "description": "Comprehensive 94-instrument statutory CIRP compendium: Sections 7/9/10 admission, claims verification memos, CoC notices & voting, Avoidance inquests (§§ 43, 45, 50, 66), Section 29A due diligence, and Resolution Plan approval.",
+  "totalTemplates": 94,
+  "builtAt": "2026-09-27T17:15:46.719Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "c556a318466340f3d3213f1575c4c726877b5dd7f8dcbbef94fa969b82d25433"
+}

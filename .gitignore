@@ -71,6 +71,7 @@ backend/models/
 # Local backup & archive directories
 frontend/plugins-disabled-backup/
 backend/vault/agent_packs_archive/
+backend/vault/archive/
 
 # SQLite lock & WAL files
 *.db-shm

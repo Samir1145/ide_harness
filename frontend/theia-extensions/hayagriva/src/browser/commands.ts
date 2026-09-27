@@ -1728,5 +1728,109 @@ export class HayagrivaCommandContribution implements CommandContribution {
         }
       }
     );
+
+    // ── Plan 26: Commercial Courts & Interlocutory Relief Drafter ────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:draftCommercialCourtForm`, label: 'Hayagriva: Draft Commercial Court Pleading / Application' },
+      {
+        execute: async (formId: string = 'cpc-order38') => {
+          const apiPort = this.contribution.getApiPort();
+          const caseName = this.getCasePath().split(/[\\/]/).pop() || '';
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/commercial-courts/draft`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, formId })
+            });
+            const data = await res.json();
+            if (!data.success) {
+              this.messageService.error(`Failed to draft form: ${data.error}`);
+              return;
+            }
+
+            const draftUri = new URI('file://' + data.draftPath);
+            await this.editorManager.open(draftUri, { mode: 'open' });
+            this.messageService.info(`✓ Generated ${data.template?.title || formId} in drafts/ (${data.filledCount} fields populated).`);
+          } catch (err: any) {
+            this.messageService.error(`Commercial Courts Drafting error: ${err.message}`);
+          }
+        }
+      }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.draftOrder38', label: 'Commercial Courts: Draft Attachment Before Judgment (Order XXXVIII Rule 5 CPC)' },
+      {
+        execute: async () => {
+          return registry.executeCommand(`${HAYAGRIVA_NS}:draftCommercialCourtForm`, 'cpc-order38');
+        }
+      }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.draftOrder39', label: 'Commercial Courts: Draft Temporary Injunction (Order XXXIX Rules 1 & 2 CPC)' },
+      {
+        execute: async () => {
+          return registry.executeCommand(`${HAYAGRIVA_NS}:draftCommercialCourtForm`, 'cpc-order39');
+        }
+      }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.draftTruth', label: 'Commercial Courts: Draft Statement of Truth (Order VI Rule 15A CPC)' },
+      {
+        execute: async () => {
+          return registry.executeCommand(`${HAYAGRIVA_NS}:draftCommercialCourtForm`, 'cpc-truth');
+        }
+      }
+    );
+
+    // ── Commercial Courts Pre-Flight Readiness Checker ──────────────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:auditCommercialReadiness`, label: 'Commercial Courts: Audit Context Readiness (Found vs Missing)' },
+      {
+        execute: async () => {
+          const apiPort = this.contribution.getApiPort();
+          const caseName = this.getCasePath().split(/[\\/]/).pop() || '';
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/commercial-courts/readiness?case=${encodeURIComponent(caseName)}`);
+            const data = await res.json();
+            if (!data.success) {
+              this.messageService.error(`Failed to audit readiness: ${data.error}`);
+              return;
+            }
+
+            const activeEditor = this.editorManager.activeEditor;
+            if (activeEditor && data.markdownReport) {
+              activeEditor.editor.executeEdits([{
+                range: activeEditor.editor.selection,
+                newText: data.markdownReport + '\n'
+              }]);
+              this.messageService.info(`✓ Inserted Commercial Readiness Audit (${data.summary.readinessScore}% ready, ${data.summary.foundCount}/${data.summary.totalFacts} facts verified).`);
+            } else {
+              await this.contribution.openCommercialReadinessPanel(caseName);
+              this.messageService.info(`Commercial Readiness: ${data.summary.readinessScore}% (${data.summary.foundCount}/${data.summary.totalFacts} verified). Opened readiness matrix.`);
+            }
+          } catch (err: any) {
+            this.messageService.error(`Readiness Audit error: ${err.message}`);
+          }
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCommercialReadinessPanel`, label: 'Commercial Courts: Open Context Readiness Panel' },
+      {
+        execute: async () => {
+          const caseName = this.getCasePath().split(/[\\/]/).pop() || '';
+          await this.contribution.openCommercialReadinessPanel(caseName);
+        }
+      }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.openCommercialReadinessPanel', label: 'Commercial Courts: Open Context Readiness Panel' },
+      {
+        execute: async () => {
+          return registry.executeCommand(`${HAYAGRIVA_NS}:openCommercialReadinessPanel`);
+        }
+      }
+    );
   }
 }

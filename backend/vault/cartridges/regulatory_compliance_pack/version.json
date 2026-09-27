@@ -1,0 +1,16 @@
+{
+  "cartridge": "regulatory_compliance_pack",
+  "packTitle": "IBBI Regulatory Compliance, Evidence & Gazette Pack",
+  "alias": "reg",
+  "aliases": [
+    "reg",
+    "regulatory",
+    "ibbi_compliance"
+  ],
+  "domain": "ibbi_regulations",
+  "description": "7-instrument master regulatory compendium: Gazette notification correlations, master evidence indexes, newspaper tearsheet verifications, and statutory compliance certifications.",
+  "totalTemplates": 7,
+  "builtAt": "2026-09-27T17:15:46.832Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "a9624c1ccb426560e5e6f21f881f1e515616e904c20616187e7aec86602a0c00"
+}

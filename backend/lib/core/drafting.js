@@ -31,6 +31,25 @@ async function draftDocument(caseDir, formatId) {
         };
     }
 
+    // Check if this is a Commercial Courts / Interlocutory Relief template (Plan 26 / Roadmap #49)
+    const { resolveCommercialCourtTemplate, draftCommercialCourtForm } = require('../pipeline/forms/commercial-courts-drafting');
+    const commercialTemplate = resolveCommercialCourtTemplate(formatId);
+    if (commercialTemplate) {
+        console.log(`[Drafting Engine] Routing "${formatId}" to Commercial Courts Drafter (${commercialTemplate.title})...`);
+        const result = await draftCommercialCourtForm(caseDir, formatId);
+        return {
+            draftPath: result.draftPath,
+            draftName: result.draftName,
+            suiteName: commercialTemplate.act,
+            title: commercialTemplate.title,
+            filledCount: result.filledCount,
+            unfilledCount: result.unfilledCount,
+            diagnostics: result.checklistDiagnostics,
+            version: 1,
+            unfilledPlaceholders: result.unfilledPlaceholders
+        };
+    }
+
     // 1. Resolve paths via unified skeleton skill
     const { loadSkeleton } = require('../agents/skills/skeleton-load');
     const REPO_ROOT = path.join(__dirname, '../../..');

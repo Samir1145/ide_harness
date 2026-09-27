@@ -1,0 +1,16 @@
+{
+  "cartridge": "partnership_firms_pack",
+  "packTitle": "Partnership Firms Insolvency & Restructuring Sovereign Practice Pack",
+  "alias": "firm",
+  "aliases": [
+    "firm",
+    "partnership_firms",
+    "firm_pack"
+  ],
+  "domain": "ibc_part_iii",
+  "description": "35-instrument Part III compendium for partnership firms and co-extensive partner liability under Section 25 Partnership Act and joint vs separate debts (Section 49).",
+  "totalTemplates": 35,
+  "builtAt": "2026-09-27T17:15:46.783Z",
+  "format": "v2-modular-cartridge",
+  "sha256": "2a880872a4671692bc17b79133a93c1fdee5145b73ab951eb2143e703c62ea51"
+}

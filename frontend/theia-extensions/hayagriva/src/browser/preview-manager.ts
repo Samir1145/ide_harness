@@ -601,5 +601,34 @@ export class HayagrivaPreviewManager {
     this.shell.activateWidget(widget.id);
     return widget;
   }
+
+  async openCommercialReadinessPanel(caseName: string): Promise<Widget> {
+    const id = `hayagriva-commercial-readiness-${encodeURIComponent(caseName)}`;
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    const { commercialReadinessHtml } = require('./templates');
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Commercial Readiness';
+    widget.title.caption = 'Commercial Court Context Readiness Matrix';
+    widget.title.iconClass = 'fa fa-check-square-o';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = commercialReadinessHtml(caseName, this.getApiPort());
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
 }
 
