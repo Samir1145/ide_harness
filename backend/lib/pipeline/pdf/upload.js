@@ -1,42 +1,147 @@
 const pdfexcavator = require('pdfexcavator');
 
 /**
- * Normalizes multi-line PDF text blocks into clean single-line paragraphs.
+ * Checks whether a single line of text represents structured tabular data.
+ */
+function isTabularLine(line) {
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+    
+    // Header row with at least 2 standard column keywords (e.g. "Start End Mth paid Due Diff")
+    if (/^(Start|Date|Sr\.?\s*No\.?|Particulars|Description|Period|Item|Month|Mth)\b/i.test(trimmed)) {
+        if (/\b(End|Particulars|Amount|Due|Paid|Rate|Qty|Description|Diff|Debit|Credit|Total|Mth)\b/i.test(trimmed)) {
+            return true;
+        }
+    }
+    
+    // Summary row like "Rent Due 4,99,16,600" or "Total Rent 5,89,01,588" or "GST 18% 89,84,988"
+    if (/^(Rent Due|Total Rent|GST(?:\s*\d+%)?|Subtotal|Grand Total|Balance Due|Net Amount)\b.*?\d/i.test(trimmed)) {
+        return true;
+    }
+    
+    // Row with date ranges like "Oct-23 Aug-24" or "May-17 Mar-18" or "Jul-26 1" accompanied by numbers
+    if (/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-–]\d{2}/i.test(trimmed)) {
+        const tokens = trimmed.split(/\s+/);
+        if (tokens.length >= 3) return true;
+    }
+    
+    // Row with multiple numeric/currency amounts (e.g. 8,13,751 14,58,608)
+    const amounts = trimmed.match(/\b\d{1,3}(?:,\d{2,3})+(?:\.\d{2})?\b/g);
+    if (amounts && amounts.length >= 2) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Formats a block of consecutive tabular lines into a clean Markdown table.
+ */
+function formatTabularBlock(blockLines) {
+    if (!blockLines || blockLines.length === 0) return "";
+    
+    // If only 1 line and not containing multiple numbers, return as plain text
+    if (blockLines.length === 1 && !/\b\d{1,3}(?:,\d{2,3})+\b.*\b\d{1,3}(?:,\d{2,3})+\b/.test(blockLines[0])) {
+        return blockLines[0];
+    }
+
+    const parsedRows = blockLines.map(line => {
+        const trimmed = line.trim();
+        const sumMatch = trimmed.match(/^(Rent Due|Total Rent|GST(?:\s*\d+%)?|Total|Subtotal|Grand Total|Balance Due|Net Amount)\s*(.*)$/i);
+        if (sumMatch && sumMatch[2]) {
+            return { isSummary: true, label: sumMatch[1], value: sumMatch[2] };
+        }
+        return { isSummary: false, cells: trimmed.split(/\s+/) };
+    });
+
+    const maxCols = parsedRows.reduce((max, r) => (!r.isSummary && r.cells) ? Math.max(max, r.cells.length) : max, 0);
+
+    if (maxCols >= 3) {
+        const mdLines = [];
+        let headerEmitted = false;
+
+        for (let i = 0; i < parsedRows.length; i++) {
+            const row = parsedRows[i];
+            if (row.isSummary) {
+                const emptyCount = Math.max(0, maxCols - 2);
+                const middleCells = Array(emptyCount).fill("").map(() => " ");
+                const cells = [`**${row.label}**`, ...middleCells, `**${row.value}**`];
+                mdLines.push(`| ${cells.join(" | ")} |`);
+            } else {
+                let cells = [...row.cells];
+                while (cells.length < maxCols) {
+                    if (cells.length === maxCols - 1 && /Diff/i.test(cells[cells.length - 1])) {
+                        cells.push("Recoverable");
+                    } else {
+                        cells.push("-");
+                    }
+                }
+                mdLines.push(`| ${cells.join(" | ")} |`);
+                if (!headerEmitted) {
+                    mdLines.push(`| ${Array(maxCols).fill("---").join(" | ")} |`);
+                    headerEmitted = true;
+                }
+            }
+        }
+        return "\n" + mdLines.join("\n") + "\n";
+    }
+
+    return "\n" + blockLines.join("\n") + "\n";
+}
+
+/**
+ * Normalizes multi-line PDF text blocks into clean single-line paragraphs while preserving tables.
  */
 function joinParagraphs(text) {
     if (!text) return '';
     const lines = text.split(/\r?\n/);
     const cleanedLines = [];
     let currentParagraph = [];
+    let currentTable = [];
+
+    const flushParagraph = () => {
+        if (currentParagraph.length > 0) {
+            cleanedLines.push(currentParagraph.join(' '));
+            currentParagraph = [];
+        }
+    };
+
+    const flushTable = () => {
+        if (currentTable.length > 0) {
+            const tableFormatted = formatTabularBlock(currentTable);
+            cleanedLines.push(tableFormatted.trim());
+            currentTable = [];
+        }
+    };
 
     for (let line of lines) {
         const trimmed = line.trim();
         if (trimmed === '') {
-            if (currentParagraph.length > 0) {
-                cleanedLines.push(currentParagraph.join(' '));
-                currentParagraph = [];
-            }
+            flushParagraph();
+            flushTable();
             cleanedLines.push('');
+        } else if (isTabularLine(trimmed)) {
+            flushParagraph();
+            currentTable.push(trimmed);
         } else {
+            flushTable();
             const isHeader = /^#+\s+/.test(trimmed) || /^(subject|to|respected|yours|thanking|signatories|session|pedagogy|target|objective|topics)/i.test(trimmed);
-            const isListItem = /^[*-]\s+/.test(trimmed) || /^\d+([\.\s]+|$)/.test(trimmed);
+            const isListItem = /^[*-]\s+/.test(trimmed) || /^\d+[\.\)]\s+[A-Za-z]/i.test(trimmed) || /^\(\w+\)\s+/i.test(trimmed);
             const isSignature = /^(sd\/\-)/i.test(trimmed);
 
-            if (isHeader || isListItem || isSignature) {
-                if (currentParagraph.length > 0) {
-                    cleanedLines.push(currentParagraph.join(' '));
-                    currentParagraph = [];
-                }
+            if (isHeader || isSignature) {
+                flushParagraph();
                 cleanedLines.push(trimmed);
+            } else if (isListItem) {
+                flushParagraph();
+                currentParagraph.push(trimmed);
             } else {
                 currentParagraph.push(trimmed);
             }
         }
     }
 
-    if (currentParagraph.length > 0) {
-        cleanedLines.push(currentParagraph.join(' '));
-    }
+    flushParagraph();
+    flushTable();
 
     return cleanedLines.join('\n').replace(/\n{3,}/g, '\n\n');
 }

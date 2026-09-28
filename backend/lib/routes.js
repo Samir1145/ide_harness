@@ -1071,6 +1071,10 @@ module.exports = {
                                 lower !== 'concepts' && 
                                 lower !== 'wiki' && 
                                 lower !== 'conversions' && 
+                                !lower.endsWith('_concepts_haya') &&
+                                !lower.endsWith('_conversions_haya') &&
+                                !lower.endsWith('_wiki_haya') &&
+                                lower !== 'ledgers' &&
                                 lower !== 'reviews' && 
                                 lower !== 'drafts' && 
                                 lower !== 'exports' &&
@@ -1716,39 +1720,6 @@ module.exports = {
             res.end(htmlContent);
         },
 
-        '/api/hayagriva/tiddlywiki/save': (req, res, parsedUrl, docsRoot) => {
-            let body = '';
-            req.on('data', chunk => { body += chunk; });
-            req.on('end', async () => {
-                try {
-                    const caseName = parsedUrl.query.case || '';
-                    const fileName = parsedUrl.query.file || '';
-                    const caseDir = resolveCaseDir(docsRoot, caseName);
-                    const targetPath = path.join(getWikiDir(caseDir), fileName);
-
-                    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-                    fs.writeFileSync(targetPath, body, 'utf8');
-
-                    // Auto-ingest updated tiddlers into SQLite FTS and BM25 indices
-                    try {
-                        const { ingestWiki } = require('./pipeline/wiki/ingest');
-                        const bm25 = require('./core/bm25');
-                        const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
-                        const bm25Index = bm25.loadIndex(bm25IndexFile);
-                        await ingestWiki(caseDir, targetPath, bm25Index, bm25IndexFile);
-                        console.log(`[TiddlyWiki API] Saved and re-indexed: ${fileName}`);
-                    } catch (e) {
-                        console.error('[TiddlyWiki API] Failed to re-index saved wiki:', e.message);
-                    }
-
-                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-                    res.end(JSON.stringify({ success: true, savedPath: targetPath }));
-                } catch (err) {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: err.message }));
-                }
-            });
-        },
         '/api/hayagriva/case-graph': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || getDefaultCaseName(docsRoot);
             const caseDir = resolveCaseDir(docsRoot, caseName);
@@ -3376,6 +3347,202 @@ module.exports = {
                 } catch (err) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/tiddlywiki/save': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const caseName = parsedUrl.query.case || '';
+                    const fileName = parsedUrl.query.file || '';
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const wikiDir = getWikiDir(caseDir);
+                    const targetPath = path.join(wikiDir, fileName);
+
+                    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+                    fs.writeFileSync(targetPath, body, 'utf8');
+
+                    // Extract and atomically sync individual .tid cards to disk and SQLite FTS5
+                    let syncedCount = 0;
+                    try {
+                        const scriptMatch = body.match(/<script\b[^>]*class=["']tiddlywiki-tiddler-store["'][^>]*>([\s\S]*?)<\/script>/i);
+                        if (scriptMatch && scriptMatch[1]) {
+                            const tiddlers = JSON.parse(scriptMatch[1]);
+                            const docStem = fileName.replace(/\.wiki\.html$/i, '');
+                            const cardsDir = path.join(wikiDir, docStem);
+                            fs.mkdirSync(cardsDir, { recursive: true });
+
+                            const { serializeTidCard } = require('./pipeline/wiki/split');
+                            const { getSafeFilename } = require('./pipeline/common/helper');
+                            const { getDb } = require('./core/sqlite-store');
+                            const db = getDb(caseDir);
+
+                            for (let i = 0; i < tiddlers.length; i++) {
+                                const tid = tiddlers[i];
+                                if (!tid.title || tid.title.startsWith('$:/')) continue;
+
+                                const safeName = `${String(i + 1).padStart(2, '0')}_${getSafeFilename(tid.title)}.tid`;
+                                const tidPath = path.join(cardsDir, safeName);
+                                const tidContent = serializeTidCard({
+                                    title: tid.title,
+                                    tags: tid.tags || '',
+                                    doc: docStem,
+                                    order: i + 1,
+                                    text: tid.text || ''
+                                });
+                                fs.writeFileSync(tidPath, tidContent, 'utf8');
+
+                                // Incremental SQLite FTS5 sync
+                                try {
+                                    const cardRef = `wiki::${docStem}::${tid.title}`;
+                                    db.prepare(`
+                                        INSERT INTO documents (filename, title, status)
+                                        VALUES (?, ?, 'companion_ready')
+                                        ON CONFLICT(filename) DO NOTHING
+                                    `).run(cardRef, tid.title);
+                                    db.prepare('DELETE FROM fts_chunks WHERE filename = ?').run(cardRef);
+                                    db.prepare('DELETE FROM document_sections WHERE filename = ?').run(cardRef);
+                                    db.prepare(`
+                                        INSERT INTO document_sections (filename, title, page_start, page_end, parent_title, hierarchy_level, content)
+                                        VALUES (?, ?, 1, 1, ?, 2, ?)
+                                    `).run(cardRef, tid.title, docStem, tid.text || '');
+                                    db.prepare(`
+                                        INSERT INTO fts_chunks (filename, section_title, page_number, chunk_index, content)
+                                        VALUES (?, ?, 1, 0, ?)
+                                    `).run(cardRef, tid.title, `[Card: ${tid.title}]\n\n${tid.text || ''}`);
+                                } catch (_) {}
+                                syncedCount++;
+                            }
+                        }
+                    } catch (syncErr) {
+                        console.warn('[TiddlyWiki API] .tid cards sync warning:', syncErr.message);
+                    }
+
+                    // Auto-ingest updated tiddlers into BM25 index
+                    try {
+                        const { ingestWiki } = require('./pipeline/wiki/ingest');
+                        const bm25 = require('./core/bm25');
+                        const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
+                        const bm25Index = bm25.loadIndex(bm25IndexFile);
+                        await ingestWiki(caseDir, targetPath, bm25Index, bm25IndexFile);
+                        console.log(`[TiddlyWiki API] Saved and re-indexed ${syncedCount} cards for: ${fileName}`);
+                    } catch (e) {
+                        console.error('[TiddlyWiki API] Failed to re-index saved wiki:', e.message);
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                    res.end(JSON.stringify({ success: true, savedPath: targetPath, cardsSynced: syncedCount }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/tiddlywiki/save-card': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const payload = JSON.parse(body || '{}');
+                    const caseName = payload.caseName || parsedUrl.query.case || '';
+                    const docStem = payload.docStem || parsedUrl.query.doc || 'Case_Notes';
+                    const cardTitle = payload.title || 'Untitled Card';
+                    const cardText = payload.text || '';
+                    const cardTags = payload.tags || '';
+                    const cardOrder = payload.order || 1;
+
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const wikiDir = getWikiDir(caseDir);
+                    const cardsDir = path.join(wikiDir, docStem);
+                    fs.mkdirSync(cardsDir, { recursive: true });
+
+                    const { serializeTidCard } = require('./pipeline/wiki/split');
+                    const { getSafeFilename } = require('./pipeline/common/helper');
+                    
+                    const safeName = `${String(cardOrder).padStart(2, '0')}_${getSafeFilename(cardTitle)}.tid`;
+                    const tidPath = path.join(cardsDir, safeName);
+                    const tidContent = serializeTidCard({
+                        title: cardTitle,
+                        tags: cardTags,
+                        doc: docStem,
+                        order: cardOrder,
+                        text: cardText
+                    });
+                    fs.writeFileSync(tidPath, tidContent, 'utf8');
+
+                    // Incrementally update SQLite FTS5
+                    try {
+                        const { getDb } = require('./core/sqlite-store');
+                        const db = getDb(caseDir);
+                        const cardRef = `wiki::${docStem}::${cardTitle}`;
+                        db.prepare(`
+                            INSERT INTO documents (filename, title, status)
+                            VALUES (?, ?, 'companion_ready')
+                            ON CONFLICT(filename) DO NOTHING
+                        `).run(cardRef, cardTitle);
+                        db.prepare('DELETE FROM fts_chunks WHERE filename = ?').run(cardRef);
+                        db.prepare('DELETE FROM document_sections WHERE filename = ?').run(cardRef);
+                        db.prepare(`
+                            INSERT INTO document_sections (filename, title, page_start, page_end, parent_title, hierarchy_level, content)
+                            VALUES (?, ?, 1, 1, ?, 2, ?)
+                        `).run(cardRef, cardTitle, docStem, cardText);
+                        db.prepare(`
+                            INSERT INTO fts_chunks (filename, section_title, page_number, chunk_index, content)
+                            VALUES (?, ?, 1, 0, ?)
+                        `).run(cardRef, cardTitle, `[Card: ${cardTitle}]\n\n${cardText}`);
+                    } catch (dbErr) {
+                        console.warn('[TiddlyWiki API] Incremental SQLite index skipped:', dbErr.message);
+                    }
+
+                    // Sync card back into .wiki.html canvas if it exists
+                    const wikiHtmlPath = path.join(wikiDir, `${docStem}.wiki.html`);
+                    if (fs.existsSync(wikiHtmlPath)) {
+                        try {
+                            const { syncMarkdownToWiki } = require('./pipeline/wiki/ingest');
+                            await syncMarkdownToWiki(caseDir, tidPath);
+                        } catch (_) {}
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                    res.end(JSON.stringify({ success: true, tidPath, cardTitle }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/tiddlywiki/export-court-docx': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    let payload = {};
+                    try { payload = JSON.parse(body || '{}'); } catch (_) {}
+                    const caseName = payload.caseName || parsedUrl.query.case || '';
+                    const fileName = payload.fileName || parsedUrl.query.file || '';
+                    const docStem = payload.docStem || fileName.replace(/\.wiki\.html$/i, '').replace(/\.md$/i, '') || 'Court_Pleading';
+                    const tiddlers = payload.tiddlers || null;
+
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const { exportCaseWikiToCourtDocx } = require('./core/wiki-stitcher');
+                    const result = await exportCaseWikiToCourtDocx(caseDir, docStem, tiddlers);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                    res.end(JSON.stringify({
+                        success: result.success,
+                        docxPath: path.relative(caseDir, result.docxPath),
+                        mdPath: path.relative(caseDir, result.mdPath),
+                        paraCount: result.paraCount,
+                        cardsCount: result.cardsCount
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
                 }
             });
         },
@@ -7335,3 +7502,6 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
         }
     }
 };
+
+module.exports.PUT = module.exports.POST;
+

@@ -25,8 +25,12 @@
         "warnOnPotentiallyInsecureHostPattern": false,
         "preferences": {
           "toolbar.showToolbar": true,
+          "explorer.openEditors.visible": 0,
           "files.enableTrash": false,
-          "security.workspace.trust.enabled": false
+          "security.workspace.trust.enabled": false,
+          "files.associations": {
+            "*.tid": "markdown"
+          }
         },
         "reloadOnReconnect": true
       }

@@ -174,6 +174,8 @@ export class HayagrivaFrontendContribution
       this.preferenceService.set('editor.inlineSuggest.enabled', true);
       this.preferenceService.set('editor.suggestOnTriggerCharacters', true);
       this.preferenceService.set('editor.quickSuggestions', { other: true, comments: true, strings: true });
+      this.preferenceService.set('explorer.openEditors.visible', 0);
+      this.preferenceService.set('files.associations', { '*.tid': 'markdown' });
     } catch (_) {}
 
     // Prune generic developer clutter from Explorer context menu
@@ -517,7 +519,7 @@ export class HayagrivaFrontendContribution
 
   async openRagChat(): Promise<Widget> {
     const widget = await this.widgetManager.getOrCreateWidget('chat-view-widget');
-    this.shell.addWidget(widget, { area: 'right' });
+    this.shell.addWidget(widget, { area: 'left', rank: 500 });
     this.shell.activateWidget(widget.id);
     return widget;
   }
@@ -997,6 +999,22 @@ export class HayagrivaFrontendContribution
         width: 24px !important;
         height: 24px !important;
         display: inline-block !important;
+      }
+
+      /* Permanently eliminate OPEN EDITORS from Left Explorer */
+      #theia-open-editors-widget,
+      .theia-open-editors-widget,
+      [id*="open-editors-widget"],
+      [id*="open-editors"],
+      .theia-header[title*="Open Editors"],
+      .theia-header[title*="OPEN EDITORS"] {
+        display: none !important;
+        height: 0 !important;
+        max-height: 0 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
       }
     `;
     document.head.appendChild(style);

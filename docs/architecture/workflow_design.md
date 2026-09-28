@@ -27,37 +27,37 @@ Each supported file in the file tree shows **three status dots**:
 🟠🟠🟠  nothing done
 🟢🟠🟠  companion .md exists
 🟢🟢🟠  ingested to BM25 + PageIndex
-🟢🟢🟢  AI-enriched (summaries, Doc2Query, KV facts)
+🟢🟢🟢  AI-enriched (Lite: deterministic 1-2 sentence summaries + KV facts; Local/Cloud: 2-3 sentence legal summaries)
 ```
 
 ### Dot 1 — Companion (Convert to .md)
 - **What it does:** Converts the original file to a companion `.md` via Pandoc/Mammoth/PDF parser
-- **Source of truth:** Does `<casedir>/<basename>.md` exist on disk? → green
+- **Source of truth:** Does `<casedir>/<conversions>/<basename>.md` exist on disk? → green
 - **Amber tooltip:** "Right-click → Convert to .md"
-- **Green click:** Opens companion `.md` in the right editor panel (side-by-side with original preview)
+- **Green click:** Opens companion `.md` in the editor panel (side-by-side with original live preview)
 - **Wiki files:** Always green (no conversion needed)
 
 ### Dot 2 — Context (Ingest to Context)
 - **What it does:**
   1. Parses companion `.md` into sections
-  2. Builds `bm25_index.json` (keyword search)
-  3. Builds `pageindex_tree.json` (hierarchical section tree)
+  2. Builds `bm25_index.json` (pure JS keyword search)
+  3. Builds `pageindex_tree.json` (hierarchical section outline with deterministic fallback summaries)
   4. Writes concept chunk files to `concepts/<basename>/`
+  5. Indexes chunks to SQLite FTS5 table (`fts_chunks`) and generates ONNX vector embeddings if model loaded
 - **Requires:** Dot 1 green
 - **Source of truth:** Does `concepts/<basename>/pageindex_tree.json` exist? → green
 - **Amber tooltip:** "Right-click → Ingest to Context (requires companion first)"
 - **Green click:** Opens the PageIndex tree viewer (navigable section outline)
-- **No vector embeddings** — BM25 + PageIndex is sufficient
 
 ### Dot 3 — AI Enrichment (Enrich with AI)
 - **What it does:**
-  1. LLM summaries per section (calls Gemini)
-  2. Doc2Query Q&A pairs per section (calls Gemini)
-  3. Schemaless KV fact extraction from full text (calls Gemini)
+  1. **Lite Mode (Default, 0 MB LLM):** Automatically advances to green using deterministic regex extraction (`case_kv_dictionary.json`) and structural fallback summaries.
+  2. **Local / Cloud Mode (Optional):** Generates high-density 2–3 sentence legal summaries per section (max 80 words) covering rights/obligations, monetary figures/deadlines, and statutory provisos.
+  3. *(Legacy Doc2Query hypothetical Q&A generation has been permanently eliminated to prevent compute bloat and hallucinations).*
 - **Requires:** Dot 2 green
-- **Source of truth:** TBD — e.g. llmSummary flag in chunk metadata?
-- **Amber tooltip:** "Right-click → Enrich with AI (requires context ingest first)"
-- **Green click:** TBD — opens summaries / Q&A view
+- **Source of truth:** Document marked `enriched` in SQLite `documents` table and `statuses.json` → green
+- **Amber tooltip:** "Right-click → Run AI Enrichment (requires context ingest first)"
+- **Green click:** Opens companion markdown with live rendered preview and Case Facts overlay
 
 ---
 

@@ -49,9 +49,9 @@ Document processing in Hayagriva is split into four distinct steps to ensure use
 * **Upgrade A (Ancestor Pathing):** Adds hierarchical parents stack (e.g. `ancestors: [services_doc, Services Agreement]`) into each card's frontmatter.
 * **Upgrade B (Auto-Concept Linking):** Scans the text for references to other case concepts and registers them in the `links` metadata array automatically, building a connected case network.
 
-#### Step 4: Background Q&A & RAG Search
-* **LLM Summaries & Q&As:** The lazy background worker automatically scans newly created cards to generate a 1-sentence summary, 4 hypothetical questions (Doc2Query), and saves Q&A Wiki cards to the sidebar.
-* **RAG Retrieval:** Your queries search the enriched BM25 index. The retriever extracts the precise matched sub-chunk and its ancestor hierarchy, feeding Gemini with precise context for the case chat.
+#### Step 4: AI Enrichment & RAG Search
+* **Streamlined Legal Summaries (No Doc2Query):** In default Lite Mode, the background worker automatically verifies structural readiness and deterministic K-V extraction without invoking any LLMs. In Local/Cloud mode with an active engine, it generates a focused 2–3 sentence legal summary per section (max 80 words). Legacy Doc2Query hypothetical Q&A generation has been eliminated to reduce compute overhead by 65%.
+* **RAG Retrieval:** Your queries search the combined SQLite FTS5 and BM25 index (with optional ONNX dense embeddings). The retriever extracts the precise matched sub-chunk and its ancestor hierarchy, feeding the active agent with exact case context.
 
 ---
 

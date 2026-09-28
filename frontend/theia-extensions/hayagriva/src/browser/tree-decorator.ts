@@ -285,7 +285,6 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
       // ── Dot 1 tooltip — Text Extraction (D6) ────────────────────────────────
       const companionRelPath = files.companion?.path || '';
       const companionExists = files.companion?.exists === true;
-      const companionBasename = companionRelPath ? companionRelPath.split('/').pop() : '—';
       let tooltip1: string;
       if (dot1 === 'green' || dot1 === 'companion_ready' || dot1 === 'reviewed') {
         tooltip1 = `● Step 1 ✓  Text extracted\n   📝 ${companionRelPath || '—'}  (click file to edit)`;
@@ -329,11 +328,11 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
         errorSuffix = `\n⚠ Error: ${statusObj.error}`;
       }
 
-      // D3: Companion .md caption suffix — shows "  📝 ipie.md" inline after filename
+      // D3: Companion .md caption suffix — compact label to prevent truncation
       const captionSuffixes: TreeDecoration.CaptionAffix[] = [];
       if (companionExists && companionRelPath) {
         captionSuffixes.push({
-          data: `  📝 ${companionBasename}`,
+          data: '  📝 Companion MD',
           fontData: { color: '#6b7280' }  // subtle grey
         });
       }

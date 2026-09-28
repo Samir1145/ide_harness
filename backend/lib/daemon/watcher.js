@@ -418,14 +418,13 @@ function createWatcher(caseDir, onChange) {
         const base = path.basename(p);
         if (base === 'index.md' || base === 'index.json' || base === 'timeline.md') return true;
         if (base.startsWith('.') && base !== '.gitignore') return true;
-        if (p.includes('concepts' + path.sep) || p.endsWith(path.sep + 'concepts')) return true;
+        if (p.includes('concepts' + path.sep) || p.endsWith(path.sep + 'concepts') || p.includes('_concepts_haya')) return true;
         if (p.includes('reviews' + path.sep) || p.endsWith(path.sep + 'reviews')) return true;
         if (p.includes('drafts' + path.sep) || p.endsWith(path.sep + 'drafts')) return true;
         if (p.includes('exports' + path.sep) || p.endsWith(path.sep + 'exports')) return true;
-        if (p.includes('wiki' + path.sep + 'qna') || p.endsWith(path.sep + 'wiki' + path.sep + 'qna')) return true;
-        if (p.endsWith(path.sep + 'wiki')) return true;
-        if (p.includes('conversions' + path.sep) || p.endsWith(path.sep + 'conversions')) return true;
-        if (p.includes('.git' + path.sep)) return true;
+        if (p.includes('ledgers' + path.sep) || p.endsWith(path.sep + 'ledgers')) return true;
+        if (p.includes('conversions' + path.sep) || p.endsWith(path.sep + 'conversions') || p.includes('_conversions_haya')) return true;
+        if (p.includes('.theia' + path.sep) || p.includes('.vscode' + path.sep) || p.includes('.git' + path.sep)) return true;
         if (p.endsWith('.DS_Store')) return true;
         return false;
     };
@@ -448,6 +447,21 @@ function createWatcher(caseDir, onChange) {
 
     watcher.on('all', async (event, filePath) => {
         const ext = path.extname(filePath).toLowerCase();
+        const isWikiPath = filePath.includes('wiki' + path.sep) || filePath.includes('_wiki_haya');
+
+        // Watcher protection: if file is inside wiki/ or *_wiki_haya/, handle only .tid card sync
+        if (isWikiPath) {
+            if ((ext === '.tid' || ext === '.md') && (event === 'add' || event === 'change')) {
+                try {
+                    const bm25 = require('../core/bm25');
+                    const bm25IndexFile = path.join(getConceptsDir(caseDir), 'bm25_index.json');
+                    const bm25Index = bm25.loadIndex(bm25IndexFile);
+                    await ingestWikiCard(caseDir, filePath, bm25Index, bm25IndexFile);
+                } catch (_) {}
+            }
+            return; // STRICTLY RETURN: never queue wiki cards into primary document ingestion
+        }
+
         if (!DOC_EXTENSIONS.includes(ext) && !filePath.toLowerCase().endsWith('.wiki.html')) return;
         const relative = path.relative(caseDir, filePath);
         
@@ -1025,8 +1039,46 @@ function buildPageIndexTree(docName, sections, rawText) {
 function generateFallbackSummary(content) {
     if (!content || !content.trim()) return "";
     const clean = content.replace(/[#*`]/g, '').trim();
-    const sentences = clean.split(/(?<=[.!?])\s+/);
-    const summary = sentences.slice(0, 2).join(" ");
+    const sentences = clean.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+    if (sentences.length === 0) return "";
+    if (sentences.length <= 2) {
+        const joined = sentences.join(" ");
+        return joined.length > 200 ? joined.substring(0, 197) + "..." : joined;
+    }
+
+    // Procedural boilerplate regex common to Indian court filings
+    const boilerplatePrefix = /^(?:that\s+the\s+(?:petitioner|applicant|respondent|plaintiff|defendant)\s+(?:respectfully\s+)?showeth|whereas\s+the\s+parties|in\s+the\s+matter\s+of|now\s+therefore\s+in\s+consideration|this\s+agreement\s+is\s+made|brief\s+facts\s+of\s+the\s+case\s+are)\b/i;
+
+    // Substantive legal signals: currency, dates, statutory provisions, operative litigation verbs
+    const operativePattern = /(?:₹|rs\.?|inr|crore|lakh|\b\d{1,3}(?:,\d{2,3})+(?:\.\d+)?\b|\b(?:section|order|rule|article|clause)\s+\d+|\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b|default|agreed|claim|demand|restrain|injunction|arrears|escalation|possession|undertak|sanction|mortgage|guarantee|terminate|admit|dismiss|decree|breach|liquidat|interest\s*@)/i;
+
+    // Score sentences: operative substantive (+3), non-boilerplate (+1), slight penalty for late sentences
+    const scored = sentences.map((sentence, idx) => {
+        let score = 0;
+        if (operativePattern.test(sentence)) score += 3;
+        if (!boilerplatePrefix.test(sentence)) score += 1;
+        score -= idx * 0.05;
+        return { sentence, idx, score };
+    });
+
+    const highValue = scored.filter(s => s.score >= 3);
+    let selectedSentences = [];
+    if (highValue.length >= 2) {
+        selectedSentences = highValue.slice(0, 2).sort((a, b) => a.idx - b.idx).map(s => s.sentence);
+    } else if (highValue.length === 1) {
+        const chosenIdx = highValue[0].idx;
+        const second = scored.find(s => s.idx !== chosenIdx && !boilerplatePrefix.test(s.sentence)) || scored.find(s => s.idx !== chosenIdx);
+        selectedSentences = [highValue[0], second].filter(Boolean).sort((a, b) => a.idx - b.idx).map(s => s.sentence);
+    } else {
+        const nonBoilerplate = scored.filter(s => !boilerplatePrefix.test(s.sentence));
+        if (nonBoilerplate.length >= 2) {
+            selectedSentences = nonBoilerplate.slice(0, 2).sort((a, b) => a.idx - b.idx).map(s => s.sentence);
+        } else {
+            selectedSentences = sentences.slice(0, 2);
+        }
+    }
+
+    const summary = selectedSentences.join(" ");
     return summary.length > 200 ? summary.substring(0, 197) + "..." : summary;
 }
 
@@ -1264,6 +1316,10 @@ function generateCaseAudit(caseDir) {
                         lower !== 'concepts' && 
                         lower !== 'wiki' && 
                         lower !== 'conversions' && 
+                        !lower.endsWith('_concepts_haya') &&
+                        !lower.endsWith('_conversions_haya') &&
+                        !lower.endsWith('_wiki_haya') &&
+                        lower !== 'ledgers' &&
                         lower !== 'reviews' && 
                         lower !== 'drafts' && 
                         lower !== 'exports' &&

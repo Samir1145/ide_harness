@@ -326,6 +326,54 @@ function resolveItem(caseDir, itemIdOrTuple, resolution, resolvedBy = 'lawyer', 
             grantRunAllowance(runId, toolName);
         } catch (_) {}
     }
+    // If resolving a Commercial Court drafting request, trigger automated drafting of Form 1 and Affidavits
+    if (meta.isCommercial && (resolution === 'approve' || resolution === 'accept' || resolution === 'draft_pims_bundle')) {
+        try {
+            const { draftCommercialCourtForm } = require('../pipeline/forms/commercial-courts-drafting');
+            draftCommercialCourtForm(caseDir, 'cca-sec12a-pims').then(resPims => {
+                draftCommercialCourtForm(caseDir, 'cpc-truth').then(resTruth => {
+                    draftCommercialCourtForm(caseDir, 'cpc-email-affidavit').then(resEmail => {
+                        item.metadata.drafts = [
+                            { form: 'Form 1 (Mediation)', path: resPims.draftPath, name: resPims.draftName },
+                            { form: 'Statement of Truth (Affidavit)', path: resTruth.draftPath, name: resTruth.draftName },
+                            { form: 'Email & Contacts Affidavit', path: resEmail.draftPath, name: resEmail.draftName }
+                        ];
+                        saveInbox(caseDir, store);
+                        console.log(`[InboxManager] Generated Commercial Court drafting bundle for ${item.title}`);
+                    }).catch(() => {});
+                }).catch(() => {});
+            }).catch(e => console.warn('[InboxManager] Auto-draft error:', e.message));
+        } catch (draftErr) {
+            console.warn(`[InboxManager] Commercial Court auto-drafting skipped:`, draftErr.message);
+        }
+    } else if (meta.isCommercial && resolution === 'draft_order_39') {
+        try {
+            const { draftCommercialCourtForm } = require('../pipeline/forms/commercial-courts-drafting');
+            draftCommercialCourtForm(caseDir, 'cpc-order39', {}, { bundleFolder: '02_Urgent_Injunction_Stay' }).then(resO39 => {
+                draftCommercialCourtForm(caseDir, 'cpc-truth', {}, { bundleFolder: '02_Urgent_Injunction_Stay' }).then(resTruth => {
+                    item.metadata.drafts = [
+                        { form: 'Order XXXIX Rules 1 & 2 Application', path: resO39.draftPath, name: resO39.draftName },
+                        { form: 'Statement of Truth (Affidavit)', path: resTruth.draftPath, name: resTruth.draftName }
+                    ];
+                    saveInbox(caseDir, store);
+                }).catch(() => {});
+            }).catch(e => console.warn('[InboxManager] Auto-draft error:', e.message));
+        } catch (draftErr) {
+            console.warn(`[InboxManager] Order 39 auto-drafting skipped:`, draftErr.message);
+        }
+    } else if (meta.isCommercial && resolution === 'draft_truth_affidavit') {
+        try {
+            const { draftCommercialCourtForm } = require('../pipeline/forms/commercial-courts-drafting');
+            draftCommercialCourtForm(caseDir, 'cpc-truth').then(resTruth => {
+                item.metadata.drafts = [
+                    { form: 'Statement of Truth (Affidavit)', path: resTruth.draftPath, name: resTruth.draftName }
+                ];
+                saveInbox(caseDir, store);
+            }).catch(() => {});
+        } catch (draftErr) {
+            console.warn(`[InboxManager] Statement of Truth auto-drafting skipped:`, draftErr.message);
+        }
+    }
 
     saveInbox(caseDir, store);
 

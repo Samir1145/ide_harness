@@ -55,7 +55,10 @@ export class HayagrivaCommandContribution implements CommandContribution {
   }
 
   private resolveUri(uri?: any): URI | undefined {
-    // Safely check input without risking circular structure JSON stringify crashes
+    // If uri is a DOM Event (e.g. MouseEvent passed from TabBar right-click), ignore it so it resolves the active editor
+    if (uri && (typeof Event !== 'undefined' && uri instanceof Event || 'preventDefault' in uri || 'clientX' in uri || 'nativeEvent' in uri)) {
+      uri = undefined;
+    }
     
     // Check if the input object is a valid URI
     if (uri && typeof uri === 'object' && ('path' in uri || 'scheme' in uri) && typeof uri.toString === 'function') {
@@ -111,7 +114,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     } catch (e: any) {}
 
     // Secondary fallback: active editor
-    const activeEditor = this.editorManager.activeEditor;
+    const activeEditor = this.editorManager.activeEditor || this.editorManager.currentEditor;
     if (activeEditor) {
       const res = activeEditor.getResourceUri();
       if (res) return res;
@@ -434,7 +437,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
       const resolved = this.resolveUri(uri);
       if (!resolved) return false;
       const lower = resolved.path.toString().toLowerCase();
-      const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.tsv', '.md', '.markdown', '.txt', '.wiki.html'];
+      const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.tsv', '.md', '.markdown', '.txt', '.wiki.html', '.tid'];
       return validExts.some(ext => lower.endsWith(ext));
     };
 
@@ -459,6 +462,129 @@ export class HayagrivaCommandContribution implements CommandContribution {
       {
         execute: handleOpenCompanionLivePreview,
         isEnabled: isCompanionApplicable
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCaseWiki`, label: '📖 Open Case Wiki (Legal Canvas)' },
+      {
+        execute: async (uri?: any) => {
+          let resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            const activeEditor = this.editorManager.activeEditor;
+            if (activeEditor) {
+              resourceUri = activeEditor.getResourceUri();
+            }
+          }
+          if (!resourceUri) {
+            const ws = this.workspaceService.getWorkspaceRootUri(undefined);
+            if (ws) resourceUri = new URI(ws.toString());
+          }
+          if (!resourceUri) {
+            this.messageService.error('No active file or workspace selected to open Case Wiki.');
+            return;
+          }
+
+          const originalPath = decodeURIComponent(resourceUri.path.toString());
+          const lowerPath = originalPath.toLowerCase();
+          const caseDir = this.getCasePath();
+
+          if (lowerPath.endsWith('.wiki.html')) {
+            await this.contribution.openWikiHtmlViewer(originalPath, caseDir);
+            return;
+          }
+
+          let docStem = '';
+          if (lowerPath.endsWith('.tid')) {
+            const parts = originalPath.split(/[\\/]/);
+            if (parts.length >= 2) {
+              docStem = parts[parts.length - 2];
+            }
+          } else {
+            const base = getBasename(originalPath);
+            docStem = base.replace(/\.wiki\.html$/i, '').replace(/\.[a-zA-Z0-9]+$/, '');
+          }
+
+          const caseNameOnly = caseDir.split(/[\\/]/).filter(Boolean).pop() || '';
+          const candidateWikiPath = `${caseDir}/${caseNameOnly}_wiki_haya/${docStem}.wiki.html`;
+          await this.contribution.openWikiHtmlViewer(candidateWikiPath, caseDir);
+        },
+        isEnabled: (uri?: any) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) {
+            return !!this.editorManager.activeEditor;
+          }
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.wiki.html') || lower.endsWith('.tid') || lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.md');
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:exportCourtDocx`, label: '🏛️ Export Continuous Court DOCX' },
+      {
+        execute: async (uri?: any) => {
+          let resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            const activeEditor = this.editorManager.activeEditor;
+            if (activeEditor) {
+              resourceUri = activeEditor.getResourceUri();
+            }
+          }
+          if (!resourceUri) {
+            this.messageService.error('No active document or case selected for Court DOCX export.');
+            return;
+          }
+
+          const originalPath = decodeURIComponent(resourceUri.path.toString());
+          const lowerPath = originalPath.toLowerCase();
+          const caseDir = this.getCasePath();
+          const apiPort = this.contribution.getApiPort();
+
+          let docStem = '';
+          if (lowerPath.endsWith('.tid')) {
+            const parts = originalPath.split(/[\\/]/);
+            if (parts.length >= 2) docStem = parts[parts.length - 2];
+          } else {
+            const base = getBasename(originalPath);
+            docStem = base.replace(/\.wiki\.html$/i, '').replace(/\.[a-zA-Z0-9]+$/, '');
+          }
+
+          this.messageService.info(`[HAYAGRIVA] Compiling Continuous Court Pleading for ${docStem}...`);
+
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/tiddlywiki/export-court-docx`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                caseName: caseDir,
+                docStem: docStem
+              })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+              this.messageService.info(`🏛️ Successfully compiled Court Pleading (${data.paraCount} paragraphs) to ${data.docxPath}!`);
+              if (data.mdPath) {
+                const fullMdPath = `${caseDir}/${data.mdPath}`;
+                const mdUri = new URI(`file://${fullMdPath}`);
+                await this.editorManager.open(mdUri, { mode: 'open' });
+              }
+            } else {
+              this.messageService.error(`Export failed: ${data.error || 'Unknown error'}`);
+            }
+          } catch (e: any) {
+            this.messageService.error(`Export error: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: any) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) {
+            return !!this.editorManager.activeEditor;
+          }
+          const lower = resolved.path.toString().toLowerCase();
+          return lower.endsWith('.wiki.html') || lower.endsWith('.tid') || lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc') || lower.endsWith('.md');
+        }
       }
     );
 

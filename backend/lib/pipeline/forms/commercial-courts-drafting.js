@@ -217,13 +217,54 @@ function numberToIndianWords(num) {
  */
 function loadCaseFacts(caseDir) {
   if (!caseDir) return {};
-  const kvPath = path.join(caseDir, 'reviews', 'case_kv_dictionary.json');
-  if (fs.existsSync(kvPath)) {
+  let facts = {};
+  const candidates = [
+    path.join(caseDir, 'reviews', 'case_kv_dictionary.json'),
+    path.join(caseDir, 'case_kv_dictionary.json'),
+    path.join(caseDir, 'reviews', 'case_session.json')
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      try {
+        facts = Object.assign(facts, JSON.parse(fs.readFileSync(c, 'utf8')));
+      } catch (_) {}
+    }
+  }
+
+  // Self-hydrate from companion markdown if primary parties missing
+  if (!facts.petitioner_name || !facts.respondent_name || !facts.disputed_quantum) {
     try {
-      return JSON.parse(fs.readFileSync(kvPath, 'utf8'));
+      const { extractKeyParameters } = require('../../core/post-ingest-briefer');
+      const searchDirs = [caseDir];
+      const caseBase = path.basename(caseDir);
+      const convDir = path.join(caseDir, `${caseBase}_conversions_haya`);
+      if (fs.existsSync(convDir)) searchDirs.push(convDir);
+
+      for (const d of searchDirs) {
+        const files = fs.readdirSync(d).filter(f => f.endsWith('.md') && !f.startsWith('.') && !f.endsWith('_tree.json'));
+        for (const f of files) {
+          const content = fs.readFileSync(path.join(d, f), 'utf8');
+          const params = extractKeyParameters(content);
+          if (params.plaintiff_or_petitioner && !facts.petitioner_name) {
+            facts.petitioner_name = params.plaintiff_or_petitioner;
+          }
+          if (params.defendant_or_respondent && !facts.respondent_name) {
+            facts.respondent_name = params.defendant_or_respondent;
+          }
+          if (params.debt_quantum && !facts.disputed_quantum) {
+            facts.disputed_quantum = params.debt_quantum.replace(/[^\d,.]/g, '');
+          }
+          if (params.cirp_date && !facts.agreement_date) {
+            facts.agreement_date = params.cirp_date;
+          }
+          if (facts.petitioner_name && facts.respondent_name) break;
+        }
+        if (facts.petitioner_name && facts.respondent_name) break;
+      }
     } catch (_) {}
   }
-  return {};
+
+  return facts;
 }
 
 /**
@@ -234,7 +275,7 @@ function loadCaseFacts(caseDir) {
  * @param {Object} overrides - Key-value overrides
  * @returns {Promise<Object>}
  */
-async function draftCommercialCourtForm(caseDir, identifier, overrides = {}) {
+async function draftCommercialCourtForm(caseDir, identifier, overrides = {}, options = {}) {
   const templateMeta = resolveCommercialCourtTemplate(identifier);
   if (!templateMeta) {
     throw new Error(`Commercial Court template not recognized for identifier: "${identifier}". Use listAvailableCommercialCourtForms() to view options.`);
@@ -346,17 +387,81 @@ async function draftCommercialCourtForm(caseDir, identifier, overrides = {}) {
   const remainingMatches = filledText.match(/\{\{([A-Z0-9_]+)\}\}/g) || [];
   const unfilledVars = Array.from(new Set(remainingMatches.map(m => m.replace(/[\{\}]/g, ''))));
 
-  // Determine output draft directory
+const CANONICAL_LEGAL_FILENAMES = {
+  'cca-sec12a-pims': 'Form 1 - Pre-Institution Mediation Application (Sec 12A CCA)',
+  'cpc-truth': 'Statement of Truth (Order VI Rule 15A CPC)',
+  'cpc-email-affidavit': 'Affidavit of Service & Electronic Contacts (PIMS Rule 3)',
+  'cpc-order39': 'Application for Temporary Injunction (Order XXXIX Rules 1 & 2 CPC)',
+  'cpc-order38': 'Application for Attachment Before Judgment (Order XXXVIII Rule 5 CPC)',
+  'cca-urgency': 'Section 12A Exemption Application (Urgent Interim Relief)',
+  'cpc-order11': 'Statement of Documents & Disclosure (Order XI Rule 1 CPC)',
+  'cca-nonstarter': 'Non-Starter Report (Form 3)'
+};
+
+const FORM_DEFAULT_BUNDLES = {
+  'cca-sec12a-pims': '01_Pre_Institution_Mediation',
+  'cpc-email-affidavit': '01_Pre_Institution_Mediation',
+  'cpc-truth': '01_Pre_Institution_Mediation',
+  'cca-nonstarter': '01_Pre_Institution_Mediation',
+  'cpc-order39': '02_Urgent_Injunction_Stay',
+  'cpc-order38': '02_Urgent_Injunction_Stay',
+  'cca-urgency': '02_Urgent_Injunction_Stay',
+  'cpc-order11': '02_Urgent_Injunction_Stay'
+};
+
+  // Determine output draft directory & bundle track
   const draftsDir = path.join(caseDir || process.cwd(), 'drafts');
   if (!fs.existsSync(draftsDir)) {
     fs.mkdirSync(draftsDir, { recursive: true });
   }
 
-  const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14);
-  const draftFilename = `${templateMeta.slug}_${timestamp}.md`;
-  const draftMdPath = path.join(draftsDir, draftFilename);
+  const bundleFolder = (options && options.bundleFolder !== undefined)
+    ? options.bundleFolder
+    : (FORM_DEFAULT_BUNDLES[templateMeta.slug] || '');
+
+  const targetDir = bundleFolder ? path.join(draftsDir, bundleFolder) : draftsDir;
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+
+  const baseTitle = CANONICAL_LEGAL_FILENAMES[templateMeta.slug] || templateMeta.title || templateMeta.slug;
+  const draftFilename = `${baseTitle}.md`;
+  const draftMdPath = path.join(targetDir, draftFilename);
+
+  // If previous draft exists, archive it cleanly into drafts/.history/
+  if (fs.existsSync(draftMdPath)) {
+    const historyDir = path.join(draftsDir, '.history');
+    if (!fs.existsSync(historyDir)) {
+      fs.mkdirSync(historyDir, { recursive: true });
+    }
+    const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14);
+    const prefix = bundleFolder ? `${bundleFolder}_` : '';
+    const archiveFilename = `${timestamp}_${prefix}${draftFilename}`;
+    try {
+      fs.copyFileSync(draftMdPath, path.join(historyDir, archiveFilename));
+    } catch (_) {}
+  }
 
   fs.writeFileSync(draftMdPath, filledText, 'utf8');
+
+  // Auto-export court-formatted DOCX into exports/
+  const exportsDir = path.join(caseDir || process.cwd(), 'exports');
+  if (!fs.existsSync(exportsDir)) {
+    fs.mkdirSync(exportsDir, { recursive: true });
+  }
+  const docxTargetDir = bundleFolder ? path.join(exportsDir, bundleFolder) : exportsDir;
+  if (!fs.existsSync(docxTargetDir)) {
+    fs.mkdirSync(docxTargetDir, { recursive: true });
+  }
+  const draftDocxPath = path.join(docxTargetDir, `${baseTitle}.docx`);
+  let docxCompiled = false;
+  try {
+    const { exportMarkdownToDocxFile } = require('../../core/docx-exporter');
+    await exportMarkdownToDocxFile(draftMdPath, draftDocxPath);
+    docxCompiled = fs.existsSync(draftDocxPath);
+  } catch (docxErr) {
+    console.warn('[CommercialDrafting] DOCX auto-export warning:', docxErr.message);
+  }
 
   // Run statutory checklist validation on the generated draft
   const checklistDiagnostics = validateCommercialPleading(filledText, templateMeta.slug);
@@ -366,6 +471,8 @@ async function draftCommercialCourtForm(caseDir, identifier, overrides = {}) {
     template: templateMeta,
     draftPath: draftMdPath,
     draftName: draftFilename,
+    draftDocxPath: docxCompiled ? draftDocxPath : null,
+    bundleFolder,
     filledCount,
     unfilledCount: unfilledVars.length,
     unfilledPlaceholders: unfilledVars,

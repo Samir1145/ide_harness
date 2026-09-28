@@ -67,7 +67,7 @@ async function ingestWiki(caseDir, filePath, bm25Index, bm25IndexFile) {
 }
 
 /**
- * Handles individual markdown Wiki card (.md) ingestion.
+ * Handles individual Wiki card (.md or .tid) ingestion.
  */
 async function ingestWikiCard(caseDir, filePath, bm25Index, bm25IndexFile) {
     const ext = path.extname(filePath).toLowerCase();
@@ -75,7 +75,17 @@ async function ingestWikiCard(caseDir, filePath, bm25Index, bm25IndexFile) {
 
     console.log(`[Wiki Ingestion] Ingesting and indexing wiki card: ${path.basename(filePath)}`);
     const content = fs.readFileSync(filePath, 'utf8');
-    const { frontmatter, body } = parseMarkdownWithFrontmatter(content);
+    let body = content;
+    
+    if (ext === '.tid') {
+        const { parseTidCard } = require('./split');
+        const parsed = parseTidCard(content);
+        body = parsed.text;
+    } else {
+        const { parseMarkdownWithFrontmatter } = require('../../utils/okf');
+        const parsed = parseMarkdownWithFrontmatter(content);
+        body = parsed.body;
+    }
     
     bm25.addDocument(bm25Index, {
         id: `wiki::${basename}`,

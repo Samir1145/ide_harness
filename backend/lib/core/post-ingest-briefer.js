@@ -25,6 +25,10 @@ const DOC_TYPES = {
     CLAIM_FORM: 'Creditor Claim Form (Form B/C/CA)',
     COC_MINUTES: 'CoC Meeting Minutes & Voting Record',
     DEMAND_NOTICE: 'Statutory Demand Notice (§ 8 / Form 3)',
+    COMMERCIAL_RECOVERY_SUIT: 'Commercial Recovery Suit (Order VII Rule 1 CPC / CCA)',
+    INJUNCTION_APPLICATION: 'Temporary Injunction Application (Order XXXIX Rules 1 & 2 CPC)',
+    ATTACHMENT_APPLICATION: 'Attachment Before Judgment (Order XXXVIII Rule 5 CPC)',
+    ARBITRATION_PETITION: 'Arbitration Petition (A&C Act, 1996)',
     GENERAL_LEGAL_FILING: 'Statutory Case Filing'
 };
 
@@ -33,7 +37,9 @@ const FOCUS_MODES = {
     GENERAL: 'general',
     WATERFALL: 'waterfall',
     S29A: 's29a',
-    AVOIDANCE: 'avoidance'
+    AVOIDANCE: 'avoidance',
+    INTERIM_RELIEF: 'interim_relief',
+    COMMERCIAL_QUANTUM: 'commercial_quantum'
 };
 
 /**
@@ -76,11 +82,31 @@ function classifyDocument(text = '', filename = '') {
         return { docType: 'DEMAND_NOTICE', label: DOC_TYPES.DEMAND_NOTICE, confidence: 0.85 };
     }
 
+    // 7. Commercial Recovery Suit / Plaint (Order VII Rule 1 CPC / Commercial Courts Act)
+    if (/order\s*(?:7|vii)\s*rule\s*1/i.test(raw) || /commercial\s*courts\s*act/i.test(raw) || (/suit\s*for\s*recovery/i.test(raw) && /rent|arrears|damages|goods|debt|hotel/i.test(raw)) || /rent\s*recovery/i.test(raw)) {
+        return { docType: 'COMMERCIAL_RECOVERY_SUIT', label: DOC_TYPES.COMMERCIAL_RECOVERY_SUIT, confidence: 0.94 };
+    }
+
+    // 8. Temporary Injunction Application (Order XXXIX Rules 1 & 2 CPC)
+    if (/order\s*(?:39|xxxix)\s*rules?\s*(?:1|2)/i.test(raw) || (/temporary\s*injunction/i.test(raw) && /civil\s*procedure/i.test(raw)) || /ad-interim\s*injunction/i.test(raw)) {
+        return { docType: 'INJUNCTION_APPLICATION', label: DOC_TYPES.INJUNCTION_APPLICATION, confidence: 0.93 };
+    }
+
+    // 9. Attachment Before Judgment (Order XXXVIII Rule 5 CPC)
+    if (/order\s*(?:38|xxxviii)\s*rules?\s*5/i.test(raw) || /attachment\s*before\s*judgment/i.test(raw)) {
+        return { docType: 'ATTACHMENT_APPLICATION', label: DOC_TYPES.ATTACHMENT_APPLICATION, confidence: 0.93 };
+    }
+
+    // 10. Arbitration Petition (A&C Act, 1996)
+    if (/arbitration\s*and\s*conciliation\s*act/i.test(raw) || /section\s*(?:9|11|34)\b[\s\S]*?arbitrat/i.test(raw)) {
+        return { docType: 'ARBITRATION_PETITION', label: DOC_TYPES.ARBITRATION_PETITION, confidence: 0.91 };
+    }
+
     return { docType: 'GENERAL_LEGAL_FILING', label: DOC_TYPES.GENERAL_LEGAL_FILING, confidence: 0.60 };
 }
 
 /**
- * Extracts key insolvency parameters from raw document text.
+ * Extracts key insolvency and litigation parameters from raw document text.
  * 
  * @param {string} text 
  * @returns {Object} Extracted entities
@@ -89,6 +115,8 @@ function extractKeyParameters(text = '') {
     const params = {
         corporate_debtor: null,
         applicant_or_creditor: null,
+        plaintiff_or_petitioner: null,
+        defendant_or_respondent: null,
         debt_quantum: null,
         statutory_sections: [],
         cirp_date: null
@@ -109,20 +137,42 @@ function extractKeyParameters(text = '') {
         params.applicant_or_creditor = appMatch[1].trim().replace(/[\r\n\t]+/g, ' ');
     }
 
-    // Debt Quantum or Plan Value
-    const quantumMatch = text.match(/(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?\s*(?:crore|cr|lakh|lakhs)?)/i)
-        || text.match(/(?:admitted\s*debt|total\s*debt|claim\s*amount|plan\s*value|proposed\s*value)[:\s]+(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?\s*(?:crore|cr|lakh)?)/i);
-    if (quantumMatch) {
-        params.debt_quantum = quantumMatch[0].trim();
+    // Petitioner / Plaintiff (Civil & Commercial Litigation)
+    const petMatch = text.match(/((?:M\/s\.?\s+)?[A-Z][A-Za-z0-9\s.,&()'-]+?\b(?:Private\s+Limited|Pvt\.?\s*Ltd\.?|Limited|Ltd\.?|Corporation|LLP|Trust))\b[\s\S]{0,120}?\.{2,}\s*(?:petitioner|plaintiff)/i)
+        || text.match(/(?:petitioner|plaintiff)[:\s]+["']?((?:M\/s\.?\s+)?[A-Z][A-Za-z0-9\s.,&()'-]+?\b(?:Private\s+Limited|Pvt\.?\s*Ltd\.?|Limited|Ltd\.?|Corporation|LLP|Trust|Hotels|Bank|Hospitality))/i)
+        || text.match(/([A-Za-z0-9\s.,&()\-]+?(?:limited|pvt|private|corp|llp|hotels|hospitality|shri|smt|bank))\s*[,.]*\s*\.{2,}\s*(?:petitioner|plaintiff)/i);
+    if (petMatch && petMatch[1]) {
+        params.plaintiff_or_petitioner = petMatch[1].trim().replace(/[\r\n\t]+/g, ' ');
     }
 
-    // Statutory Sections
-    const secRegex = /section\s*(\d+[A-Z]?(?:\(\d+\)(?:\([a-z]\))?)?)/gi;
+    // Respondent / Defendant (Civil & Commercial Litigation)
+    const respMatch = text.match(/versus\s*[\r\n\s]*(?:1\.\s*)?((?:M\/s\.?\s+)?[A-Z][A-Za-z0-9\s.,&()'-]+?\b(?:Hospitality|Partnership(?:\s+concern)?|Private\s+Limited|Pvt\.?\s*Ltd\.?|Limited|Ltd\.?|Corporation|LLP|Trust|Enterprises))\b/i)
+        || text.match(/versus\s*[\r\n\s]*(?:1\.\s*)?([A-Za-z0-9\s.,&()\-]+?)(?:,\s*a\s+partnership|\s*\.{2,}\s*(?:respondent|defendant)|[\r\n]+\s*2\.)/i)
+        || text.match(/(?:respondent|defendant)[:\s]+["']?((?:M\/s\.?\s+)?[A-Za-z0-9\s.,&()'-]+?\b(?:Hospitality|Partnership|Private\s+Limited|Pvt\.?\s*Ltd\.?|Limited|Ltd\.?|Corporation|LLP|Trust))/i);
+    if (respMatch && respMatch[1]) {
+        params.defendant_or_respondent = respMatch[1].trim().replace(/[\r\n\t]+/g, ' ');
+    }
+
+    // Debt Quantum or Plan / Suit Value
+    const quantumMatch = text.match(/(?:totalling\s*to|total\s*to|totalling|total\s*(?:admitted\s*)?(?:financial\s*)?debt|claim\s*amount|plan\s*value|proposed\s*value)[:\s]*(?:is\s*)?(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?\s*(?:crore|cr|lakh|lakhs)?)/i)
+        || text.match(/(?:amounting\s*to)[:\s]*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?\s*(?:crore|cr|lakh|lakhs)?)/i)
+        || text.match(/(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?\s*(?:crore|cr|lakh|lakhs)?)/i);
+    if (quantumMatch) {
+        const val = quantumMatch[1] || quantumMatch[0];
+        params.debt_quantum = val.trim().startsWith('₹') ? val.trim() : `₹ ${val.replace(/^(?:rs\.?|inr)\s*/i, '').trim()}`;
+    }
+
+    // Statutory Sections & CPC Orders/Rules
+    const secRegex = /section\s*(\d+[A-Z]?(?:\(\d+\))?)|order\s*([ivxlcdm\d]+)\s*rule\s*(\d+[a-z]?)/gi;
     let m;
     const foundSecs = new Set();
     while ((m = secRegex.exec(text)) !== null) {
-        foundSecs.add(`§ ${m[1]}`);
-        if (foundSecs.size >= 6) break;
+        if (m[1]) {
+            foundSecs.add(`§ ${m[1]}`);
+        } else if (m[2] && m[3]) {
+            foundSecs.add(`Order ${m[2].toUpperCase()} Rule ${m[3]}`);
+        }
+        if (foundSecs.size >= 8) break;
     }
     params.statutory_sections = Array.from(foundSecs);
 
@@ -191,6 +241,8 @@ function generatePostIngestBrief(caseDir, filename, options = {}) {
     const params = extractKeyParameters(text);
     const integrity = detectIntegrityIssues(densityArray);
 
+    const isCommercial = ['COMMERCIAL_RECOVERY_SUIT', 'INJUNCTION_APPLICATION', 'ATTACHMENT_APPLICATION', 'ARBITRATION_PETITION'].includes(docType);
+
     const bullets = [];
 
     // Bullet 1: Classification
@@ -198,8 +250,18 @@ function generatePostIngestBrief(caseDir, filename, options = {}) {
 
     // Bullet 2: Key Parties
     const parties = [];
-    if (params.corporate_debtor) parties.push(`Debtor: *${params.corporate_debtor}*`);
-    if (params.applicant_or_creditor) parties.push(`Party: *${params.applicant_or_creditor}*`);
+    if (isCommercial) {
+        if (params.plaintiff_or_petitioner) parties.push(`Petitioner/Plaintiff: *${params.plaintiff_or_petitioner}*`);
+        if (params.defendant_or_respondent) parties.push(`Respondent/Defendant: *${params.defendant_or_respondent}*`);
+        if (parties.length === 0 && params.corporate_debtor) {
+            parties.push(`Party: *${params.corporate_debtor}*`);
+        }
+    } else {
+        if (params.corporate_debtor) parties.push(`Debtor: *${params.corporate_debtor}*`);
+        if (params.applicant_or_creditor) parties.push(`Party: *${params.applicant_or_creditor}*`);
+        if (params.plaintiff_or_petitioner) parties.push(`Petitioner: *${params.plaintiff_or_petitioner}*`);
+        if (params.defendant_or_respondent) parties.push(`Respondent: *${params.defendant_or_respondent}*`);
+    }
     if (parties.length > 0) {
         bullets.push(`**Key Parties:** ${parties.join(' | ')}`);
     }
@@ -207,7 +269,7 @@ function generatePostIngestBrief(caseDir, filename, options = {}) {
     // Bullet 3: Financial & Statutory Quantum
     const financials = [];
     if (params.debt_quantum) financials.push(`Quantum: **${params.debt_quantum}**`);
-    if (params.statutory_sections.length > 0) financials.push(`Provisions: ${params.statutory_sections.slice(0, 4).join(', ')}`);
+    if (params.statutory_sections.length > 0) financials.push(`Provisions: ${params.statutory_sections.slice(0, 5).join(', ')}`);
     if (financials.length > 0) {
         bullets.push(`**Filing Scope:** ${financials.join(' | ')}`);
     }
@@ -221,7 +283,11 @@ function generatePostIngestBrief(caseDir, filename, options = {}) {
     }
 
     // Available Emphasis Options based on document type
-    const focusOptions = [
+    const focusOptions = isCommercial ? [
+        { id: FOCUS_MODES.INTERIM_RELIEF, label: 'Interlocutory Relief (Order 38/39)', desc: 'Prioritizes injunctions, asset freezing & dissipation risks' },
+        { id: FOCUS_MODES.COMMERCIAL_QUANTUM, label: 'Debt & Interest Quantum (§ 34 CPC)', desc: 'Prioritizes rent arrears, escalation formulas & GST clauses' },
+        { id: FOCUS_MODES.GENERAL, label: 'Standard Balanced Focus', desc: 'Uniform rank fusion across all chapters' }
+    ] : [
         { id: FOCUS_MODES.WATERFALL, label: 'Financial Waterfall (§ 53 / Reg 38)', desc: 'Prioritizes payout schedules & liquidation waterfalls' },
         { id: FOCUS_MODES.S29A, label: 'Section 29A Eligibility', desc: 'Prioritizes promoter conflicts & disqualifications' },
         { id: FOCUS_MODES.AVOIDANCE, label: 'Avoidance Scrutiny (§§ 43/45/66)', desc: 'Prioritizes contra-sweeps & suspicious transactions' },
@@ -259,7 +325,31 @@ function generatePostIngestBrief(caseDir, filename, options = {}) {
 function postBriefToInbox(caseDir, brief) {
     if (!caseDir || !brief) return null;
 
-    const actions = [
+    const isCommercial = ['COMMERCIAL_RECOVERY_SUIT', 'INJUNCTION_APPLICATION', 'ATTACHMENT_APPLICATION', 'ARBITRATION_PETITION'].includes(brief.docType);
+
+    const actions = isCommercial ? [
+        {
+            id: 'draft_pims_bundle',
+            label: '📋 Draft Form 1 & Affidavits (Pre-Institution Mediation)',
+            type: 'button',
+            endpoint: '/api/hayagriva/commercial-courts/draft',
+            payload: { formId: 'cca-sec12a-pims', filename: brief.filename }
+        },
+        {
+            id: 'draft_order_39',
+            label: '⚡ Draft Order 39 Injunction & Supporting Affidavit',
+            type: 'button',
+            endpoint: '/api/hayagriva/commercial-courts/draft',
+            payload: { formId: 'cpc-order39', filename: brief.filename }
+        },
+        {
+            id: 'draft_truth_affidavit',
+            label: '⚖️ Draft Statement of Truth (Order VI Rule 15A)',
+            type: 'button',
+            endpoint: '/api/hayagriva/commercial-courts/draft',
+            payload: { formId: 'cpc-truth', filename: brief.filename }
+        }
+    ] : [
         {
             id: 'set_focus_waterfall',
             label: '🎯 Financial Waterfall',
@@ -283,16 +373,22 @@ function postBriefToInbox(caseDir, brief) {
         }
     ];
 
+    const description = isCommercial
+        ? `Under Section 12A of the Commercial Courts Act, 2015, this suit requires either mandatory Pre-Institution Mediation (Form 1) or an urgent ad-interim relief application (Order XXXIX CPC with Statement of Truth). The agent is ready to generate court-ready drafts using facts extracted from ${brief.filename}.`
+        : `Statutory insolvency filing processed for ${brief.filename}. Select an intake focus or approve procedural next steps.`;
+
     const item = inboxManager.createItem(caseDir, {
         kind: 'INGEST_BRIEF',
-        title: `Ingestion Brief: ${brief.filename}`,
+        title: isCommercial ? `Draft Commercial Court Application: ${brief.filename}` : `Ingestion Brief: ${brief.filename}`,
+        description,
         body: brief.bullets.join('\n'),
         options: actions,
         metadata: {
             filename: brief.filename,
             docType: brief.docType,
             params: brief.params,
-            integrity: brief.integrity
+            integrity: brief.integrity,
+            isCommercial
         }
     });
 

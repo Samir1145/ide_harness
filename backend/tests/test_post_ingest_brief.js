@@ -250,6 +250,46 @@ async function runTests() {
             }
         }
 
+        // ====================================================================
+        // TEST 9: Commercial Court Archetypes & Petitioner/Respondent Extraction
+        // ====================================================================
+        console.log('  -> Test 9: Commercial Court Archetypes, Party Extraction & Focus Modes');
+
+        const commSuitText = `
+        IN THE HON’BLE COURT OF CIVIL JUDGE (SENIOR DIVISION), CHANDIGARH.
+        Civil Suit No. 102 of 2026
+        M/s P.D. Hotels Private Limited, Chandigarh. ...Petitioner
+        VERSUS
+        1. M/s P.R. Hospitality, a Partnership concern through its Partners ...Respondents
+        
+        Suit for recovery of arrears of rent amounting to 2,77,30,872 totalling to Rs 3,27,22,429 along with interest @12% per annum under Order VII Rule 1 of the Code of Civil Procedure, 1908.
+        Application under Order XXXIX Rules 1 & 2 CPC for temporary injunction against alienation of assets.
+        `;
+
+        const commClass = classifyDocument(commSuitText, 'Commercial_Rent_Suit.pdf');
+        assert.strictEqual(commClass.docType, 'COMMERCIAL_RECOVERY_SUIT');
+        assert(commClass.confidence >= 0.90);
+
+        const commParams = extractKeyParameters(commSuitText);
+        assert(commParams.plaintiff_or_petitioner && commParams.plaintiff_or_petitioner.includes('P.D. Hotels Private Limited'), 'Must extract Petitioner');
+        assert(commParams.defendant_or_respondent && commParams.defendant_or_respondent.includes('P.R. Hospitality'), 'Must extract Respondent');
+        assert(commParams.debt_quantum && commParams.debt_quantum.includes('3,27,22,429'), 'Must extract total quantum');
+        assert(commParams.statutory_sections.some(s => s.toLowerCase().includes('order vii rule 1') || s.toLowerCase().includes('order 7 rule 1')), 'Must extract Order VII Rule 1');
+
+        const commBrief = generatePostIngestBrief(tempDir, 'Commercial_Rent_Suit.pdf', {
+            text: commSuitText,
+            pageCount: 12
+        });
+
+        assert.strictEqual(commBrief.docType, 'COMMERCIAL_RECOVERY_SUIT');
+        assert(commBrief.bullets.some(b => b.includes('Petitioner/Plaintiff: *M/s P.D. Hotels Private Limited*')), 'Must show Petitioner in brief');
+        assert(commBrief.bullets.some(b => b.includes('Respondent/Defendant: *M/s P.R. Hospitality*')), 'Must show Respondent in brief');
+        assert(!commBrief.bullets.some(b => b.includes('Debtor:')), 'Commercial brief must NOT show Debtor');
+        assert.strictEqual(commBrief.focusOptions.length, 3, 'Must have 3 commercial focus options');
+        assert.strictEqual(commBrief.focusOptions[0].id, FOCUS_MODES.INTERIM_RELIEF);
+        assert.strictEqual(commBrief.focusOptions[1].id, FOCUS_MODES.COMMERCIAL_QUANTUM);
+        console.log('   ✓ Commercial Court archetypes, party extraction, and focus modes verified.');
+
         console.log('\n✅ ALL PLAN 18 POST-INGEST BRIEF & EMPHASIS TESTS PASSED CLEANLY!\n');
     } finally {
         fs.rmSync(tempDir, { recursive: true, force: true });

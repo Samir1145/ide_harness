@@ -180,6 +180,18 @@ export class HayagrivaMenuContribution implements MenuContribution {
     });
 
     registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:openCaseWiki`,
+      label: '📖 Open Case Wiki (Legal Canvas)',
+      order: '1_wiki'
+    });
+
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:exportCourtDocx`,
+      label: '🏛️ Export Continuous Court DOCX',
+      order: '1_docx'
+    });
+
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
       commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
       label: '📄 Open Preview in Middle Panel',
       order: '1'
@@ -218,10 +230,25 @@ export class HayagrivaMenuContribution implements MenuContribution {
     // ═════════════════════════════════════════════════════════════════════════
     const SHELL_TABBAR_CONTEXT_MENU: MenuPath = ['shell-tabbar-context-menu'];
     const SHELL_TABBAR_HAYAGRIVA: MenuPath = [...SHELL_TABBAR_CONTEXT_MENU, '1_hayagriva'];
+    registry.registerMenuAction(SHELL_TABBAR_CONTEXT_MENU, {
+      commandId: `${HAYAGRIVA_NS}:viewAsHtml`,
+      label: '📖 View as HTML (Live Formatted Preview)',
+      order: '0'
+    });
     registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
       commandId: `${HAYAGRIVA_NS}:viewAsHtml`,
       label: '📖 View as HTML (Live Formatted Preview)',
       order: '0'
+    });
+    registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
+      commandId: `${HAYAGRIVA_NS}:openCaseWiki`,
+      label: '📖 Open Case Wiki (Legal Canvas)',
+      order: '1_wiki'
+    });
+    registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
+      commandId: `${HAYAGRIVA_NS}:exportCourtDocx`,
+      label: '🏛️ Export Continuous Court DOCX',
+      order: '1_docx'
     });
 
 
@@ -232,6 +259,16 @@ export class HayagrivaMenuContribution implements MenuContribution {
       commandId: `${HAYAGRIVA_NS}:viewAsHtml`,
       label: '📖 View as HTML (Live Formatted Preview)',
       order: '0_preview'
+    });
+    registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:openCaseWiki`,
+      label: '📖 Open Case Wiki (Legal Canvas)',
+      order: '0_wiki'
+    });
+    registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:exportCourtDocx`,
+      label: '🏛️ Export Continuous Court DOCX',
+      order: '0_docx'
     });
 
     registry.registerMenuAction(['editor_context_menu'], {

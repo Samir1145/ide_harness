@@ -160,6 +160,10 @@ Prompt: "${message}"`;
             return 'precedent';
         }
 
+        if (/\b(form\s*1|pims|mediation application|commercial court|order\s*39|order\s*xxxix|temporary injunction|statement of truth)\b/i.test(message)) {
+            return 'commercial';
+        }
+
         try {
             const response = await getChatResponse([
                 { role: 'system', content: 'You are a precise classifier. Return only: advisor, forms, document, bank_analyzer, or precedent.' },
@@ -284,6 +288,53 @@ Prompt: "${message}"`;
             },
             's65': {
                 run: async (cDir, msg, hist, opts) => agentMap['section65'].run(cDir, msg, hist, opts)
+            },
+            'commercial': {
+                run: async (cDir, msg, hist, opts) => {
+                    const { draftCommercialCourtForm } = require('../pipeline/forms/commercial-courts-drafting');
+                    const isOrder39 = /order\s*39|order\s*xxxix|injunction|stay|ex-parte/i.test(msg);
+                    
+                    if (isOrder39) {
+                        const o39Res = await draftCommercialCourtForm(cDir, 'cpc-order39', {}, { bundleFolder: '02_Urgent_Injunction_Stay' });
+                        const truthRes = await draftCommercialCourtForm(cDir, 'cpc-truth', {}, { bundleFolder: '02_Urgent_Injunction_Stay' });
+                        return `### ⚡ Commercial Court: Ad-Interim Injunction & Affidavit Generated\n\n` +
+                               `Based on your commercial matter facts, the following court-ready pleadings have been drafted into your \`drafts/\` folder:\n\n` +
+                               `1. 🏛️ **Order XXXIX Rules 1 & 2 CPC Application**\n` +
+                               `   - **Relief:** Ex-parte temporary injunction & status quo\n` +
+                               `   - **Draft:** \`${o39Res.draftPath}\` (${o39Res.filledCount} fields populated)\n\n` +
+                               `2. 📑 **Statement of Truth (Order VI Rule 15A CPC Affidavit)**\n` +
+                               `   - **Statute:** Order VI Rule 15A CPC read with § 63 BSA / § 65B EA\n` +
+                               `   - **Draft:** \`${truthRes.draftPath}\` (100% verified)\n\n` +
+                               `*Both documents are ready in Monaco for signing and filing. Word versions exported to \`exports/\`.*`;
+                    }
+
+                    // Default: Form 1 Pre-Institution Mediation Bundle & Affidavits
+                    const pimsRes = await draftCommercialCourtForm(cDir, 'cca-sec12a-pims', {}, { bundleFolder: '01_Pre_Institution_Mediation' });
+                    const truthRes = await draftCommercialCourtForm(cDir, 'cpc-truth', {}, { bundleFolder: '01_Pre_Institution_Mediation' });
+                    const emailRes = await draftCommercialCourtForm(cDir, 'cpc-email-affidavit', {}, { bundleFolder: '01_Pre_Institution_Mediation' });
+                    return `### 📋 Commercial Court: Form 1 Mediation Application & Affidavits Generated\n\n` +
+                           `Under Section 12A of the Commercial Courts Act, 2015, the following statutory bundle has been generated into your \`drafts/\` folder:\n\n` +
+                           `1. 📋 **Schedule I — Form 1: Mediation Application**\n` +
+                           `   - **Statute:** Section 12A CCA, 2015 & Rule 3(1) PIMS Rules, 2018\n` +
+                           `   - **Forum:** State Legal Services Authority / DLSA\n` +
+                           `   - **Draft:** \`${pimsRes.draftPath}\` (${pimsRes.filledCount} fields populated)\n\n` +
+                           `2. 📑 **Statement of Truth (Order VI Rule 15A CPC Affidavit)**\n` +
+                           `   - **Statute:** Order VI Rule 15A CPC read with § 63 BSA\n` +
+                           `   - **Draft:** \`${truthRes.draftPath}\` (100% verified)\n\n` +
+                           `3. 📧 **Affidavit of Functional Email & Contacts**\n` +
+                           `   - **Statute:** Rule 3(2) & 3(3) PIMS Rules, 2018\n` +
+                           `   - **Draft:** \`${emailRes.draftPath}\` (100% verified)\n\n` +
+                           `*All drafts are available in Monaco for practitioner review, and court-formatted Word documents have been compiled into \`exports/\`.*`;
+                }
+            },
+            'pims': {
+                run: async (cDir, msg, hist, opts) => agentMap['commercial'].run(cDir, msg, hist, opts)
+            },
+            'form1': {
+                run: async (cDir, msg, hist, opts) => agentMap['commercial'].run(cDir, msg, hist, opts)
+            },
+            'order39': {
+                run: async (cDir, msg, hist, opts) => agentMap['commercial'].run(cDir, msg, hist, opts)
             }
         };
 

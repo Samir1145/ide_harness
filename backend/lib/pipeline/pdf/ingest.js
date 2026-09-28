@@ -43,7 +43,13 @@ async function ingestPdf(caseDir, filePath, options = {}) {
 
     console.log(`[PDF Ingestion] Created companion Markdown: ${companionPath}`);
 
-    // If a verified QR code was found, record it into case_kv_dictionary.json and SQLite case_facts
+    // Automatically generate structured .tid cards and .wiki.html canvas (Phase 2 Sovereign Assembly)
+    try {
+        const { generateCaseWikiForPdf } = require('../wiki/split');
+        generateCaseWikiForPdf(caseDir, basename, structuredMd);
+    } catch (wikiErr) {
+        console.warn(`[PDF Ingestion] Case Wiki generation skipped:`, wikiErr.message);
+    }
     if (rawMd.qrUrl) {
         try {
             const reviewsDir = path.join(caseDir, 'reviews');

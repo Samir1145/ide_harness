@@ -1569,7 +1569,7 @@
       <div class="cockpit-nav-pills">
         <button class="cockpit-pill active" id="pillHil" onclick="switchCockpitTab('hil')">
           <span class="pill-icon">🛡️</span>
-          <span class="pill-label">HIL Approvals</span>
+          <span class="pill-label">Approvals</span>
           <span class="pill-counter" id="pillHilCount">0</span>
         </button>
         <button class="cockpit-pill" id="pillBilling" onclick="switchCockpitTab('billing')">
@@ -1609,72 +1609,51 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <!-- TAB PANEL 1: 🛡️ HUMAN-IN-THE-LOOP (HIL) STATUTORY GATEKEEPER            -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB PANEL 1: 🛡️ APPROVALS & PERMISSIONS                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <div class="cockpit-tab-panel active" id="tabPanelHil">
       <div class="pillar-header" style="margin-bottom: 20px;">
         <div class="pillar-title-wrap">
           <div class="pillar-num" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">🛡️</div>
           <div>
-            <h2 class="pillar-title">Human-In-The-Loop (HIL) Statutory Gatekeeper</h2>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-              Autonomous research tasks, MCA/e-Court sweeps, and agent dispatches staged for IP sign-off. Zero external calls or charges occur without explicit authorization.
+            <h2 class="pillar-title">Approvals &amp; Permissions</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+              When your AI coworkers need permission to draft a court application, search online dockets, or run external research, they wait here. Nothing happens without your go-ahead.
             </p>
           </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <span class="card-badge badge-warn" id="badgeHilSummaryCount">0 Pending Sign-offs</span>
+          <span class="card-badge badge-warn" id="badgeHilSummaryCount">0 Pending Requests</span>
           <button class="btn-header btn-outline" onclick="loadHilQueue()" style="padding: 4px 10px; font-size: 11px;">🔄 Refresh</button>
         </div>
       </div>
 
-      <!-- HIL Sub-panel A: Cloud MCP Outbound Requests -->
-      <div class="card" style="margin-bottom: 20px; border-color: rgba(56, 189, 248, 0.3);">
-        <div class="card-top">
+      <!-- Unified Approvals Table -->
+      <div class="card" style="margin-bottom: 20px; border-color: rgba(56, 189, 248, 0.25);">
+        <div class="card-top" style="margin-bottom: 12px;">
           <div class="card-icon-title">
-            <span class="card-icon">📤</span>
-            <span class="card-title">Pending Cloud Dispatches (@Precedent / @Forensic)</span>
+            <span class="card-icon">📋</span>
+            <span class="card-title">Pending Action Requests</span>
           </div>
-          <span class="card-badge badge-warn" id="badgePendingQueueCount">0 Pending Authorizations</span>
+          <span class="card-badge badge-warn" id="badgePendingQueueCount">0 Pending</span>
         </div>
-        <p class="card-body-text" style="margin-bottom: 12px;">
-          Pay-per-use tasks staged by coworkers. Click <strong>Authorize</strong> to dispatch or <strong>Inspect</strong> to view the JSON payload before sign-off.
-        </p>
+        
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
             <thead>
-              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
-                <th style="padding: 8px 10px;">Task ID</th>
-                <th style="padding: 8px 10px;">Service / Tool</th>
-                <th style="padding: 8px 10px;">Subject / Target</th>
-                <th style="padding: 8px 10px;">Estimated Fee</th>
-                <th style="padding: 8px 10px;">Payload</th>
-                <th style="padding: 8px 10px; text-align: right;">Action</th>
+              <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); background: rgba(255,255,255,0.02);">
+                <th style="padding: 10px 12px; font-weight: 600;">Request / Action</th>
+                <th style="padding: 10px 12px; font-weight: 600; width: 44%;">Why It Is Needed (Reminder)</th>
+                <th style="padding: 10px 12px; font-weight: 600; text-align: center; width: 90px;">Details</th>
+                <th style="padding: 10px 12px; font-weight: 600; width: 170px;">Your Decision</th>
+                <th style="padding: 10px 12px; font-weight: 600; text-align: right; width: 110px;">Action</th>
               </tr>
             </thead>
-            <tbody id="tbodyPendingQueue">
-              <tr><td colspan="6" style="padding: 16px 10px; text-align: center; color: var(--text-subtle);">No pending cloud dispatches. Stage tasks via @Precedent or @Forensic.</td></tr>
+            <tbody id="tbodyApprovalsQueue">
+              <tr><td colspan="5" style="padding: 24px 12px; text-align: center; color: var(--text-subtle);">No pending action requests. Your AI coworkers are up to date.</td></tr>
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <!-- HIL Sub-panel B: Agent Action Inbox & Clarifications -->
-      <div class="card" style="border-color: rgba(168, 85, 247, 0.3);">
-        <div class="card-top">
-          <div class="card-icon-title">
-            <span class="card-icon">📥</span>
-            <span class="card-title">Agent Inquests &amp; Strategy Approvals</span>
-          </div>
-          <span class="card-badge" id="badgeInboxCount">0 Inquests</span>
-        </div>
-        <p class="card-body-text" style="margin-bottom: 12px;">
-          Clarification requests, procedural questions, and draft strategy plans requiring practitioner confirmation.
-        </p>
-        <div id="inboxContainer" style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="text-align: center; padding: 24px; color: var(--text-subtle); font-size: 12px;">
-            No pending agent clarifications for this matter.
-          </div>
         </div>
       </div>
     </div>
@@ -3005,6 +2984,33 @@
     </div>
   </div>
 
+  <!-- ── Modal: Decision Confirmation ── -->
+  <div class="modal-overlay" id="approvalConfirmModal">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <button class="modal-close" onclick="closeModal('approvalConfirmModal')">&times;</button>
+      <div class="modal-title" id="approvalConfirmTitle">Confirm Your Decision</div>
+      <div class="modal-subtitle" id="approvalConfirmSubtitle">Please confirm your decision before proceeding.</div>
+      <div id="approvalConfirmBody" style="font-size: 13px; color: var(--text-main); margin: 16px 0; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 6px; line-height: 1.5;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+        <button class="btn-header btn-outline" onclick="closeModal('approvalConfirmModal')">Cancel</button>
+        <button class="btn-header btn-primary" id="btnConfirmApprovalAction" onclick="executeConfirmedApproval()">Confirm &amp; Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Request Details ── -->
+  <div class="modal-overlay" id="approvalDetailsModal">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <button class="modal-close" onclick="closeModal('approvalDetailsModal')">&times;</button>
+      <div class="modal-title" id="approvalDetailsTitle">Request Details</div>
+      <div class="modal-subtitle" id="approvalDetailsSubtitle">Full background information for this action.</div>
+      <div id="approvalDetailsBody" style="max-height: 420px; overflow-y: auto; font-size: 12px; color: var(--text-main); margin: 16px 0; padding: 14px; background: var(--bg-alt); border: 1px solid var(--card-border); border-radius: 6px; line-height: 1.6; white-space: pre-wrap; font-family: monospace;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+        <button class="btn-header btn-outline" onclick="closeModal('approvalDetailsModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Modal: Interactive Diligence Voucher & Langfuse Trace Link ── -->
   <div class="modal-overlay" id="voucherModal">
     <div class="modal-dialog" style="max-width: 660px;">
@@ -3374,8 +3380,14 @@
       }
     }
 
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }
+
     function closeModal(id) {
-      document.getElementById(id).classList.remove('active');
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
       if (downloadTimer) {
         clearInterval(downloadTimer);
         downloadTimer = null;
@@ -6950,7 +6962,10 @@ ${contacts}
       }
     }
 
-    // ── HIL Statutory Gatekeeper & Agent Inbox ──
+    // ── Approvals & Permissions (Unified Approvals Table) ──
+    let activeApprovalItems = [];
+    let pendingApprovalExecution = null;
+
     async function loadHilQueue() {
       loadCaseLedgerUI();
 
@@ -6958,13 +6973,63 @@ ${contacts}
         const res = await fetch(`/api/hayagriva/inbox?case=${encodeURIComponent(caseName)}`);
         if (!res.ok) return;
         const data = await res.json();
-        const items = data.items || [];
-        const pendingItems = items.filter(i => i.state === 'pending');
-        
-        document.getElementById('badgeInboxCount').textContent = `${pendingItems.length} Inquest${pendingItems.length === 1 ? '' : 's'}`;
-        
-        const cloudPending = (activeCaseLedgerData && activeCaseLedgerData.pending_tasks) ? activeCaseLedgerData.pending_tasks.length : 0;
-        const totalPending = pendingItems.length + cloudPending;
+        const rawInboxItems = (data.items || []).filter(i => i.state === 'pending');
+
+        const cloudPendingTasks = (activeCaseLedgerData && activeCaseLedgerData.pending_tasks) 
+          ? activeCaseLedgerData.pending_tasks 
+          : [];
+
+        // Normalize all requests into unified items
+        const normalizedItems = [];
+
+        // 1. Process Inbox items
+        for (const item of rawInboxItems) {
+          let actionTitle = item.title || item.message || 'Action Request';
+          let reminder = item.description || '';
+          
+          if (!reminder) {
+            if (item.kind === 'INGEST_BRIEF') {
+              reminder = 'The agent analyzed this document and extracted key parties, quantum, and sections. Decide how you want the AI to prioritize search and drafting for this matter.';
+            } else if (item.kind === 'approval') {
+              reminder = 'The agent is requesting your explicit permission to proceed with this workflow.';
+            } else if (item.kind === 'question') {
+              reminder = 'The agent encountered an ambiguity in the case records and requires practitioner direction.';
+            } else {
+              reminder = 'Procedural action staged by coworker awaiting your sign-off.';
+            }
+          }
+
+          normalizedItems.push({
+            id: item.id,
+            source: 'inbox',
+            kind: item.kind || 'REQUEST',
+            title: actionTitle,
+            reminder: reminder,
+            details: item.body || item.description || JSON.stringify(item.metadata || {}, null, 2),
+            raw: item
+          });
+        }
+
+        // 2. Process Cloud Tasks (e-Courts / Forensics) - ZERO hardcoded Rs/charges
+        for (const task of cloudPendingTasks) {
+          const toolClean = (task.tool_name || 'Legal Research').replace(/_/g, ' ');
+          const target = task.target_name || 'Online Legal Database';
+          const reminder = `The agent wants to connect to external databases to research: "${target}". Your permission is required before connecting.`;
+
+          normalizedItems.push({
+            id: task.task_id,
+            source: 'cloud_task',
+            kind: 'EXTERNAL_RESEARCH',
+            title: `${toolClean}: ${target}`,
+            reminder: reminder,
+            details: typeof task.payload === 'object' ? JSON.stringify(task.payload, null, 2) : String(task.payload || task.target_name || ''),
+            raw: task
+          });
+        }
+
+        activeApprovalItems = normalizedItems;
+
+        const totalPending = normalizedItems.length;
         const pillBadge = document.getElementById('pillHilCount');
         if (pillBadge) {
           pillBadge.textContent = totalPending;
@@ -6972,80 +7037,158 @@ ${contacts}
         }
         const summaryBadge = document.getElementById('badgeHilSummaryCount');
         if (summaryBadge) {
-          summaryBadge.textContent = `${totalPending} Pending Sign-off${totalPending === 1 ? '' : 's'}`;
+          summaryBadge.textContent = `${totalPending} Pending Request${totalPending === 1 ? '' : 's'}`;
+        }
+        const pendingQueueBadge = document.getElementById('badgePendingQueueCount');
+        if (pendingQueueBadge) {
+          pendingQueueBadge.textContent = `${totalPending} Pending`;
         }
 
-        const container = document.getElementById('inboxContainer');
-        if (pendingItems.length === 0) {
-          container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-subtle); font-size: 12px;">No pending agent clarifications for this matter.</div>';
+        const tbody = document.getElementById('tbodyApprovalsQueue');
+        if (!tbody) return;
+
+        if (totalPending === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="padding: 28px 12px; text-align: center; color: var(--text-subtle); font-size: 13px;">No pending action requests. Your AI coworkers are up to date.</td></tr>`;
           return;
         }
 
-        container.innerHTML = pendingItems.map(item => {
-          let actionButtons = '';
-          if (item.kind === 'approval') {
-            actionButtons = `
-              <div style="display: flex; gap: 8px; margin-top: 10px;">
-                <button class="btn-header btn-primary" style="padding: 4px 12px; font-size: 11px; background: var(--accent-emerald);" onclick="resolveInboxItem('${item.id}', 'allow')">✓ Allow</button>
-                <button class="btn-header btn-outline" style="padding: 4px 12px; font-size: 11px;" onclick="resolveInboxItem('${item.id}', 'deny')">✕ Decline</button>
-              </div>
-            `;
-          } else if (item.kind === 'question') {
-            const pills = (item.options || []).map(opt => `
-              <button class="btn-header btn-outline" style="padding: 3px 10px; font-size: 11px;" onclick="resolveInboxItem('${item.id}', '${opt}')">${opt}</button>
-            `).join('');
-            actionButtons = `
-              <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;">${pills}</div>
-              <div style="display: flex; gap: 6px; margin-top: 8px;">
-                <input type="text" class="form-control" id="inboxInput-${item.id}" placeholder="Type instruction…" style="font-size: 12px; padding: 4px 10px;" onkeydown="if(event.key==='Enter') submitInboxText('${item.id}')">
-                <button class="btn-header btn-primary" style="padding: 4px 12px; font-size: 11px;" onclick="submitInboxText('${item.id}')">Send</button>
-              </div>
-            `;
-          } else {
-            actionButtons = `
-              <div style="display: flex; gap: 8px; margin-top: 10px;">
-                <button class="btn-header btn-primary" style="padding: 4px 12px; font-size: 11px;" onclick="resolveInboxItem('${item.id}', 'approve')">✓ Approve Plan</button>
-                <button class="btn-header btn-outline" style="padding: 4px 12px; font-size: 11px;" onclick="resolveInboxItem('${item.id}', 'reject')">Request Changes</button>
-              </div>
-            `;
-          }
-
+        tbody.innerHTML = normalizedItems.map(item => {
           return `
-            <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 14px;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
-                <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 0.5px;">${item.kind || 'INQUEST'}</span>
-                <span style="font-size: 10px; color: var(--text-subtle);">${item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : ''}</span>
-              </div>
-              <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">${item.title || item.message || 'Procedural Question'}</div>
-              ${item.description ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${item.description}</div>` : ''}
-              ${actionButtons}
-            </div>
+            <tr style="border-bottom: 1px solid var(--card-border); transition: background 0.15s ease;">
+              <td style="padding: 12px 10px; vertical-align: top;">
+                <div style="font-weight: 600; color: var(--text-main); font-size: 13px;">${escapeHtml(item.title)}</div>
+                <div style="font-size: 10px; color: var(--accent-cyan); text-transform: uppercase; margin-top: 4px; font-weight: 700; letter-spacing: 0.5px;">${escapeHtml(item.kind)}</div>
+              </td>
+              <td style="padding: 12px 10px; vertical-align: top; color: var(--text-muted); font-size: 12px; line-height: 1.5;">
+                ${escapeHtml(item.reminder)}
+              </td>
+              <td style="padding: 12px 10px; vertical-align: top; text-align: center;">
+                <button class="btn-header btn-outline" style="font-size: 11px; padding: 4px 8px; white-space: nowrap;" onclick="viewApprovalDetails('${item.id}')">
+                  🔍 Details
+                </button>
+              </td>
+              <td style="padding: 12px 10px; vertical-align: top;">
+                <select class="form-control" id="decision-${item.id}" onchange="onDecisionChange('${item.id}')" style="font-size: 12px; padding: 5px 8px; width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: var(--text-main); border-radius: 4px;">
+                  <option value="">Select decision…</option>
+                  <option value="accept">✅ Accept (Proceed)</option>
+                  <option value="decline">❌ Decline (Skip)</option>
+                </select>
+              </td>
+              <td style="padding: 12px 10px; vertical-align: top; text-align: right;">
+                <button class="btn-header btn-primary" id="btnSubmit-${item.id}" disabled onclick="openApprovalConfirmation('${item.id}')" style="font-size: 11px; padding: 5px 12px; white-space: nowrap; opacity: 0.5;">
+                  Submit
+                </button>
+              </td>
+            </tr>
           `;
         }).join('');
 
-      } catch (_) {}
-    }
-
-    async function resolveInboxItem(itemId, resolution) {
-      try {
-        const res = await fetch('/api/hayagriva/inbox/resolve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ case: caseName, itemId, resolution, resolvedBy: 'practitioner' })
-        });
-        if (res.ok) {
-          showToast(`✓ Action resolved (${resolution})`);
-          loadHilQueue();
-        }
       } catch (err) {
-        showToast(`Resolution error: ${err.message}`, true);
+        console.warn('[Approvals] Error loading approval queue:', err.message);
       }
     }
 
-    function submitInboxText(itemId) {
-      const input = document.getElementById(`inboxInput-${itemId}`);
-      if (!input || !input.value.trim()) return;
-      resolveInboxItem(itemId, input.value.trim());
+    function onDecisionChange(itemId) {
+      const select = document.getElementById(`decision-${itemId}`);
+      const btn = document.getElementById(`btnSubmit-${itemId}`);
+      if (!select || !btn) return;
+      if (select.value) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        if (select.value === 'accept') {
+          btn.style.background = 'var(--accent-emerald)';
+          btn.style.borderColor = '#059669';
+        } else {
+          btn.style.background = 'rgba(239, 68, 68, 0.8)';
+          btn.style.borderColor = '#dc2626';
+        }
+      } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+      }
+    }
+
+    function openApprovalConfirmation(itemId) {
+      const item = activeApprovalItems.find(i => i.id === itemId);
+      if (!item) return;
+      const select = document.getElementById(`decision-${itemId}`);
+      const decision = select ? select.value : '';
+      if (!decision) return;
+
+      pendingApprovalExecution = { item, decision };
+
+      const isAccept = decision === 'accept';
+      const actionWord = isAccept ? 'Accept &amp; Proceed' : 'Decline &amp; Skip';
+      
+      document.getElementById('approvalConfirmTitle').innerHTML = isAccept 
+        ? '✅ Confirm Approval' 
+        : '❌ Confirm Declining Request';
+      document.getElementById('approvalConfirmSubtitle').textContent = 
+        'Please confirm your decision. This action will be recorded in the matter history.';
+      
+      document.getElementById('approvalConfirmBody').innerHTML = `
+        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Request: ${escapeHtml(item.title)}</div>
+        <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 12px;">${escapeHtml(item.reminder)}</div>
+        <div style="padding: 8px 12px; background: ${isAccept ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; border-left: 3px solid ${isAccept ? 'var(--accent-emerald)' : '#ef4444'}; border-radius: 4px; font-weight: 600; font-size: 12px; color: ${isAccept ? 'var(--accent-emerald)' : '#f87171'};">
+          Your Decision: ${actionWord}
+        </div>
+      `;
+
+      const confirmBtn = document.getElementById('btnConfirmApprovalAction');
+      confirmBtn.textContent = isAccept ? 'Confirm & Proceed' : 'Confirm Decline';
+      confirmBtn.style.background = isAccept ? 'var(--accent-emerald)' : '#dc2626';
+      confirmBtn.style.borderColor = isAccept ? '#059669' : '#b91c1c';
+
+      openModal('approvalConfirmModal');
+    }
+
+    async function executeConfirmedApproval() {
+      if (!pendingApprovalExecution) return;
+      const { item, decision } = pendingApprovalExecution;
+      closeModal('approvalConfirmModal');
+
+      try {
+        if (item.source === 'inbox') {
+          const res = await fetch('/api/hayagriva/inbox/resolve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              case: caseName,
+              itemId: item.id,
+              resolution: decision === 'accept' ? 'approve' : 'deny',
+              resolvedBy: 'practitioner'
+            })
+          });
+          const resData = await res.json();
+          if (res.ok) {
+            showToast(`✓ Request ${decision === 'accept' ? 'accepted' : 'declined'}. Drafts updated in workspace.`);
+          } else {
+            showToast(`Error: ${resData.error || 'Failed to update'}`, true);
+          }
+        } else if (item.source === 'cloud_task') {
+          if (decision === 'accept') {
+            await payAndAuthorizeTask(item.id);
+          } else {
+            showToast(`✓ Research task declined.`);
+          }
+        }
+      } catch (err) {
+        showToast(`Action error: ${err.message}`, true);
+      } finally {
+        pendingApprovalExecution = null;
+        loadHilQueue();
+      }
+    }
+
+    function viewApprovalDetails(itemId) {
+      const item = activeApprovalItems.find(i => i.id === itemId);
+      if (!item) return;
+      document.getElementById('approvalDetailsTitle').textContent = item.title;
+      document.getElementById('approvalDetailsSubtitle').textContent = `Type: ${item.kind} • ID: ${item.id}`;
+      document.getElementById('approvalDetailsBody').textContent = item.details;
+      openModal('approvalDetailsModal');
     }
 
     // ── Local Observability & Neural Telemetry ──
