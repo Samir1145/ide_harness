@@ -332,8 +332,8 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
       const captionSuffixes: TreeDecoration.CaptionAffix[] = [];
       if (companionExists && companionRelPath) {
         captionSuffixes.push({
-          data: '  📝 Companion MD',
-          fontData: { color: '#6b7280' }  // subtle grey
+          data: '  🏛️ Legal Canvas',
+          fontData: { color: '#10b981' }  // emerald green
         });
       }
 

@@ -381,9 +381,51 @@ export class HayagrivaCommandContribution implements CommandContribution {
       const originalPath = decodeURIComponent(resourceUri.path.toString());
       const lowerPath = originalPath.toLowerCase();
       const caseDir = this.getCasePath();
+      const apiPort = this.contribution.getApiPort();
+
+      // 1. If it's already a .wiki.html file, open it directly in the editor!
+      if (lowerPath.endsWith('.wiki.html')) {
+        await this.contribution.openWikiHtmlViewer(originalPath, caseDir);
+        return;
+      }
+
+      // 2. Determine document stem
+      const base = getBasename(originalPath);
+      let docStem = '';
+      if (lowerPath.endsWith('.tid')) {
+        const parts = originalPath.split(/[\\/]/);
+        docStem = parts.length >= 2 ? parts[parts.length - 2] : base.replace(/\.tid$/i, '');
+      } else {
+        docStem = base.replace(/\.[a-zA-Z0-9]+$/, '');
+      }
+
+      this.messageService.info(`[HAYAGRIVA] Opening Legal Assembly Line Canvas for ${docStem}...`);
+
+      try {
+        // 3. Ensure the Legal Wiki Canvas (.wiki.html) is generated and ready
+        const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/tiddlywiki/ensure-wiki`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            caseName: caseDir,
+            docStem: docStem,
+            fileName: originalPath
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.wikiHtmlPath) {
+          // Close other document viewers and open Legal Canvas directly inside Theia's main editor!
+          this.contribution.closeOtherDocumentViewers();
+          await this.contribution.openWikiHtmlViewer(data.wikiHtmlPath, caseDir);
+          return;
+        }
+      } catch (err: any) {
+        console.warn('[HAYAGRIVA] ensure-wiki API call failed:', err.message);
+      }
+
+      // 4. Graceful Fallback: if canvas is unavailable, open companion Markdown in Monaco
       const rel = this.getRelativePath(resourceUri);
       const status = this.treeDecorator.statusCache ? this.treeDecorator.statusCache[rel] : null;
-
       let companionPath = '';
       if (lowerPath.endsWith('.md') || lowerPath.endsWith('.markdown')) {
         companionPath = originalPath;
@@ -394,43 +436,13 @@ export class HayagrivaCommandContribution implements CommandContribution {
       } else {
         const basename = getBasename(originalPath).replace(/\.[a-zA-Z0-9]+$/, '');
         const caseName = caseDir.split(/[\\/]/).pop() || '';
-        const subfolder = rel.includes('/') || rel.includes('\\') ? rel.substring(0, Math.max(rel.lastIndexOf('/'), rel.lastIndexOf('\\'))) : '';
-        companionPath = subfolder
-          ? `${caseDir}/${caseName}_conversions_haya/${subfolder}/${basename}.md`
-          : `${caseDir}/${caseName}_conversions_haya/${basename}.md`;
+        companionPath = `${caseDir}/${caseName}_conversions_haya/${basename}.md`;
       }
 
       const companionUri = new URI(companionPath.startsWith('file://') ? companionPath : `file://${companionPath}`);
-      const caseName = this.getCasePath();
-      const apiPort = this.contribution.getApiPort();
-
-      // Self-Healing check: If companion .md is missing, trigger Phase 1 conversion automatically!
-      try {
-        const hasCompanion = status?.files?.companion?.exists === true || status?.dot1 === 'companion_ready';
-        if (!hasCompanion && !lowerPath.endsWith('.md') && !lowerPath.endsWith('.markdown')) {
-          this.logger.info(`[HAYAGRIVA] Companion .md missing for ${getBasename(originalPath)}. Triggering Phase 1 conversion...`);
-          const convertRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/convert-to-md`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ case: caseName, file: originalPath })
-          });
-          const convertResult = await convertRes.json();
-          if (convertResult.success) {
-            await this.treeDecorator.refreshStatuses();
-          }
-        }
-      } catch (e: any) {
-        console.warn('[HAYAGRIVA] Companion self-healing check failed:', e.message);
-      }
-
-      // 1. Close source PDF/Office viewers so the user has full focus on authoring
       this.contribution.closeOtherDocumentViewers();
-
-      // 2. Open companion Markdown file in Monaco Editor on the Left
       await this.editorManager.open(companionUri, { mode: 'open' });
-
-      // 3. Open Live Rendered Markdown Preview in the Right split
-      await this.contribution.openLiveMarkdownPreview(companionPath, caseName);
+      await this.contribution.openLiveMarkdownPreview(companionPath, caseDir);
     };
 
     const isCompanionApplicable = (uri?: any) => {

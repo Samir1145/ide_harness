@@ -68,9 +68,10 @@ export class HayagrivaPreviewManager {
     widget = new Widget();
     widget.id = id;
     const base = getBasename(filePath);
-    widget.title.label = base;
-    widget.title.caption = `Read-only Wiki Viewer for ${base}`;
-    widget.title.iconClass = 'fa fa-book';
+    const cleanLabel = base.replace(/\.wiki\.html$/i, '');
+    widget.title.label = `🏛️ ${cleanLabel}`;
+    widget.title.caption = `Sovereign Legal Assembly Line Canvas for ${cleanLabel}`;
+    widget.title.iconClass = 'fa fa-balance-scale';
     widget.title.closable = true;
 
     const iframe = document.createElement('iframe');

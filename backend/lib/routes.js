@@ -3547,6 +3547,81 @@ module.exports = {
             });
         },
 
+        '/api/hayagriva/tiddlywiki/ensure-wiki': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    let payload = {};
+                    try { payload = JSON.parse(body || '{}'); } catch (_) {}
+                    const caseName = payload.caseName || parsedUrl.query.case || '';
+                    const fileName = payload.fileName || parsedUrl.query.file || '';
+                    const docStem = payload.docStem || fileName.replace(/\.wiki\.html$/i, '').replace(/\.[a-zA-Z0-9]+$/, '') || 'document';
+
+                    const caseDir = resolveCaseDir(docsRoot, caseName);
+                    const { getWikiDir } = require('./pipeline/common/helper');
+                    const wikiDir = getWikiDir(caseDir);
+                    const wikiHtmlPath = path.join(wikiDir, `${docStem}.wiki.html`);
+
+                    if (fs.existsSync(wikiHtmlPath)) {
+                        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                        res.end(JSON.stringify({ success: true, wikiHtmlPath, docStem }));
+                        return;
+                    }
+
+                    const { getConversionsDir } = require('./pipeline/common/helper');
+                    const convDir = getConversionsDir(caseDir);
+                    let companionMdContent = '';
+                    const possibleMdPaths = [
+                        path.join(convDir, `${docStem}.md`),
+                        path.join(convDir, docStem, `${docStem}.md`),
+                        path.join(convDir, `${docStem.replace(/_/g, ' ')}.md`),
+                        path.join(convDir, `${docStem.replace(/ /g, '_')}.md`)
+                    ];
+                    if (fs.existsSync(convDir)) {
+                        const findMd = (dir) => {
+                            const entries = fs.readdirSync(dir, { withFileTypes: true });
+                            for (const entry of entries) {
+                                const full = path.join(dir, entry.name);
+                                if (entry.isDirectory()) {
+                                    const found = findMd(full);
+                                    if (found) return found;
+                                } else if (entry.isFile() && entry.name.endsWith('.md')) {
+                                    const stem = entry.name.replace(/\.md$/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                                    const targetStem = docStem.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                    if (stem === targetStem) return full;
+                                }
+                            }
+                            return null;
+                        };
+                        const found = findMd(convDir);
+                        if (found) possibleMdPaths.unshift(found);
+                    }
+
+                    for (const p of possibleMdPaths) {
+                        if (fs.existsSync(p)) {
+                            companionMdContent = fs.readFileSync(p, 'utf8');
+                            break;
+                        }
+                    }
+
+                    if (companionMdContent) {
+                        const { generateCaseWikiForPdf } = require('./pipeline/wiki/split');
+                        const genResult = generateCaseWikiForPdf(caseDir, docStem, companionMdContent);
+                        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                        res.end(JSON.stringify({ success: true, wikiHtmlPath: genResult.wikiHtmlPath, docStem, cardsCount: genResult.cardsCount }));
+                        return;
+                    }
+
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: `Companion markdown not found for ${docStem}` }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+        },
+
         '/api/hayagriva/wiki/lint-resolve': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
