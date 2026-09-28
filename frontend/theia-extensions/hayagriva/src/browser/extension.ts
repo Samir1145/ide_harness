@@ -89,6 +89,10 @@ export class HayagrivaFrontendContribution
     return `http://127.0.0.1:${this.getApiPort()}`;
   }
 
+  getShell(): ApplicationShell {
+    return this.shell;
+  }
+
   // ── OpenHandler ────────────────────────────────────────────────────────────
   canHandle(uri: URI): number {
     if (uri.scheme === 'hayagriva-citation') {

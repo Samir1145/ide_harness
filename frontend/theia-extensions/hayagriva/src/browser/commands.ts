@@ -55,12 +55,21 @@ export class HayagrivaCommandContribution implements CommandContribution {
   }
 
   private resolveUri(uri?: any): URI | undefined {
+    // Check if the input is a string first (file path or URI string)
+    if (typeof uri === 'string' && uri.trim().length > 0) {
+      try {
+        const clean = uri.trim();
+        return new URI(clean.startsWith('/') ? `file://${clean}` : clean);
+      } catch (e: any) {}
+    }
+
     // If uri is a DOM Event (e.g. MouseEvent passed from TabBar right-click), ignore it so it resolves the active editor
-    if (uri && (typeof Event !== 'undefined' && uri instanceof Event || 'preventDefault' in uri || 'clientX' in uri || 'nativeEvent' in uri)) {
+    if (uri && typeof uri === 'object' && ((typeof Event !== 'undefined' && uri instanceof Event) || 'preventDefault' in uri || 'clientX' in uri || 'nativeEvent' in uri)) {
       uri = undefined;
     }
     
     // Check if the input object is a valid URI
+
     if (uri && typeof uri === 'object' && ('path' in uri || 'scheme' in uri) && typeof uri.toString === 'function') {
       try {
         const res = new URI(uri.toString());
@@ -89,11 +98,16 @@ export class HayagrivaCommandContribution implements CommandContribution {
     }
     
     // Check if the input is a node with a uri property (like FileStatNode)
-    if (uri && typeof uri === 'object' && uri.uri) {
-      try {
-        const res = new URI(uri.uri.toString());
-        return res;
-      } catch (e: any) {}
+    if (uri && typeof uri === 'object') {
+      if (uri.uri) {
+        try { return new URI(uri.uri.toString()); } catch (e: any) {}
+      }
+      if (uri.resource) {
+        try { return new URI(uri.resource.toString()); } catch (e: any) {}
+      }
+      if (uri.fileStat && uri.fileStat.resource) {
+        try { return new URI(uri.fileStat.resource.toString()); } catch (e: any) {}
+      }
     }
     
     // Check if the input is an array (e.g. multi-selection list)
@@ -103,12 +117,21 @@ export class HayagrivaCommandContribution implements CommandContribution {
 
     // Try SelectionService fallback (critical when context menu passes coordinates)
     try {
-      const activeSelection = this.selectionService.selection;
+      const activeSelection: any = this.selectionService.selection;
       if (activeSelection) {
         const selUri = UriSelection.getUri(activeSelection);
         if (selUri) {
-          const res = new URI(selUri.toString());
-          return res;
+          return new URI(selUri.toString());
+        }
+        if (Array.isArray(activeSelection.nodes) && activeSelection.nodes.length > 0) {
+          const first = activeSelection.nodes[0];
+          const res = this.resolveUri(first);
+          if (res) return res;
+        }
+        if (Array.isArray(activeSelection.selectedNodes) && activeSelection.selectedNodes.length > 0) {
+          const first = activeSelection.selectedNodes[0];
+          const res = this.resolveUri(first);
+          if (res) return res;
         }
       }
     } catch (e: any) {}
@@ -119,6 +142,29 @@ export class HayagrivaCommandContribution implements CommandContribution {
       const res = activeEditor.getResourceUri();
       if (res) return res;
     }
+
+    // Tertiary fallback: active document preview widget in main shell area
+    try {
+      const shell = this.contribution.getShell();
+      if (shell) {
+        const mainWidgets = shell.getWidgets('main');
+        const active = shell.currentWidget || mainWidgets[0];
+        if (active && active.id) {
+          if (active.id.startsWith('hayagriva-office-preview-')) {
+            const raw = decodeURIComponent(active.id.replace('hayagriva-office-preview-', ''));
+            return new URI(raw.startsWith('file://') ? raw : `file://${raw}`);
+          }
+          if (active.id.startsWith('hayagriva-wiki-viewer-')) {
+            const raw = decodeURIComponent(active.id.replace('hayagriva-wiki-viewer-', ''));
+            return new URI(raw.startsWith('file://') ? raw : `file://${raw}`);
+          }
+          if (active.id.startsWith('hayagriva-md-live-preview-')) {
+            const raw = decodeURIComponent(active.id.replace('hayagriva-md-live-preview-', ''));
+            return new URI(raw.startsWith('file://') ? raw : `file://${raw}`);
+          }
+        }
+      }
+    } catch (_) {}
 
     return undefined;
   }

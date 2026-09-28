@@ -361,6 +361,20 @@ Refer to the following plans saved in the workspace:
       5. `BLACKLISTED_ARG_EXECUTOR`: Splits compound commands (`&&`, `||`, `;`, `|`) and blacklists arg-executors (`xargs`, `npx`, `sudo`, `docker`, `ssh`) from auto-execution.
     - Automatic HITL Interception: Violations automatically create structured approval cards in the Case Action Inbox (`reviews/case_inbox.json`) and seal tamper-evident `HARD_FLOOR_INTERCEPTED` events in `audit_trail.jsonl`.
     - Exposes `POST /api/hayagriva/policy/evaluate`.
+* **Plan 32 (Atomic Fact-Cards & Continuous Court Pleading Assembly Line / In-Theia Legal Canvas Integration)**:
+  - **Full In-Theia IDE Integration**: Seamlessly integrated the TiddlyWiki-powered Legal Assembly Line Canvas into Theia's primary editor space, replacing external-only viewing with a native in-chamber experience.
+  - **On-Demand Wiki Synthesis**: Added `POST /api/hayagriva/tiddlywiki/ensure-wiki` in `backend/lib/routes.js`. It dynamically inspects `<wikiDir>/<docStem>.wiki.html`; if missing, it parses companion Markdown from `conversions/` and calls `generateCaseWikiForPdf()` to slice RFC 822 `.tid` cards and compile the standalone `.wiki.html`.
+  - **Editor Tab Mount**: `handleOpenCompanionLivePreview` in `frontend/theia-extensions/hayagriva/src/browser/commands.ts` ensures the wiki exists, closes conflicting viewers (`closeOtherDocumentViewers`), and mounts the canvas via `openWikiHtmlViewer(wikiPath, caseDir)` with tab title `🏛️ <docStem>` and balance-scale icon (`fa fa-balance-scale`).
+  - **TreeSelection & Explorer Context Menu Fix**:
+    - Discovered that Theia's File Navigator sets a `TreeSelection` (`{ nodes: [FileStatNode] }`) rather than a pure `UriSelection`. Because `UriSelection.is` returned false, context menu items appeared disabled.
+    - Updated `resolveUri` in `commands.ts` to inspect `activeSelection.nodes[0]` and `selectedNodes[0]`.
+    - Added string URI/path support at the entry of `resolveUri` and guarded `'preventDefault' in uri` with `typeof uri === 'object'` to prevent runtime `TypeError: Cannot use 'in' operator to search for 'preventDefault' in <string>`.
+    - Added tertiary fallback to active main shell preview widgets (`hayagriva-office-preview-`, `hayagriva-wiki-viewer-`, `hayagriva-md-live-preview-`).
+  - **Headless Chrome DevTools Protocol (CDP) Automated Test Suite**:
+    - Automated tests driving real browser sessions on port 3000 via native WebSocket CDP (`--remote-debugging-port=9222`).
+    - Verified all context menu items render with solid green dots (`🟢 1. Review Companion`, `🟢 2. Re-Index`, `🟢 3. Extract Facts`, `📖 Open Case Wiki`, `🏛️ Export Continuous Court DOCX`).
+    - Captured in-IDE proof: `theia_legal_canvas_in_editor.png` (Atomic Fact Cards, right paragraph outline, table editor) and `theia_continuous_plaint_in_editor.png` (Continuous Court Plaint).
+  - **Branch State**: Cleanly maintained on `feat/card-assembly-line`. All 5 milestones + in-IDE integration verified with 0 build errors.
 
 
 
