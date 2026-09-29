@@ -32,9 +32,29 @@ export function pruneNavigatorContextMenu(registry: MenuModelRegistry): void {
   }
 }
 
+export function pruneDeveloperMenus(registry: MenuModelRegistry): void {
+  try {
+    const menubar = (registry as any).getMenuNode(MAIN_MENU_BAR);
+    if (menubar && Array.isArray(menubar.children)) {
+      const devLabels = ['selection', 'go', 'run', 'terminal'];
+      const toRemove = menubar.children.filter((child: any) => {
+        const id = (child.id || '').toLowerCase();
+        const label = (child.label || '').toLowerCase();
+        return devLabels.some(l => id.includes(l) || label === l);
+      });
+      toRemove.forEach((child: any) => {
+        try {
+          menubar.removeNode(child);
+        } catch (_) {}
+      });
+    }
+  } catch (_) {}
+}
+
 @injectable()
 export class HayagrivaMenuContribution implements MenuContribution {
   registerMenus(registry: MenuModelRegistry): void {
+    pruneDeveloperMenus(registry);
     // ═════════════════════════════════════════════════════════════════════════
     // 1. TOP-LEVEL "HAYAGRIVA" MENU TAB
     // ═════════════════════════════════════════════════════════════════════════
@@ -57,9 +77,10 @@ export class HayagrivaMenuContribution implements MenuContribution {
     // ── 1. Document & Preview Submenu ──
     const DOCS_SUBMENU: MenuPath = [...HAYAGRIVA_MAIN_MENU, '1_docs_submenu'];
     registry.registerSubmenu(DOCS_SUBMENU, '📄 Document & Preview', { sortString: '1_docs' });
-    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`, label: 'Open Preview in Middle Panel', order: '1' });
-    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openCompanionWithLivePreview`, label: 'Edit Companion (with Live Preview)', order: '2' });
-    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:enhanceMarkdown`, label: 'Review / Edit Companion Markdown', order: '3' });
+    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`, label: '📄 View Original Court Filing', order: '1' });
+    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openMilkdownEditor`, label: '✍️ Edit Document (Word View)', order: '2' });
+    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openAsMarkdown`, label: '📝 Edit as Markdown (Source)', order: '2.5' });
+    registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openCaseWiki`, label: '🧠 Open in Case Wiki (Legal Canvas)', order: '3' });
     registry.registerMenuAction(DOCS_SUBMENU, { commandId: `${HAYAGRIVA_NS}:compareDocuments`, label: 'Compare Documents (Diff)', order: '4' });
 
     // ── 2. Ingestion & OCR Submenu ──
@@ -180,21 +201,33 @@ export class HayagrivaMenuContribution implements MenuContribution {
     });
 
     registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
+      label: '📄 View Original Court Filing',
+      order: '1_filing'
+    });
+
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:openMilkdownEditor`,
+      label: '✍️ Edit Document (Word View)',
+      order: '2_word'
+    });
+
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+      commandId: `${HAYAGRIVA_NS}:openAsMarkdown`,
+      label: '📝 Edit as Markdown',
+      order: '2_markdown'
+    });
+
+    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
       commandId: `${HAYAGRIVA_NS}:openCaseWiki`,
-      label: '📖 Open Case Wiki (Legal Canvas)',
-      order: '1_wiki'
+      label: '🧠 Open in Case Wiki (Legal Canvas)',
+      order: '3_wiki'
     });
 
     registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
       commandId: `${HAYAGRIVA_NS}:exportCourtDocx`,
       label: '🏛️ Export Continuous Court DOCX',
-      order: '1_docx'
-    });
-
-    registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
-      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
-      label: '📄 Open Preview in Middle Panel',
-      order: '1'
+      order: '4_docx'
     });
 
     // ── Group 2: The Three Status Dots Pipeline ──
@@ -241,14 +274,29 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '0'
     });
     registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
+      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
+      label: '📄 View Original Court Filing',
+      order: '1'
+    });
+    registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
+      commandId: `${HAYAGRIVA_NS}:openMilkdownEditor`,
+      label: '✍️ Edit Document (Word View)',
+      order: '2'
+    });
+    registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
+      commandId: `${HAYAGRIVA_NS}:openAsMarkdown`,
+      label: '📝 Edit as Markdown',
+      order: '2.5'
+    });
+    registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
       commandId: `${HAYAGRIVA_NS}:openCaseWiki`,
-      label: '📖 Open Case Wiki (Legal Canvas)',
-      order: '1_wiki'
+      label: '🧠 Open in Case Wiki (Legal Canvas)',
+      order: '3'
     });
     registry.registerMenuAction(SHELL_TABBAR_HAYAGRIVA, {
       commandId: `${HAYAGRIVA_NS}:exportCourtDocx`,
       label: '🏛️ Export Continuous Court DOCX',
-      order: '1_docx'
+      order: '4'
     });
 
 
@@ -261,26 +309,25 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '0_preview'
     });
     registry.registerMenuAction(['editor_context_menu'], {
+      commandId: `${HAYAGRIVA_NS}:openMilkdownEditor`,
+      label: '✍️ Edit Document (Word View)',
+      order: '1_word'
+    });
+    registry.registerMenuAction(['editor_context_menu'], {
       commandId: `${HAYAGRIVA_NS}:openCaseWiki`,
-      label: '📖 Open Case Wiki (Legal Canvas)',
-      order: '0_wiki'
+      label: '🧠 Open in Case Wiki (Legal Canvas)',
+      order: '2_wiki'
     });
     registry.registerMenuAction(['editor_context_menu'], {
       commandId: `${HAYAGRIVA_NS}:exportCourtDocx`,
       label: '🏛️ Export Continuous Court DOCX',
-      order: '0_docx'
-    });
-
-    registry.registerMenuAction(['editor_context_menu'], {
-      commandId: `${HAYAGRIVA_NS}:previewInMiddlePanel`,
-      label: '📄 Open Preview in Middle Panel',
-      order: '0'
+      order: '3_docx'
     });
 
     registry.registerMenuAction(['editor_context_menu'], {
       commandId: `${HAYAGRIVA_NS}:compareDocuments`,
       label: 'Compare with... (Diff)',
-      order: '1'
+      order: '4_compare'
     });
 
     registry.registerMenuAction(['editor_context_menu'], {

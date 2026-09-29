@@ -417,79 +417,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
       }}
     );
 
-    const handleOpenCompanionLivePreview = async (uri?: any) => {
-      const resourceUri = this.resolveUri(uri);
-      if (!resourceUri) {
-        this.logger.error('[HAYAGRIVA] No file selected to open companion');
-        return;
-      }
 
-      const originalPath = decodeURIComponent(resourceUri.path.toString());
-      const lowerPath = originalPath.toLowerCase();
-      const caseDir = this.getCasePath();
-      const apiPort = this.contribution.getApiPort();
-
-      // 1. If it's already a .wiki.html file, open it directly in the editor!
-      if (lowerPath.endsWith('.wiki.html')) {
-        await this.contribution.openWikiHtmlViewer(originalPath, caseDir);
-        return;
-      }
-
-      // 2. Determine document stem
-      const base = getBasename(originalPath);
-      let docStem = '';
-      if (lowerPath.endsWith('.tid')) {
-        const parts = originalPath.split(/[\\/]/);
-        docStem = parts.length >= 2 ? parts[parts.length - 2] : base.replace(/\.tid$/i, '');
-      } else {
-        docStem = base.replace(/\.[a-zA-Z0-9]+$/, '');
-      }
-
-      this.messageService.info(`[HAYAGRIVA] Opening Legal Assembly Line Canvas for ${docStem}...`);
-
-      try {
-        // 3. Ensure the Legal Wiki Canvas (.wiki.html) is generated and ready
-        const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/tiddlywiki/ensure-wiki`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            caseName: caseDir,
-            docStem: docStem,
-            fileName: originalPath
-          })
-        });
-        const data = await res.json();
-        if (data.success && data.wikiHtmlPath) {
-          // Close other document viewers and open Legal Canvas directly inside Theia's main editor!
-          this.contribution.closeOtherDocumentViewers();
-          await this.contribution.openWikiHtmlViewer(data.wikiHtmlPath, caseDir);
-          return;
-        }
-      } catch (err: any) {
-        console.warn('[HAYAGRIVA] ensure-wiki API call failed:', err.message);
-      }
-
-      // 4. Graceful Fallback: if canvas is unavailable, open companion Markdown in Monaco
-      const rel = this.getRelativePath(resourceUri);
-      const status = this.treeDecorator.statusCache ? this.treeDecorator.statusCache[rel] : null;
-      let companionPath = '';
-      if (lowerPath.endsWith('.md') || lowerPath.endsWith('.markdown')) {
-        companionPath = originalPath;
-      } else if (status?.files?.companion?.path) {
-        companionPath = status.files.companion.path.startsWith('/')
-          ? status.files.companion.path
-          : `${caseDir}/${status.files.companion.path}`;
-      } else {
-        const basename = getBasename(originalPath).replace(/\.[a-zA-Z0-9]+$/, '');
-        const caseName = caseDir.split(/[\\/]/).pop() || '';
-        companionPath = `${caseDir}/${caseName}_conversions_haya/${basename}.md`;
-      }
-
-      const companionUri = new URI(companionPath.startsWith('file://') ? companionPath : `file://${companionPath}`);
-      this.contribution.closeOtherDocumentViewers();
-      await this.editorManager.open(companionUri, { mode: 'open' });
-      await this.contribution.openLiveMarkdownPreview(companionPath, caseDir);
-    };
 
     const isCompanionApplicable = (uri?: any) => {
       const resolved = this.resolveUri(uri);
@@ -499,26 +427,104 @@ export class HayagrivaCommandContribution implements CommandContribution {
       return validExts.some(ext => lower.endsWith(ext));
     };
 
+    const handleOpenMilkdownEditor = async (uri?: any) => {
+      let resourceUri = this.resolveUri(uri);
+      if (!resourceUri) {
+        const activeEditor = this.editorManager.activeEditor;
+        if (activeEditor) {
+          resourceUri = activeEditor.getResourceUri();
+        }
+      }
+      if (!resourceUri) {
+        this.messageService.error('No file selected to edit in Word View.');
+        return;
+      }
+      const originalPath = decodeURIComponent(resourceUri.path.toString());
+      const lower = originalPath.toLowerCase();
+      const caseDir = this.getCasePath();
+      let targetPath = originalPath;
+
+      if (!lower.endsWith('.md') && !lower.endsWith('.markdown')) {
+        const rel = this.getRelativePath(resourceUri);
+        const status = this.treeDecorator.statusCache ? this.treeDecorator.statusCache[rel] : null;
+        if (status?.files?.companion?.path) {
+          targetPath = status.files.companion.path.startsWith('/')
+            ? status.files.companion.path
+            : `${caseDir}/${status.files.companion.path}`;
+        } else {
+          const basename = getBasename(originalPath).replace(/\.[a-zA-Z0-9]+$/, '');
+          const caseName = caseDir.split(/[\\/]/).pop() || '';
+          targetPath = `${caseDir}/${caseName}_conversions_haya/${basename}.md`;
+        }
+      }
+
+      await this.contribution.openMilkdownEditor(targetPath, caseDir);
+    };
+
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:openCompanionWithLivePreview`, label: '🟢 1. Review Companion (Edit & Live Preview)' },
+      { id: `${HAYAGRIVA_NS}:openMilkdownEditor`, label: '✍️ Edit Document (Word View)' },
       {
-        execute: handleOpenCompanionLivePreview,
+        execute: handleOpenMilkdownEditor,
         isEnabled: isCompanionApplicable
       }
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:viewAsHtml`, label: '📖 View as HTML (Live Formatted Preview)' },
+      { id: `${HAYAGRIVA_NS}:openCompanionWithLivePreview`, label: '🟢 1. Review Companion (Word View)' },
       {
-        execute: handleOpenCompanionLivePreview,
+        execute: handleOpenMilkdownEditor,
         isEnabled: isCompanionApplicable
       }
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:openCompanionSideBySide`, label: 'Edit Companion (with Live Preview)' },
+      { id: `${HAYAGRIVA_NS}:viewAsHtml`, label: '✍️ Edit Document (Word View)' },
       {
-        execute: handleOpenCompanionLivePreview,
+        execute: handleOpenMilkdownEditor,
+        isEnabled: isCompanionApplicable
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openCompanionSideBySide`, label: '✍️ Edit Document (Word View)' },
+      {
+        execute: handleOpenMilkdownEditor,
+        isEnabled: isCompanionApplicable
+      }
+    );
+
+    const handleOpenAsMarkdown = async (uri?: any) => {
+      const resourceUri = this.resolveUri(uri) || this.editorManager.currentEditor?.editor.uri;
+      if (!resourceUri) {
+        return;
+      }
+      const originalPath = decodeURIComponent(resourceUri.path.toString());
+      const lower = originalPath.toLowerCase();
+      const caseDir = this.getCasePath();
+      let targetPath = originalPath;
+
+      if (!lower.endsWith('.md') && !lower.endsWith('.markdown')) {
+        const rel = this.getRelativePath(resourceUri);
+        const status = this.treeDecorator.statusCache ? this.treeDecorator.statusCache[rel] : null;
+        if (status?.files?.companion?.path) {
+          targetPath = status.files.companion.path.startsWith('/')
+            ? status.files.companion.path
+            : `${caseDir}/${status.files.companion.path}`;
+        } else {
+          const basename = getBasename(originalPath).replace(/\.[a-zA-Z0-9]+$/, '');
+          const caseName = caseDir.split(/[\\/]/).pop() || '';
+          targetPath = `${caseDir}/${caseName}_conversions_haya/${basename}.md`;
+        }
+      }
+
+      const targetUri = new URI(targetPath);
+      await this.editorManager.open(targetUri, { mode: 'open' });
+    };
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openAsMarkdown`, label: '📝 Edit as Markdown' },
+      {
+        execute: handleOpenAsMarkdown,
         isEnabled: isCompanionApplicable
       }
     );

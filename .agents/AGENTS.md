@@ -375,7 +375,28 @@ Refer to the following plans saved in the workspace:
     - Verified all context menu items render with solid green dots (`🟢 1. Review Companion`, `🟢 2. Re-Index`, `🟢 3. Extract Facts`, `📖 Open Case Wiki`, `🏛️ Export Continuous Court DOCX`).
     - Captured in-IDE proof: `theia_legal_canvas_in_editor.png` (Atomic Fact Cards, right paragraph outline, table editor) and `theia_continuous_plaint_in_editor.png` (Continuous Court Plaint).
   - **Branch State**: Cleanly maintained on `feat/card-assembly-line`. All 5 milestones + in-IDE integration verified with 0 build errors.
-
-
-
-
+* **Plan 33 (Vanilla TiddlyWiki 5.4.1 Engine Migration & IDE Harness Typography Harmony)**:
+  - **Official Vanilla TiddlyWiki 5.4.1 Microkernel (`empty.html`)**:
+    - Transitioned from custom templates to the official, authentic `empty.html` (v5.4.1), preserving 100% standard TiddlyWiki core functionality and plugin extensibility.
+    - Resolved TiddlyWiki JSON deserializer strict typing requirement: TiddlyWiki `$:/boot/tiddlerdeserializer/json` strictly requires every attribute of every tiddler in the store array to be of type `string`. Sanitized all extracted `.tid` fields (including numeric `order` headers) to string values, eliminating silent store parse failures and empty wiki boots.
+    - Injected an early Electron compatibility shim into `<head>` shielding the TiddlyWiki microkernel from Electron global `exports` and `process` symbols, ensuring clean browser DOM startup.
+  - **Two-Way Local Chamber Sync & Zero-404 Self-Healing**:
+    - Configured `$:/UploadURL` pointing to `http://127.0.0.1:3210/api/hayagriva/tiddlywiki/save?case=<caseName>&file=<fileName>` with `$:/UploadWithUrlOnly: 'yes'` and `$:/config/AutoSave: 'yes'`, persisting edits directly to the case directory.
+    - Self-healing on `/api/hayagriva/read-file` and `/api/hayagriva/tiddlywiki/view` guaranteeing immediate on-demand materialization of missing `.wiki.html` files from `.tid` card directories, companion Markdown, or SQLite FTS5 database chunks.
+  - **Stock Vanilla Snow White Look with IDE Harness Typography Harmony**:
+    - Enabled official built-in `$:/themes/tiddlywiki/snowwhite` and `$:/palettes/Vanilla` for a clean, light, stock appearance.
+    - Guaranteed default card display on boot via `$:/StoryList` seeded with the primary card title.
+    - Harmonized typography metrics with the surrounding Eclipse Theia IDE harness:
+      - Base body font size: `13px` (`$:/themes/tiddlywiki/vanilla/metrics/bodyfontsize`, matching `--theia-ui-font-size1` and editor text).
+      - Body line height: `19px` (`$:/themes/tiddlywiki/vanilla/metrics/bodylineheight`).
+      - Font family: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` (matching Theia UI stack).
+      - Code family: `Menlo, Monaco, Consolas, "Courier New", monospace` (matching Theia code font stack).
+      - Card title (`.tc-title`): Scaled to proportional `20.15px` (`font-weight: 600`), with `.tc-titlebar` reset to `1em` to eliminate compound scaling.
+      - Sidebar site title (`.tc-site-title`): Scaled to `19.5px` and sub-navigation tabs to `12px`.
+  - **Context Menu & Editor Tab Preservation**:
+    - Tab right-click `📖 View as HTML (Live Formatted Preview)` strictly preserved per workspace rules.
+    - Unified 4-item context menu actions (`📄 View Original Court Filing`, `✍️ Edit Document (Word View)`, `🧠 Open in Case Wiki`, `🏛️ Export Continuous Court DOCX`).
+  - **Verification & Test Coverage**:
+    - Automated test suite `backend/tests/test_vanilla_tiddlywiki.js` (4/4 phases passing: HTML hydration, UploadSaver sync, PutSaver sync, on-demand materialization).
+    - Editor E2E suite `backend/tests/test_phase3_e2e_editor.js` (Phase 3.1–3.4 passing 100% green).
+    - Real browser headless visual inspections verified with zero errors.

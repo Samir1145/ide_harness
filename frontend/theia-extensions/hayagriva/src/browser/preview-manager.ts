@@ -67,6 +67,12 @@ export class HayagrivaPreviewManager {
 
     widget = new Widget();
     widget.id = id;
+    widget.node.style.width = '100%';
+    widget.node.style.height = '100%';
+    widget.node.style.overflow = 'hidden';
+    widget.node.style.display = 'flex';
+    widget.node.style.flexDirection = 'column';
+
     const base = getBasename(filePath);
     const cleanLabel = base.replace(/\.wiki\.html$/i, '');
     widget.title.label = `🏛️ ${cleanLabel}`;
@@ -77,8 +83,10 @@ export class HayagrivaPreviewManager {
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';
     iframe.style.height = '100%';
+    iframe.style.flex = '1 1 auto';
     iframe.style.border = 'none';
-    iframe.src = `${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(filePath)}`;
+    iframe.style.display = 'block';
+    iframe.src = `${this.getBackendUrl()}/api/hayagriva/read-file?path=${encodeURIComponent(filePath)}&case=${encodeURIComponent(_caseName)}`;
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });
@@ -121,6 +129,47 @@ export class HayagrivaPreviewManager {
     widget.node.appendChild(iframe);
 
     this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
+  async openMilkdownEditor(filePath: string, caseName: string, mode?: 'split-right' | 'split-bottom' | 'tab-after' | 'tab-before'): Promise<Widget> {
+    const id = `hayagriva-milkdown-editor-${encodeURIComponent(filePath)}`;
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.node.style.width = '100%';
+    widget.node.style.height = '100%';
+    widget.node.style.overflow = 'hidden';
+    widget.node.style.display = 'flex';
+    widget.node.style.flexDirection = 'column';
+
+    const base = getBasename(filePath);
+    widget.title.label = `✍️ ${base.replace(/\.md$/i, '')} [Word View]`;
+    widget.title.caption = `Court Document Editor (Word View) for ${base}`;
+    widget.title.iconClass = 'fa fa-pencil-square-o';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.flex = '1';
+    iframe.style.border = 'none';
+    iframe.style.display = 'block';
+    iframe.src = `${this.getBackendUrl()}/api/hayagriva/milkdown-editor?path=${encodeURIComponent(filePath)}&case=${encodeURIComponent(caseName)}&port=${this.getApiPort()}`;
+    widget.node.appendChild(iframe);
+
+    if (mode) {
+      this.shell.addWidget(widget, { area: 'main', mode });
+    } else {
+      this.shell.addWidget(widget, { area: 'main' });
+    }
     this.shell.activateWidget(widget.id);
     return widget;
   }

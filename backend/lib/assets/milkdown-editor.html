@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hayagriva Sovereign Document Editor</title>
+<style>
+  :root {
+    --bg-app: #1e293b;
+    --bg-page: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --border-paper: #cbd5e1;
+    --accent-court: #b45309;
+    --accent-blue: #0284c7;
+    --accent-blue-light: #e0f2fe;
+    --accent-green: #059669;
+    --accent-purple: #7c3aed;
+    --font-legal: "Georgia", "Times New Roman", "Cambria", serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #1e293b;
+    color: #0f172a;
+    font-family: var(--font-ui);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Ultra-Slim Legal Header Bar (32px) ─────────────────────────── */
+  .editor-header {
+    height: 32px;
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    flex-shrink: 0;
+    color: #f8fafc;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .doc-badge {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .doc-title {
+    display: none; /* Hidden to prevent horizontal overflow in split panels */
+  }
+
+  .save-status {
+    font-size: 11px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .save-status.saved { color: #10b981; }
+  .save-status.saving { color: #f59e0b; }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-action {
+    background: #334155;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+  .btn-action:hover {
+    background: #475569;
+  }
+  .btn-action.btn-court {
+    background: #b45309;
+    border: 1px solid #d97706;
+    color: #ffffff;
+    font-weight: 600;
+  }
+  .btn-action.btn-court:hover {
+    filter: brightness(1.15);
+  }
+
+  /* ── Document Viewport & Pristine White Legal Sheet ─────────────── */
+  .editor-viewport {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: block;
+    padding: 24px 20px 80px 20px;
+    background: #1e293b; /* Sleek neutral desk surface */
+  }
+
+  .parchment-sheet {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 820px;
+    min-height: calc(100% - 20px);
+    box-sizing: border-box;
+    background: #ffffff !important; /* Pure crisp white legal paper */
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+    border-radius: 2px;
+    padding: 56px 68px;
+    outline: none;
+    font-family: var(--font-legal);
+    font-size: 15px;
+    line-height: 1.8;
+    color: #0f172a !important; /* High-contrast rich black ink */
+    position: relative;
+  }
+
+  /* ── Court Typography & Headings ────────────────────────────────── */
+  .parchment-sheet h1 {
+    font-size: 21px;
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 24px 0 16px 0;
+    color: #0f172a !important;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 8px;
+  }
+
+  .parchment-sheet h2 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 20px 0 12px 0;
+    color: #0f172a !important;
+  }
+
+  .parchment-sheet h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 16px 0 8px 0;
+    color: #1e293b !important;
+  }
+
+  .parchment-sheet p {
+    margin: 0 0 14px 0;
+    text-align: justify;
+    text-justify: inter-word;
+    color: #0f172a !important;
+  }
+
+  /* ── Subtle Dashed Legal Page Transition ────────────────────────── */
+  .page-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 28px 0;
+    color: #94a3b8;
+    font-size: 11px;
+    font-family: var(--font-ui);
+    user-select: none;
+  }
+  .page-divider::before, .page-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px dashed #cbd5e1;
+  }
+  .page-divider span {
+    padding: 0 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+
+  .parchment-sheet blockquote {
+    margin: 16px 0;
+    padding: 12px 18px;
+    background: #f8fafc;
+    border-left: 4px solid var(--accent-court);
+    color: #334155;
+    font-style: normal;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .parchment-sheet strong {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  /* ── Interactive Legal Tables ───────────────────────────────────── */
+  .court-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-family: var(--font-legal);
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  .court-table th {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    padding: 8px 12px;
+    font-weight: 700;
+    text-align: left;
+    color: #0f172a;
+  }
+
+  .court-table td {
+    border: 1px solid #cbd5e1;
+    padding: 8px 12px;
+    color: #1e293b;
+    outline: none;
+  }
+
+  .court-table td:focus {
+    background: #e0f2fe;
+    box-shadow: inset 0 0 0 1px #0284c7;
+  }
+
+  .court-table tr.total-row td {
+    font-weight: 700;
+    background: #f8fafc;
+    border-top: 2px solid #0f172a;
+    border-bottom: 2px solid #0f172a;
+  }
+
+  /* ── Visual Variable Chips ──────────────────────────────────────── */
+  .legal-variable-chip {
+    display: inline-flex;
+    align-items: center;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    color: #166534;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 4px;
+    margin: 0 2px;
+    cursor: default;
+    user-select: all;
+  }
+  .legal-variable-chip::before {
+    content: "📌";
+    font-size: 10px;
+    margin-right: 4px;
+  }
+
+  /* ── Universal Floating Omni-Palette ────────────────────────────── */
+  .omni-palette {
+    position: absolute;
+    width: 480px;
+    max-height: 380px;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    color: #f8fafc;
+    font-family: var(--font-ui);
+  }
+
+  .omni-palette.visible {
+    display: flex;
+  }
+
+  .omni-search-bar {
+    padding: 10px 14px;
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .omni-search-icon {
+    color: #38bdf8;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .omni-query-text {
+    font-size: 13px;
+    color: #f1f5f9;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .omni-hint {
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  .omni-results-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+    max-height: 320px;
+  }
+
+  .omni-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  .omni-item:hover, .omni-item.selected {
+    background: #334155;
+  }
+
+  .omni-item-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .badge-fact { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+  .badge-law { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+  .badge-template { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+  .badge-action { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+
+  .omni-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .omni-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f8fafc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .omni-item-subtitle {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .omni-empty {
+    padding: 24px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Slim Legal Header Toolbar (32px) -->
+  <div class="editor-header">
+    <div class="header-left">
+      <div class="save-status" id="saveStatus">
+        <span id="saveIcon">●</span>
+        <span id="saveText">Ready</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-action btn-court" id="btnExportDocx" title="Compile to Supreme Court DOCX (A4, 14pt)">🏛️ Export DOCX</button>
+    </div>
+  </div>
+
+  <!-- Document Viewport with Parchment Sheet -->
+  <div class="editor-viewport" id="viewport">
+    <div class="parchment-sheet" id="editor" contenteditable="true" spellcheck="true"></div>
+  </div>
+
+  <!-- Floating Universal Omni-Palette -->
+  <div class="omni-palette" id="omniPalette">
+    <div class="omni-search-bar">
+      <span class="omni-search-icon">/</span>
+      <span class="omni-query-text" id="omniQuery">Type to search chamber knowledge...</span>
+      <span class="omni-hint">↑↓ to navigate • ↵ to insert • ESC</span>
+    </div>
+    <div class="omni-results-list" id="omniResults"></div>
+  </div>
+
+<script>
+  // ── 1. Query Params & State Initialization ─────────────────────────
+  const params = new URLSearchParams(window.location.search);
+  const filePath = params.get('path') || '';
+  const caseName = params.get('case') || '';
+  const apiPort = params.get('port') || '3210';
+  const backendBase = `http://127.0.0.1:${apiPort}`;
+
+  const docTitleEl = document.getElementById('docTitle');
+  const saveStatusEl = document.getElementById('saveStatus');
+  const saveTextEl = document.getElementById('saveText');
+  const editorEl = document.getElementById('editor');
+  const omniPalette = document.getElementById('omniPalette');
+  const omniQueryEl = document.getElementById('omniQuery');
+  const omniResultsEl = document.getElementById('omniResults');
+  const btnExportDocx = document.getElementById('btnExportDocx');
+  const btnToggleOmni = document.getElementById('btnToggleOmni');
+
+  const baseFileName = filePath.split(/[\\/]/).pop() || 'Untitled.md';
+  if (docTitleEl) docTitleEl.textContent = baseFileName;
+
+  let currentRawMarkdown = '';
+  let isSaving = false;
+  let saveDebounceTimer = null;
+  let omniActive = false;
+  let omniSearchQuery = '';
+  let omniResults = [];
+  let omniSelectedIndex = 0;
+  let omniRange = null;
+
+  // ── 2. Markdown <-> HTML Visual Serializer ─────────────────────────
+  function markdownToHtml(md) {
+    if (!md) return '<p><br></p>';
+    
+    // Strip YAML frontmatter
+    let clean = md;
+    if (clean.startsWith('---')) {
+      const endIdx = clean.indexOf('\n---', 3);
+      if (endIdx !== -1) {
+        clean = clean.substring(endIdx + 4).trim();
+      }
+    }
+
+    const lines = clean.split('\n');
+    let html = '';
+    let inTable = false;
+    let tableRows = [];
+    let inBlockquote = false;
+    let bqLines = [];
+
+    const flushTable = () => {
+      if (!inTable) return;
+      html += '<table class="court-table"><tbody>';
+      tableRows.forEach((r, idx) => {
+        const isHeader = idx === 0;
+        const isTotal = r.some(c => /total|due|sum/i.test(c));
+        html += `<tr class="${isTotal ? 'total-row' : ''}">`;
+        r.forEach(cell => {
+          const tag = isHeader ? 'th' : 'td';
+          html += `<${tag} contenteditable="true">${formatInline(cell.trim())}</${tag}>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      inTable = false;
+      tableRows = [];
+    };
+
+    const flushBlockquote = () => {
+      if (!inBlockquote) return;
+      html += `<blockquote>${bqLines.map(l => formatInline(l)).join('<br>')}</blockquote>`;
+      inBlockquote = false;
+      bqLines = [];
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Table line
+      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+        flushBlockquote();
+        if (/^\|[\s\-:|]+\|$/.test(line.trim())) {
+          continue; // skip separator line
+        }
+        inTable = true;
+        const cells = line.trim().split('|').slice(1, -1);
+        tableRows.push(cells);
+        continue;
+      } else if (inTable) {
+        flushTable();
+      }
+
+      // Blockquote line
+      if (line.trim().startsWith('>')) {
+        inBlockquote = true;
+        bqLines.push(line.replace(/^>\s*/, ''));
+        continue;
+      } else if (inBlockquote) {
+        flushBlockquote();
+      }
+
+      // Headings & Page Breaks
+      if (line.startsWith('# ')) {
+        html += `<h1>${formatInline(line.substring(2))}</h1>`;
+      } else if (line.startsWith('## ')) {
+        const hText = line.substring(3).trim();
+        if (/^page\s+\d+$/i.test(hText)) {
+          html += `<div class="page-divider" contenteditable="false"><span>${hText}</span></div>`;
+        } else {
+          html += `<h2>${formatInline(hText)}</h2>`;
+        }
+      } else if (line.startsWith('### ')) {
+        html += `<h3>${formatInline(line.substring(4))}</h3>`;
+      } else if (/^page\s+\d+$/i.test(line.trim())) {
+        html += `<div class="page-divider" contenteditable="false"><span>${line.trim()}</span></div>`;
+      } else if (line.trim() === '') {
+        // empty paragraph spacing
+      } else {
+        html += `<p>${formatInline(line)}</p>`;
+      }
+    }
+
+    flushTable();
+    flushBlockquote();
+    return html || '<p><br></p>';
+  }
+
+  function formatInline(text) {
+    if (!text) return '';
+    return text
+      // Bold
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      // Variables {{variable_name}} -> visual chips
+      .replace(/\{\{([a-zA-Z0-9_-]+)\}\}/g, '<span class="legal-variable-chip" data-var="$1" contenteditable="false">$1</span>')
+      // Plain text escaping
+      .replace(/\n/g, '<br>');
+  }
+
+  function htmlToMarkdown(container) {
+    let md = '';
+    const childNodes = Array.from(container.childNodes);
+
+    for (const node of childNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.classList && node.classList.contains('page-divider')) {
+          md += `\n\n## ${node.textContent.trim()}\n\n`;
+          continue;
+        }
+        const tag = node.tagName.toLowerCase();
+        if (tag === 'h1') {
+          md += `# ${node.textContent.trim()}\n\n`;
+        } else if (tag === 'h2') {
+          md += `## ${node.textContent.trim()}\n\n`;
+        } else if (tag === 'h3') {
+          md += `### ${node.textContent.trim()}\n\n`;
+        } else if (tag === 'blockquote') {
+          const lines = node.textContent.split('\n');
+          md += lines.map(l => `> ${l}`).join('\n') + '\n\n';
+        } else if (tag === 'table') {
+          const rows = Array.from(node.querySelectorAll('tr'));
+          if (rows.length > 0) {
+            rows.forEach((r, idx) => {
+              const cells = Array.from(r.querySelectorAll('th, td')).map(c => {
+                const varChip = c.querySelector('.legal-variable-chip');
+                return varChip ? `{{${varChip.getAttribute('data-var') || varChip.textContent}}}` : c.textContent.trim();
+              });
+              md += `| ${cells.join(' | ')} |\n`;
+              if (idx === 0) {
+                md += `| ${cells.map(() => '---').join(' | ')} |\n`;
+              }
+            });
+            md += '\n';
+          }
+        } else if (tag === 'p') {
+          const text = serializeInlineNode(node);
+          if (text.trim()) {
+            md += `${text.trim()}\n\n`;
+          }
+        }
+      }
+    }
+    return md.trim() + '\n';
+  }
+
+  function serializeInlineNode(el) {
+    let out = '';
+    for (const child of el.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        out += child.textContent;
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        if (child.classList && child.classList.contains('legal-variable-chip')) {
+          const v = child.getAttribute('data-var') || child.textContent;
+          out += `{{${v}}}`;
+        } else if (child.tagName.toLowerCase() === 'strong') {
+          out += `**${child.textContent}**`;
+        } else if (child.tagName.toLowerCase() === 'br') {
+          out += '\n';
+        } else {
+          out += child.textContent;
+        }
+      }
+    }
+    return out;
+  }
+
+  // ── 3. Load Document from Backend ──────────────────────────────────
+  async function loadDocument() {
+    if (!filePath) {
+      editorEl.innerHTML = '<h1>New Court Pleading</h1><p>Type <strong>/</strong> to summon facts, statutes, or templates...</p>';
+      return;
+    }
+    try {
+      setSaveStatus('loading', 'Loading document...');
+      const url = `${backendBase}/api/hayagriva/read-file?path=${encodeURIComponent(filePath)}&case=${encodeURIComponent(caseName)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      currentRawMarkdown = await res.text();
+      editorEl.innerHTML = markdownToHtml(currentRawMarkdown);
+      setSaveStatus('saved', 'All changes saved');
+    } catch (e) {
+      console.error('Failed loading file:', e);
+      editorEl.innerHTML = `<h1>Error Loading Document</h1><p>${e.message}</p>`;
+      setSaveStatus('error', 'Error loading');
+    }
+  }
+
+  // ── 4. Save Document to Backend ────────────────────────────────────
+  async function saveDocument() {
+    if (isSaving || !filePath) return;
+    isSaving = true;
+    setSaveStatus('saving', 'Saving changes...');
+    try {
+      const newMarkdown = htmlToMarkdown(editorEl);
+      const url = `${backendBase}/api/hayagriva/save-file`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: filePath,
+          caseName: caseName,
+          content: newMarkdown
+        })
+      });
+      if (!res.ok) throw new Error(`Save failed (HTTP ${res.status})`);
+      currentRawMarkdown = newMarkdown;
+      setSaveStatus('saved', '✓ All changes saved');
+    } catch (e) {
+      console.error('Save error:', e);
+      setSaveStatus('error', 'Save error');
+    } finally {
+      isSaving = false;
+    }
+  }
+
+  function scheduleAutoSave() {
+    setSaveStatus('saving', 'Editing...');
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(saveDocument, 1200);
+  }
+
+  function setSaveStatus(state, msg) {
+    saveStatusEl.className = `save-status ${state}`;
+    saveTextEl.textContent = msg;
+  }
+
+  // ── 5. Universal Omni-Trigger (/) Palette Handling ─────────────────
+  async function fetchOmniSuggestions(query, context = 'inline') {
+    try {
+      const url = `${backendBase}/api/hayagriva/omni-search?q=${encodeURIComponent(query)}&context=${context}&case=${encodeURIComponent(caseName)}&limit=15`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.items || [];
+    } catch (e) {
+      console.warn('Omni fetch failed:', e);
+      return [];
+    }
+  }
+
+  function showOmniPalette(range, initialQuery = '') {
+    omniRange = range;
+    omniSearchQuery = initialQuery;
+    omniActive = true;
+
+    const rect = range.getBoundingClientRect();
+    const viewportRect = document.getElementById('viewport').getBoundingClientRect();
+
+    let top = rect.bottom + window.scrollY + 8;
+    let left = rect.left;
+
+    if (left + 480 > window.innerWidth) {
+      left = window.innerWidth - 490;
+    }
+
+    omniPalette.style.top = `${top}px`;
+    omniPalette.style.left = `${left}px`;
+    omniPalette.classList.add('visible');
+    omniQueryEl.textContent = omniSearchQuery ? `Searching for "${omniSearchQuery}"` : 'Type to search chamber knowledge...';
+
+    renderOmniResults();
+  }
+
+  function hideOmniPalette() {
+    omniActive = false;
+    omniPalette.classList.remove('visible');
+    omniResults = [];
+    omniSelectedIndex = 0;
+  }
+
+  async function renderOmniResults() {
+    const isBlock = !omniSearchQuery.trim();
+    omniResults = await fetchOmniSuggestions(omniSearchQuery, isBlock ? 'block' : 'inline');
+    omniSelectedIndex = 0;
+
+    if (omniResults.length === 0) {
+      omniResultsEl.innerHTML = '<div class="omni-empty">No matching chamber items found.</div>';
+      return;
+    }
+
+    omniResultsEl.innerHTML = omniResults.map((item, idx) => {
+      const badgeClass = item.category === 'fact' ? 'badge-fact' :
+                         item.category === 'law' ? 'badge-law' :
+                         item.category === 'template' ? 'badge-template' : 'badge-action';
+      return `
+        <div class="omni-item ${idx === 0 ? 'selected' : ''}" data-idx="${idx}">
+          <span class="omni-item-badge ${badgeClass}">${item.badge}</span>
+          <div class="omni-item-info">
+            <div class="omni-item-title">${item.title}</div>
+            <div class="omni-item-subtitle">${item.subtitle}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Attach click handlers
+    Array.from(omniResultsEl.querySelectorAll('.omni-item')).forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.getAttribute('data-idx'), 10);
+        selectOmniItem(omniResults[idx]);
+      });
+    });
+  }
+
+  function selectOmniItem(item) {
+    if (!item) return;
+
+    if (omniRange) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+
+      // Cleanly remove the typed trigger (e.g. '/' or '@' + query) before inserting
+      const triggerLen = (omniSearchQuery ? omniSearchQuery.length : 0) + 1;
+      const replaceRange = omniRange.cloneRange();
+      try {
+        const startNode = replaceRange.startContainer;
+        const currentOffset = replaceRange.startOffset;
+        const newStart = Math.max(0, currentOffset - triggerLen);
+        replaceRange.setStart(startNode, newStart);
+        replaceRange.deleteContents();
+        sel.addRange(replaceRange);
+      } catch (_) {
+        sel.addRange(omniRange);
+      }
+
+      if (item.category === 'fact') {
+        // Insert visual variable chip
+        const chipHtml = `<span class="legal-variable-chip" data-var="${item.payload.variableKey}" contenteditable="false">${item.payload.displayText}</span>&nbsp;`;
+        document.execCommand('insertHTML', false, chipHtml);
+      } else if (item.category === 'law') {
+        // Insert statutory blockquote
+        const bqHtml = `<blockquote><strong>${item.title}:</strong><br>${item.payload.displayText.replace(/^>\s*/gm, '')}</blockquote><p><br></p>`;
+        document.execCommand('insertHTML', false, bqHtml);
+      } else if (item.category === 'template') {
+        // Insert template content
+        const tplHtml = `<h2>${item.title}</h2><p>Pleading averments under ${item.subtitle}...</p><p><br></p>`;
+        document.execCommand('insertHTML', false, tplHtml);
+      } else if (item.category === 'action') {
+        if (item.id === 'action:export-docx') {
+          triggerExportDocx();
+        } else if (item.id === 'action:table') {
+          const tblHtml = '<table class="court-table"><tbody><tr><th>Particulars</th><th>Reference</th><th>Amount (INR)</th></tr><tr><td contenteditable="true">Principal Sanction</td><td contenteditable="true">Facility A</td><td contenteditable="true">0.00</td></tr><tr class="total-row"><td contenteditable="true">Total Claim</td><td contenteditable="true"></td><td contenteditable="true">0.00</td></tr></tbody></table><p><br></p>';
+          document.execCommand('insertHTML', false, tblHtml);
+        }
+      }
+    }
+
+    hideOmniPalette();
+    scheduleAutoSave();
+  }
+
+  // ── 6. Keyboard Interception for Omni-Trigger & Tables ─────────────
+  editorEl.addEventListener('input', (e) => {
+    scheduleAutoSave();
+
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+
+    // Check if user just typed '/' or '@'
+    const textBefore = range.startContainer.textContent.substring(0, range.startOffset);
+    const triggerMatch = textBefore.match(/[/@]([\w\s.-]*)$/);
+
+    if (triggerMatch) {
+      const query = triggerMatch[1];
+      showOmniPalette(range, query);
+    } else if (omniActive) {
+      hideOmniPalette();
+    }
+  });
+
+  editorEl.addEventListener('keydown', (e) => {
+    // Cmd+S / Ctrl+S
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      saveDocument();
+      return;
+    }
+
+    // Navigation inside Omni-Palette
+    if (omniActive) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        omniSelectedIndex = (omniSelectedIndex + 1) % omniResults.length;
+        updateOmniSelection();
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        omniSelectedIndex = (omniSelectedIndex - 1 + omniResults.length) % omniResults.length;
+        updateOmniSelection();
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        selectOmniItem(omniResults[omniSelectedIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        hideOmniPalette();
+        return;
+      }
+    }
+
+    // Table cell navigation on Tab
+    if (e.key === 'Tab') {
+      const cell = e.target.closest('td, th');
+      if (cell) {
+        e.preventDefault();
+        const row = cell.parentElement;
+        const table = row.parentElement;
+        const allCells = Array.from(table.querySelectorAll('td, th'));
+        const curIdx = allCells.indexOf(cell);
+
+        if (!e.shiftKey && curIdx === allCells.length - 1) {
+          // Append new table row at end
+          const colCount = row.children.length;
+          const newRow = document.createElement('tr');
+          for (let c = 0; c < colCount; c++) {
+            const newCell = document.createElement('td');
+            newCell.setAttribute('contenteditable', 'true');
+            newCell.innerHTML = '&nbsp;';
+            newRow.appendChild(newCell);
+          }
+          table.appendChild(newRow);
+          newRow.firstElementChild.focus();
+        } else {
+          const nextIdx = e.shiftKey ? Math.max(0, curIdx - 1) : Math.min(allCells.length - 1, curIdx + 1);
+          allCells[nextIdx].focus();
+        }
+      }
+    }
+  });
+
+  function updateOmniSelection() {
+    Array.from(omniResultsEl.querySelectorAll('.omni-item')).forEach((el, idx) => {
+      el.classList.toggle('selected', idx === omniSelectedIndex);
+      if (idx === omniSelectedIndex) {
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  // ── 7. Header Button Actions ───────────────────────────────────────
+  if (btnToggleOmni) {
+    btnToggleOmni.addEventListener('click', () => {
+      editorEl.focus();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) {
+        showOmniPalette(sel.getRangeAt(0), '');
+      }
+    });
+  }
+
+  async function triggerExportDocx() {
+    setSaveStatus('saving', 'Compiling Court DOCX...');
+    try {
+      await saveDocument();
+      const exportUrl = `${backendBase}/api/hayagriva/export-sc-docx?path=${encodeURIComponent(filePath)}&case=${encodeURIComponent(caseName)}`;
+      window.open(exportUrl, '_blank');
+      setSaveStatus('saved', '✓ Exported Court DOCX');
+    } catch (e) {
+      console.error('Export error:', e);
+      setSaveStatus('error', 'Export failed');
+    }
+  }
+
+  btnExportDocx.addEventListener('click', triggerExportDocx);
+
+  // Initial Load
+  loadDocument();
+</script>
+</body>
+</html>

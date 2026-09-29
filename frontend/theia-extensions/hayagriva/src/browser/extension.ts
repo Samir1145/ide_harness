@@ -22,7 +22,7 @@ import { HayagrivaEditorDecorator } from './highlight-decorator';
 import { HayagrivaLspClient } from './lsp-client';
 import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
-import { pruneNavigatorContextMenu } from './menus';
+import { pruneNavigatorContextMenu, pruneDeveloperMenus } from './menus';
 
 const { wikiExplorerHtml, conceptsExplorerHtml, inboxExplorerHtml, billingExplorerHtml } = require('./templates');
 
@@ -99,7 +99,7 @@ export class HayagrivaFrontendContribution
       return 600;
     }
     const p = uri.path.toString().toLowerCase();
-    if (p.endsWith('.pdf') || p.endsWith('.docx') || p.endsWith('.doc') || p.endsWith('.xlsx') || p.endsWith('.xls') || p.endsWith('.wiki.html')) {
+    if (p.endsWith('.pdf') || p.endsWith('.docx') || p.endsWith('.doc') || p.endsWith('.xlsx') || p.endsWith('.xls') || p.endsWith('.wiki.html') || p.endsWith('.md') || p.endsWith('.markdown')) {
       return 500;
     }
     return 0;
@@ -147,14 +147,8 @@ export class HayagrivaFrontendContribution
       }
 
       if (companionUri) {
-        const editors = this.editorManager.all;
-        for (const ed of editors) {
-          const resUri = ed.getResourceUri();
-          if (resUri && resUri.toString() === companionUri.toString()) {
-            ed.close();
-          }
-        }
-        await this.editorManager.openToSide(companionUri);
+        const companionPath = decodeURIComponent(companionUri.path.toString());
+        await this.previewManager.openMilkdownEditor(companionPath, caseName, 'split-right');
       }
 
       return previewWidget;
@@ -162,6 +156,10 @@ export class HayagrivaFrontendContribution
 
     if (filePath.toLowerCase().endsWith('.wiki.html')) {
       return this.openWikiHtmlViewer(filePath, caseName);
+    }
+
+    if (filePath.toLowerCase().endsWith('.md') || filePath.toLowerCase().endsWith('.markdown')) {
+      return this.previewManager.openMilkdownEditor(filePath, caseName);
     }
 
     const base = getBasename(filePath);
@@ -179,13 +177,48 @@ export class HayagrivaFrontendContribution
       this.preferenceService.set('editor.suggestOnTriggerCharacters', true);
       this.preferenceService.set('editor.quickSuggestions', { other: true, comments: true, strings: true });
       this.preferenceService.set('explorer.openEditors.visible', 0);
+      this.preferenceService.set('toolbar.showToolbar', false);
       this.preferenceService.set('files.associations', { '*.tid': 'markdown' });
     } catch (_) {}
 
-    // Prune generic developer clutter from Explorer context menu
+    // Prune generic developer clutter from Explorer context menu and top menu bar
     try {
       pruneNavigatorContextMenu(this.menuRegistry);
-      setTimeout(() => pruneNavigatorContextMenu(this.menuRegistry), 500);
+      pruneDeveloperMenus(this.menuRegistry);
+      setTimeout(() => {
+        pruneNavigatorContextMenu(this.menuRegistry);
+        pruneDeveloperMenus(this.menuRegistry);
+      }, 500);
+      setTimeout(() => pruneDeveloperMenus(this.menuRegistry), 1500);
+    } catch (_) {}
+
+    // Prune developer items from top menu bar (Terminal, Run, Selection, Go)
+    const pruneTopMenuBar = () => {
+      try {
+        const items = document.querySelectorAll('.p-MenuBar-item');
+        const hideLabels = ['terminal', 'run', 'selection', 'go'];
+        items.forEach(el => {
+          const text = (el.textContent || '').trim().toLowerCase();
+          if (hideLabels.includes(text)) {
+            (el as HTMLElement).style.display = 'none';
+          }
+        });
+      } catch (_) {}
+    };
+    pruneTopMenuBar();
+    setTimeout(pruneTopMenuBar, 400);
+    setTimeout(pruneTopMenuBar, 1500);
+
+    // Relocate AI Chat widget to left vertical dock and collapse right panel
+    try {
+      this.widgetManager.getOrCreateWidget('chat-view-widget').then(widget => {
+        if (widget) {
+          widget.title.label = '🤖 Chamber AI';
+          widget.title.iconClass = 'fa fa-comments';
+          this.shell.addWidget(widget, { area: 'left', rank: 500 });
+        }
+      }).catch(() => {});
+      this.shell.collapsePanel('right');
     } catch (_) {}
 
     // Live auto-refresh of Markdown previews when saving .md files
@@ -299,6 +332,10 @@ export class HayagrivaFrontendContribution
   }
 
   // ── Delegated Preview Operations ───────────────────────────────────────────
+  async openMilkdownEditor(filePath: string, caseName: string, mode?: 'split-right' | 'split-bottom' | 'tab-after' | 'tab-before'): Promise<Widget> {
+    return this.previewManager.openMilkdownEditor(filePath, caseName, mode);
+  }
+
   async openOfficePreview(filePath: string, caseName: string): Promise<Widget> {
     return this.previewManager.openOfficePreview(filePath, caseName);
   }
@@ -1019,6 +1056,51 @@ export class HayagrivaFrontendContribution
         overflow: hidden !important;
         visibility: hidden !important;
         pointer-events: none !important;
+      }
+
+      /* Permanently eliminate Right Activity Bar and Right Side Panel (zero right-side icons) */
+      #theia-right-content-panel,
+      .theia-app-right,
+      .theia-right-side-bar,
+      #theia-right-side-bar,
+      .theia-tab-bar-container.right,
+      .p-TabBar.right,
+      #theia-right-side-panel,
+      .theia-side-panel.theia-right-side-panel,
+      .theia-mini-browser-panel.right {
+        display: none !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      /* Hide browser back/forward navigation controls & main toolbar */
+      #main-toolbar,
+      .theia-toolbar,
+      .theia-toolbar-container,
+      .theia-navigation-controls,
+      .theia-top-panel .theia-navigation-button,
+      [id*="workbench.action.navigateBack"],
+      [id*="workbench.action.navigateForward"] {
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      /* Hide duplicate header toolbars inside workspace folder tree and navigator */
+      .theia-TreeContainer .theia-header-toolbar,
+      .theia-TreeNode .theia-header-toolbar,
+      .theia-header .theia-header-toolbar,
+      .theia-navigator-container .theia-header-toolbar,
+      .theia-view-container .theia-header-toolbar,
+      .theia-navigator-view .theia-header-toolbar,
+      .theia-navigator .theia-header-toolbar {
+        display: none !important;
       }
     `;
     document.head.appendChild(style);

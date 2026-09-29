@@ -9,7 +9,7 @@ const { streamChat } = require('./core/llm-client');
 const { resolveTrigger, searchLaws, getVaultVersion, isVaultReady } = require('./utils/vault-loader');
 const { searchCases, isCasesVaultReady, getCasesVaultVersion } = require('./utils/cases-vault-loader');
 const { getVaultStatus, downloadAndInstallVault, activateLicense, onProgress, onStatus } = require('./utils/vault-manager');
-const { getConversionsDir, getConceptsDir, getWikiDir } = require('./pipeline/common/helper');
+const { getConversionsDir, getConceptsDir, getWikiDir, isValidCaseDir } = require('./pipeline/common/helper');
 const crypto = require('crypto');
 
 function resolveCaseDir(docsRoot, caseParam) {
@@ -37,6 +37,11 @@ function resolveCaseDir(docsRoot, caseParam) {
     const desktopMatter = path.join(home, 'Desktop', 'HAYA_MATTERS', caseName || '');
     if (caseName && fs.existsSync(desktopMatter)) {
         return desktopMatter;
+    }
+    // Check repository root (e.g. demo_case)
+    const repoCandidate = path.join(__dirname, '..', '..', caseName || '');
+    if (caseName && fs.existsSync(repoCandidate)) {
+        return repoCandidate;
     }
     return path.join(docsRoot, caseName || '');
 }
@@ -499,6 +504,50 @@ module.exports = {
         '/api/hayagriva/wiki-port': (req, res, parsedUrl, docsRoot) => {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ port: null }));
+        },
+
+        '/api/hayagriva/omni-search': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const query = parsedUrl.query.q || '';
+                const context = parsedUrl.query.context || 'inline';
+                const limit = parseInt(parsedUrl.query.limit, 10) || 20;
+                const caseName = parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+
+                const { searchOmni } = require('./vault/omni-search-service');
+                const results = searchOmni({
+                    query,
+                    context,
+                    caseDir,
+                    limit
+                });
+
+                res.writeHead(200, {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                });
+                res.end(JSON.stringify({
+                    success: true,
+                    query,
+                    context,
+                    total: results.length,
+                    items: results
+                }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
+        '/api/hayagriva/milkdown-editor': (req, res, parsedUrl, docsRoot) => {
+            const editorPath = path.join(__dirname, 'assets', 'milkdown-editor.html');
+            if (fs.existsSync(editorPath)) {
+                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                res.end(fs.readFileSync(editorPath, 'utf8'));
+            } else {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Milkdown editor asset not found');
+            }
         },
 
         '/api/billing/case-summary': (req, res, parsedUrl, docsRoot) => {
@@ -1698,14 +1747,13 @@ module.exports = {
             const caseDir = resolveCaseDir(docsRoot, caseName);
             let targetPath = path.join(getWikiDir(caseDir), fileName);
 
-            if (!fs.existsSync(targetPath)) {
-                const stripped = fileName.replace(/^reports[/\\]/, '');
-                const inReports = path.join(caseDir, 'reports', stripped);
-                const inCase = path.join(caseDir, fileName);
-                if (fs.existsSync(inReports)) {
-                    targetPath = inReports;
-                } else if (fs.existsSync(inCase)) {
-                    targetPath = inCase;
+            if (!fs.existsSync(targetPath) && fileName) {
+                const docStem = path.basename(fileName, '.wiki.html');
+                try {
+                    const { ensureCaseWiki } = require('./pipeline/wiki/split');
+                    ensureCaseWiki(caseDir, docStem, targetPath);
+                } catch (e) {
+                    console.warn('[TiddlyWiki View] ensureCaseWiki warning:', e.message);
                 }
             }
 
@@ -2078,6 +2126,29 @@ module.exports = {
             }
             let targetPath = path.isAbsolute(filePath) ? filePath : path.join(docsRoot, filePath);
             if (!fs.existsSync(targetPath)) {
+                // Self-healing: if a .wiki.html canvas was requested directly, auto-materialize it
+                if (filePath.endsWith('.wiki.html')) {
+                    const docStem = path.basename(filePath, '.wiki.html');
+                    const parsedCase = parsedUrl.query.case || '';
+                    let caseDir = parsedCase ? resolveCaseDir(docsRoot, parsedCase) : null;
+                    if (!caseDir) {
+                        let curr = path.dirname(targetPath);
+                        while (curr && curr !== path.dirname(curr)) {
+                            if (isValidCaseDir(curr)) { caseDir = curr; break; }
+                            curr = path.dirname(curr);
+                        }
+                    }
+                    if (!caseDir) caseDir = resolveCaseDir(docsRoot, getDefaultCaseName(docsRoot));
+                    if (caseDir && isValidCaseDir(caseDir)) {
+                        try {
+                            const { ensureCaseWiki } = require('./pipeline/wiki/split');
+                            ensureCaseWiki(caseDir, docStem, targetPath);
+                        } catch (e) {
+                            console.warn('[Read File] ensureCaseWiki warning:', e.message);
+                        }
+                    }
+                }
+
                 // Self-healing: if an .md companion was requested directly, search case conversions folder
                 if (filePath.endsWith('.md')) {
                     const baseName = path.basename(filePath);
@@ -3362,13 +3433,32 @@ module.exports = {
                     const wikiDir = getWikiDir(caseDir);
                     const targetPath = path.join(wikiDir, fileName);
 
+                    let fileContent = body;
+                    // Handle standard TiddlyWiki multipart UploadPlugin payload
+                    if (body.includes('name="userfile"')) {
+                        const boundaryMatch = body.match(/^--[^\r\n]+/);
+                        if (boundaryMatch) {
+                            const boundary = boundaryMatch[0];
+                            const parts = body.split(boundary);
+                            for (const part of parts) {
+                                if (part.includes('name="userfile"')) {
+                                    const headerEnd = part.indexOf('\r\n\r\n');
+                                    if (headerEnd !== -1) {
+                                        fileContent = part.substring(headerEnd + 4).replace(/\r\n$/, '');
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-                    fs.writeFileSync(targetPath, body, 'utf8');
+                    fs.writeFileSync(targetPath, fileContent, 'utf8');
 
                     // Extract and atomically sync individual .tid cards to disk and SQLite FTS5
                     let syncedCount = 0;
                     try {
-                        const scriptMatch = body.match(/<script\b[^>]*class=["']tiddlywiki-tiddler-store["'][^>]*>([\s\S]*?)<\/script>/i);
+                        const scriptMatch = fileContent.match(/<script\b[^>]*class=["']tiddlywiki-tiddler-store["'][^>]*>([\s\S]*?)<\/script>/i);
                         if (scriptMatch && scriptMatch[1]) {
                             const tiddlers = JSON.parse(scriptMatch[1]);
                             const docStem = fileName.replace(/\.wiki\.html$/i, '');
@@ -3433,11 +3523,70 @@ module.exports = {
                         console.error('[TiddlyWiki API] Failed to re-index saved wiki:', e.message);
                     }
 
-                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-                    res.end(JSON.stringify({ success: true, savedPath: targetPath, cardsSynced: syncedCount }));
+                    // Respond with '0 - OK' for TiddlyWiki UploadSaver compatibility and ETag for PutSaver
+                    const etag = '"' + Date.now() + '"';
+                    res.writeHead(200, {
+                        'Content-Type': 'text/plain; charset=utf-8',
+                        'ETag': etag,
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Expose-Headers': 'ETag'
+                    });
+                    res.end('0 - OK: ' + JSON.stringify({ success: true, savedPath: targetPath, cardsSynced: syncedCount, etag }));
                 } catch (err) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+        },
+
+        '/api/hayagriva/tiddlywiki/view': (req, res, parsedUrl, docsRoot) => {
+            // Forward PUT/POST requests on view URL directly to save handler
+            module.exports.POST['/api/hayagriva/tiddlywiki/save'](req, res, parsedUrl, docsRoot);
+        },
+
+        '/api/hayagriva/save-file': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    let data = {};
+                    try {
+                        data = JSON.parse(body);
+                    } catch (_) {
+                        data = { content: body, path: parsedUrl.query.path };
+                    }
+                    const filePath = data.path || parsedUrl.query.path;
+                    if (!filePath) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'Missing path' }));
+                        return;
+                    }
+                    const targetPath = path.isAbsolute(filePath) ? filePath : path.join(docsRoot, filePath);
+                    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+                    fs.writeFileSync(targetPath, data.content !== undefined ? data.content : '', 'utf8');
+
+                    // If saving companion markdown or draft, trigger incremental SQLite FTS5 update
+                    if (targetPath.endsWith('.md')) {
+                        try {
+                            const caseName = data.caseName || parsedUrl.query.case || '';
+                            const caseDir = resolveCaseDir(docsRoot, caseName);
+                            if (caseDir && fs.existsSync(caseDir)) {
+                                const { getDb } = require('./core/sqlite-store');
+                                const db = getDb(caseDir);
+                                const relPath = path.relative(caseDir, targetPath);
+                                db.prepare(`
+                                    INSERT INTO fts_chunks (filename, section_title, page_number, chunk_index, content)
+                                    VALUES (?, ?, 1, 0, ?)
+                                `).run(relPath, path.basename(targetPath, '.md'), data.content || '');
+                            }
+                        } catch (_) {}
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                    res.end(JSON.stringify({ success: true, savedPath: targetPath, bytes: Buffer.byteLength(data.content || '') }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
                 }
             });
         },
