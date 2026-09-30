@@ -14,7 +14,7 @@ export class HayagrivaChatAgentServiceImpl extends ChatAgentServiceImpl implemen
    */
   protected override get agents(): ChatAgent[] {
     const rawAgents = super.agents;
-    return rawAgents.filter(agent => {
+    const filtered = rawAgents.filter(agent => {
       const id = (agent.id || '').toLowerCase();
       const tags = (agent.tags || []).map(t => t.toLowerCase());
 
@@ -25,25 +25,37 @@ export class HayagrivaChatAgentServiceImpl extends ChatAgentServiceImpl implemen
         tags.includes('insolvency') ||
         tags.includes('claims') ||
         tags.includes('finance') ||
-        ['advisor', 'forms', 'document', 'claims', 'claim-prep', 'claim_prep', 'claim_preparation', 'claim-prep', 'claim_preparer', 'claim-preparer', 'claim-verify', 'claim_verification', 'claim_verifier', 'claim-verifier', 'im', 'plan', 'avoidance', 'litigation'].some(k => id === k || id === `hayagriva-${k}`);
+        ['askhaya', 'advisor', 'forms', 'document', 'claims', 'claim-prep', 'claim_prep', 'claim_preparation', 'claim-prep', 'claim_preparer', 'claim-preparer', 'claim-verify', 'claim_verification', 'claim_verifier', 'claim-verifier', 'im', 'plan', 'avoidance', 'litigation'].some(k => id === k || id === `hayagriva-${k}`);
 
       return isLegalDomain;
     });
+
+    filtered.sort((a, b) => {
+      if (a.id === 'AskHaya') return -1;
+      if (b.id === 'AskHaya') return 1;
+      return 0;
+    });
+
+    return filtered;
   }
 
   override getDefaultAgent(): ChatAgent | undefined {
-    return this.getAgent('hayagriva-advisor') || this.getAgent('advisor') || this.getAgents()[0];
+    return this.getAgent('AskHaya') || this.getAgent('askhaya') || this.getAgents()[0];
   }
 
   override getFallbackAgent(): ChatAgent | undefined {
-    return this.getAgent('hayagriva-advisor') || this.getAgent('advisor') || this.getAgents()[0];
+    return this.getAgent('AskHaya') || this.getAgent('askhaya') || this.getAgents()[0];
+  }
+
+  override getPreferenceDefaultAgent(): ChatAgent | undefined {
+    const prefAgent = super.getPreferenceDefaultAgent();
+    if (prefAgent && (prefAgent.id === 'AskHaya' || prefAgent.id === 'askhaya')) {
+      return prefAgent;
+    }
+    return this.getAgent('AskHaya') || prefAgent || this.getDefaultAgent();
   }
 
   override getEffectiveDefaultAgent(): ChatAgent | undefined {
-    const prefAgent = this.getPreferenceDefaultAgent();
-    if (prefAgent) {
-      return prefAgent;
-    }
-    return this.getDefaultAgent();
+    return this.getAgent('AskHaya') || this.getPreferenceDefaultAgent() || this.getDefaultAgent();
   }
 }

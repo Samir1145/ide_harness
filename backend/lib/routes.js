@@ -3069,7 +3069,7 @@ module.exports = {
                 },
                 resolutionBazaar: {
                     connected: Boolean(isRbConnected && (isRbConnected.online || isRbConnected === true)),
-                    url: saved.lightragApiUrl || 'http://localhost:8020',
+                    url: saved.lightragApiUrl || 'http://127.0.0.1:9621',
                     configured: !!(saved.lightragApiKey || saved.resolutionbazaar_key)
                 },
                 coworkers: {
@@ -3344,6 +3344,44 @@ module.exports = {
 
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(`<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="background:#1e293b;padding:36px;border-radius:16px;border:1px solid #10b981;max-width:480px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.5);"><div style="font-size:48px;margin-bottom:12px;">🎉</div><h2 style="color:#10b981;margin:0 0 10px;">License Activated in Hayagriva IDE</h2><p style="color:#cbd5e1;font-size:14px;margin-bottom:16px;">Welcome <strong>${result.licensee || 'Practitioner'}</strong> (${result.tier || 'pro'}).</p><div style="margin-bottom:20px;">${allowedBadges}</div><p style="color:#64748b;font-size:12px;">You can now close this tab and return to your IDE.</p></div></body></html>`);
+        },
+
+        // ─── Voice Precedent Agent: Engine & Knowledge Graph Telemetry (GET) ──
+        '/api/hayagriva/voice/telemetry': async (req, res, parsedUrl, docsRoot) => {
+            try {
+                const voiceAgent = require('./agents/lightrag-voice-agent');
+                const caseName = parsedUrl.query.case || null;
+                const caseDir = caseName ? resolveCaseDir(docsRoot, caseName) : null;
+
+                const telemetry = await voiceAgent.checkTelemetry(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, telemetry }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        // ─── Voice Precedent Agent (@AskHaya): Sarvam Status & Personas ─────────
+        '/api/hayagriva/voice/sarvam/status': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const sarvamClient = require('./seams/sarvam/sarvam-client');
+                const caseName = parsedUrl.query.case || null;
+                const caseDir = caseName ? resolveCaseDir(docsRoot, caseName) : null;
+                let caseSettings = null;
+                if (caseDir && fs.existsSync(caseDir)) {
+                    try {
+                        const sPath = path.join(caseDir, 'hayagriva_settings.json');
+                        if (fs.existsSync(sPath)) caseSettings = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+                    } catch (_) {}
+                }
+                const status = sarvamClient.getStatus(caseSettings);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, status }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
         }
     },
 
@@ -5082,7 +5120,7 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     }
 
                     const lightragApiKey = data.lightragApiKey !== undefined ? data.lightragApiKey : (data.advisoryApiKey || existing.lightragApiKey || existing.advisoryApiKey || '');
-                    const lightragApiUrl = data.lightragApiUrl !== undefined ? data.lightragApiUrl : (existing.lightragApiUrl || 'http://localhost:8020');
+                    const lightragApiUrl = data.lightragApiUrl !== undefined ? data.lightragApiUrl : (existing.lightragApiUrl || 'http://127.0.0.1:9621');
 
                     const savedConfig = {
                         ...existing,
@@ -6266,14 +6304,19 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     const coordinator = require('./agents/agent-coordinator');
                     const agentLogger = require('./agents/agent-logger');
 
-                    const { response: responseText, logs } = await coordinator.run(caseDir, data.message, data.history || [], data.agent, { returnObject: true, mode: data.mode });
+                    const { response: responseText, spokenText, logs } = await coordinator.run(caseDir, data.message, data.history || [], data.agent, { returnObject: true, mode: data.mode });
                     const accordionHtml = agentLogger.formatMarkdownAccordion(logs);
                     const finalResponse = (accordionHtml && !(responseText || '').startsWith('<details>')) 
                         ? accordionHtml + responseText 
                         : responseText;
                     
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ success: true, response: finalResponse, logs: logs || [] }));
+                    res.end(JSON.stringify({ 
+                        success: true, 
+                        response: finalResponse, 
+                        spokenText: spokenText || '',
+                        logs: logs || [] 
+                    }));
                 } catch (err) {
                     console.error('[API Server] Agent chat handler failed:', err.message);
                     res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -7520,6 +7563,218 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                 }
             });
         },
+
+        // ─── Voice Precedent Agent: Live Voice Inquest ────────────────────────
+        '/api/hayagriva/voice/inquest': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const voiceAgent = require('./agents/lightrag-voice-agent');
+                    const caseName = data.case || parsedUrl.query.case || null;
+                    const caseDir = caseName ? resolveCaseDir(docsRoot, caseName) : null;
+
+                    const result = await voiceAgent.inquire(data.query, {
+                        caseDir: caseDir,
+                        mode: data.mode,
+                        top_k: data.top_k || 4
+                    });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: false,
+                        error: e.message,
+                        spokenText: 'A technical error occurred while consulting precedents.'
+                    }));
+                }
+            });
+        },
+
+        // ─── Voice Precedent Agent: Engine & Knowledge Graph Telemetry ────────
+        '/api/hayagriva/voice/telemetry': async (req, res, parsedUrl, docsRoot) => {
+            try {
+                const voiceAgent = require('./agents/lightrag-voice-agent');
+                const caseName = parsedUrl.query.case || null;
+                const caseDir = caseName ? resolveCaseDir(docsRoot, caseName) : null;
+
+                const telemetry = await voiceAgent.checkTelemetry(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, telemetry }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        },
+
+        // ─── Voice Precedent Agent: Save Voice & LightRAG Settings ─────────────
+        '/api/hayagriva/voice/config': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const lightRagClient = require('./core/lightrag-client');
+                    const os = require('os');
+
+                    const caseName = data.case || parsedUrl.query.case || null;
+                    const caseDir = caseName ? resolveCaseDir(docsRoot, caseName) : null;
+
+                    // Update in-memory config
+                    if (data.apiUrl !== undefined) lightRagClient.config.apiUrl = String(data.apiUrl).trim().replace(/\/+$/, '');
+                    if (data.apiKey !== undefined) lightRagClient.config.apiKey = String(data.apiKey).trim();
+                    if (data.workspace !== undefined) lightRagClient.config.workspace = String(data.workspace).trim();
+                    if (data.queryMode !== undefined) lightRagClient.config.queryMode = String(data.queryMode).trim();
+
+                    // Persist to case settings if caseDir exists
+                    if (caseDir && fs.existsSync(caseDir)) {
+                        const caseSettingsPath = path.join(caseDir, 'hayagriva_settings.json');
+                        let caseSettings = {};
+                        if (fs.existsSync(caseSettingsPath)) {
+                            try { caseSettings = JSON.parse(fs.readFileSync(caseSettingsPath, 'utf8')); } catch (_) {}
+                        }
+                        if (data.apiUrl !== undefined) caseSettings.lightragApiUrl = lightRagClient.config.apiUrl;
+                        if (data.apiKey !== undefined) caseSettings.lightragApiKey = lightRagClient.config.apiKey;
+                        if (data.workspace !== undefined) caseSettings.lightragWorkspace = lightRagClient.config.workspace;
+                        if (data.queryMode !== undefined) caseSettings.lightragQueryMode = lightRagClient.config.queryMode;
+                        if (data.speechRate !== undefined) caseSettings.speechRate = data.speechRate;
+                        if (data.speechVoice !== undefined) caseSettings.speechVoice = data.speechVoice;
+                        if (data.sarvamApiKey !== undefined) caseSettings.sarvamApiKey = String(data.sarvamApiKey).trim();
+                        if (data.sarvamSpeaker !== undefined) caseSettings.sarvamSpeaker = String(data.sarvamSpeaker).trim();
+                        if (data.sarvamLanguage !== undefined) caseSettings.sarvamLanguage = String(data.sarvamLanguage).trim();
+                        if (data.sarvamEnabled !== undefined) caseSettings.sarvamEnabled = Boolean(data.sarvamEnabled);
+
+                        fs.writeFileSync(caseSettingsPath, JSON.stringify(caseSettings, null, 2), 'utf8');
+                    }
+
+                    // Also mirror to global ~/.gemini/hayagriva_settings.json
+                    try {
+                        const globalDir = path.join(os.homedir(), '.gemini');
+                        if (!fs.existsSync(globalDir)) fs.mkdirSync(globalDir, { recursive: true });
+                        const globalFile = path.join(globalDir, 'hayagriva_settings.json');
+                        let globalSettings = {};
+                        if (fs.existsSync(globalFile)) {
+                            try { globalSettings = JSON.parse(fs.readFileSync(globalFile, 'utf8')); } catch (_) {}
+                        }
+                        if (data.apiUrl !== undefined) globalSettings.lightragApiUrl = lightRagClient.config.apiUrl;
+                        if (data.apiKey !== undefined) globalSettings.lightragApiKey = lightRagClient.config.apiKey;
+                        if (data.workspace !== undefined) globalSettings.lightragWorkspace = lightRagClient.config.workspace;
+                        if (data.queryMode !== undefined) globalSettings.lightragQueryMode = lightRagClient.config.queryMode;
+                        if (data.speechRate !== undefined) globalSettings.speechRate = data.speechRate;
+                        if (data.speechVoice !== undefined) globalSettings.speechVoice = data.speechVoice;
+                        if (data.sarvamApiKey !== undefined) globalSettings.sarvamApiKey = String(data.sarvamApiKey).trim();
+                        if (data.sarvamSpeaker !== undefined) globalSettings.sarvamSpeaker = String(data.sarvamSpeaker).trim();
+                        if (data.sarvamLanguage !== undefined) globalSettings.sarvamLanguage = String(data.sarvamLanguage).trim();
+                        if (data.sarvamEnabled !== undefined) globalSettings.sarvamEnabled = Boolean(data.sarvamEnabled);
+
+                        fs.writeFileSync(globalFile, JSON.stringify(globalSettings, null, 2), 'utf8');
+                    } catch (_) {}
+
+                    const health = await lightRagClient.checkHealth(2000);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        config: lightRagClient.config,
+                        health: health
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: e.message }));
+                }
+            });
+        },
+
+        // ─── Voice Precedent Agent (@AskHaya): Sarvam AI TTS (Bulbul) ───────────
+        '/api/hayagriva/voice/tts': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const sarvamClient = require('./seams/sarvam/sarvam-client');
+                    const caseName = data.case || parsedUrl.query.case || null;
+                    const caseDir = caseName ? resolveCaseDir(docsRoot, caseName) : null;
+                    let caseSettings = null;
+                    if (caseDir && fs.existsSync(caseDir)) {
+                        try {
+                            const sPath = path.join(caseDir, 'hayagriva_settings.json');
+                            if (fs.existsSync(sPath)) caseSettings = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+                        } catch (_) {}
+                    }
+
+                    const result = await sarvamClient.synthesizeSpeech({
+                        text: data.text,
+                        speaker: data.speaker,
+                        targetLanguage: data.target_language_code || data.language,
+                        pitch: data.pitch,
+                        pace: data.pace,
+                        caseSettings: caseSettings
+                    });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, fallback: true, error: e.message }));
+                }
+            });
+        },
+
+        // ─── Voice Precedent Agent (@AskHaya): Sarvam AI STT (Saaras v2) ────────
+        '/api/hayagriva/voice/stt': (req, res, parsedUrl, docsRoot) => {
+            const contentType = req.headers['content-type'] || '';
+            let rawChunks = [];
+            req.on('data', chunk => rawChunks.push(chunk));
+            req.on('end', async () => {
+                try {
+                    const sarvamClient = require('./seams/sarvam/sarvam-client');
+                    const totalBuffer = Buffer.concat(rawChunks);
+                    let audioBuffer = totalBuffer;
+                    let mimeType = 'audio/webm';
+                    let language = 'en-IN';
+                    let caseName = parsedUrl.query.case || null;
+
+                    if (contentType.includes('application/json')) {
+                        const parsed = JSON.parse(totalBuffer.toString('utf8') || '{}');
+                        if (parsed.audioBase64) {
+                            audioBuffer = Buffer.from(parsed.audioBase64, 'base64');
+                        }
+                        if (parsed.mimeType) mimeType = parsed.mimeType;
+                        if (parsed.language) language = parsed.language;
+                        if (parsed.case) caseName = parsed.case;
+                    } else if (contentType.includes('audio/')) {
+                        mimeType = contentType.split(';')[0].trim();
+                    }
+
+                    const caseDir = caseName ? resolveCaseDir(docsRoot, caseName) : null;
+                    let caseSettings = null;
+                    if (caseDir && fs.existsSync(caseDir)) {
+                        try {
+                            const sPath = path.join(caseDir, 'hayagriva_settings.json');
+                            if (fs.existsSync(sPath)) caseSettings = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+                        } catch (_) {}
+                    }
+
+                    const result = await sarvamClient.transcribeAudio({
+                        audioBuffer: audioBuffer,
+                        mimeType: mimeType,
+                        languageCode: language,
+                        caseSettings: caseSettings
+                    });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, fallback: true, error: e.message }));
+                }
+            });
+        },
+
 
         // ─── Razorpay: Create Order with 15-Field Telemetry ─────────────────
         '/api/hayagriva/payments/create-order': (req, res, parsedUrl, docsRoot) => {

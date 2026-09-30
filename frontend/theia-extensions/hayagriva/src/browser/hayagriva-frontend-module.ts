@@ -10,11 +10,13 @@ import { HayagrivaTreeDecorator } from './tree-decorator';
 import { HayagrivaLspClient } from './lsp-client';
 import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
+import { AskHayaVoiceOrb } from './askhaya-orb';
 import { NavigatorTreeDecorator } from '@theia/navigator/lib/browser/navigator-decorator-service';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
 import { hayagrivaPreferenceSchema } from './extension';
 import { ChatAgent } from '@theia/ai-chat/lib/common/chat-agents';
 import {
+  AskHayaChatAgent,
   AdvisorChatAgent,
   FormsChatAgent,
   DocumentChatAgent,
@@ -53,6 +55,27 @@ import {
   FallbackChatAgentId
 } from '@theia/ai-chat/lib/common/chat-agent-service';
 import { HayagrivaChatAgentServiceImpl } from './chat-agent-service';
+import { ChatWelcomeMessageProvider } from '@theia/ai-chat-ui/lib/browser/chat-tree-view';
+import { HayagrivaChatWelcomeMessageProvider } from './chat-welcome-message';
+import { NavigatorWidgetFactory, EXPLORER_VIEW_CONTAINER_ID, EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS } from '@theia/navigator/lib/browser/navigator-widget-factory';
+import { FILE_NAVIGATOR_ID } from '@theia/navigator/lib/browser/navigator-widget';
+import { ViewContainer } from '@theia/core/lib/browser/view-container';
+import { injectable } from '@theia/core/shared/inversify';
+
+@injectable()
+export class HayagrivaNavigatorWidgetFactory extends NavigatorWidgetFactory {
+  override async createWidget(): Promise<ViewContainer> {
+    const viewContainer = this.viewContainerFactory({
+      id: EXPLORER_VIEW_CONTAINER_ID,
+      progressLocationId: 'explorer'
+    });
+    viewContainer.setTitleOptions(EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS);
+    const navigatorWidget = await this.widgetManager.getOrCreateWidget(FILE_NAVIGATOR_ID);
+    viewContainer.addWidget(navigatorWidget, this.fileNavigatorWidgetOptions);
+    // Permanently eliminate OpenEditorsWidget from Explorer ViewContainer
+    return viewContainer;
+  }
+}
 
 export default new ContainerModule((bind, unbind, isBound, rebind) => {
   // Bind preference contribution
@@ -63,10 +86,15 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(HayagrivaLspClient).toSelf().inSingletonScope();
   bind(HayagrivaMonacoProviders).toSelf().inSingletonScope();
   bind(HayagrivaPreviewManager).toSelf().inSingletonScope();
+  bind(AskHayaVoiceOrb).toSelf().inSingletonScope();
 
   // Bind File Tree Status color-coding decorator to the native NavigatorTreeDecorator
   bind(HayagrivaTreeDecorator).toSelf().inSingletonScope();
   bind(NavigatorTreeDecorator).to(HayagrivaTreeDecorator).inSingletonScope();
+
+  // Rebind NavigatorWidgetFactory to permanently eliminate Open Editors from Explorer ViewContainer
+  bind(HayagrivaNavigatorWidgetFactory).toSelf().inSingletonScope();
+  rebind(NavigatorWidgetFactory).to(HayagrivaNavigatorWidgetFactory).inSingletonScope();
 
   // Bind main Event Broker / Contribution entry point
   bind(HayagrivaFrontendContribution).toSelf().inSingletonScope();
@@ -83,6 +111,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(MenuContribution).toService(HayagrivaMenuContribution);
 
   // Bind custom Chat Agents
+  bind(ChatAgent).to(AskHayaChatAgent).inSingletonScope();
   bind(ChatAgent).to(AdvisorChatAgent).inSingletonScope();
   bind(ChatAgent).to(FormsChatAgent).inSingletonScope();
   bind(ChatAgent).to(DocumentChatAgent).inSingletonScope();
@@ -99,17 +128,21 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   rebind(ChatAgentServiceImpl).to(HayagrivaChatAgentServiceImpl).inSingletonScope();
   rebind(ChatAgentService).toService(ChatAgentServiceImpl);
 
-  // Set default & fallback chat agent to @advisor (Legal Strategy Advisor)
+  // Set default & fallback chat agent to @AskHaya (Senior Partner & Coworker Orchestrator)
   if (isBound(DefaultChatAgentId)) {
-    rebind(DefaultChatAgentId).toConstantValue({ id: 'hayagriva-advisor' });
+    rebind(DefaultChatAgentId).toConstantValue({ id: 'AskHaya' });
   } else {
-    bind(DefaultChatAgentId).toConstantValue({ id: 'hayagriva-advisor' });
+    bind(DefaultChatAgentId).toConstantValue({ id: 'AskHaya' });
   }
   if (isBound(FallbackChatAgentId)) {
-    rebind(FallbackChatAgentId).toConstantValue({ id: 'hayagriva-advisor' });
+    rebind(FallbackChatAgentId).toConstantValue({ id: 'AskHaya' });
   } else {
-    bind(FallbackChatAgentId).toConstantValue({ id: 'hayagriva-advisor' });
+    bind(FallbackChatAgentId).toConstantValue({ id: 'AskHaya' });
   }
+
+  // Bind Sovereign Legal Chat Welcome Banner (@AskHaya Senior Partner)
+  bind(HayagrivaChatWelcomeMessageProvider).toSelf().inSingletonScope();
+  bind(ChatWelcomeMessageProvider).toService(HayagrivaChatWelcomeMessageProvider);
 
   // Bind AI Configuration Categories (Forward-compatible for Theia AI Config View)
   bind(HayagrivaEngineCategoryContribution).toSelf().inSingletonScope();

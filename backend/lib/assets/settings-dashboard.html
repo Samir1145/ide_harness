@@ -674,7 +674,7 @@
     }
     .cockpit-nav-pills {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       background: var(--surface-bg);
       border: 1px solid var(--card-border);
       border-radius: 14px;
@@ -683,20 +683,19 @@
       flex-wrap: wrap;
     }
     .cockpit-pill {
-      flex: 1;
-      min-width: 140px;
+      flex: 0 1 auto;
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-muted);
-      padding: 10px 14px;
+      padding: 8px 12px;
       border-radius: 10px;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.2s ease;
       white-space: nowrap;
     }
@@ -1501,6 +1500,74 @@
     .agent-drawer.active {
       transform: translateX(0);
     }
+
+    /* ── Voice Precedent Studio (@VoicePrecedent) ── */
+    .voice-mic-btn {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7, #06b6d4);
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 25px rgba(6, 182, 212, 0.4);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      z-index: 2;
+      margin: 0 auto;
+    }
+    .voice-mic-btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 12px 30px rgba(6, 182, 212, 0.6);
+    }
+    .voice-mic-btn.listening {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.6);
+    }
+    .voice-pulse-ring {
+      position: absolute;
+      top: -12px; left: -12px; right: -12px; bottom: -12px;
+      border-radius: 50%;
+      border: 2px solid #ef4444;
+      animation: micPulse 1.4s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+      z-index: 1;
+    }
+    @keyframes micPulse {
+      0% { transform: scale(0.9); opacity: 0.9; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
+    .voice-waveform {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      height: 24px;
+      margin-top: 6px;
+    }
+    .voice-waveform .bar {
+      width: 3px;
+      background: var(--accent-cyan);
+      border-radius: 2px;
+      height: 6px;
+      animation: waveBar 0.8s ease-in-out infinite alternate;
+    }
+    .voice-waveform .bar:nth-child(2) { animation-delay: 0.1s; height: 16px; }
+    .voice-waveform .bar:nth-child(3) { animation-delay: 0.2s; height: 22px; }
+    .voice-waveform .bar:nth-child(4) { animation-delay: 0.3s; height: 12px; }
+    .voice-waveform .bar:nth-child(5) { animation-delay: 0.15s; height: 20px; }
+    .voice-waveform .bar:nth-child(6) { animation-delay: 0.25s; height: 24px; }
+    .voice-waveform .bar:nth-child(7) { animation-delay: 0.05s; height: 14px; }
+    .voice-waveform .bar:nth-child(8) { animation-delay: 0.35s; height: 18px; }
+    .voice-waveform .bar:nth-child(9) { animation-delay: 0.2s; height: 15px; }
+    .voice-waveform .bar:nth-child(10) { animation-delay: 0.1s; height: 21px; }
+    .voice-waveform .bar:nth-child(11) { animation-delay: 0.3s; height: 10px; }
+    .voice-waveform .bar:nth-child(12) { animation-delay: 0.22s; height: 19px; }
+    @keyframes waveBar {
+      0% { height: 4px; }
+      100% { height: 24px; }
+    }
   </style>
 </head>
 <body>
@@ -1537,6 +1604,9 @@
           <span id="cpuText" style="color: var(--accent-cyan);">--</span>
         </div>
 
+        <button class="btn-header" id="btnHeaderVoiceStudio" onclick="openVoiceStudioModal()" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15)); border: 1px solid rgba(6, 182, 212, 0.4); color: var(--accent-cyan); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+          <span style="font-size: 13px;">🎙️</span> Ask Haya (Live Voice)
+        </button>
         <button class="btn-theme" id="btnThemeToggle" title="Toggle Theme">🌓</button>
         <button class="btn-header" id="btnNewCaseModal" onclick="openNewCaseModal()" style="background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #0369a1; color: #fff; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
           <span style="font-size: 13px;">➕</span> New Matter / CIRP Estate
@@ -1600,6 +1670,11 @@
           <span class="pill-icon">👥</span>
           <span class="pill-label">Chamber Coworkers</span>
           <span class="pill-counter counter-cyan" id="pillAgentsCount">16 Loaded</span>
+        </button>
+        <button class="cockpit-pill" id="pillVoiceStudio" onclick="openVoiceStudioModal()" style="border: 1px solid rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.08);">
+          <span class="pill-icon">🎙️</span>
+          <span class="pill-label">Ask Haya</span>
+          <span class="pill-counter counter-cyan" id="pillVoiceStatusBadge">9621 Ready</span>
         </button>
         <button class="cockpit-pill" id="pillLicense" onclick="switchCockpitTab('license')">
           <span class="pill-icon">🔑</span>
@@ -2684,6 +2759,9 @@
             <button class="btn-header btn-outline" id="btnOpenPrecedentTest" style="padding: 5px 12px; font-size: 11px;">
               ⚡ Test Precedent Agent
             </button>
+            <button class="btn-header btn-primary" onclick="openVoiceStudioModal()" style="padding: 5px 12px; font-size: 11px; background: linear-gradient(135deg, #0284c7, #06b6d4); border: none; font-weight: 600;">
+              🎙️ Live Voice Studio
+            </button>
           </div>
         </div>
 
@@ -3285,6 +3363,214 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Voice Precedent Studio Modal (@VoicePrecedent) ── -->
+  <div class="modal-overlay" id="voicePrecedentModal">
+    <div class="modal-dialog" style="max-width: 820px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; padding: 0;">
+      
+      <!-- Modal Header -->
+      <div style="padding: 18px 24px; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; background: var(--surface-bg);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(59,130,246,0.2)); border: 1px solid rgba(6,182,212,0.4); display: flex; align-items: center; justify-content: center; font-size: 22px;">
+            🎙️
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-color);">Live Voice Precedent Studio</h3>
+              <span class="card-badge badge-cyan" id="voiceStudioAgentBadge">@AskHaya</span>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Oral Supreme Court &amp; NCLAT Precedent Counsel &bull; Sarvam AI (Bulbul/Saaras) &bull; LegalParam &bull; LightRAG
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button class="btn-header btn-outline" id="btnToggleVoiceSettings" onclick="toggleVoiceEndpointSettings()" style="font-size: 11px; padding: 5px 12px;">
+            ⚙️ Endpoint Config
+          </button>
+          <button class="modal-close" style="position: static;" onclick="closeVoiceStudioModal()">&times;</button>
+        </div>
+      </div>
+
+      <!-- Telemetry Strip -->
+      <div style="padding: 10px 24px; background: var(--bg-color); border-bottom: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; font-size: 11px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+          <span id="voiceLightRagStatusChip" style="display: flex; align-items: center; gap: 5px;">
+            <span id="voiceLightRagDot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+            <span style="color: var(--text-muted);">LightRAG:</span>
+            <strong id="voiceLightRagUrlLabel" style="color: var(--accent-cyan);">http://127.0.0.1:9621</strong>
+          </span>
+          <span id="voiceLegalParamStatusChip" style="display: flex; align-items: center; gap: 5px;">
+            <span id="voiceLegalParamDot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+            <span style="color: var(--text-muted);">Reasoner:</span>
+            <strong id="voiceBrainLabel" style="color: var(--accent-emerald);">LegalParam-2.9B (Port 8090)</strong>
+          </span>
+          <span id="voiceSarvamStatusChip" style="display: flex; align-items: center; gap: 5px;">
+            <span id="voiceSarvamDot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #64748b;"></span>
+            <span style="color: var(--text-muted);">Voice:</span>
+            <strong id="voiceSarvamLabel" style="color: var(--accent-purple);">Sarvam AI: Bulbul (Arvind)</strong>
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-muted);">
+            <input type="checkbox" id="chkAutoSpeak" checked>
+            <span>🔊 Speak Aloud</span>
+          </label>
+          <button class="btn-header btn-outline" id="btnStopSpeaking" onclick="stopSpeechSynthesis()" style="font-size: 10px; padding: 2px 8px; display: none; color: #ef4444; border-color: rgba(239,68,68,0.4);">
+            ⏹️ Stop Audio
+          </button>
+        </div>
+      </div>
+
+      <!-- Endpoint Settings Slide-down (collapsible) -->
+      <div id="voiceEndpointSettingsPanel" style="display: none; padding: 14px 24px; background: var(--input-bg); border-bottom: 1px solid var(--card-border);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: flex-end;">
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">LightRAG Server URL</label>
+            <input type="text" class="form-control" id="inputVoiceLightRagUrl" value="http://127.0.0.1:9621" placeholder="http://127.0.0.1:9621" style="font-size: 11px; padding: 6px 10px;">
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">LightRAG API Key (Optional)</label>
+            <input type="password" class="form-control" id="inputVoiceLightRagKey" placeholder="Bearer / Key" style="font-size: 11px; padding: 6px 10px;">
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Query Mode</label>
+            <select class="form-control" id="selectVoiceQueryMode" style="font-size: 11px; padding: 6px 10px;">
+              <option value="mix" selected>Mix (Graph + Vectors)</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="local">Local KG</option>
+              <option value="global">Global KG</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Sarvam AI Subscription Key</label>
+            <input type="password" class="form-control" id="inputVoiceSarvamKey" placeholder="sarvam-api-key" style="font-size: 11px; padding: 6px 10px;">
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Advocate Voice Persona</label>
+            <select class="form-control" id="selectVoiceSarvamSpeaker" style="font-size: 11px; padding: 6px 10px;">
+              <option value="arvind" selected>Arvind (Senior Advocate Male)</option>
+              <option value="amartya">Amartya (Counsel Male)</option>
+              <option value="meera">Meera (Senior Advocate Female)</option>
+              <option value="pavithra">Pavithra (Counsel Female)</option>
+              <option value="maitreyi">Maitreyi (Specialist Female)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Voice &amp; Speech Engine</label>
+            <select class="form-control" id="selectVoiceEngine" style="font-size: 11px; padding: 6px 10px;">
+              <option value="sarvam" selected>Sarvam AI (Bulbul TTS &amp; Saaras STT)</option>
+              <option value="browser">Browser Native Speech (Offline Lite)</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button class="btn-header btn-primary" onclick="saveVoiceEndpointConfig()" style="font-size: 11px; padding: 7px 16px; width: 100%; white-space: nowrap;">
+              💾 Save &amp; Test
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div style="flex: 1; overflow-y: auto; padding: 24px;">
+
+        <!-- Mic & Voice Interactive Hero -->
+        <div style="text-align: center; margin-bottom: 20px; padding: 22px; background: linear-gradient(180deg, rgba(6,182,212,0.04), transparent); border: 1px solid var(--card-border); border-radius: 14px;">
+          
+          <!-- Animated Mic Button -->
+          <div style="position: relative; display: inline-block; margin-bottom: 12px;">
+            <div id="voiceMicPulseRings" class="voice-pulse-ring" style="display: none;"></div>
+            <button id="btnVoiceMic" onclick="toggleVoiceRecording()" class="voice-mic-btn" title="Click to speak your legal inquiry">
+              <span id="voiceMicIcon" style="font-size: 32px;">🎙️</span>
+            </button>
+          </div>
+
+          <!-- Status & Waveform -->
+          <div id="voiceStatusText" style="font-size: 14px; font-weight: 600; color: var(--accent-cyan); margin-bottom: 6px;">
+            Click microphone to speak your legal inquiry
+          </div>
+
+          <!-- Waveform Visualizer Bars -->
+          <div id="voiceWaveform" class="voice-waveform" style="display: none;">
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+          </div>
+
+          <!-- Live Transcript Bubble -->
+          <div id="voiceTranscriptArea" style="margin-top: 10px; min-height: 22px; font-size: 13px; color: var(--text-color); font-style: italic;">
+            <span style="color: var(--text-muted);">"Speak naturally... e.g. What is the limitation period for filing Section 7 after an OTS default?"</span>
+          </div>
+        </div>
+
+        <!-- Text Query Input Box (Fallback / Hybrid) -->
+        <div style="display: flex; gap: 8px; margin-bottom: 18px;">
+          <input type="text" class="form-control" id="inputVoiceQueryText" placeholder="Or type your legal inquiry here (e.g. Can an operational creditor invoke arbitration after filing Section 9?)..." style="font-size: 12px; padding: 9px 14px;" onkeydown="if(event.key==='Enter') submitTypedVoiceInquest();">
+          <button class="btn-header btn-primary" id="btnSubmitVoiceText" onclick="submitTypedVoiceInquest()" style="white-space: nowrap; padding: 0 18px; font-size: 12px; font-weight: 600;">
+            ⚡ Ask Counsel
+          </button>
+        </div>
+
+        <!-- Results Area -->
+        <div id="voiceResultsArea" style="display: none;">
+          
+          <!-- Spoken Counsel Output Card -->
+          <div style="background: var(--surface-bg); border: 1px solid var(--accent-cyan); border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 20px rgba(6,182,212,0.08);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">⚖️</span>
+                <strong style="font-size: 13px; color: var(--accent-cyan);">Operative Spoken Precedent Counsel</strong>
+                <span class="card-badge badge-emerald" id="voiceEngineBadge">LegalParam-2.9B</span>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn-header btn-outline" onclick="replaySpokenCounsel()" style="font-size: 11px; padding: 3px 8px;">
+                  🔊 Replay
+                </button>
+                <button class="btn-header btn-outline" onclick="copySpokenCounsel()" style="font-size: 11px; padding: 3px 8px;">
+                  📋 Copy Prose
+                </button>
+              </div>
+            </div>
+
+            <div id="voiceSpokenProse" style="font-size: 13.5px; line-height: 1.65; color: var(--text-color); font-family: system-ui, -apple-system, sans-serif;">
+              <!-- Spoken prose placed here -->
+            </div>
+          </div>
+
+          <!-- Structured Citations Accordion -->
+          <div style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <strong style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">
+                📚 Authoritative Citations &amp; Knowledge Graph Sources (<span id="voiceCitationCount">0</span>)
+              </strong>
+              <button class="btn-header btn-outline" onclick="copyFullMarkdownDossier()" style="font-size: 10.5px; padding: 3px 8px;">
+                📑 Copy Full Dossier (Markdown)
+              </button>
+            </div>
+            <div id="voiceCitationsList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Citations rendered here -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 12px 24px; border-top: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; background: var(--surface-bg); font-size: 11px; color: var(--text-muted);">
+        <div>
+          <span>Roundtrip: <strong id="voiceLatencyLabel" style="color: var(--accent-cyan);">--</strong></span>
+          <span style="margin: 0 8px;">&bull;</span>
+          <span>Fiduciary Audit: <strong style="color: var(--accent-emerald);">Section 65B/63 BSA Recorded</strong></span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-header btn-outline" onclick="closeVoiceStudioModal()">Close</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -5867,8 +6153,8 @@
       // ── Tier 1: Permanent Local Chamber Staff (Free & Air-Gapped)
       {
         id: 'coordinator',
-        handle: '@coordinator',
-        name: 'Master Legal Coordinator & Case Scout',
+        handle: '@Hayagriva',
+        name: 'Master Legal Coordinator & Case Scout (@Hayagriva)',
         icon: '👑',
         tier: 'local',
         tierLabel: 'Permanent Local Staff',
@@ -5880,7 +6166,7 @@
         status: 'active',
         statutoryBasis: 'Theia AI Delegation Framework &bull; Autonomous Milestone Scheduler (T0 → T330)',
         securityTier: 'Plan 8: READ / EXEC (Internal) &bull; Plan 17 Hard Floor: Human-Gated Cloud Outbound',
-        slashTriggers: ['/scout-perimeter', '/audit-case-wiki', '/wake-milestone'],
+        slashTriggers: ['/hayagriva', '/scout-perimeter', '/audit-case-wiki', '/wake-milestone'],
         upsellAdvice: 'Scouts missing statutory filings and recommends hydrating IBC 2016 Vault, CPC 1908 Vault, or dispatching LexAI Cloud Inquests on detecting unverified debt claims.',
         desc: 'The central chamber coordinator. Continually inspects raw matter files, maintains case_kv_dictionary.json, compacts multi-turn conversational context, and recommends specialized subagent runs.'
       },
@@ -5940,6 +6226,25 @@
         slashTriggers: ['/precedent-inquest', '/ratio-decidendi', '/legal-opinion', '/contradiction-check'],
         upsellAdvice: 'Queries local SQLite FTS5 indices and sovereign India Code vaults. Recommends connecting ResolutionBazaar Precedent Cloud for 100,000+ full-text NCLAT/SC rulings.',
         desc: 'Analyzes contentious legal questions, extracts binding ratio decidendi, and audits the Plan 21 Typed Entity Graph for legal contradictions across case filings.'
+      },
+      {
+        id: 'voice_precedent',
+        handle: '@AskHaya',
+        name: 'Oral Precedent Counsel & Voice Studio (@AskHaya)',
+        icon: '🎙️',
+        tier: 'local',
+        tierLabel: 'Permanent Local Staff',
+        badge: 'Sarvam AI &bull; Live Voice',
+        domain: 'Oral Precedent Inquest & Spoken Ratio',
+        role: 'Live Voice Counsel & Precedent Reasoner',
+        engine: 'Sarvam AI (Bulbul/Saaras) + LegalParam + LightRAG',
+        cost: 'Free &bull; Indian Advocate Audio',
+        status: 'active',
+        statutoryBasis: 'Supreme Court & NCLAT Binding Decisions &bull; Section 65B/63 Evidence Compliance',
+        securityTier: 'Plan 8: READ &bull; Indian Sovereign Data Perimeter',
+        slashTriggers: ['/ask-haya', '/voice-precedent', '/oral-counsel', '/speak-precedent'],
+        upsellAdvice: 'Microphone and speech playback run locally or through Sarvam AI sovereign Indian data centers. Synthesizes oral ratios in natural Indian Senior Advocate cadence.',
+        desc: 'Sovereign oral precedent counsel. Listens to Indian legal queries via Sarvam Saaras v2, searches the LightRAG knowledge graph, and delivers courtroom ratios in natural Indian Senior Advocate cadence via Sarvam Bulbul.'
       },
 
       // ── Tier 2: LexAI Cloud Desk Agents (Pay-Per-Call Inquest / MCP Server)
@@ -6331,7 +6636,16 @@
         }
 
         let actionHtml = '';
-        if (a.tier === 'local') {
+        if (a.id === 'voice_precedent') {
+          actionHtml = `
+            <button class="btn-header btn-primary" onclick="event.stopPropagation(); openVoiceStudioModal()" style="padding: 4px 12px; font-size: 11px; font-weight: 600; background: linear-gradient(135deg, #0284c7, #06b6d4); border: none;">
+              🎙️ Open Studio
+            </button>
+            <button class="btn-header btn-outline" onclick="openAgentDrawer('${a.id}')" style="padding: 4px 8px; font-size: 11px;" title="Inspect Mandate">
+              Profile 👁️
+            </button>
+          `;
+        } else if (a.tier === 'local') {
           actionHtml = `
             <button class="btn-header btn-ghost" onclick="testLocalAgent('${a.id}', event)" style="padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--accent-emerald);">
               ⚡ Run Inquest
@@ -7516,6 +7830,466 @@ ${contacts}
         rzp.open();
       } catch (e) {
         showToast(`Checkout error: ${e.message}`, true);
+      }
+    }
+
+    // ── Voice Precedent Studio (@AskHaya) Client Logic ──
+    let voiceRecognition = null;
+    let isVoiceRecording = false;
+    let lastVoiceDossier = '';
+    let lastSpokenText = '';
+    let currentSarvamAudio = null;
+    let mediaRecorder = null;
+    let recordedAudioChunks = [];
+
+    async function checkVoiceTelemetry() {
+      try {
+        const res = await fetch(`/api/hayagriva/voice/telemetry?case=${encodeURIComponent(caseName)}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.success && data.telemetry) {
+          const t = data.telemetry;
+          const dotLightRag = document.getElementById('voiceLightRagDot');
+          const lblLightRag = document.getElementById('voiceLightRagUrlLabel');
+          const badgeLightRag = document.getElementById('pillVoiceStatusBadge');
+          const dotBrain = document.getElementById('voiceLegalParamDot');
+          const lblBrain = document.getElementById('voiceBrainLabel');
+          const dotSarvam = document.getElementById('voiceSarvamDot');
+          const lblSarvam = document.getElementById('voiceSarvamLabel');
+
+          if (dotLightRag) dotLightRag.style.background = t.onlineLightRag ? '#10b981' : '#f59e0b';
+          if (lblLightRag) lblLightRag.textContent = t.lightRagUrl || 'http://127.0.0.1:9621';
+          if (badgeLightRag) badgeLightRag.textContent = t.onlineLightRag ? '9621 Online' : '9621 Ready';
+
+          if (dotBrain) dotBrain.style.background = t.localLegalParam ? '#10b981' : '#64748b';
+          if (lblBrain) lblBrain.textContent = t.localLegalParam ? 'LegalParam-2.9B (Port 8090)' : 'Lite Mode Synthesizer';
+
+          if (dotSarvam && lblSarvam) {
+            const sarvamActive = t.sarvam && t.sarvam.configured;
+            dotSarvam.style.background = sarvamActive ? '#10b981' : '#64748b';
+            const speakerName = (document.getElementById('selectVoiceSarvamSpeaker')?.value || 'arvind');
+            const capSpeaker = speakerName.charAt(0).toUpperCase() + speakerName.slice(1);
+            lblSarvam.textContent = sarvamActive ? `Sarvam AI: Bulbul (${capSpeaker})` : 'Sarvam AI: Browser Fallback';
+          }
+          return t;
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    function openVoiceStudioModal() {
+      openModal('voicePrecedentModal');
+      checkVoiceTelemetry();
+      initSpeechRecognition();
+    }
+
+    function closeVoiceStudioModal() {
+      stopVoiceRecording();
+      stopSpeechSynthesis();
+      closeModal('voicePrecedentModal');
+    }
+
+    function toggleVoiceEndpointSettings() {
+      const panel = document.getElementById('voiceEndpointSettingsPanel');
+      if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      }
+    }
+
+    async function saveVoiceEndpointConfig() {
+      const url = document.getElementById('inputVoiceLightRagUrl')?.value || 'http://127.0.0.1:9621';
+      const key = document.getElementById('inputVoiceLightRagKey')?.value || '';
+      const mode = document.getElementById('selectVoiceQueryMode')?.value || 'mix';
+      const sarvamKey = document.getElementById('inputVoiceSarvamKey')?.value || '';
+      const sarvamSpeaker = document.getElementById('selectVoiceSarvamSpeaker')?.value || 'arvind';
+      const voiceEngine = document.getElementById('selectVoiceEngine')?.value || 'sarvam';
+
+      try {
+        const res = await fetch('/api/hayagriva/voice/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            case: caseName,
+            apiUrl: url,
+            apiKey: key,
+            queryMode: mode,
+            sarvamApiKey: sarvamKey,
+            sarvamSpeaker: sarvamSpeaker,
+            sarvamEnabled: voiceEngine === 'sarvam'
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          showToast('✓ Voice Studio & Sarvam AI endpoint updated');
+          checkVoiceTelemetry();
+          toggleVoiceEndpointSettings();
+        } else {
+          showToast(`Error: ${data.error || 'Failed to save config'}`, true);
+        }
+      } catch (err) {
+        showToast(`Save error: ${err.message}`, true);
+      }
+    }
+
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        const statusText = document.getElementById('voiceStatusText');
+        if (statusText) statusText.textContent = 'Microphone API unavailable in this browser. Please type inquiry below.';
+        return;
+      }
+
+      if (!voiceRecognition) {
+        voiceRecognition = new SpeechRecognition();
+        voiceRecognition.continuous = false;
+        voiceRecognition.interimResults = true;
+        voiceRecognition.lang = 'en-IN';
+
+        voiceRecognition.onstart = () => {
+          isVoiceRecording = true;
+          updateVoiceRecordingUI(true);
+        };
+
+        voiceRecognition.onresult = (event) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+
+          const transcriptArea = document.getElementById('voiceTranscriptArea');
+          if (transcriptArea) {
+            transcriptArea.textContent = `"${finalTranscript || interimTranscript}"`;
+          }
+
+          if (finalTranscript.trim().length > 0) {
+            stopVoiceRecording();
+            executeVoiceInquest(finalTranscript.trim());
+          }
+        };
+
+        voiceRecognition.onerror = (event) => {
+          console.warn('[VoiceStudio] Speech error:', event.error);
+          stopVoiceRecording();
+          const status = document.getElementById('voiceStatusText');
+          if (status) status.textContent = `Speech input halted (${event.error}). Click to retry or type below.`;
+        };
+
+        voiceRecognition.onend = () => {
+          stopVoiceRecording();
+        };
+      }
+    }
+
+    function updateVoiceRecordingUI(active) {
+      const btn = document.getElementById('btnVoiceMic');
+      const pulse = document.getElementById('voiceMicPulseRings');
+      const waveform = document.getElementById('voiceWaveform');
+      const status = document.getElementById('voiceStatusText');
+
+      if (btn) {
+        if (active) btn.classList.add('listening');
+        else btn.classList.remove('listening');
+      }
+      if (pulse) pulse.style.display = active ? 'block' : 'none';
+      if (waveform) waveform.style.display = active ? 'inline-flex' : 'none';
+      if (status) {
+        status.textContent = active ? 'Listening... Speak your legal question now' : 'Click microphone to speak your legal inquiry';
+      }
+    }
+
+    function toggleVoiceRecording() {
+      if (isVoiceRecording) {
+        stopVoiceRecording();
+      } else {
+        startVoiceRecording();
+      }
+    }
+
+    async function startVoiceRecording() {
+      stopSpeechSynthesis();
+      const engine = document.getElementById('selectVoiceEngine')?.value || 'sarvam';
+
+      // 1. Attempt high-fidelity Sarvam Saaras v2 capture via MediaRecorder
+      if (engine === 'sarvam' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          recordedAudioChunks = [];
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) recordedAudioChunks.push(e.data);
+          };
+
+          mediaRecorder.onstop = async () => {
+            stream.getTracks().forEach(track => track.stop());
+            if (recordedAudioChunks.length === 0) return;
+            const audioBlob = new Blob(recordedAudioChunks, { type: 'audio/webm' });
+
+            const status = document.getElementById('voiceStatusText');
+            if (status) status.textContent = '⚡ Transcribing legal speech via Sarvam Saaras v2...';
+
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              try {
+                const base64Audio = reader.result.split(',')[1];
+                const res = await fetch('/api/hayagriva/voice/stt', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    audioBase64: base64Audio,
+                    mimeType: 'audio/webm',
+                    case: caseName
+                  })
+                });
+
+                const data = await res.json();
+                if (data && data.success && data.transcript) {
+                  const input = document.getElementById('inputVoiceQueryText');
+                  if (input) input.value = data.transcript;
+                  executeVoiceInquest(data.transcript);
+                } else {
+                  // If Sarvam STT failed or key not configured, inform and offer fallback
+                  if (status) status.textContent = data?.error || 'Speech transcription failed. Please type query below.';
+                }
+              } catch (sttErr) {
+                if (status) status.textContent = 'Speech transcription failed. Please type query below.';
+              }
+            };
+            reader.readAsDataURL(audioBlob);
+          };
+
+          mediaRecorder.start();
+          isVoiceRecording = true;
+          updateVoiceRecordingUI(true);
+          return;
+        } catch (mediaErr) {
+          console.warn('[VoiceStudio] getUserMedia failed, falling back to WebSpeech:', mediaErr);
+        }
+      }
+
+      // 2. Fallback to browser WebSpeech API
+      initSpeechRecognition();
+      if (!voiceRecognition) return;
+      try {
+        voiceRecognition.start();
+      } catch (err) {
+        console.warn('[VoiceStudio] Could not start speech recognition:', err);
+      }
+    }
+
+    function stopVoiceRecording() {
+      isVoiceRecording = false;
+      updateVoiceRecordingUI(false);
+
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        try { mediaRecorder.stop(); } catch (_) {}
+      }
+
+      if (voiceRecognition) {
+        try { voiceRecognition.stop(); } catch (_) {}
+      }
+    }
+
+    function submitTypedVoiceInquest() {
+      const input = document.getElementById('inputVoiceQueryText');
+      const query = input?.value ? input.value.trim() : '';
+      if (!query) {
+        showToast('Please type a legal research question', true);
+        return;
+      }
+      executeVoiceInquest(query);
+    }
+
+    async function executeVoiceInquest(queryText) {
+      if (!queryText) return;
+
+      const status = document.getElementById('voiceStatusText');
+      const transcript = document.getElementById('voiceTranscriptArea');
+      const resultsArea = document.getElementById('voiceResultsArea');
+      const btnSubmit = document.getElementById('btnSubmitVoiceText');
+
+      if (status) status.textContent = '⚡ Consulting LightRAG Knowledge Graph & LegalParam...';
+      if (transcript) transcript.textContent = `"${queryText}"`;
+      if (btnSubmit) btnSubmit.disabled = true;
+
+      try {
+        const mode = document.getElementById('selectVoiceQueryMode')?.value || 'mix';
+        const res = await fetch('/api/hayagriva/voice/inquest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: queryText,
+            case: caseName,
+            mode: mode
+          })
+        });
+
+        const data = await res.json();
+        if (btnSubmit) btnSubmit.disabled = false;
+
+        if (data && data.success) {
+          if (status) status.textContent = '✓ Precedent Counsel Formulated (@AskHaya)';
+          lastSpokenText = data.spokenText || '';
+          lastVoiceDossier = data.fullDossier || '';
+
+          // Display Results
+          if (resultsArea) resultsArea.style.display = 'block';
+          
+          const proseEl = document.getElementById('voiceSpokenProse');
+          if (proseEl) proseEl.textContent = lastSpokenText;
+
+          const latencyEl = document.getElementById('voiceLatencyLabel');
+          if (latencyEl) latencyEl.textContent = `${data.telemetry?.latencyMs || 0}ms`;
+
+          const engineBadge = document.getElementById('voiceEngineBadge');
+          if (engineBadge) {
+            engineBadge.textContent = data.telemetry?.legalParamUsed ? 'LegalParam-2.9B' : 'Deterministic Legal Synthesizer';
+            engineBadge.className = data.telemetry?.legalParamUsed ? 'card-badge badge-emerald' : 'card-badge badge-warn';
+          }
+
+          // Render Citations
+          const citCountEl = document.getElementById('voiceCitationCount');
+          if (citCountEl) citCountEl.textContent = String(data.citations?.length || 0);
+
+          const citList = document.getElementById('voiceCitationsList');
+          if (citList) {
+            if (!data.citations || data.citations.length === 0) {
+              citList.innerHTML = '<div style="font-size: 11px; color: var(--text-muted);">No explicit precedent citations found. Core jurisprudence cited in oral counsel.</div>';
+            } else {
+              citList.innerHTML = data.citations.map((c, i) => `
+                <div style="background: var(--surface-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 14px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                    <strong style="font-size: 12px; color: var(--accent-cyan);">[${i + 1}] ${escapeHtml(c.title)}</strong>
+                    <span class="card-badge" style="font-size: 10px;">${escapeHtml(c.source || 'LightRAG')}</span>
+                  </div>
+                  ${c.excerpt ? `<div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.5; font-style: italic;">"${escapeHtml(c.excerpt)}"</div>` : ''}
+                </div>
+              `).join('');
+            }
+          }
+
+          // Auto-Speak if enabled
+          const autoSpeak = document.getElementById('chkAutoSpeak')?.checked;
+          if (autoSpeak && lastSpokenText) {
+            speakSpokenCounsel(lastSpokenText);
+          }
+        } else {
+          if (status) status.textContent = `Inquest error: ${data.error || 'Server error'}`;
+        }
+      } catch (err) {
+        if (btnSubmit) btnSubmit.disabled = false;
+        if (status) status.textContent = `Technical failure: ${err.message}`;
+      }
+    }
+
+    async function speakSpokenCounsel(text) {
+      stopSpeechSynthesis();
+      if (!text) return;
+
+      const engine = document.getElementById('selectVoiceEngine')?.value || 'sarvam';
+      const speaker = document.getElementById('selectVoiceSarvamSpeaker')?.value || 'arvind';
+      const btnStop = document.getElementById('btnStopSpeaking');
+
+      // 1. Attempt Sarvam Bulbul TTS if engine is 'sarvam'
+      if (engine === 'sarvam') {
+        try {
+          if (btnStop) btnStop.style.display = 'inline-block';
+          const res = await fetch('/api/hayagriva/voice/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: text,
+              speaker: speaker,
+              case: caseName
+            })
+          });
+
+          const data = await res.json();
+          if (data && data.success && data.audioBase64) {
+            currentSarvamAudio = new Audio('data:audio/wav;base64,' + data.audioBase64);
+            currentSarvamAudio.onended = () => {
+              if (btnStop) btnStop.style.display = 'none';
+            };
+            currentSarvamAudio.onerror = () => {
+              if (btnStop) btnStop.style.display = 'none';
+              fallbackBrowserSpeech(text);
+            };
+            await currentSarvamAudio.play();
+            return;
+          }
+        } catch (ttsErr) {
+          console.warn('[VoiceStudio] Sarvam Bulbul TTS failed, falling back to browser speech:', ttsErr);
+        }
+      }
+
+      // 2. Fallback to Browser SpeechSynthesis
+      fallbackBrowserSpeech(text);
+    }
+
+    function fallbackBrowserSpeech(text) {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(v => v.lang === 'en-IN') || voices.find(v => v.lang.startsWith('en-GB')) || voices.find(v => v.lang.startsWith('en'));
+      if (preferredVoice) utterance.voice = preferredVoice;
+
+      const btnStop = document.getElementById('btnStopSpeaking');
+      if (btnStop) btnStop.style.display = 'inline-block';
+
+      utterance.onend = () => {
+        if (btnStop) btnStop.style.display = 'none';
+      };
+      utterance.onerror = () => {
+        if (btnStop) btnStop.style.display = 'none';
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function stopSpeechSynthesis() {
+      if (currentSarvamAudio) {
+        try {
+          currentSarvamAudio.pause();
+          currentSarvamAudio.currentTime = 0;
+        } catch (_) {}
+        currentSarvamAudio = null;
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      const btnStop = document.getElementById('btnStopSpeaking');
+      if (btnStop) btnStop.style.display = 'none';
+    }
+
+    function replaySpokenCounsel() {
+      if (lastSpokenText) {
+        speakSpokenCounsel(lastSpokenText);
+      }
+    }
+
+    function copySpokenCounsel() {
+      if (lastSpokenText) {
+        navigator.clipboard.writeText(lastSpokenText);
+        showToast('✓ Spoken counsel copied to clipboard');
+      }
+    }
+
+    function copyFullMarkdownDossier() {
+      if (lastVoiceDossier) {
+        navigator.clipboard.writeText(lastVoiceDossier);
+        showToast('✓ Full Precedent Dossier copied as Markdown');
       }
     }
 

@@ -160,8 +160,40 @@ Prompt: "${message}"`;
             return 'precedent';
         }
 
-        if (/\b(form\s*1|pims|mediation application|commercial court|order\s*39|order\s*xxxix|temporary injunction|statement of truth)\b/i.test(message)) {
+        if (/\b(bank|statement|contra-sweep|round-trip|cash withdrawal|forensic|avoidance|puda|section 43|section 45|section 50|section 66)\b/i.test(message)) {
+            return 'forensic';
+        }
+
+        if (/\b(related party|related-party|section 5\(24\)|promoter connection|cin)\b/i.test(message)) {
+            return 'relatedparty';
+        }
+
+        if (/\b(claim|claims|form\s*b|form\s*c|form\s*ca|voting share|coc voting|creditor list|disallowance)\b/i.test(message)) {
+            return 'claim_verification';
+        }
+
+        if (/\b(form\s*1|pims|mediation application|commercial court|order\s*39|order\s*xxxix|order\s*38|temporary injunction|statement of truth)\b/i.test(message)) {
             return 'commercial';
+        }
+
+        if (/\b(draft|petition|affidavit|application|slp|appeal|pleading|rejoinder|written statement)\b/i.test(message)) {
+            return 'document';
+        }
+
+        if (/\b(fill|audit form|compliance check|statutory form|form h|checklist)\b/i.test(message)) {
+            return 'forms';
+        }
+
+        if (/\b(information memorandum|\bim\b|reg 36|asset memorandum)\b/i.test(message)) {
+            return 'im';
+        }
+
+        if (/\b(resolution plan|plan evaluation|section 30\(2\))\b/i.test(message)) {
+            return 'plan';
+        }
+
+        if (/\b(bench brief|counter-arguments|hearing milestone)\b/i.test(message)) {
+            return 'litigation';
         }
 
         try {
@@ -186,6 +218,8 @@ Prompt: "${message}"`;
      */
     async run(caseDir, userMessage, history = [], targetAgentName = '', options = {}) {
         const precedentAgent = require('./subagents/precedent-agent');
+        const agentLogger = require('./agent-logger');
+        const reqId = (options && options.requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         const agentMap = {
             // Dynamic Vault .vlt Agent Packs (legal_agents.vlt, coding_agents.vlt, finance_agents.vlt)
             ...this.vaultAgents,
@@ -335,6 +369,46 @@ Prompt: "${message}"`;
             },
             'order39': {
                 run: async (cDir, msg, hist, opts) => agentMap['commercial'].run(cDir, msg, hist, opts)
+            },
+            'askhaya': {
+                run: async (cDir, msg, hist, opts) => {
+                    const cleanMsg = msg.replace(/^@(askhaya|voiceprecedent)\s*/i, '').trim();
+                    const intent = await this.classifyIntent(cDir, cleanMsg);
+                    if (intent && intent !== 'advisor' && intent !== 'askhaya' && intent !== 'coordinator' && intent !== 'precedent' && agentMap[intent]) {
+                        agentLogger.log(reqId, 'AskHaya', 'DELEGATE', `Senior Partner delegating to specialist coworker: ${intent}`);
+                        return this.run(cDir, cleanMsg, hist, intent, opts);
+                    }
+                    try {
+                        const voiceAgent = require('./lightrag-voice-agent');
+                        const res = await voiceAgent.inquire(cleanMsg, { caseDir: cDir, mode: opts?.mode || 'mix' });
+                        if (res) {
+                            if (opts && opts.returnObject) {
+                                return {
+                                    response: res.fullDossier || res.spokenText,
+                                    spokenText: res.spokenText || ''
+                                };
+                            }
+                            return res.fullDossier || res.spokenText;
+                        }
+                    } catch (e) {
+                        agentLogger.log(reqId, 'AskHaya', 'FALLBACK', `LightRAG query failed or unavailable (${e.message}), falling back to Advisor agent`);
+                    }
+                    const fallbackAgent = agentMap['advisor'] || agentMap['precedent'];
+                    return fallbackAgent ? fallbackAgent.run(cDir, cleanMsg, hist, opts) : "AskHaya counsel ready.";
+                }
+            },
+            'voiceprecedent': {
+                run: async (cDir, msg, hist, opts) => agentMap['askhaya'].run(cDir, msg, hist, opts)
+            },
+            'hayagriva': {
+                run: async (cDir, msg, hist, opts) => {
+                    const cleanMsg = msg.replace(/^@(hayagriva|coordinator)\s*/i, '').trim();
+                    const intent = await this.classifyIntent(cDir, cleanMsg);
+                    return this.run(cDir, cleanMsg, hist, intent, opts);
+                }
+            },
+            'coordinator': {
+                run: async (cDir, msg, hist, opts) => agentMap['hayagriva'].run(cDir, msg, hist, opts)
             }
         };
 
@@ -347,8 +421,7 @@ Prompt: "${message}"`;
                 target = atMatch[1].toLowerCase();
             }
         }
-        const reqId = (options && options.requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        
+        // reqId initialized at start of run()
         agentLogger.startContext(reqId);
         agentLogger.log(reqId, 'AgentCoordinator', 'INIT', `Received query: "${userMessage}" (target: "${target || 'auto'}")`);
 
@@ -492,8 +565,14 @@ Your local system clock does not match the tamper-evident ledger. Please restore
         agentLogger.log(reqId, 'AgentCoordinator', 'COMPLETE', 'Agent execution completed successfully');
         const logs = agentLogger.endContext(reqId);
 
+        let spokenText = '';
+        if (typeof result === 'object' && result !== null && result.response !== undefined) {
+            spokenText = result.spokenText || '';
+            result = result.response;
+        }
+
         if (options && options.returnObject) {
-            return { response: result, logs };
+            return { response: result, spokenText, logs };
         }
         return result;
     }

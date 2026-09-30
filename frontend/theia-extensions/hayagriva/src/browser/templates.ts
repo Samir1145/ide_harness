@@ -2764,7 +2764,7 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
 <body>
   <div class="header">
     <div class="title-area">
-      <span class="title">Action Inbox</span>
+      <span class="title">Compliances</span>
       <span id="pending-badge" class="badge">0 Pending</span>
     </div>
     <button class="btn-refresh" onclick="loadInbox()">↻ Refresh</button>

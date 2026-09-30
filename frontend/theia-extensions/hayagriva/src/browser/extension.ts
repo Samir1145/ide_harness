@@ -23,8 +23,9 @@ import { HayagrivaLspClient } from './lsp-client';
 import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
 import { pruneNavigatorContextMenu, pruneDeveloperMenus } from './menus';
+import { AskHayaVoiceOrb } from './askhaya-orb';
 
-const { wikiExplorerHtml, conceptsExplorerHtml, inboxExplorerHtml, billingExplorerHtml } = require('./templates');
+const { inboxExplorerHtml, billingExplorerHtml } = require('./templates');
 
 export const hayagrivaPreferenceSchema: PreferenceSchema = {
   properties: {
@@ -78,7 +79,8 @@ export class HayagrivaFrontendContribution
     @inject(HayagrivaPreviewManager) protected readonly previewManager: HayagrivaPreviewManager,
     @inject(MenuModelRegistry) protected readonly menuRegistry: MenuModelRegistry,
     @inject(MonacoWorkspace) protected readonly monacoWorkspace: MonacoWorkspace,
-    @inject(ILogger) protected readonly logger: ILogger
+    @inject(ILogger) protected readonly logger: ILogger,
+    @inject(AskHayaVoiceOrb) protected readonly voiceOrb: AskHayaVoiceOrb
   ) {}
 
   getApiPort(): number {
@@ -181,6 +183,22 @@ export class HayagrivaFrontendContribution
       this.preferenceService.set('files.associations', { '*.tid': 'markdown' });
     } catch (_) {}
 
+    // Permanently purge Open Editors from Explorer ViewContainer
+    const purgeOpenEditors = async () => {
+      try {
+        const explorer = await this.widgetManager.getWidget('explorer-view-container');
+        if (explorer && typeof (explorer as any).removeWidget === 'function') {
+          const openEditors = await this.widgetManager.getWidget('theia-open-editors-widget');
+          if (openEditors) {
+            (explorer as any).removeWidget(openEditors);
+          }
+        }
+      } catch (_) {}
+    };
+    purgeOpenEditors();
+    setTimeout(purgeOpenEditors, 300);
+    setTimeout(purgeOpenEditors, 1200);
+
     // Prune generic developer clutter from Explorer context menu and top menu bar
     try {
       pruneNavigatorContextMenu(this.menuRegistry);
@@ -213,9 +231,10 @@ export class HayagrivaFrontendContribution
     try {
       this.widgetManager.getOrCreateWidget('chat-view-widget').then(widget => {
         if (widget) {
-          widget.title.label = '🤖 Chamber AI';
-          widget.title.iconClass = 'fa fa-comments';
-          this.shell.addWidget(widget, { area: 'left', rank: 500 });
+          widget.title.label = 'AskHaya';
+          widget.title.caption = 'AskHaya Senior Legal Counsel & Coworker Orchestrator';
+          widget.title.iconClass = 'hayagriva-horse-icon';
+          this.shell.addWidget(widget, { area: 'left', rank: 300 });
         }
       }).catch(() => {});
       this.shell.collapsePanel('right');
@@ -235,9 +254,9 @@ export class HayagrivaFrontendContribution
       });
     } catch (_) {}
 
-    this.initializeWikiExplorerWidget();
-    this.initializeConceptsExplorerWidget();
-    // Inbox and Billing widgets shifted to Practice Governance & Cockpit in Top Menu
+    this.registerGlobalEventListeners();
+    this.voiceOrb.initialize();
+    this.initializeChatMicIntegration();
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
     this.startBackendMonitor();
     this.initializeRbzAdvisor();
@@ -276,15 +295,79 @@ export class HayagrivaFrontendContribution
     });
   }
 
-  onDidInitializeLayout(_app: FrontendApplication): void {
+  async onDidInitializeLayout(_app: FrontendApplication): Promise<void> {
+    const allowedLeftWidgets = new Set([
+      'explorer-view-container',
+      'search-view-container',
+      'chat-view-widget',
+      'hayagriva-inbox-explorer'
+    ]);
+
+    // Pillar 1: Documents (Files Explorer)
+    const explorerWidget = this.shell.getWidgets('left').find(w => w.id.includes('explorer-view-container') || w.id === 'files');
+    if (explorerWidget) {
+      explorerWidget.title.label = 'Documents';
+      explorerWidget.title.caption = 'Case Documents & Workflows';
+      explorerWidget.title.iconClass = 'fa fa-folder-open';
+    }
+
+    // Pillar 2: Search (FTS5 & Lexical Workspace Search)
+    try {
+      const searchWidget = await this.widgetManager.getOrCreateWidget('search-view-container');
+      if (searchWidget) {
+        searchWidget.title.label = 'Search';
+        searchWidget.title.caption = 'FTS5 & Lexical Workspace Search';
+        searchWidget.title.iconClass = 'fa fa-search';
+        await this.shell.addWidget(searchWidget, { area: 'left', rank: 200 });
+      }
+    } catch (_) {}
+
+    // Pillar 3: AskHaya (Senior Partner & AI Counsel)
+    try {
+      const chatWidget = await this.widgetManager.getOrCreateWidget('chat-view-widget');
+      if (chatWidget) {
+        chatWidget.title.label = 'AskHaya';
+        chatWidget.title.caption = 'AskHaya Senior Legal Counsel & Coworker Orchestrator';
+        chatWidget.title.iconClass = 'hayagriva-horse-icon';
+        chatWidget.title.closable = false;
+        await this.shell.addWidget(chatWidget, { area: 'left', rank: 300 });
+      }
+    } catch (err: any) {
+      this.logger.warn(`[Hayagriva] Failed to dock chat widget on left: ${err.message}`);
+    }
+
+    // Pillar 4: Compliances (Case Action Inbox & Approvals)
+    try {
+      this.initializeInboxExplorerWidget();
+    } catch (err: any) {
+      this.logger.warn(`[Hayagriva] Failed to dock inbox widget on left: ${err.message}`);
+    }
+
+    // Completely omit Outline & Pages (Option A): force close any instance of outline-view
+    try {
+      const allWidgets = [...this.shell.getWidgets('left'), ...this.shell.getWidgets('right')];
+      for (const w of allWidgets) {
+        if (w.id.toLowerCase() === 'outline-view') {
+          w.close();
+        }
+      }
+    } catch (_) {}
+
+    // Prune unapproved widgets from left panel
     const leftWidgets = this.shell.getWidgets('left');
     for (const widget of leftWidgets) {
       const id = widget.id.toLowerCase();
-      if (id !== 'explorer-view-container' && id !== 'hayagriva-wiki-explorer' && id !== 'hayagriva-concepts-explorer' && id !== 'hayagriva-inbox-explorer' && id !== 'hayagriva-billing-explorer') {
+      if (!allowedLeftWidgets.has(id)) {
         widget.close();
       }
     }
+
+    // Keep right panel collapsed
+    try {
+      this.shell.collapsePanel('right');
+    } catch (_) {}
   }
+
 
   registerToolbarItems(registry: TabBarToolbarRegistry): void {
     registry.registerItem({
@@ -560,10 +643,15 @@ export class HayagrivaFrontendContribution
 
   async openRagChat(): Promise<Widget> {
     const widget = await this.widgetManager.getOrCreateWidget('chat-view-widget');
-    this.shell.addWidget(widget, { area: 'left', rank: 500 });
+    widget.title.label = 'AskHaya';
+    widget.title.caption = 'AskHaya Senior Legal Counsel & Coworker Orchestrator';
+    widget.title.iconClass = 'hayagriva-horse-icon';
+    widget.title.closable = false;
+    this.shell.addWidget(widget, { area: 'left', rank: 300 });
     this.shell.activateWidget(widget.id);
     return widget;
   }
+
 
   prefillChat(text: string): void {
     this.widgetManager.getOrCreateWidget('chat-view-widget').then((chatWidget: any) => {
@@ -579,28 +667,8 @@ export class HayagrivaFrontendContribution
     });
   }
 
-  // ── Explorer Sidebar Widgets ───────────────────────────────────────────────
-  initializeWikiExplorerWidget(): void {
-    if (this.wikiWidget) return;
-
-    const initialCase = this.getActiveCaseName();
-    const wikiExplorer = new Widget();
-    wikiExplorer.id = 'hayagriva-wiki-explorer';
-    wikiExplorer.title.label = 'Case Wiki & Q&A';
-    wikiExplorer.title.caption = 'Curated Case Wiki & LLM Q&A cards';
-    wikiExplorer.title.iconClass = 'fa fa-book';
-    wikiExplorer.title.closable = false;
-
-    const wikiIframe = document.createElement('iframe');
-    wikiIframe.style.width = '100%';
-    wikiIframe.style.height = '100%';
-    wikiIframe.style.border = 'none';
-    wikiIframe.srcdoc = wikiExplorerHtml(initialCase, this.getApiPort());
-    wikiExplorer.node.appendChild(wikiIframe);
-
-    this.wikiWidget = wikiExplorer;
-    this.shell.addWidget(wikiExplorer, { area: 'left', rank: 600 });
-
+  // ── Global Event Listeners & Sidebar Widgets ───────────────────────────────
+  registerGlobalEventListeners(): void {
     window.addEventListener('message', async (event: any) => {
       if (event.data) {
         if (event.data.type === 'open-wiki-card') {
@@ -611,7 +679,10 @@ export class HayagrivaFrontendContribution
             await this.editorManager.open(uri);
           }
         } else if (event.data.type === 'refresh-wiki-explorer') {
-          wikiIframe.contentWindow?.postMessage({ type: 'select-case', caseName: event.data.caseName }, '*');
+          if (this.wikiWidget) {
+            const wikiIframe = this.wikiWidget.node.querySelector('iframe');
+            wikiIframe?.contentWindow?.postMessage({ type: 'select-case', caseName: event.data.caseName }, '*');
+          }
           if (this.conceptsWidget) {
             const conceptsIframe = this.conceptsWidget.node.querySelector('iframe');
             conceptsIframe?.contentWindow?.postMessage({ type: 'refresh-wiki-explorer', caseName: event.data.caseName }, '*');
@@ -718,37 +789,30 @@ export class HayagrivaFrontendContribution
     });
   }
 
+  initializeWikiExplorerWidget(): void {
+    // Suppressed in Left Activity Bar in favor of 4-Pillar Chamber Bar.
+    // Legal Canvas remains accessible via right-click '📖 Open Legal Canvas'.
+  }
+
   initializeConceptsExplorerWidget(): void {
-    if (this.conceptsWidget) return;
-
-    const initialCase = this.getActiveCaseName();
-    const conceptsExplorer = new Widget();
-    conceptsExplorer.id = 'hayagriva-concepts-explorer';
-    conceptsExplorer.title.label = 'Concepts';
-    conceptsExplorer.title.caption = 'Case Document Chunks & Concepts';
-    conceptsExplorer.title.iconClass = 'fa fa-lightbulb-o';
-    conceptsExplorer.title.closable = false;
-
-    const conceptsIframe = document.createElement('iframe');
-    conceptsIframe.style.width = '100%';
-    conceptsIframe.style.height = '100%';
-    conceptsIframe.style.border = 'none';
-    conceptsIframe.srcdoc = conceptsExplorerHtml(initialCase, this.getApiPort());
-    conceptsExplorer.node.appendChild(conceptsIframe);
-
-    this.conceptsWidget = conceptsExplorer;
-    this.shell.addWidget(conceptsExplorer, { area: 'left', rank: 550 });
+    // Suppressed in Left Activity Bar in favor of 4-Pillar Chamber Bar.
   }
 
   initializeInboxExplorerWidget(): void {
-    if (this.inboxWidget) return;
+    if (this.inboxWidget) {
+      this.inboxWidget.title.label = 'Compliances';
+      this.inboxWidget.title.caption = 'Statutory Deadlines, Claim Audits & Sign-offs Awaiting Approval';
+      this.inboxWidget.title.iconClass = 'fa fa-check-square-o';
+      this.shell.addWidget(this.inboxWidget, { area: 'left', rank: 400 });
+      return;
+    }
 
     const initialCase = this.getActiveCaseName();
     const inboxExplorer = new Widget();
     inboxExplorer.id = 'hayagriva-inbox-explorer';
-    inboxExplorer.title.label = 'Inbox';
-    inboxExplorer.title.caption = 'Case Action Inbox & Approvals';
-    inboxExplorer.title.iconClass = 'fa fa-inbox';
+    inboxExplorer.title.label = 'Compliances';
+    inboxExplorer.title.caption = 'Statutory Deadlines, Claim Audits & Sign-offs Awaiting Approval';
+    inboxExplorer.title.iconClass = 'fa fa-check-square-o';
     inboxExplorer.title.closable = false;
 
     const inboxIframe = document.createElement('iframe');
@@ -759,7 +823,7 @@ export class HayagrivaFrontendContribution
     inboxExplorer.node.appendChild(inboxIframe);
 
     this.inboxWidget = inboxExplorer;
-    this.shell.addWidget(inboxExplorer, { area: 'left', rank: 540 });
+    this.shell.addWidget(inboxExplorer, { area: 'left', rank: 400 });
   }
 
   initializeBillingExplorerWidget(): void {
@@ -1042,11 +1106,70 @@ export class HayagrivaFrontendContribution
         display: inline-block !important;
       }
 
+      /* ── Hayagriva Sacred Horse-Head Icon (Design 2 Monoline) ── */
+      .hayagriva-horse-icon,
+      i.hayagriva-horse-icon,
+      .theia-tab-icon.hayagriva-horse-icon,
+      .p-TabBar-tabIcon.hayagriva-horse-icon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'><path d='M12 2.5L16.5 7.5C17.2 9 16.5 10 12 10C7.5 10 6.8 9 7.5 7.5Z'/><polygon points='12,4.8 13.8,7 12,9.2 10.2,7'/><path d='M11.4 11V13C11.4 13.5 12.6 13.5 12.6 13V11'/><circle cx='12' cy='14.2' r='0.6' fill='black'/><path d='M7.8 10.8C6.2 12.2 6.5 13.8 8.2 14.5C8.8 17.5 9.8 20 10.2 21.2C10.5 22.2 13.5 22.2 13.8 21.2C14.2 20 15.2 17.5 15.8 14.5C17.5 13.8 17.8 12.2 16.2 10.8'/><path d='M16 13.5C18.8 15 19.5 18 17.8 20.2C19.2 20.8 19.5 23 17.2 23.5'/></svg>") no-repeat center !important;
+        mask: url("data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'><path d='M12 2.5L16.5 7.5C17.2 9 16.5 10 12 10C7.5 10 6.8 9 7.5 7.5Z'/><polygon points='12,4.8 13.8,7 12,9.2 10.2,7'/><path d='M11.4 11V13C11.4 13.5 12.6 13.5 12.6 13V11'/><circle cx='12' cy='14.2' r='0.6' fill='black'/><path d='M7.8 10.8C6.2 12.2 6.5 13.8 8.2 14.5C8.8 17.5 9.8 20 10.2 21.2C10.5 22.2 13.5 22.2 13.8 21.2C14.2 20 15.2 17.5 15.8 14.5C17.5 13.8 17.8 12.2 16.2 10.8'/><path d='M16 13.5C18.8 15 19.5 18 17.8 20.2C19.2 20.8 19.5 23 17.2 23.5'/></svg>") no-repeat center !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+      }
+
+      /* Target Pillar 3 in Left Activity Bar to guarantee the Horse-Head appears */
+      #theia-left-content-panel .p-TabBar-tab[data-id*="chat-view-widget"] .p-TabBar-tabIcon,
+      .theia-app-left .p-TabBar-tab[data-id*="chat-view-widget"] .p-TabBar-tabIcon,
+      [id*="chat-view-widget"].p-TabBar-tab .p-TabBar-tabIcon,
+      .theia-tab-bar-container.left .p-TabBar-tab[title*="AskHaya"] .p-TabBar-tabIcon,
+      .theia-tab-bar-container.left .p-TabBar-tab:nth-child(3) .p-TabBar-tabIcon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'><path d='M12 2.5L16.5 7.5C17.2 9 16.5 10 12 10C7.5 10 6.8 9 7.5 7.5Z'/><polygon points='12,4.8 13.8,7 12,9.2 10.2,7'/><path d='M11.4 11V13C11.4 13.5 12.6 13.5 12.6 13V11'/><circle cx='12' cy='14.2' r='0.6' fill='black'/><path d='M7.8 10.8C6.2 12.2 6.5 13.8 8.2 14.5C8.8 17.5 9.8 20 10.2 21.2C10.5 22.2 13.5 22.2 13.8 21.2C14.2 20 15.2 17.5 15.8 14.5C17.5 13.8 17.8 12.2 16.2 10.8'/><path d='M16 13.5C18.8 15 19.5 18 17.8 20.2C19.2 20.8 19.5 23 17.2 23.5'/></svg>") no-repeat center !important;
+        mask: url("data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'><path d='M12 2.5L16.5 7.5C17.2 9 16.5 10 12 10C7.5 10 6.8 9 7.5 7.5Z'/><polygon points='12,4.8 13.8,7 12,9.2 10.2,7'/><path d='M11.4 11V13C11.4 13.5 12.6 13.5 12.6 13V11'/><circle cx='12' cy='14.2' r='0.6' fill='black'/><path d='M7.8 10.8C6.2 12.2 6.5 13.8 8.2 14.5C8.8 17.5 9.8 20 10.2 21.2C10.5 22.2 13.5 22.2 13.8 21.2C14.2 20 15.2 17.5 15.8 14.5C17.5 13.8 17.8 12.2 16.2 10.8'/><path d='M16 13.5C18.8 15 19.5 18 17.8 20.2C19.2 20.8 19.5 23 17.2 23.5'/></svg>") no-repeat center !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+      }
+
+      /* Top-Left Window Header Brand Icon Replacement */
+      .theia-icon,
+      #theia-top-panel .theia-icon,
+      #theia-top-panel [class*="theia-icon"],
+      .theia-app-icon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        margin: 4px 6px 4px 10px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'><path d='M12 2.5L16.5 7.5C17.2 9 16.5 10 12 10C7.5 10 6.8 9 7.5 7.5Z'/><polygon points='12,4.8 13.8,7 12,9.2 10.2,7'/><path d='M11.4 11V13C11.4 13.5 12.6 13.5 12.6 13V11'/><circle cx='12' cy='14.2' r='0.6' fill='black'/><path d='M7.8 10.8C6.2 12.2 6.5 13.8 8.2 14.5C8.8 17.5 9.8 20 10.2 21.2C10.5 22.2 13.5 22.2 13.8 21.2C14.2 20 15.2 17.5 15.8 14.5C17.5 13.8 17.8 12.2 16.2 10.8'/><path d='M16 13.5C18.8 15 19.5 18 17.8 20.2C19.2 20.8 19.5 23 17.2 23.5'/></svg>") no-repeat center !important;
+        mask: url("data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'><path d='M12 2.5L16.5 7.5C17.2 9 16.5 10 12 10C7.5 10 6.8 9 7.5 7.5Z'/><polygon points='12,4.8 13.8,7 12,9.2 10.2,7'/><path d='M11.4 11V13C11.4 13.5 12.6 13.5 12.6 13V11'/><circle cx='12' cy='14.2' r='0.6' fill='black'/><path d='M7.8 10.8C6.2 12.2 6.5 13.8 8.2 14.5C8.8 17.5 9.8 20 10.2 21.2C10.5 22.2 13.5 22.2 13.8 21.2C14.2 20 15.2 17.5 15.8 14.5C17.5 13.8 17.8 12.2 16.2 10.8'/><path d='M16 13.5C18.8 15 19.5 18 17.8 20.2C19.2 20.8 19.5 23 17.2 23.5'/></svg>") no-repeat center !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+      }
+
+      /* Chat Header icon and avatar override */
+      .theia-chat-header .hayagriva-horse-icon,
+      .theia-view-container .theia-header .hayagriva-horse-icon {
+        display: inline-block !important;
+        width: 18px !important;
+        height: 18px !important;
+      }
+
       /* Permanently eliminate OPEN EDITORS from Left Explorer */
       #theia-open-editors-widget,
       .theia-open-editors-widget,
       [id*="open-editors-widget"],
       [id*="open-editors"],
+      #explorer-view-container--theia-open-editors-widget,
+      [id*="theia-open-editors-widget"],
       .theia-header[title*="Open Editors"],
       .theia-header[title*="OPEN EDITORS"] {
         display: none !important;
@@ -1102,8 +1225,120 @@ export class HayagrivaFrontendContribution
       .theia-navigator .theia-header-toolbar {
         display: none !important;
       }
+
+      /* ── AskHaya Sovereign AI Chat Styling ───────────────────────────── */
+      /* Suppress generic developer AI welcome banner and dividers */
+      .theia-WelcomeMessage-Main:not(.hayagriva-welcome-banner),
+      .theia-WelcomeMessage-Divider {
+        display: none !important;
+      }
+
+      .hayagriva-welcome-banner {
+        padding: 16px 14px;
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.45) 100%);
+        border: 1px solid rgba(245, 158, 11, 0.22);
+        border-radius: 10px;
+        margin: 12px 10px 18px 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      }
+
+      .hayagriva-prompt-chip:hover {
+        background: rgba(245, 158, 11, 0.16) !important;
+        border-color: rgba(245, 158, 11, 0.45) !important;
+        transform: translateX(2px);
+      }
+
+      .hayagriva-coworker-chip:hover {
+        background: rgba(255, 255, 255, 0.07) !important;
+        border-color: rgba(245, 158, 11, 0.3) !important;
+      }
+
+      /* Chat Composer Inline Voice Mic Button */
+      .askhaya-composer-mic {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px !important;
+        background: rgba(245, 158, 11, 0.12) !important;
+        border: 1px solid rgba(245, 158, 11, 0.3) !important;
+        border-radius: 4px !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+      }
+      .askhaya-composer-mic:hover {
+        background: rgba(245, 158, 11, 0.25) !important;
+        border-color: rgba(245, 158, 11, 0.6) !important;
+      }
     `;
     document.head.appendChild(style);
+  }
+
+  // ── Inline Voice Mic Button in Chat Composer ─────────────────────────────
+  protected initializeChatMicIntegration(): void {
+    const updateButtonVisual = (micBtn: HTMLElement, state: string) => {
+      if (state === 'listening') {
+        micBtn.innerHTML = '<i class="fa fa-circle" style="color: #ef4444; font-size: 11px; animation: pulse 1s infinite;"></i><span style="color: #ef4444; font-size: 11px; font-weight: 600; margin-left: 5px;">Listening…</span>';
+        micBtn.setAttribute('title', 'Listening to your inquiry... (Click to stop/send)');
+        micBtn.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+        micBtn.style.background = 'rgba(239, 68, 68, 0.15)';
+      } else if (state === 'thinking') {
+        micBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color: #38bdf8; font-size: 12px;"></i><span style="color: #38bdf8; font-size: 11px; font-weight: 600; margin-left: 5px;">Researching…</span>';
+        micBtn.setAttribute('title', 'Consulting LightRAG graph & bare acts...');
+        micBtn.style.borderColor = 'rgba(56, 189, 248, 0.6)';
+        micBtn.style.background = 'rgba(56, 189, 248, 0.15)';
+      } else if (state === 'speaking') {
+        micBtn.innerHTML = '<i class="fa fa-volume-up" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">Advising…</span>';
+        micBtn.setAttribute('title', 'Playing Sarvam AI oral ratio (Click to mute)');
+        micBtn.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+        micBtn.style.background = 'rgba(16, 185, 129, 0.15)';
+      } else {
+        micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #f59e0b; font-size: 12px;"></i><span style="color: #fbbf24; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
+        micBtn.setAttribute('title', 'Speak to AskHaya Senior Counsel (Voice Inquest / Alt+Space)');
+        micBtn.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+        micBtn.style.background = 'rgba(245, 158, 11, 0.12)';
+      }
+    };
+
+    this.voiceOrb.onStateChanged((state) => {
+      const btn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
+      if (btn) {
+        updateButtonVisual(btn, state);
+      }
+    });
+
+    const injectMic = () => {
+      const leftOptions = document.querySelector('.theia-ChatInputOptions-left');
+      if (leftOptions && !leftOptions.querySelector('.askhaya-composer-mic')) {
+        const micBtn = document.createElement('span');
+        micBtn.className = 'option askhaya-composer-mic';
+        micBtn.style.cursor = 'pointer';
+        micBtn.style.display = 'inline-flex';
+        micBtn.style.alignItems = 'center';
+        micBtn.style.padding = '3px 8px';
+        micBtn.style.borderRadius = '12px';
+        micBtn.style.marginLeft = '4px';
+        micBtn.style.transition = 'all 0.2s ease';
+        micBtn.style.border = '1px solid rgba(245, 158, 11, 0.35)';
+        micBtn.style.background = 'rgba(245, 158, 11, 0.12)';
+        
+        updateButtonVisual(micBtn, this.voiceOrb.getState());
+
+        micBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const state = this.voiceOrb.getState();
+          if (state === 'speaking') {
+            this.voiceOrb.stopSpeaking();
+          } else if (state === 'listening') {
+            this.voiceOrb.stopListening();
+          } else {
+            this.voiceOrb.startListening();
+          }
+        });
+        leftOptions.appendChild(micBtn);
+      }
+    };
+    setInterval(injectMic, 1000);
   }
 
   // ── RBZ Proactive Context Advisor (Bottom-Right Non-Blocking Toast) ────────
