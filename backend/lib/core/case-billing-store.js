@@ -15,7 +15,29 @@ const DEFAULT_TOOL_RATES = {
     'rbz_section_65_inquest': 2500.00,
     'screen_section_65_collusion': 2500.00,
     'rbz_related_party_inquest': 1500.00,
-    'screen_related_parties': 1500.00
+    'screen_related_parties': 1500.00,
+
+    // LEXAI Micro-Forensic Rates (Port 4000)
+    'lexai_resolve_entity_master': 50.00,
+    'lexairesolveentitymaster': 50.00,
+    'lexai_detect_vanishing_or_shell_alert': 100.00,
+    'lexaidetectvanishingorshellalert': 100.00,
+    'lexai_verify_director_cooling_off': 75.00,
+    'lexaiverifydirectorcoolingoff': 75.00,
+    'lexai_screen_cibil_wilful_defaulter': 75.00,
+    'lexaiscreencibilwilfuldefaulter': 75.00,
+    'lexai_probe_section_5_24_relationship': 150.00,
+    'lexaiprobesection524relationship': 150.00,
+    'lexai_ecourts_litigant_probe': 150.00,
+    'lexaiecourtslitigantprobe': 150.00,
+    'lexai_filter_adverse_vs_creditor_role': 100.00,
+    'lexaifilteradversevscreditorrole': 100.00,
+    'lexai_screen_pufe_lookback_window': 150.00,
+    'lexaiscreenpufelookbackwindow': 150.00,
+    'lexai_screen_global_sanctions': 75.00,
+    'lexaiscreenglobalsanctions': 75.00,
+    'lexai_detect_cartel_collusion': 200.00,
+    'lexaidetectcartelcollusion': 200.00,
 };
 
 /**

@@ -111,6 +111,17 @@ ${textChunk}`;
         fs.writeFileSync(dictPath, JSON.stringify(currentDict, null, 2), 'utf8');
         console.log(`[extract-file] ✓ Extracted ${keysMerged} elements from ${basename} and merged into case_kv_dictionary.json`);
 
+        // Trigger Forensic Fact Listener to detect unverified statutory IBC requirements
+        try {
+            const { onKVFactsExtracted } = require('../../agents/skills/kv-forensic-listener');
+            const probes = onKVFactsExtracted(caseDir, newKV);
+            if (probes && probes.length > 0) {
+                console.log(`[extract-file] ⚡ Triggered ${probes.length} forensic statutory checks for ${basename}`);
+            }
+        } catch (listenerErr) {
+            console.warn(`[extract-file] Forensic listener warning:`, listenerErr.message);
+        }
+
         // Sync with SQLite database
         const { getDb } = require('../../core/sqlite-store');
         try {

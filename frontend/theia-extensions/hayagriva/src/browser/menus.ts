@@ -107,6 +107,7 @@ export class HayagrivaMenuContribution implements MenuContribution {
     registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openKvEditor`, label: 'Case Fact Dictionary (KV)', order: '3' });
     registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openChronology`, label: 'Open Case Chronology', order: '4' });
     registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openTopicOverlap`, label: 'Open Topic Overlap Map', order: '5' });
+    registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:openEntityMap`, label: '🗺️ Entity & Relationship Map', order: '4.5' });
     registry.registerMenuAction(INTEL_SUBMENU, { commandId: `${HAYAGRIVA_NS}:exportChunksToTiddlyWiki`, label: 'Export Chunks to TiddlyWiki', order: '6' });
 
     // ── 5. Vault & Archival Submenu ──

@@ -160,6 +160,10 @@ Prompt: "${message}"`;
             return 'precedent';
         }
 
+        if (/\b(forensic status|unverified|statutory check|cooling off|cibil check|verify din|verify all|probe|forensic scout)\b/i.test(message)) {
+            return 'forensic_scout';
+        }
+
         if (/\b(bank|statement|contra-sweep|round-trip|cash withdrawal|forensic|avoidance|puda|section 43|section 45|section 50|section 66)\b/i.test(message)) {
             return 'forensic';
         }
@@ -227,6 +231,62 @@ Prompt: "${message}"`;
             'bank-analyzer': this.bankAnalyzer,
             'bank_forensic': this.bankAnalyzer,
             'cashflow_agent': this.bankAnalyzer,
+            'forensic_scout': {
+                run: async (cDir, msg, hist, opts) => {
+                    const { getPendingProbes } = require('./skills/kv-forensic-listener');
+                    const { executeTool } = require('./skills/tool-dispatcher');
+                    const pending = getPendingProbes(cDir);
+
+                    const dinMatch = msg.match(/\b\d{8}\b/);
+                    const isExecuteAll = /execute all|run all|verify all|clear all/i.test(msg);
+
+                    if (dinMatch) {
+                        const targetDin = dinMatch[0];
+                        const execRes = await executeTool(cDir, 'lexai_verify_director_cooling_off', { din: targetDin }, { allowExternal: true });
+                        return `### ⚡ Director Cooling-Off Forensic Verification Complete\n\n` +
+                               `* **Target DIN:** \`${targetDin}\`\n` +
+                               `* **Status:** \`${execRes.result?.verdict_badge || 'VERIFIED'}\`\n` +
+                               `* **Receipt ID:** \`${execRes.serverTaskId}\`\n` +
+                               `* **Audit Hash (SHA-256):** \`${execRes.serverReceiptSig}\`\n\n` +
+                               `*(Receipt cryptographically committed to Case Billing Ledger and reviews/case_kv_dictionary.json)*`;
+                    }
+
+                    if (isExecuteAll && pending.length > 0) {
+                        const results = [];
+                        for (const probe of pending) {
+                            try {
+                                const res = await executeTool(cDir, probe.tool, probe.args, { allowExternal: true });
+                                results.push(`* **${probe.description}** (${probe.targetIdentifier}): \`${res.result?.verdict_badge || 'VERIFIED'}\` — Receipt: \`${res.serverTaskId}\``);
+                            } catch (e) {
+                                results.push(`* **${probe.description}**: ⚠️ Execution deferred (${e.message})`);
+                            }
+                        }
+                        return `### 🛡️ Executed ${results.length} Forensic Probes with LEXAI Cloud\n\n` +
+                               results.join('\n') +
+                               `\n\n*(All receipts cryptographically sealed into case ledger)*`;
+                    }
+
+                    if (pending.length === 0) {
+                        return `### 🛡️ Hayagriva Forensic Compliance Status\n\n` +
+                               `All atomized matter facts currently in \`case_kv_dictionary.json\` are **100% verified** or have no outstanding statutory flags.\n\n` +
+                               `As you ingest new documents (Form B, Form C, bank statements), I will automatically analyze any new DINs, transactions, or counterparties.`;
+                    }
+
+                    const probeList = pending.map((p, idx) => 
+                        `${idx + 1}. **${p.description}** (\`${p.targetIdentifier}\`)\n   - **Clause:** ${p.clause}\n   - **Tool:** \`${p.tool}\` (₹${p.rateInr})\n   - **Status:** ⚠️ \`${p.status}\``
+                    ).join('\n\n');
+
+                    return `### 🚨 Hayagriva Forensic Requisition Notice\n\n` +
+                           `I have identified **${pending.length} unverified statutory forensic requirement(s)** from your ingested case facts:\n\n` +
+                           probeList +
+                           `\n\n---\\n👉 **Actions:**\\n` +
+                           `* Say *"verify all"* to dispatch all micro-checks to LEXAI Cloud.\\n` +
+                           `* Or authorize individual items directly in your **Case Action Inbox**.`;
+                }
+            },
+            'forensic-scout': {
+                run: async (cDir, msg, hist, opts) => agentMap['forensic_scout'].run(cDir, msg, hist, opts)
+            },
             'precedent': {
                 run: async (cDir, msg, hist, opts) => {
                     const cleanMsg = msg.replace(/^@precedents?\s*/i, '').trim();

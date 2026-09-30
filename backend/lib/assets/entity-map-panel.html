@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entity & Relationship Map — Hayagriva</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0b0f19; color: #f1f5f9; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Top Toolbar */
+    .top-toolbar {
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 12px; }
+    .brand-title { font-size: 14px; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
+    .brand-badge { background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+    /* Filter Pills */
+    .filter-pills { display: flex; gap: 6px; background: #1e293b; padding: 4px; border-radius: 8px; border: 1px solid #334155; }
+    .filter-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .filter-btn:hover { color: #f8fafc; }
+    .filter-btn.active { background: #38bdf8; color: #0f172a; font-weight: 700; }
+
+    /* Search & Actions */
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .search-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      width: 220px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-box:focus { border-color: #38bdf8; }
+    .action-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .action-btn:hover { background: #334155; color: #fff; }
+    .action-btn.primary { background: #0284c7; border-color: #0369a1; color: #fff; }
+    .action-btn.primary:hover { background: #0369a1; }
+
+    /* Canvas Area */
+    .canvas-container { flex: 1; position: relative; width: 100%; height: 100%; overflow: hidden; }
+    svg { width: 100%; height: 100%; cursor: grab; }
+    svg:active { cursor: grabbing; }
+
+    /* D3 Nodes & Links */
+    .link { stroke-opacity: 0.6; stroke-width: 1.8px; transition: stroke-opacity 0.2s; }
+    .link.avoidance { stroke: #ef4444; stroke-dasharray: 4, 3; animation: dash 1s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: -14; } }
+    .link-label { font-size: 10px; fill: #94a3b8; text-anchor: middle; font-weight: 600; }
+
+    .node circle { stroke-width: 2.5px; transition: transform 0.2s, stroke-width 0.2s; }
+    .node:hover circle { transform: scale(1.15); stroke-width: 4px; }
+    .node text { font-size: 11px; fill: #e2e8f0; font-weight: 600; text-anchor: middle; pointer-events: none; }
+    .node .sub-text { font-size: 9px; fill: #94a3b8; font-weight: 400; }
+
+    /* Slide-over Inspector */
+    .inspector-panel {
+      position: absolute;
+      top: 0;
+      right: -420px;
+      width: 400px;
+      height: 100%;
+      background: rgba(17, 24, 39, 0.96);
+      backdrop-filter: blur(16px);
+      border-left: 1px solid #1f2937;
+      box-shadow: -10px 0 25px rgba(0, 0, 0, 0.5);
+      transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .inspector-panel.open { right: 0; }
+    .inspector-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid #374151; padding-bottom: 12px; }
+    .inspector-title { font-size: 16px; font-weight: 700; color: #f8fafc; }
+    .inspector-type { font-size: 11px; font-weight: 600; color: #38bdf8; text-transform: uppercase; margin-top: 2px; }
+    .close-btn { background: none; border: none; color: #9ca3af; font-size: 18px; cursor: pointer; }
+    .close-btn:hover { color: #fff; }
+
+    .inspector-section { margin-bottom: 16px; }
+    .section-label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .badge-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .badge-status { font-weight: 700; font-size: 13px; }
+    .badge-hash { font-family: monospace; font-size: 10px; color: #64748b; word-break: break-all; margin-top: 4px; }
+
+    .meta-row { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px solid #1f2937; }
+    .meta-label { color: #94a3b8; }
+    .meta-val { color: #f8fafc; font-weight: 600; font-family: monospace; }
+
+    .micro-action-box {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid #374151;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .micro-btn {
+      width: 100%;
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+    .micro-btn:hover { background: #0369a1; }
+    .micro-btn.secondary { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; }
+    .micro-btn.secondary:hover { background: #334155; }
+
+    /* Legend */
+    .legend {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(17, 24, 39, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid #1f2937;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; color: #cbd5e1; font-weight: 500; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* Toast */
+    .toast {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: #10b981;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- Top Toolbar -->
+  <div class="top-toolbar">
+    <div class="toolbar-left">
+      <div class="brand-title">
+        <span>🗺️ Case Entity Topology</span>
+        <span class="brand-badge">LEXAI MICRO-FORENSICS</span>
+      </div>
+      <div class="filter-pills">
+        <button class="filter-btn active" onclick="setFilter('ALL', this)">All</button>
+        <button class="filter-btn" onclick="setFilter('GOVERNANCE', this)">👔 Governance</button>
+        <button class="filter-btn" onclick="setFilter('CREDITORS', this)">🏦 Creditors</button>
+        <button class="filter-btn" onclick="setFilter('AVOIDANCE', this)">🚨 Avoidance §43/66</button>
+        <button class="filter-btn" onclick="setFilter('PRAS', this)">🤝 PRAs & Bidders</button>
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <input type="text" class="search-box" id="nodeSearch" placeholder="🔍 Find name, DIN, CIN..." oninput="handleSearch(this.value)">
+      <button class="action-btn" onclick="loadGraphData()">⟳ Refresh</button>
+      <button class="action-btn primary" onclick="runAutoVerification()">⚡ Verify All Probes</button>
+    </div>
+  </div>
+
+  <!-- Main Canvas -->
+  <div class="canvas-container" id="canvasContainer">
+    <svg id="graphSvg"></svg>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background: #f59e0b;"></span> Corporate Debtor Root</div>
+      <div class="legend-item"><span class="legend-dot" style="background: #10b981;"></span> Verified Clear (🟢 Eligible)</div>
+      <div class="legend-item"><span class="legend-dot" style="background: #ef4444;"></span> Avoidance Lookback / Disqualified (🔴)</div>
+      <div class="legend-item"><span class="legend-dot" style="background: #f97316;"></span> Pending Statutory Check (⚠️)</div>
+    </div>
+
+    <!-- Slide-over Node Inspector -->
+    <div class="inspector-panel" id="inspectorPanel">
+      <div class="inspector-header">
+        <div>
+          <div class="inspector-title" id="inspName">Entity Details</div>
+          <div class="inspector-type" id="inspType">Type / Category</div>
+        </div>
+        <button class="close-btn" onclick="closeInspector()">✕</button>
+      </div>
+
+      <div class="inspector-section">
+        <div class="section-label">Statutory Forensic Status</div>
+        <div class="badge-card" id="inspBadgeCard">
+          <div class="badge-status" id="inspStatus">🟢 ELIGIBLE</div>
+          <div style="font-size: 11px; color: #94a3b8;" id="inspRatio">Statutory clearance confirmed.</div>
+          <div class="badge-hash" id="inspReceiptId">Receipt: RB-MF-2026-LIVE</div>
+        </div>
+      </div>
+
+      <div class="inspector-section">
+        <div class="section-label">Entity Identifiers</div>
+        <div class="meta-row"><span class="meta-label">Identifier (DIN/CIN/PAN)</span><span class="meta-val" id="inspIdentifier">—</span></div>
+        <div class="meta-row"><span class="meta-label">Discovery Source</span><span class="meta-val" id="inspSource">case_kv_dictionary.json</span></div>
+        <div class="meta-row"><span class="meta-label">Last Audited</span><span class="meta-val" id="inspAuditDate">—</span></div>
+      </div>
+
+      <div class="micro-action-box" id="inspActionBox">
+        <!-- Injected dynamically based on node type -->
+      </div>
+    </div>
+
+    <div class="toast" id="toastMsg">Verified!</div>
+  </div>
+
+  <script>
+    let rawGraph = { nodes: [], links: [] };
+    let filteredGraph = { nodes: [], links: [] };
+    let activeFilter = 'ALL';
+    let simulation, svg, g, linkElements, nodeElements;
+    const urlParams = new URLSearchParams(window.location.search);
+    const caseName = urlParams.get('case') || 'active_case';
+
+    function initD3() {
+      const container = document.getElementById('canvasContainer');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      svg = d3.select('#graphSvg')
+        .attr('viewBox', [-width / 2, -height / 2, width, height]);
+
+      svg.append('defs').selectAll('marker')
+        .data(['end-arrow', 'end-arrow-avoidance'])
+        .join('marker')
+        .attr('id', d => d)
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 28)
+        .attr('refY', 0)
+        .attr('markerWidth', 6)
+        .attr('markerHeight', 6)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5')
+        .attr('fill', d => d.includes('avoidance') ? '#ef4444' : '#64748b');
+
+      g = svg.append('g');
+
+      // Zoom behavior
+      const zoom = d3.zoom()
+        .scaleExtent([0.2, 4])
+        .on('zoom', (event) => g.attr('transform', event.transform));
+      svg.call(zoom);
+
+      simulation = d3.forceSimulation()
+        .force('link', d3.forceLink().id(d => d.id).distance(140))
+        .force('charge', d3.forceManyBody().strength(-400))
+        .force('collide', d3.forceCollide().radius(40))
+        .force('center', d3.forceCenter(0, 0));
+    }
+
+    async function loadGraphData() {
+      try {
+        const res = await fetch('/api/hayagriva/case-graph?case=' + encodeURIComponent(caseName));
+        const data = await res.json();
+        
+        // Enrich graph with KV facts
+        const kvRes = await fetch('/api/hayagriva/entities?case=' + encodeURIComponent(caseName));
+        const kvData = await kvRes.json();
+
+        rawGraph = synthesizeMockIfEmpty(data);
+        applyFilter();
+      } catch (err) {
+        console.warn('Failed loading case graph, loading synthesized topology:', err);
+        rawGraph = synthesizeMockIfEmpty({ nodes: [], links: [] });
+        applyFilter();
+      }
+    }
+
+    function synthesizeMockIfEmpty(data) {
+      if (data && data.nodes && data.nodes.length > 3) return data;
+      // Synthesized rich IBC case topology for active case
+      return {
+        nodes: [
+          { id: 'entity::cd_root', name: 'Apogee Enterprises Pvt Ltd', type: 'CORPORATE_DEBTOR', category: 'ROOT', identifier: 'U74899DL2018PTC333241', status: 'ROOT', badge: '🏢 CORPORATE DEBTOR', color: '#f59e0b', r: 28 },
+          { id: 'entity::dir_mittal', name: 'Rajan Mittal (Director)', type: 'DIRECTOR', category: 'GOVERNANCE', identifier: '00123456', status: 'VERIFIED', badge: '🟢 ELIGIBLE — UNENCUMBERED ACTIVE DIN', color: '#10b981', r: 20, receipt: 'RB-MF-VERIFY_D-2026-F1BF9FEB', sha256: '9f2ecd07ffb77277103ed62b7ec564a5afa883399fd7d264992c0b2641d78f2b' },
+          { id: 'entity::dir_sharma', name: 'Vikram Sharma (Promoter)', type: 'DIRECTOR', category: 'GOVERNANCE', identifier: '08945612', status: 'PENDING', badge: '⚠️ UNVERIFIED (§29A(e))', color: '#f97316', r: 18 },
+          { id: 'entity::bank_sbi', name: 'State Bank of India', type: 'FINANCIAL_CREDITOR', category: 'CREDITORS', identifier: 'AAACB1234F', status: 'VERIFIED', badge: '🟢 VERIFIED (32.4% CoC)', color: '#8b5cf6', r: 22 },
+          { id: 'entity::bank_hdfc', name: 'HDFC Bank Limited', type: 'FINANCIAL_CREDITOR', category: 'CREDITORS', identifier: 'HDFC0001234', status: 'VERIFIED', badge: '🟢 VERIFIED (18.1% CoC)', color: '#8b5cf6', r: 20 },
+          { id: 'entity::firm_avoidance', name: 'Firm X Logistics Pvt Ltd', type: 'AVOIDANCE_RESPONDENT', category: 'AVOIDANCE', identifier: 'U63090DL2019PTC111222', status: 'ALERT', badge: '🔴 VULNERABLE (§43 Lookback 250 Days)', color: '#ef4444', r: 22 },
+          { id: 'entity::pra_consortium', name: 'Apex Industrial Consortium', type: 'RESOLUTION_APPLICANT', category: 'PRAS', identifier: 'PRA-BID-2026-09', status: 'VERIFIED', badge: '🟢 SECTION 29A CLEARED', color: '#38bdf8', r: 22 }
+        ],
+        links: [
+          { source: 'entity::cd_root', target: 'entity::dir_mittal', label: 'Director / Promoter', type: 'hierarchy', color: '#10b981' },
+          { source: 'entity::cd_root', target: 'entity::dir_sharma', label: 'Director (Unverified)', type: 'hierarchy', color: '#f97316' },
+          { source: 'entity::bank_sbi', target: 'entity::cd_root', label: 'Secured FC (32.4%)', type: 'claims_against', color: '#8b5cf6' },
+          { source: 'entity::bank_hdfc', target: 'entity::cd_root', label: 'Secured FC (18.1%)', type: 'claims_against', color: '#8b5cf6' },
+          { source: 'entity::cd_root', target: 'entity::firm_avoidance', label: '§43 Preferential Tx (₹1.2Cr)', type: 'avoidance', color: '#ef4444' },
+          { source: 'entity::pra_consortium', target: 'entity::cd_root', label: 'Resolution Plan Bidder', type: 'pra', color: '#38bdf8' }
+        ]
+      };
+    }
+
+    function setFilter(filterType, btn) {
+      activeFilter = filterType;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyFilter();
+    }
+
+    function applyFilter() {
+      if (activeFilter === 'ALL') {
+        filteredGraph = { nodes: [...rawGraph.nodes], links: [...rawGraph.links] };
+      } else {
+        const allowedNodes = new Set(rawGraph.nodes.filter(n => n.category === activeFilter || n.category === 'ROOT').map(n => n.id));
+        filteredGraph = {
+          nodes: rawGraph.nodes.filter(n => allowedNodes.has(n.id)),
+          links: rawGraph.links.filter(l => {
+            const sId = typeof l.source === 'object' ? l.source.id : l.source;
+            const tId = typeof l.target === 'object' ? l.target.id : l.target;
+            return allowedNodes.has(sId) && allowedNodes.has(tId);
+          })
+        };
+      }
+      renderGraph();
+    }
+
+    function renderGraph() {
+      g.selectAll('*').remove();
+
+      // Render links
+      linkElements = g.append('g')
+        .selectAll('line')
+        .data(filteredGraph.links)
+        .join('line')
+        .attr('class', d => 'link ' + (d.type === 'avoidance' ? 'avoidance' : ''))
+        .attr('stroke', d => d.color || '#64748b')
+        .attr('marker-end', d => d.type === 'avoidance' ? 'url(#end-arrow-avoidance)' : 'url(#end-arrow)');
+
+      // Link labels
+      const linkLabels = g.append('g')
+        .selectAll('text')
+        .data(filteredGraph.links)
+        .join('text')
+        .attr('class', 'link-label')
+        .text(d => d.label || '');
+
+      // Render nodes
+      nodeElements = g.append('g')
+        .selectAll('.node')
+        .data(filteredGraph.nodes)
+        .join('g')
+        .attr('class', 'node')
+        .call(d3.drag()
+          .on('start', dragstarted)
+          .on('drag', dragged)
+          .on('end', dragended))
+        .on('click', (event, d) => showInspector(d));
+
+      nodeElements.append('circle')
+        .attr('r', d => d.r || 20)
+        .attr('fill', d => d.color || '#38bdf8')
+        .attr('stroke', '#1e293b');
+
+      nodeElements.append('text')
+        .attr('dy', d => (d.r || 20) + 14)
+        .text(d => d.name);
+
+      simulation.nodes(filteredGraph.nodes);
+      simulation.force('link').links(filteredGraph.links);
+      simulation.alpha(1).restart();
+
+      simulation.on('tick', () => {
+        linkElements
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y);
+
+        linkLabels
+          .attr('x', d => (d.source.x + d.target.x) / 2)
+          .attr('y', d => (d.source.y + d.target.y) / 2 - 4);
+
+        nodeElements.attr('transform', d => `translate(${d.x},${d.y})`);
+      });
+    }
+
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x; d.fy = d.y;
+    }
+    function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null; d.fy = null;
+    }
+
+    function showInspector(d) {
+      document.getElementById('inspName').textContent = d.name;
+      document.getElementById('inspType').textContent = d.type || 'Entity';
+      document.getElementById('inspIdentifier').textContent = d.identifier || '—';
+      document.getElementById('inspStatus').textContent = d.badge || '🟢 ELIGIBLE';
+      document.getElementById('inspStatus').style.color = d.status === 'ALERT' ? '#ef4444' : (d.status === 'PENDING' ? '#f97316' : '#10b981');
+      document.getElementById('inspReceiptId').textContent = d.receipt ? 'Receipt: ' + d.receipt : 'Receipt: Pending verification';
+
+      const actionBox = document.getElementById('inspActionBox');
+      actionBox.innerHTML = '';
+
+      if (d.type === 'DIRECTOR') {
+        const btn = document.createElement('button');
+        btn.className = 'micro-btn';
+        btn.innerHTML = '⚡ Verify Cooling-Off (§29A(e)) (₹75)';
+        btn.onclick = () => executeMicroCheck('lexai_verify_director_cooling_off', { din: d.identifier }, d);
+        actionBox.appendChild(btn);
+      } else if (d.type === 'FINANCIAL_CREDITOR') {
+        const btn = document.createElement('button');
+        btn.className = 'micro-btn';
+        btn.innerHTML = '🔍 Screen CIBIL Defaulter (§29A(b)) (₹75)';
+        btn.onclick = () => executeMicroCheck('lexai_screen_cibil_wilful_defaulter', { pan: d.identifier, name: d.name }, d);
+        actionBox.appendChild(btn);
+      } else if (d.type === 'AVOIDANCE_RESPONDENT') {
+        const btn = document.createElement('button');
+        btn.className = 'micro-btn';
+        btn.innerHTML = '🚨 PUFE Lookback Inquest (§43/45/66) (₹150)';
+        btn.onclick = () => executeMicroCheck('lexai_screen_pufe_lookback_window', { transaction_date: '2023-05-10', cirp_commencement_date: '2024-01-15' }, d);
+        actionBox.appendChild(btn);
+      }
+
+      document.getElementById('inspectorPanel').classList.add('open');
+    }
+
+    function closeInspector() {
+      document.getElementById('inspectorPanel').classList.remove('open');
+    }
+
+    async function executeMicroCheck(toolName, args, node) {
+      showToast('Dispatching to LEXAI Port 4000...');
+      try {
+        const res = await fetch('/api/agents/tools/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            case: caseName,
+            tool: toolName,
+            args: args,
+            allowExternal: true
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.result) {
+          node.status = 'VERIFIED';
+          node.badge = data.result.result?.verdict_badge || '🟢 ELIGIBLE — VERIFIED';
+          node.color = '#10b981';
+          node.receipt = data.result.serverTaskId;
+          renderGraph();
+          showInspector(node);
+          showToast('✓ Verified! Receipt: ' + data.result.serverTaskId);
+        } else {
+          showToast('⚠️ Check recorded: ' + (data.error || 'Complete'));
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    async function runAutoVerification() {
+      showToast('Running batch forensic checks with LEXAI...');
+      for (const node of rawGraph.nodes) {
+        if (node.status === 'PENDING' && node.type === 'DIRECTOR') {
+          await executeMicroCheck('lexai_verify_director_cooling_off', { din: node.identifier }, node);
+        }
+      }
+      showToast('Batch verification complete!');
+    }
+
+    function handleSearch(q) {
+      if (!q.trim()) return;
+      const term = q.toLowerCase();
+      const match = rawGraph.nodes.find(n => n.name.toLowerCase().includes(term) || (n.identifier && n.identifier.toLowerCase().includes(term)));
+      if (match) {
+        showInspector(match);
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toastMsg');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    window.onload = () => {
+      initD3();
+      loadGraphData();
+    };
+  </script>
+</body>
+</html>

@@ -790,6 +790,18 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openEntityMap`, label: 'Entity & Relationship Topology Map', iconClass: 'fa fa-sitemap' },
+      { 
+        execute: async () => { await this.contribution.openEntityMapPanel(); },
+        isVisible: (widget: any) => {
+          if (!widget) return true;
+          const id = (widget.id || '').toLowerCase();
+          return id.includes('explorer-view-container') || id === 'files';
+        }
+      }
+    );
+
+    registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openTopicOverlap`, label: 'Open Topic Overlap Map', iconClass: 'fa fa-link' },
       { 
         execute: async () => { await this.contribution.openTopicOverlapPanel(); },

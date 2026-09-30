@@ -147,7 +147,29 @@ const TOOL_RISK_MAP = {
     'rbz_related_party_inquest': RiskClass.EXTERNAL,
     'rbzrelatedpartyinquest': RiskClass.EXTERNAL,
     'screen_related_parties': RiskClass.EXTERNAL,
-    'screenrelatedparties': RiskClass.EXTERNAL
+    'screenrelatedparties': RiskClass.EXTERNAL,
+
+    // LEXAI Micro-Forensic Tools (Port 4000)
+    'lexai_resolve_entity_master': RiskClass.EXTERNAL,
+    'lexairesolveentitymaster': RiskClass.EXTERNAL,
+    'lexai_detect_vanishing_or_shell_alert': RiskClass.EXTERNAL,
+    'lexaidetectvanishingorshellalert': RiskClass.EXTERNAL,
+    'lexai_verify_director_cooling_off': RiskClass.EXTERNAL,
+    'lexaiverifydirectorcoolingoff': RiskClass.EXTERNAL,
+    'lexai_screen_cibil_wilful_defaulter': RiskClass.EXTERNAL,
+    'lexaiscreencibilwilfuldefaulter': RiskClass.EXTERNAL,
+    'lexai_probe_section_5_24_relationship': RiskClass.EXTERNAL,
+    'lexaiprobesection524relationship': RiskClass.EXTERNAL,
+    'lexai_ecourts_litigant_probe': RiskClass.EXTERNAL,
+    'lexaiecourtslitigantprobe': RiskClass.EXTERNAL,
+    'lexai_filter_adverse_vs_creditor_role': RiskClass.EXTERNAL,
+    'lexaifilteradversevscreditorrole': RiskClass.EXTERNAL,
+    'lexai_screen_pufe_lookback_window': RiskClass.EXTERNAL,
+    'lexaiscreenpufelookbackwindow': RiskClass.EXTERNAL,
+    'lexai_screen_global_sanctions': RiskClass.EXTERNAL,
+    'lexaiscreenglobalsanctions': RiskClass.EXTERNAL,
+    'lexai_detect_cartel_collusion': RiskClass.EXTERNAL,
+    'lexaidetectcartelcollusion': RiskClass.EXTERNAL,
 };
 
 /**
@@ -155,7 +177,7 @@ const TOOL_RISK_MAP = {
  */
 function normalizeToolName(toolName) {
     if (!toolName) return '';
-    return String(toolName).toLowerCase().trim().replace(/^(hayagriva|ipie|resolution_bazaar|rbz):/i, '');
+    return String(toolName).toLowerCase().trim().replace(/^(hayagriva|ipie|resolution_bazaar|rbz|lexai):/i, '');
 }
 
 /**

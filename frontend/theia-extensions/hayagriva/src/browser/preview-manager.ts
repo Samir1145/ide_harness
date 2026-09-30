@@ -426,6 +426,34 @@ export class HayagrivaPreviewManager {
     return widget;
   }
 
+  async openEntityMapPanel(caseName: string): Promise<Widget> {
+    const id = 'hayagriva-entity-map-panel';
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = 'Entity & Relationship Map';
+    widget.title.caption = 'Case Topology, Corporate Web & Statutory Forensic Status';
+    widget.title.iconClass = 'fa fa-sitemap';
+    widget.title.closable = true;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/entity-map-panel?case=${encodeURIComponent(caseName)}`;
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
+  }
+
   async openTopicOverlapPanel(caseName: string): Promise<Widget> {
     const id = 'hayagriva-topic-overlap-panel';
     let widget = this.shell.getWidgets('main').find(w => w.id === id);

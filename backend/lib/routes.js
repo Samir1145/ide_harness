@@ -2658,6 +2658,18 @@ module.exports = {
             res.end(content);
         },
 
+        '/api/hayagriva/entity-map-panel': (req, res, parsedUrl, docsRoot) => {
+            const htmlPath = path.join(__dirname, 'assets', 'entity-map-panel.html');
+            if (!fs.existsSync(htmlPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Entity Map Panel view file not found');
+                return;
+            }
+            const content = fs.readFileSync(htmlPath, 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(content);
+        },
+
         '/api/hayagriva/topic-overlap': (req, res, parsedUrl, docsRoot) => {
             const caseName = parsedUrl.query.case || '';
             const caseDir = resolveCaseDir(docsRoot, caseName);

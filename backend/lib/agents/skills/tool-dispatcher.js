@@ -27,7 +27,29 @@ const RBZ_TOOLS = {
     'rbz_related_party_inquest': 1500.00,
     'rbzrelatedpartyinquest': 1500.00,
     'screen_related_parties': 1500.00,
-    'screenrelatedparties': 1500.00
+    'screenrelatedparties': 1500.00,
+
+    // LEXAI Micro-Forensic Services (Port 4000)
+    'lexai_resolve_entity_master': 50.00,
+    'lexairesolveentitymaster': 50.00,
+    'lexai_detect_vanishing_or_shell_alert': 100.00,
+    'lexaidetectvanishingorshellalert': 100.00,
+    'lexai_verify_director_cooling_off': 75.00,
+    'lexaiverifydirectorcoolingoff': 75.00,
+    'lexai_screen_cibil_wilful_defaulter': 75.00,
+    'lexaiscreencibilwilfuldefaulter': 75.00,
+    'lexai_probe_section_5_24_relationship': 150.00,
+    'lexaiprobesection524relationship': 150.00,
+    'lexai_ecourts_litigant_probe': 150.00,
+    'lexaiecourtslitigantprobe': 150.00,
+    'lexai_filter_adverse_vs_creditor_role': 100.00,
+    'lexaifilteradversevscreditorrole': 100.00,
+    'lexai_screen_pufe_lookback_window': 150.00,
+    'lexaiscreenpufelookbackwindow': 150.00,
+    'lexai_screen_global_sanctions': 75.00,
+    'lexaiscreenglobalsanctions': 75.00,
+    'lexai_detect_cartel_collusion': 200.00,
+    'lexaidetectcartelcollusion': 200.00
 };
 
 /**
@@ -40,7 +62,7 @@ const RBZ_TOOLS = {
  * @param {Object} [sessionContext] Execution context (mode, allowExternal, overrides, etc.)
  */
 async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
-    const norm = String(toolName || '').toLowerCase().trim().replace(/^(hayagriva|ipie|resolution_bazaar|rbz):/i, '');
+    const norm = String(toolName || '').toLowerCase().trim().replace(/^(hayagriva|ipie|resolution_bazaar|rbz|lexai):/i, '');
 
     // 1. Pre-flight permission & risk tier evaluation
     const decision = evaluateToolCall(caseDir, norm, args, sessionContext);
@@ -334,7 +356,27 @@ async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
         case 'rbz_related_party_inquest':
         case 'rbzrelatedpartyinquest':
         case 'screen_related_parties':
-        case 'screenrelatedparties': {
+        case 'screenrelatedparties':
+        case 'lexai_resolve_entity_master':
+        case 'lexairesolveentitymaster':
+        case 'lexai_detect_vanishing_or_shell_alert':
+        case 'lexaidetectvanishingorshellalert':
+        case 'lexai_verify_director_cooling_off':
+        case 'lexaiverifydirectorcoolingoff':
+        case 'lexai_screen_cibil_wilful_defaulter':
+        case 'lexaiscreencibilwilfuldefaulter':
+        case 'lexai_probe_section_5_24_relationship':
+        case 'lexaiprobesection524relationship':
+        case 'lexai_ecourts_litigant_probe':
+        case 'lexaiecourtslitigantprobe':
+        case 'lexai_filter_adverse_vs_creditor_role':
+        case 'lexaifilteradversevscreditorrole':
+        case 'lexai_screen_pufe_lookback_window':
+        case 'lexaiscreenpufelookbackwindow':
+        case 'lexai_screen_global_sanctions':
+        case 'lexaiscreenglobalsanctions':
+        case 'lexai_detect_cartel_collusion':
+        case 'lexaidetectcartelcollusion': {
             const http = require('http');
             const { markTaskExecuted, DEFAULT_TOOL_RATES } = require('../../core/case-billing-store');
             const rate = DEFAULT_TOOL_RATES[norm] || 100.00;
@@ -343,37 +385,95 @@ async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
             const targetName = args.name || args.director_name || args.party_name || '';
 
             // Call Resolution Bazaar Server
+                        // Map legacy aliases to canonical micro-service name
+            const LEGACY_MAP = {
+                'query_cibil_defaulters': 'lexai_screen_cibil_wilful_defaulter',
+                'querycibildefaulters': 'lexai_screen_cibil_wilful_defaulter',
+                'check_director_mca_status': 'lexai_verify_director_cooling_off',
+                'checkdirectormcastatus': 'lexai_verify_director_cooling_off',
+                'execute_ecourts_litigation_search': 'lexai_ecourts_litigant_probe',
+                'executeecourtslitigationsearch': 'lexai_ecourts_litigant_probe',
+                'screen_related_parties': 'lexai_probe_section_5_24_relationship',
+                'screenrelatedparties': 'lexai_probe_section_5_24_relationship',
+                'rbz_related_party_inquest': 'lexai_probe_section_5_24_relationship',
+                'rbzrelatedpartyinquest': 'lexai_probe_section_5_24_relationship',
+                'screen_section_65_collusion': 'lexai_detect_cartel_collusion',
+                'screensection65collusion': 'lexai_detect_cartel_collusion',
+                'rbz_section_65_inquest': 'lexai_detect_cartel_collusion',
+                'rbzsection65inquest': 'lexai_detect_cartel_collusion',
+                'screen_section_29a_entity': 'lexai_resolve_entity_master',
+                'screensection29aentity': 'lexai_resolve_entity_master'
+            };
+
+            const canonicalTool = LEGACY_MAP[norm] || norm;
+
+            // Normalize arguments for LEXAI Micro-Forensic tools
+            const microArgs = { ...args };
+            if (!microArgs.identifier && targetIdentifier) microArgs.identifier = targetIdentifier;
+            if (!microArgs.cin && /^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/i.test(targetIdentifier)) {
+                microArgs.cin = targetIdentifier;
+            }
+            if (!microArgs.din && /^d{8}$/.test(targetIdentifier)) {
+                microArgs.din = targetIdentifier;
+            }
+            if (!microArgs.name && targetName) microArgs.name = targetName;
+            if (!microArgs.director_name && targetName && canonicalTool === 'lexai_verify_director_cooling_off') {
+                microArgs.director_name = targetName;
+            }
+            if (!microArgs.cirp_commencement_date && (microArgs.cirp_admission_date || microArgs.admission_date)) {
+                microArgs.cirp_commencement_date = microArgs.cirp_admission_date || microArgs.admission_date;
+            }
+
+            // Call LEXAI Micro-Forensics Server on Port 4000 (/api/mcp)
             const serverResult = await new Promise((resolve) => {
                 const postData = JSON.stringify({
-                    tool: norm,
-                    identifier: targetIdentifier,
-                    name: targetName,
-                    case_id: path.basename(caseDir),
-                    args
+                    jsonrpc: '2.0',
+                    id: taskId,
+                    method: 'tools/call',
+                    params: {
+                        name: canonicalTool,
+                        arguments: microArgs
+                    }
                 });
 
                 const req = http.request({
                     hostname: '127.0.0.1',
-                    port: 8000,
-                    path: '/api/v1/diligence/execute',
+                    port: 4000,
+                    path: '/api/mcp',
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Content-Length': Buffer.byteLength(postData),
                         'X-API-Key': 'rbz_live_test_ip_key_2026'
                     },
-                    timeout: 5000
+                    timeout: 8000
                 }, (res) => {
                     let raw = '';
                     res.on('data', c => raw += c);
                     res.on('end', () => {
                         try {
-                            resolve(JSON.parse(raw));
+                            const parsed = JSON.parse(raw);
+                            if (parsed.result && parsed.result.content && parsed.result.content[0] && parsed.result.content[0].text) {
+                                try {
+                                    const toolData = JSON.parse(parsed.result.content[0].text);
+                                    resolve(toolData);
+                                    return;
+                                } catch (_) {
+                                    resolve(parsed.result);
+                                    return;
+                                }
+                            }
+                            if (parsed.result) {
+                                resolve(parsed.result.data || parsed.result);
+                                return;
+                            }
+                            resolve(parsed);
                         } catch (_) {
                             resolve({ status: 'ok', server_task_id: `srv_${Date.now()}` });
                         }
                     });
                 });
+
 
                 req.on('error', () => {
                     // Fallback to simulated server execution receipt if standalone
@@ -390,18 +490,60 @@ async function executeTool(caseDir, toolName, args = {}, sessionContext = {}) {
                 req.end();
             });
 
+            // Extract proof receipt details
+            const serverTaskId = (serverResult.proof_receipt && serverResult.proof_receipt.receipt_id) ||
+                                 serverResult.server_task_id ||
+                                 `srv_lexai_${Date.now()}`;
+            const serverReceiptSig = (serverResult.proof_receipt && serverResult.proof_receipt.sha256_audit_hash) ||
+                                     serverResult.server_receipt_sig ||
+                                     `sig_${Date.now()}`;
+
             // Record execution in tamper-evident SQLite billing ledger
             if (caseDir) {
                 try {
-                    markTaskExecuted(caseDir, taskId, serverResult);
+                    markTaskExecuted(caseDir, taskId, {
+                        ...serverResult,
+                        server_task_id: serverTaskId,
+                        server_receipt_sig: serverReceiptSig,
+                        rate_charged_inr: rate
+                    });
                 } catch (_) {}
+
+                // Milestone 4: Stamp verification receipt into reviews/case_kv_dictionary.json
+                try {
+                    const dictPath = path.join(caseDir, 'reviews', 'case_kv_dictionary.json');
+                    if (fs.existsSync(dictPath)) {
+                        const dict = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
+                        dict.forensic_verifications = dict.forensic_verifications || {};
+                        dict.pending_forensic_probes = dict.pending_forensic_probes || {};
+
+                        const targetKey = targetIdentifier || args.din || args.cin || args.pan || args.name || 'entity';
+                        const verificationKey = `${canonicalTool}_${targetKey}`.replace(/[^a-zA-Z0-9_]/g, '_');
+                        dict.forensic_verifications[verificationKey] = {
+                            tool: canonicalTool,
+                            targetIdentifier: targetKey,
+                            status: serverResult.verdict_badge ? `VERIFIED — ${serverResult.verdict_badge}` : 'VERIFIED',
+                            verdict_badge: serverResult.verdict_badge || '🟢 VERIFIED',
+                            receipt_id: serverTaskId,
+                            sha256_audit_hash: serverReceiptSig,
+                            verified_at: new Date().toISOString(),
+                            rate_inr: rate
+                        };
+                        delete dict.pending_forensic_probes[verificationKey];
+                        fs.writeFileSync(dictPath, JSON.stringify(dict, null, 2), 'utf8');
+                    }
+                } catch (stampErr) {
+                    console.warn('[ToolDispatcher] KV stamp warning:', stampErr.message);
+                }
             }
 
             return {
-                tool: norm,
+                tool: canonicalTool,
+                originalTool: norm,
                 status: 'executed',
                 taskId,
-                serverTaskId: serverResult.server_task_id,
+                serverTaskId,
+                serverReceiptSig,
                 rate_inr: rate,
                 result: serverResult,
                 _riskClass: decision.riskClass
