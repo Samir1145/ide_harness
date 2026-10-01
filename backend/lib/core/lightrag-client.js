@@ -31,25 +31,49 @@ class LightRagClient {
             try {
                 const cs = JSON.parse(fs.readFileSync(path.join(caseDir, 'hayagriva_settings.json'), 'utf8'));
                 if (cs.lightragApiUrl || cs.resolutionbazaar_url) apiUrl = cs.lightragApiUrl || cs.resolutionbazaar_url;
-                if (cs.lightragApiKey || cs.resolutionbazaar_key || cs.advisoryApiKey) {
-                    apiKey = cs.lightragApiKey || cs.resolutionbazaar_key || cs.advisoryApiKey;
+                if (cs.lightragApiKey !== undefined) {
+                    apiKey = cs.lightragApiKey;
+                } else if (cs.resolutionbazaar_key || cs.advisoryApiKey) {
+                    apiKey = cs.resolutionbazaar_key || cs.advisoryApiKey;
                 }
                 if (cs.lightragWorkspace) workspace = cs.lightragWorkspace;
                 if (cs.lightragQueryMode) queryMode = cs.lightragQueryMode;
             } catch (_) {}
         }
 
-        // Read global settings overrides if present
+        // 1. Read Global Chamber Profile (~/.hayagriva/chamber_config.json)
+        const chamberConfigPath = path.join(os.homedir(), '.hayagriva', 'chamber_config.json');
+        if (fs.existsSync(chamberConfigPath)) {
+            try {
+                const s = JSON.parse(fs.readFileSync(chamberConfigPath, 'utf8'));
+                if (s.lightragApiUrl || s.resolutionbazaar_url) apiUrl = s.lightragApiUrl || s.resolutionbazaar_url;
+                if (s.lightragApiKey !== undefined) {
+                    apiKey = s.lightragApiKey;
+                } else if (s.resolutionbazaar_key || s.advisoryApiKey) {
+                    apiKey = s.resolutionbazaar_key || s.advisoryApiKey;
+                }
+                if (s.lightragWorkspace) workspace = s.lightragWorkspace;
+                if (s.lightragQueryMode) queryMode = s.lightragQueryMode;
+            } catch (_) {}
+        }
+
+        // 2. Read Legacy global settings overrides if present (~/.gemini/hayagriva_settings.json)
         const settingsPath = path.join(os.homedir(), '.gemini', 'hayagriva_settings.json');
         if (fs.existsSync(settingsPath)) {
             try {
                 const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-                if (s.lightragApiUrl || s.resolutionbazaar_url) apiUrl = s.lightragApiUrl || s.resolutionbazaar_url;
-                if (s.lightragApiKey || s.resolutionbazaar_key || s.advisoryApiKey) {
-                    apiKey = s.lightragApiKey || s.resolutionbazaar_key || s.advisoryApiKey;
+                if (!apiUrl || apiUrl === 'http://127.0.0.1:9621') {
+                    if (s.lightragApiUrl || s.resolutionbazaar_url) apiUrl = s.lightragApiUrl || s.resolutionbazaar_url;
                 }
-                if (s.lightragWorkspace) workspace = s.lightragWorkspace;
-                if (s.lightragQueryMode) queryMode = s.lightragQueryMode;
+                if (!apiKey) {
+                    if (s.lightragApiKey !== undefined) {
+                        apiKey = s.lightragApiKey;
+                    } else if (s.resolutionbazaar_key || s.advisoryApiKey) {
+                        apiKey = s.resolutionbazaar_key || s.advisoryApiKey;
+                    }
+                }
+                if (!workspace && s.lightragWorkspace) workspace = s.lightragWorkspace;
+                if (s.lightragQueryMode && queryMode === 'mix') queryMode = s.lightragQueryMode;
             } catch (_) {}
         }
 
@@ -80,7 +104,9 @@ class LightRagClient {
             'Content-Type': 'application/json',
             ...extra
         };
-        if (this.config.apiKey) {
+        const isLocal = this.config.apiUrl.includes('127.0.0.1') || this.config.apiUrl.includes('localhost');
+        const isMockKey = Boolean(this.config.apiKey && this.config.apiKey.startsWith('rb_live'));
+        if (this.config.apiKey && (!isLocal || !isMockKey) && !extra.forceNoAuth) {
             headers['Authorization'] = `Bearer ${this.config.apiKey}`;
             headers['X-API-Key'] = this.config.apiKey;
         }
@@ -305,6 +331,11 @@ class LightRagClient {
                 res.on('data', (chunk) => body += chunk);
                 res.on('end', () => {
                     if (res.statusCode === 401 || res.statusCode === 403) {
+                        const isLocal = targetUrl.hostname === '127.0.0.1' || targetUrl.hostname === 'localhost';
+                        if (isLocal && headers['Authorization'] && !options._retriedWithoutAuth) {
+                            console.log('[LightRagClient] Retrying local query without Authorization header...');
+                            return this.queryPrecedents(queryText, { ...options, _retriedWithoutAuth: true, forceNoAuth: true }).then(resolve);
+                        }
                         return resolve({
                             success: false,
                             error: 'SUBSCRIPTION_EXPIRED_OR_INVALID_KEY',
@@ -316,7 +347,7 @@ class LightRagClient {
                         try {
                             const parsedData = JSON.parse(body);
                             const answer = parsedData.response || parsedData.answer || parsedData.result || body;
-                            const refs = parsedData.references || parsedData.context_sources || [];
+                            const refs = parsedData.references || parsedData.context_sources || (parsedData.data && parsedData.data.references) || [];
                             resolve({
                                 success: true,
                                 answer: answer,

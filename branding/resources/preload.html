@@ -137,6 +137,33 @@
                 transform: scale(1.0);
             }
         }
+
+        /* Sovereign Hard Floor: Eliminate duplicate generic Theia AI welcome screens and dividers */
+        .theia-WelcomeMessage:not(.hayagriva-welcome-banner),
+        .theia-WelcomeMessage-Main:not(.hayagriva-welcome-banner),
+        .theia-WelcomeMessage-Compact,
+        .theia-WelcomeMessage-Divider {
+            display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
+        /* Sovereign Hard Floor: Suppress generic IDE open-editors and coder top-level menu items */
+        #theia-open-editors-widget {
+            display: none !important;
+        }
+        .lm-MenuBar-item[data-id="menubar/5_selection"],
+        .lm-MenuBar-item[data-id="menubar/6_go"],
+        .lm-MenuBar-item[data-id="menubar/terminal"],
+        .lm-MenuBar-item[data-id="menubar/run"],
+        .p-MenuBar-item[data-id="menubar/5_selection"],
+        .p-MenuBar-item[data-id="menubar/6_go"],
+        .p-MenuBar-item[data-id="menubar/terminal"],
+        .p-MenuBar-item[data-id="menubar/run"] {
+            display: none !important;
+        }
     </style>
 </head>
 

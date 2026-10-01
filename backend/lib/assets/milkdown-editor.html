@@ -115,7 +115,7 @@
   .editor-viewport {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto;
     display: block;
     padding: 24px 20px 80px 20px;
     background: #1e293b; /* Sleek neutral desk surface */
@@ -138,6 +138,13 @@
     line-height: 1.8;
     color: #0f172a !important; /* High-contrast rich black ink */
     position: relative;
+    transition: max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), padding 0.25s ease;
+  }
+
+  /* Landscape / Wide layout mode for financial ledgers & wide multi-column schedules */
+  .parchment-sheet.landscape-mode {
+    max-width: 1380px;
+    padding: 44px 50px;
   }
 
   /* ── Court Typography & Headings ────────────────────────────────── */
@@ -214,34 +221,70 @@
     color: #0f172a;
   }
 
-  /* ── Interactive Legal Tables ───────────────────────────────────── */
+  /* ── Interactive Legal Tables & Contained Responsive Wrapper ──── */
+  .court-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 20px 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #f1f5f9;
+  }
+
+  .court-table-wrapper::-webkit-scrollbar {
+    height: 7px;
+  }
+  .court-table-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  .court-table-wrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  .court-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
   .court-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 18px 0;
+    margin: 0;
     font-family: var(--font-legal);
-    font-size: 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    font-size: 13.5px;
+    background: #ffffff;
   }
 
   .court-table th {
-    background: #f1f5f9;
+    background: #f8fafc;
     border: 1px solid #cbd5e1;
-    padding: 8px 12px;
+    padding: 8px 10px;
     font-weight: 700;
     text-align: left;
     color: #0f172a;
+    font-family: var(--font-ui);
+    font-size: 11.5px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .court-table td {
     border: 1px solid #cbd5e1;
-    padding: 8px 12px;
+    padding: 7px 10px;
     color: #1e293b;
     outline: none;
+    background: #ffffff;
+    white-space: nowrap;
   }
 
   .court-table td:focus {
-    background: #e0f2fe;
+    background: #e0f2fe !important;
     box-shadow: inset 0 0 0 1px #0284c7;
   }
 
@@ -250,6 +293,16 @@
     background: #f8fafc;
     border-top: 2px solid #0f172a;
     border-bottom: 2px solid #0f172a;
+  }
+
+  /* Dense ledger typography for multi-column accounting sheets */
+  .court-table.dense-table {
+    font-size: 11.5px;
+    min-width: 100%;
+  }
+  .court-table.dense-table th,
+  .court-table.dense-table td {
+    padding: 6px 8px;
   }
 
   /* ── Visual Variable Chips ──────────────────────────────────────── */
@@ -397,6 +450,10 @@
       </div>
     </div>
     <div class="header-actions">
+      <button class="btn-action" id="btnToggleOrientation" title="Toggle Portrait / Landscape Mode">
+        <span id="orientationIcon">📄</span>
+        <span id="orientationText">Portrait</span>
+      </button>
       <button class="btn-action btn-court" id="btnExportDocx" title="Compile to Supreme Court DOCX (A4, 14pt)">🏛️ Export DOCX</button>
     </div>
   </div>
@@ -445,6 +502,7 @@
   let omniResults = [];
   let omniSelectedIndex = 0;
   let omniRange = null;
+  let hasWideTable = false;
 
   // ── 2. Markdown <-> HTML Visual Serializer ─────────────────────────
   function markdownToHtml(md) {
@@ -468,7 +526,12 @@
 
     const flushTable = () => {
       if (!inTable) return;
-      html += '<table class="court-table"><tbody>';
+      const maxCols = Math.max(...tableRows.map(r => r.length), 0);
+      const isDense = maxCols >= 6;
+      if (maxCols >= 6) {
+        hasWideTable = true;
+      }
+      html += `<div class="court-table-wrapper" contenteditable="false"><table class="court-table ${isDense ? 'dense-table' : ''}" data-cols="${maxCols}"><tbody>`;
       tableRows.forEach((r, idx) => {
         const isHeader = idx === 0;
         const isTotal = r.some(c => /total|due|sum/i.test(c));
@@ -479,7 +542,7 @@
         });
         html += '</tr>';
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
       inTable = false;
       tableRows = [];
     };
@@ -574,20 +637,23 @@
         } else if (tag === 'blockquote') {
           const lines = node.textContent.split('\n');
           md += lines.map(l => `> ${l}`).join('\n') + '\n\n';
-        } else if (tag === 'table') {
-          const rows = Array.from(node.querySelectorAll('tr'));
-          if (rows.length > 0) {
-            rows.forEach((r, idx) => {
-              const cells = Array.from(r.querySelectorAll('th, td')).map(c => {
-                const varChip = c.querySelector('.legal-variable-chip');
-                return varChip ? `{{${varChip.getAttribute('data-var') || varChip.textContent}}}` : c.textContent.trim();
+        } else if (tag === 'table' || (node.classList && (node.classList.contains('court-table-wrapper') || node.classList.contains('court-table')))) {
+          const tableElem = tag === 'table' ? node : node.querySelector('table');
+          if (tableElem) {
+            const rows = Array.from(tableElem.querySelectorAll('tr'));
+            if (rows.length > 0) {
+              rows.forEach((r, idx) => {
+                const cells = Array.from(r.querySelectorAll('th, td')).map(c => {
+                  const varChip = c.querySelector('.legal-variable-chip');
+                  return varChip ? `{{${varChip.getAttribute('data-var') || varChip.textContent}}}` : c.textContent.trim();
+                });
+                md += `| ${cells.join(' | ')} |\n`;
+                if (idx === 0) {
+                  md += `| ${cells.map(() => '---').join(' | ')} |\n`;
+                }
               });
-              md += `| ${cells.join(' | ')} |\n`;
-              if (idx === 0) {
-                md += `| ${cells.map(() => '---').join(' | ')} |\n`;
-              }
-            });
-            md += '\n';
+              md += '\n';
+            }
           }
         } else if (tag === 'p') {
           const text = serializeInlineNode(node);
@@ -633,7 +699,13 @@
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       currentRawMarkdown = await res.text();
+      hasWideTable = false;
       editorEl.innerHTML = markdownToHtml(currentRawMarkdown);
+      if (hasWideTable) {
+        setOrientation('landscape');
+      } else {
+        setOrientation('portrait');
+      }
       setSaveStatus('saved', 'All changes saved');
     } catch (e) {
       console.error('Failed loading file:', e);
@@ -924,6 +996,40 @@
   }
 
   btnExportDocx.addEventListener('click', triggerExportDocx);
+
+  // ── 8. Orientation Mode Controller (Portrait 📄 / Landscape 📑) ───
+  let currentOrientation = 'portrait';
+  function setOrientation(mode) {
+    currentOrientation = mode;
+    const btn = document.getElementById('btnToggleOrientation');
+    const icon = document.getElementById('orientationIcon');
+    const text = document.getElementById('orientationText');
+
+    if (mode === 'landscape') {
+      editorEl.classList.add('landscape-mode');
+      if (icon) icon.textContent = '📑';
+      if (text) text.textContent = 'Landscape';
+      if (btn) {
+        btn.classList.add('active');
+        btn.title = 'Switch to Portrait Mode (A4, 820px)';
+      }
+    } else {
+      editorEl.classList.remove('landscape-mode');
+      if (icon) icon.textContent = '📄';
+      if (text) text.textContent = 'Portrait';
+      if (btn) {
+        btn.classList.remove('active');
+        btn.title = 'Switch to Landscape Mode (Wide, 1380px)';
+      }
+    }
+  }
+
+  const btnToggleOrientation = document.getElementById('btnToggleOrientation');
+  if (btnToggleOrientation) {
+    btnToggleOrientation.addEventListener('click', () => {
+      setOrientation(currentOrientation === 'portrait' ? 'landscape' : 'portrait');
+    });
+  }
 
   // Initial Load
   loadDocument();

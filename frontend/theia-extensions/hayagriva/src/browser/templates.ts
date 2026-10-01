@@ -2492,7 +2492,7 @@ export function citationPreviewPanelHtml(
 </html>`;
 }
 
-export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): string {
+export function inboxExplorerHtml(caseName: string, apiPort: number = 3210, isLight: boolean = false): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -2759,12 +2759,100 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
     padding: 40px 10px;
     font-size: 12px;
   }
+
+  /* ── Theme Adaptive Light Mode ── */
+  body.theme-light {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  body.theme-light .header {
+    border-bottom: 1px solid #e2e8f0;
+  }
+  body.theme-light .title {
+    color: #0f172a;
+  }
+  body.theme-light .badge {
+    background: rgba(2, 132, 199, 0.12);
+    color: #0284c7;
+    border: 1px solid rgba(2, 132, 199, 0.25);
+  }
+  body.theme-light .badge.alert {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.25);
+  }
+  body.theme-light .btn-refresh {
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    background: #ffffff;
+  }
+  body.theme-light .btn-refresh:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  body.theme-light .tab-btn {
+    color: #64748b;
+  }
+  body.theme-light .tab-btn.active {
+    color: #0284c7;
+    border-bottom-color: #0284c7;
+  }
+  body.theme-light .filter-pill {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+  }
+  body.theme-light .filter-pill:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  body.theme-light .filter-pill.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+  }
+  body.theme-light .item-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    color: #1e293b;
+  }
+  body.theme-light .item-card:hover {
+    border-color: #0284c7;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.12);
+  }
+  body.theme-light .card-payload {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+  }
+  body.theme-light .pill-btn {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+  }
+  body.theme-light .pill-btn:hover {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+  }
+  body.theme-light .text-input {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+  }
+  body.theme-light .text-input:focus {
+    border-color: #0284c7;
+  }
+  body.theme-light .empty-state {
+    color: #64748b;
+  }
 </style>
 </head>
-<body>
+<body class="${isLight ? 'theme-light' : 'theme-dark'}">
   <div class="header">
     <div class="title-area">
-      <span class="title">Compliances</span>
+      <span class="title">Statutory Compliances</span>
       <span id="pending-badge" class="badge">0 Pending</span>
     </div>
     <button class="btn-refresh" onclick="loadInbox()">↻ Refresh</button>
@@ -2793,7 +2881,33 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
     let currentCase = '${caseName}';
     const apiPort = ${apiPort};
 
+    // Auto-detect theme from parent window
+    function detectTheme() {
+      try {
+        if (window.parent && window.parent.document && window.parent.document.body) {
+          const p = window.parent.document.body;
+          if (p.classList.contains('theia-light') || p.classList.contains('light-theia')) {
+            document.body.classList.add('theme-light');
+            document.body.classList.remove('theme-dark');
+          } else {
+            document.body.classList.remove('theme-light');
+            document.body.classList.add('theme-dark');
+          }
+        }
+      } catch (_) {}
+    }
+    detectTheme();
+
     window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'theme-change') {
+        if (event.data.theme === 'light') {
+          document.body.classList.add('theme-light');
+          document.body.classList.remove('theme-dark');
+        } else {
+          document.body.classList.remove('theme-light');
+          document.body.classList.add('theme-dark');
+        }
+      }
       if (event.data && event.data.type === 'select-case' && event.data.caseName) {
         currentCase = event.data.caseName;
         loadInbox();
@@ -2955,24 +3069,24 @@ export function inboxExplorerHtml(caseName: string, apiPort: number = 3210): str
 </html>`;
 }
 
-export function billingExplorerHtml(caseName: string, apiPort: number = 3210): string {
+export function billingExplorerHtml(caseName: string, apiPort: number = 3210, isLight: boolean = false): string {
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
   :root {
-    --bg-primary: var(--theia-layout-color1, #14161a);
-    --bg-card: #1c1e24;
-    --bg-card-hover: #232730;
-    --border-color: rgba(255, 255, 255, 0.08);
-    --text-primary: #f3f4f6;
-    --text-muted: #9ca3af;
-    --accent-blue: #38bdf8;
+    --bg-primary: ${isLight ? '#f8fafc' : 'var(--theia-layout-color1, #14161a)'};
+    --bg-card: ${isLight ? '#ffffff' : '#1c1e24'};
+    --bg-card-hover: ${isLight ? '#f1f5f9' : '#232730'};
+    --border-color: ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)'};
+    --text-primary: ${isLight ? '#0f172a' : '#f3f4f6'};
+    --text-muted: ${isLight ? '#64748b' : '#94a3b8'};
+    --accent-blue: ${isLight ? '#0284c7' : '#38bdf8'};
     --accent-emerald: #10b981;
     --accent-amber: #f59e0b;
-    --accent-purple: #a855f7;
-    --accent-rose: #f43f5e;
+    --accent-purple: #8b5cf6;
+    --accent-rose: #ef4444;
   }
   body {
     font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
@@ -3002,15 +3116,15 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
   }
   .title {
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12.5px;
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    color: #e2e8f0;
+    color: ${isLight ? '#0f172a' : '#e2e8f0'};
   }
   .balance-card {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    background: ${isLight ? 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)'};
+    border: 1px solid ${isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.25)'};
+    box-shadow: ${isLight ? '0 2px 10px rgba(2, 132, 199, 0.08)' : '0 4px 16px rgba(0, 0, 0, 0.3)'};
     border-radius: 8px;
     padding: 12px 14px;
     margin-bottom: 12px;
@@ -3024,24 +3138,24 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
   .balance-label {
     font-size: 11px;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: ${isLight ? '#0369a1' : 'var(--text-muted)'};
     font-weight: 600;
     letter-spacing: 0.5px;
   }
   .balance-amount {
     font-size: 20px;
     font-weight: 800;
-    color: #38bdf8;
+    color: ${isLight ? '#0284c7' : '#38bdf8'};
     letter-spacing: -0.5px;
   }
   .balance-breakdown {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
-    color: #94a3b8;
+    color: ${isLight ? '#475569' : '#94a3b8'};
     margin-top: 4px;
     padding-top: 4px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    border-top: 1px dashed ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.1)'};
   }
   .action-buttons {
     display: flex;
@@ -3050,7 +3164,7 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
   }
   .btn-pay {
     flex: 1.2;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #0284c7, #0369a1);
     color: #ffffff;
     border: none;
     border-radius: 6px;
@@ -3062,17 +3176,17 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
     align-items: center;
     justify-content: center;
     gap: 5px;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
     transition: all 0.15s ease;
   }
   .btn-pay:hover {
-    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    background: linear-gradient(135deg, #0369a1, #075985);
     transform: translateY(-1px);
   }
   .btn-secondary {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-color);
-    color: #cbd5e1;
+    background: ${isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)'};
+    border: 1px solid ${isLight ? '#cbd5e1' : 'var(--border-color)'};
+    color: ${isLight ? '#334155' : '#cbd5e1'};
     border-radius: 6px;
     padding: 6px 10px;
     font-size: 11px;
@@ -3083,13 +3197,13 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
     transition: background 0.15s ease;
   }
   .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: ${isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.12)'};
   }
   .tabs {
     display: flex;
     gap: 4px;
     margin-bottom: 10px;
-    background: rgba(0, 0, 0, 0.2);
+    background: ${isLight ? '#e2e8f0' : 'rgba(0, 0, 0, 0.2)'};
     padding: 2px;
     border-radius: 6px;
   }
@@ -3097,7 +3211,7 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
     flex: 1;
     background: transparent;
     border: none;
-    color: var(--text-muted);
+    color: ${isLight ? '#475569' : 'var(--text-muted)'};
     padding: 5px 4px;
     border-radius: 4px;
     font-size: 10.5px;
@@ -3108,11 +3222,11 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
     white-space: nowrap;
   }
   .tab-btn.active {
-    background: #2563eb;
+    background: #0284c7;
     color: #ffffff;
   }
   .tab-badge {
-    background: rgba(0, 0, 0, 0.3);
+    background: ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.3)'};
     border-radius: 8px;
     padding: 1px 5px;
     font-size: 9.5px;
@@ -3131,11 +3245,12 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 9px 10px;
+    box-shadow: ${isLight ? '0 1px 3px rgba(0, 0, 0, 0.03)' : 'none'};
     transition: border-color 0.15s ease;
   }
   .task-card:hover {
     background: var(--bg-card-hover);
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: ${isLight ? '#38bdf8' : 'rgba(255, 255, 255, 0.15)'};
   }
   .task-header {
     display: flex;
@@ -3146,18 +3261,18 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
   .task-tool {
     font-weight: 600;
     font-size: 11.5px;
-    color: #e2e8f0;
+    color: ${isLight ? '#0f172a' : '#e2e8f0'};
     word-break: break-word;
   }
   .task-rate {
     font-weight: 700;
     font-size: 12px;
-    color: #38bdf8;
+    color: ${isLight ? '#0284c7' : '#38bdf8'};
     white-space: nowrap;
   }
   .task-target {
     font-size: 11px;
-    color: #94a3b8;
+    color: ${isLight ? '#475569' : '#94a3b8'};
     margin-bottom: 4px;
   }
   .task-meta {
@@ -3175,15 +3290,15 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
     font-weight: 600;
     text-transform: uppercase;
   }
-  .status-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-  .status-executed { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
-  .status-settled { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .status-pending { ${isLight ? 'background: #fef3c7; color: #b45309; border: 1px solid #fde68a;' : 'background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);'} }
+  .status-executed { ${isLight ? 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;' : 'background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);'} }
+  .status-settled { ${isLight ? 'background: #d1fae5; color: #047857; border: 1px solid #a7f3d0;' : 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);'} }
   .card-actions {
     display: flex;
     gap: 6px;
     margin-top: 8px;
     padding-top: 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.05)'};
   }
   .btn-auth {
     flex: 1;
@@ -3221,31 +3336,47 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
   }
   .rate-card-table th {
     text-align: left;
-    color: #94a3b8;
+    color: ${isLight ? '#334155' : '#94a3b8'};
     padding: 6px 4px;
     border-bottom: 1px solid var(--border-color);
   }
   .rate-card-table td {
     padding: 6px 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: ${isLight ? '#0f172a' : '#f3f4f6'};
+    border-bottom: 1px solid ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.04)'};
   }
   .integrity-pill {
     display: flex;
     align-items: center;
     gap: 4px;
     font-size: 10px;
-    color: #10b981;
+    color: ${isLight ? '#047857' : '#10b981'};
     padding: 2px 6px;
     border-radius: 4px;
-    background: rgba(16, 185, 129, 0.1);
+    background: ${isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.1)'};
+    border: 1px solid ${isLight ? '#a7f3d0' : 'transparent'};
+  }
+  .btn-refresh {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 4px;
+    padding: 3px 7px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s ease;
+  }
+  .btn-refresh:hover {
+    background: ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)'};
+    color: var(--text-primary);
   }
 </style>
 </head>
 <body>
   <div class="header">
     <div class="header-left">
-      <span class="title">Resolution Bazaar</span>
-      <span class="integrity-pill" id="integrity-badge" title="Cryptographic SHA-256 Chained Ledger">⛓️ SHA-256</span>
+      <span class="title">Estate Accounts & Billing</span>
+      <span class="integrity-pill" id="integrity-badge" title="Cryptographic SHA-256 Chained Ledger">⛓️ SHA-256 Ledger</span>
     </div>
     <button class="btn-secondary" onclick="syncServer()" title="Sync with Server">🔄 Sync</button>
   </div>
@@ -3262,6 +3393,9 @@ export function billingExplorerHtml(caseName: string, apiPort: number = 3210): s
     <div class="action-buttons">
       <button class="btn-pay" onclick="openPaymentPortal()">
         💳 Pay on Resolution Bazaar
+      </button>
+      <button class="btn-secondary" onclick="window.parent.postMessage({ type: 'open-billing-ledger-main' }, '*')" title="Open Full CIRP Expense Ledger in Main Workspace">
+        📑 Ledger
       </button>
       <button class="btn-secondary" onclick="verifyIntegrity()" title="Verify SQLite Hash Chain">
         🛡️ Audit
@@ -4244,6 +4378,1487 @@ export function commercialReadinessHtml(caseName: string, apiPort: number = 3210
 </html>`;
 }
 
+export function entityExplorerHtml(caseName: string, apiPort: number = 3210, isLight: boolean = false): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    font-size: var(--theia-ui-font-size1, 12px);
+    margin: 0;
+    padding: 12px;
+    background: ${isLight ? '#f8fafc' : 'var(--theia-layout-color1, #1e1e1e)'};
+    color: ${isLight ? '#1e293b' : 'var(--theia-ui-font-color1, #cccccc)'};
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid ${isLight ? '#e2e8f0' : 'var(--theia-border-color, #333)'};
+  }
+  .title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .title {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: ${isLight ? '#475569' : '#94a3b8'};
+  }
+  .badge {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.35);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .btn-refresh {
+    background: transparent;
+    border: 1px solid ${isLight ? '#cbd5e1' : 'var(--theia-border-color, #444)'};
+    color: ${isLight ? '#64748b' : '#94a3b8'};
+    border-radius: 4px;
+    padding: 3px 7px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s ease;
+  }
+  .btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
 
+  /* Hero Launcher Button */
+  .hero-launcher {
+    margin-bottom: 10px;
+  }
+  .btn-open-graph {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-open-graph:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+    transform: translateY(-1px);
+  }
+  .btn-open-graph:active {
+    transform: translateY(0);
+  }
 
+  /* Search */
+  .search-wrap {
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .search-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: ${isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)'};
+    border: 1px solid ${isLight ? '#cbd5e1' : 'var(--theia-border-color, #383838)'};
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: inherit;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .search-input:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px #38bdf8;
+  }
+
+  /* Filter Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .tab-btn {
+    background: ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.04)'};
+    border: 1px solid ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.08)'};
+    border-radius: 12px;
+    padding: 3px 9px;
+    font-size: 10px;
+    color: ${isLight ? '#475569' : '#94a3b8'};
+    cursor: pointer;
+    white-space: nowrap;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+  .tab-btn.active {
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
+    border-color: rgba(14, 165, 233, 0.5);
+    font-weight: 600;
+  }
+  .tab-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Entities Cards List */
+  .cards-container {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 2px;
+  }
+  .cards-container::-webkit-scrollbar {
+    width: 4px;
+  }
+  .cards-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+  }
+
+  .entity-card {
+    background: ${isLight ? '#ffffff' : 'var(--theia-layout-color2, #252526)'};
+    border: 1px solid ${isLight ? '#e2e8f0' : 'var(--theia-border-color, #333)'};
+    border-radius: 6px;
+    padding: 9px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.18s ease;
+  }
+  .entity-card:hover {
+    border-color: #38bdf8;
+    background: ${isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.05)'};
+    transform: translateX(2px);
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .category-pill {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.4px;
+  }
+  .category-root { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+  .category-governance { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+  .category-creditors { background: rgba(139, 92, 246, 0.18); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.35); }
+  .category-avoidance { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
+  .category-pras { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+
+  .inspect-hint {
+    font-size: 9px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .entity-card:hover .inspect-hint {
+    opacity: 1;
+    color: #38bdf8;
+  }
+
+  .entity-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: ${isLight ? '#0f172a' : '#f1f5f9'};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entity-sub {
+    font-size: 10px;
+    color: ${isLight ? '#64748b' : '#94a3b8'};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .status-badge {
+    font-size: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+    color: ${isLight ? '#94a3b8' : '#64748b'};
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title-area">
+      <span class="title">Forensic Entities</span>
+      <span class="badge" id="countBadge">0</span>
+    </div>
+    <button class="btn-refresh" title="Reload Directory" onclick="loadEntities()">⟳</button>
+  </div>
+
+  <div class="hero-launcher">
+    <button class="btn-open-graph" onclick="openTopologyGraph()">
+      <span>🗺️</span>
+      <span>Open Topology Graph</span>
+    </button>
+  </div>
+
+  <div class="search-wrap">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 Search entity, DIN, PAN, section..." oninput="handleSearch()">
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setTab('ALL', this)">All</button>
+    <button class="tab-btn" onclick="setTab('GOVERNANCE', this)">👔 Governance</button>
+    <button class="tab-btn" onclick="setTab('CREDITORS', this)">🏦 Creditors</button>
+    <button class="tab-btn" onclick="setTab('AVOIDANCE', this)">🚨 Avoidance</button>
+    <button class="tab-btn" onclick="setTab('PRAS', this)">🤝 PRAs</button>
+  </div>
+
+  <div class="cards-container" id="cardsContainer">
+    <div class="empty-state">Loading forensic entities...</div>
+  </div>
+
+  <script>
+    let currentCase = "${caseName || 'demo_case'}";
+    const apiPort = ${apiPort};
+    let entities = [];
+    let activeTab = 'ALL';
+    let searchQuery = '';
+
+    const FALLBACK_ENTITIES = [
+      { id: 'entity::cd_root', key: 'cd_root', name: 'Apogee Enterprises Pvt Ltd', entity_type: 'CORPORATE_DEBTOR', category: 'ROOT', identifier: 'CIN: U74899DL2018PTC333241', status: 'ROOT', badge: '🏢 CORPORATE DEBTOR', color: '#f59e0b' },
+      { id: 'entity::dir_mittal', key: 'dir_mittal', name: 'Rajan Mittal (Director)', entity_type: 'DIRECTOR', category: 'GOVERNANCE', identifier: 'DIN: 00123456', status: 'VERIFIED', badge: '🟢 ELIGIBLE — UNENCUMBERED DIN', color: '#10b981' },
+      { id: 'entity::dir_sharma', key: 'dir_sharma', name: 'Vikram Sharma (Promoter)', entity_type: 'DIRECTOR', category: 'GOVERNANCE', identifier: 'DIN: 08945612', status: 'PENDING', badge: '⚠️ UNVERIFIED (§29A(e))', color: '#f97316' },
+      { id: 'entity::bank_sbi', key: 'bank_sbi', name: 'State Bank of India', entity_type: 'FINANCIAL_CREDITOR', category: 'CREDITORS', identifier: 'PAN: AAACB1234F', status: 'VERIFIED', badge: '🟢 VERIFIED (32.4% CoC)', color: '#8b5cf6' },
+      { id: 'entity::bank_hdfc', key: 'bank_hdfc', name: 'HDFC Bank Limited', entity_type: 'FINANCIAL_CREDITOR', category: 'CREDITORS', identifier: 'PAN: HDFC0001234', status: 'VERIFIED', badge: '🟢 VERIFIED (18.1% CoC)', color: '#8b5cf6' },
+      { id: 'entity::firm_avoidance', key: 'firm_avoidance', name: 'Firm X Logistics Pvt Ltd', entity_type: 'AVOIDANCE_RESPONDENT', category: 'AVOIDANCE', identifier: 'CIN: U63090DL2019PTC111222', status: 'ALERT', badge: '🔴 VULNERABLE (§43 Lookback 250d)', color: '#ef4444' },
+      { id: 'entity::pra_consortium', key: 'pra_consortium', name: 'Apex Industrial Consortium', entity_type: 'RESOLUTION_APPLICANT', category: 'PRAS', identifier: 'BID: PRA-BID-2026-09', status: 'VERIFIED', badge: '🟢 SECTION 29A CLEARED', color: '#38bdf8' }
+    ];
+
+    async function loadEntities() {
+      try {
+        const res = await fetch(\`http://127.0.0.1:\${apiPort}/api/hayagriva/entities?case=\${encodeURIComponent(currentCase)}\`);
+        const data = await res.json();
+        if (data.success && data.entities && data.entities.length > 0) {
+          entities = data.entities;
+        } else {
+          entities = FALLBACK_ENTITIES;
+        }
+      } catch (e) {
+        console.warn('Failed fetching entities from API, using fallback:', e);
+        entities = FALLBACK_ENTITIES;
+      }
+      renderCards();
+    }
+
+    function setTab(tab, btn) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderCards();
+    }
+
+    function handleSearch() {
+      searchQuery = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+      renderCards();
+    }
+
+    function openTopologyGraph() {
+      window.parent.postMessage({ type: 'open-entity-map-main' }, '*');
+    }
+
+    function inspectEntity(entityId, entityName) {
+      window.parent.postMessage({
+        type: 'focus-entity-in-graph',
+        entityId: entityId,
+        entityName: entityName
+      }, '*');
+    }
+
+    function getCategoryClass(cat) {
+      const c = (cat || '').toUpperCase();
+      if (c === 'ROOT') return 'category-root';
+      if (c === 'GOVERNANCE') return 'category-governance';
+      if (c === 'CREDITORS' || c === 'CREDITOR') return 'category-creditors';
+      if (c === 'AVOIDANCE') return 'category-avoidance';
+      if (c === 'PRAS' || c === 'PRA') return 'category-pras';
+      return 'category-governance';
+    }
+
+    function renderCards() {
+      const container = document.getElementById('cardsContainer');
+      const badge = document.getElementById('countBadge');
+
+      let filtered = entities.filter(ent => {
+        // Tab filter
+        const cat = (ent.category || '').toUpperCase();
+        if (activeTab === 'GOVERNANCE' && cat !== 'GOVERNANCE' && cat !== 'ROOT') return false;
+        if (activeTab === 'CREDITORS' && cat !== 'CREDITORS' && cat !== 'CREDITOR') return false;
+        if (activeTab === 'AVOIDANCE' && cat !== 'AVOIDANCE') return false;
+        if (activeTab === 'PRAS' && cat !== 'PRAS' && cat !== 'PRA') return false;
+
+        // Search query filter
+        if (searchQuery) {
+          const name = (ent.name || '').toLowerCase();
+          const id = (ent.identifier || ent.entity_key || '').toLowerCase();
+          const badgeText = (ent.badge || '').toLowerCase();
+          return name.includes(searchQuery) || id.includes(searchQuery) || badgeText.includes(searchQuery);
+        }
+        return true;
+      });
+
+      badge.textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">No matching entities found in triage list.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(ent => {
+        const catClass = getCategoryClass(ent.category);
+        const catLabel = (ent.category || ent.entity_type || 'ENTITY').toUpperCase();
+        const ident = ent.identifier || (ent.properties && (ent.properties.din || ent.properties.cin || ent.properties.pan)) || '—';
+        const badgeText = ent.badge || '🟢 VERIFIED';
+        return \`
+          <div class="entity-card" onclick="inspectEntity('\${ent.id}', '\${(ent.name || '').replace(/'/g, "\\\\'")}')">
+            <div class="card-top">
+              <span class="category-pill \${catClass}">\${catLabel}</span>
+              <span class="inspect-hint">Inspect ➔</span>
+            </div>
+            <div class="entity-name" title="\${ent.name}">\${ent.name}</div>
+            <div class="entity-sub">
+              <span>\${ident}</span>
+              <span class="status-badge">\${badgeText}</span>
+            </div>
+          </div>
+        \`;
+      }).join('');
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'select-case' && event.data.caseName) {
+        currentCase = event.data.caseName;
+        loadEntities();
+      }
+    });
+
+    window.onload = loadEntities;
+  </script>
+</body>
+</html>`;
+}
+
+export function notificationCenterHtml(caseName: string, apiPort: number = 3210, isLight: boolean = false): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    --bg-primary: ${isLight ? '#f8fafc' : 'var(--theia-layout-color1, #1e1e1e)'};
+    --bg-card: ${isLight ? '#ffffff' : 'var(--theia-layout-color2, #252526)'};
+    --bg-card-hover: ${isLight ? '#f1f5f9' : '#2d2d30'};
+    --border-color: ${isLight ? '#e2e8f0' : 'var(--theia-border-color, #333)'};
+    --text-primary: ${isLight ? '#0f172a' : 'var(--theia-ui-font-color1, #cccccc)'};
+    --text-muted: ${isLight ? '#64748b' : '#94a3b8'};
+    --brand-blue: #0284c7;
+    --brand-sky: #38bdf8;
+    --brand-emerald: #10b981;
+    --brand-amber: #f59e0b;
+    --brand-rose: #ef4444;
+  }
+  body {
+    font-family: var(--theia-ui-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    font-size: var(--theia-ui-font-size1, 12px);
+    margin: 0;
+    padding: 12px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .title {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: ${isLight ? '#0f172a' : 'var(--text-muted)'};
+  }
+  .badge {
+    background: ${isLight ? '#e0f2fe' : 'rgba(14, 165, 233, 0.15)'};
+    color: ${isLight ? '#0284c7' : 'var(--brand-sky)'};
+    border: 1px solid ${isLight ? '#bae6fd' : 'rgba(14, 165, 233, 0.35)'};
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .btn-refresh {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 4px;
+    padding: 3px 7px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s ease;
+  }
+  .btn-refresh:hover {
+    background: ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)'};
+    color: var(--text-primary);
+  }
+
+  /* Hero Launcher */
+  .hero-launcher {
+    margin-bottom: 10px;
+  }
+  .btn-open-queue {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-open-queue:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+    transform: translateY(-1px);
+  }
+
+  /* Search */
+  .search-wrap {
+    margin-bottom: 8px;
+  }
+  .search-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: ${isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)'};
+    border: 1px solid ${isLight ? '#cbd5e1' : 'var(--border-color)'};
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: ${isLight ? '#0f172a' : 'inherit'};
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .search-input:focus {
+    border-color: var(--brand-sky);
+    box-shadow: 0 0 0 1px var(--brand-sky);
+  }
+
+  /* Category Filter Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .tabs::-webkit-scrollbar { height: 2px; }
+  .tab-btn {
+    background: ${isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.04)'};
+    border: 1px solid ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.08)'};
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 10px;
+    color: ${isLight ? '#475569' : 'var(--text-muted)'};
+    cursor: pointer;
+    white-space: nowrap;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+  .tab-btn.active {
+    background: ${isLight ? '#0284c7' : 'rgba(14, 165, 233, 0.2)'};
+    color: ${isLight ? '#ffffff' : 'var(--brand-sky)'};
+    border-color: ${isLight ? '#0284c7' : 'rgba(14, 165, 233, 0.5)'};
+    font-weight: 600;
+  }
+
+  /* Items Container */
+  .cards-container {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 2px;
+  }
+  .cards-container::-webkit-scrollbar { width: 4px; }
+  .cards-container::-webkit-scrollbar-thumb {
+    background: ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)'};
+    border-radius: 2px;
+  }
+
+  /* Card */
+  .notify-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 9px 10px;
+    box-shadow: ${isLight ? '0 1px 3px rgba(0, 0, 0, 0.03)' : 'none'};
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: all 0.18s ease;
+  }
+  .notify-card:hover {
+    background: var(--bg-card-hover);
+    border-color: ${isLight ? '#38bdf8' : 'rgba(56, 189, 248, 0.5)'};
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .category-pill {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.4px;
+  }
+  .cat-statutory { ${isLight ? 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;' : 'background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);'} }
+  .cat-lexai { ${isLight ? 'background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff;' : 'background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35);'} }
+  .cat-approval { ${isLight ? 'background: #fef3c7; color: #b45309; border: 1px solid #fde68a;' : 'background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);'} }
+  .cat-fact { ${isLight ? 'background: #d1fae5; color: #047857; border: 1px solid #a7f3d0;' : 'background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);'} }
+
+  .time-stamp {
+    font-size: 9.5px;
+    color: var(--text-muted);
+  }
+  .card-title {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .card-body {
+    font-size: 10.5px;
+    color: ${isLight ? '#475569' : 'var(--text-muted)'};
+    line-height: 1.4;
+  }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .btn-action {
+    background: ${isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)'};
+    border: 1px solid ${isLight ? '#cbd5e1' : 'var(--border-color)'};
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-action.primary {
+    background: ${isLight ? '#e0f2fe' : 'rgba(14, 165, 233, 0.15)'};
+    color: ${isLight ? '#0284c7' : 'var(--brand-sky)'};
+    border-color: ${isLight ? '#bae6fd' : 'rgba(14, 165, 233, 0.4)'};
+  }
+  .btn-action.primary:hover {
+    background: ${isLight ? '#bae6fd' : 'rgba(14, 165, 233, 0.3)'};
+  }
+  .btn-action.success {
+    background: ${isLight ? '#d1fae5' : 'rgba(16, 185, 129, 0.15)'};
+    color: ${isLight ? '#047857' : '#34d399'};
+    border-color: ${isLight ? '#a7f3d0' : 'rgba(16, 185, 129, 0.4)'};
+  }
+  .btn-action.success:hover {
+    background: ${isLight ? '#a7f3d0' : 'rgba(16, 185, 129, 0.3)'};
+  }
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title-area">
+      <span class="title">Notification Center</span>
+      <span class="badge" id="countBadge">0 Active</span>
+    </div>
+    <button class="btn-refresh" title="Reload Feed" onclick="loadFeed()">↻</button>
+  </div>
+
+  <div class="hero-launcher">
+    <button class="btn-open-queue" onclick="openComplianceQueue('ALL')">
+      <span>📋</span>
+      <span>Open Statutory Compliance Desk</span>
+    </button>
+  </div>
+
+  <div class="search-wrap">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 Search notifications, alerts, filings..." oninput="handleSearch()">
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setTab('ALL', this)">All</button>
+    <button class="tab-btn" onclick="setTab('STATUTORY', this)">📋 Statutory</button>
+    <button class="tab-btn" onclick="setTab('LEXAI', this)">🌐 LexAI</button>
+    <button class="tab-btn" onclick="setTab('APPROVALS', this)">🛡️ Approvals</button>
+    <button class="tab-btn" onclick="setTab('FACTS', this)">📊 Facts</button>
+  </div>
+
+  <div class="cards-container" id="cardsContainer">
+    <div class="empty-state">Loading notification center feed...</div>
+  </div>
+
+  <script>
+    let currentCase = "${caseName || 'demo_case'}";
+    const apiPort = ${apiPort};
+    let feedItems = [];
+    let activeTab = 'ALL';
+    let searchQuery = '';
+
+    const FALLBACK_ITEMS = [
+      {
+        id: 'statutory-01',
+        category: 'STATUTORY',
+        title: 'Form A Public Announcement',
+        body: 'Mandatory CIRP deadline: within 3 days of admission order (Reg 6 IBBI Regulations).',
+        timestamp: 'CIRP Day 1 · Due in 48h',
+        actionLabel: '↗ Open in Queue',
+        actionType: 'open-compliance-queue',
+        actionPayload: 'ALL'
+      },
+      {
+        id: 'statutory-02',
+        category: 'STATUTORY',
+        title: 'Section 29A Eligibility Verification',
+        body: 'Affidavit screening required for prospective resolution applicants (PRAs).',
+        timestamp: 'Statutory Inquest',
+        actionLabel: '↗ Open in Queue',
+        actionType: 'open-compliance-queue',
+        actionPayload: 'ALL'
+      },
+      {
+        id: 'lexai-01',
+        category: 'LEXAI',
+        title: 'Section 65 Collusive Inquest Probe',
+        body: 'Target: Apex Realty · External negative assurance sweep dispatched to LexAI Desk Port 4000.',
+        timestamp: 'Running on Port 4000',
+        actionLabel: '↗ View Forensic Desk',
+        actionType: 'open-compliance-queue',
+        actionPayload: 'GLOBAL'
+      },
+      {
+        id: 'fact-01',
+        category: 'FACTS',
+        title: 'Extracted Case Facts: Corporate Debtor',
+        body: 'Apogee Enterprises Pvt Ltd (CIN U74899DL2018PTC333241) · CIRP Commencement confirmed.',
+        timestamp: 'Verified from Order',
+        actionLabel: '↗ Open KV Dictionary',
+        actionType: 'open-kv-editor'
+      }
+    ];
+
+    async function loadFeed() {
+      let combined = [];
+      try {
+        const inRes = await fetch(\`http://127.0.0.1:\${apiPort}/api/hayagriva/inbox?case=\${encodeURIComponent(currentCase)}\`);
+        const inData = await inRes.json();
+        if (inData.success && inData.items && inData.items.length > 0) {
+          inData.items.forEach(item => {
+            combined.push({
+              id: item.id,
+              category: 'APPROVALS',
+              title: item.title || item.kind || 'Action Item',
+              body: item.body || item.question || 'Practitioner review gate or intake brief.',
+              timestamp: item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Inbox Alert',
+              isInbox: true,
+              filePath: item.filePath || (item.context && item.context.filePath),
+              state: item.state || 'pending'
+            });
+          });
+        }
+      } catch (e) {
+        console.warn('Inbox fetch error:', e);
+      }
+
+      try {
+        const qRes = await fetch(\`http://127.0.0.1:\${apiPort}/api/hayagriva/compliance/queue?case=\${encodeURIComponent(currentCase)}\`);
+        const qData = await qRes.json();
+        if (qData.success && qData.queue && qData.queue.length > 0) {
+          qData.queue.forEach(q => {
+            const isGlobal = q.execution_tier === 'GLOBAL';
+            combined.push({
+              id: q.task_id || q.id,
+              category: isGlobal ? 'LEXAI' : 'STATUTORY',
+              title: q.title || q.report_code || 'Statutory Task',
+              body: q.statutory_trigger || q.subject || q.statutory_citation || '',
+              timestamp: q.status || 'Active',
+              actionLabel: isGlobal ? '↗ View Forensic Desk' : '↗ Open in Queue',
+              actionType: 'open-compliance-queue',
+              actionPayload: isGlobal ? 'GLOBAL' : 'ALL'
+            });
+          });
+        }
+      } catch (e) {
+        console.warn('Queue fetch error:', e);
+      }
+
+      if (combined.length === 0) {
+        feedItems = FALLBACK_ITEMS;
+      } else {
+        const hasStat = combined.some(c => c.category === 'STATUTORY');
+        const hasLex = combined.some(c => c.category === 'LEXAI');
+        if (!hasStat) combined.unshift(FALLBACK_ITEMS[0], FALLBACK_ITEMS[1]);
+        if (!hasLex) combined.push(FALLBACK_ITEMS[2]);
+        combined.push(FALLBACK_ITEMS[3]);
+        feedItems = combined;
+      }
+
+      renderFeed();
+    }
+
+    function setTab(tab, btn) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderFeed();
+    }
+
+    function handleSearch() {
+      searchQuery = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+      renderFeed();
+    }
+
+    function openComplianceQueue(tier) {
+      window.parent.postMessage({ type: 'open-compliance-queue', tier: tier || 'ALL' }, '*');
+    }
+
+    function openKvEditor() {
+      window.parent.postMessage({ type: 'open-kv-editor' }, '*');
+    }
+
+    function openFile(path) {
+      if (path) {
+        window.parent.postMessage({ type: 'open-file', filePath: path, relativePath: path }, '*');
+      }
+    }
+
+    async function markResolved(itemId) {
+      try {
+        await fetch(\`http://127.0.0.1:\${apiPort}/api/hayagriva/inbox/resolve\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ caseName: currentCase, itemId: itemId, resolution: 'approved' })
+        });
+        loadFeed();
+      } catch (err) {
+        console.error('Resolve error:', err);
+      }
+    }
+
+    function getPillClass(cat) {
+      if (cat === 'STATUTORY') return 'cat-statutory';
+      if (cat === 'LEXAI') return 'cat-lexai';
+      if (cat === 'APPROVALS') return 'cat-approval';
+      if (cat === 'FACTS') return 'cat-fact';
+      return 'cat-statutory';
+    }
+
+    function renderFeed() {
+      const container = document.getElementById('cardsContainer');
+      const badge = document.getElementById('countBadge');
+
+      let filtered = feedItems.filter(item => {
+        if (activeTab !== 'ALL' && item.category !== activeTab) return false;
+        if (searchQuery) {
+          const t = (item.title || '').toLowerCase();
+          const b = (item.body || '').toLowerCase();
+          return t.includes(searchQuery) || b.includes(searchQuery);
+        }
+        return true;
+      });
+
+      badge.textContent = \`\${filtered.length} Active\`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">No matching notifications in feed.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const pillClass = getPillClass(item.category);
+        const catLabel = item.category === 'APPROVALS' ? '🛡️ APPROVAL' :
+                         (item.category === 'LEXAI' ? '🌐 LEXAI' :
+                         (item.category === 'FACTS' ? '📊 CASE FACT' : '📋 STATUTORY'));
+
+        let actionHtml = '';
+        if (item.isInbox) {
+          actionHtml = \`
+            <div class="card-actions">
+              <button class="btn-action success" onclick="markResolved('\${item.id}')">✓ Mark Read</button>
+              \${item.filePath ? \`<button class="btn-action primary" onclick="openFile('\${item.filePath}')">↗ Inspect Filing</button>\` : ''}
+            </div>
+          \`;
+        } else if (item.actionType === 'open-compliance-queue') {
+          actionHtml = \`
+            <div class="card-actions">
+              <button class="btn-action primary" onclick="openComplianceQueue('\${item.actionPayload || 'ALL'}')">\${item.actionLabel || '↗ Open in Queue'}</button>
+            </div>
+          \`;
+        } else if (item.actionType === 'open-kv-editor') {
+          actionHtml = \`
+            <div class="card-actions">
+              <button class="btn-action primary" onclick="openKvEditor()">\${item.actionLabel || '↗ Open KV Dictionary'}</button>
+            </div>
+          \`;
+        }
+
+        return \`
+          <div class="notify-card">
+            <div class="card-top">
+              <span class="category-pill \${pillClass}">\${catLabel}</span>
+              <span class="time-stamp">\${item.timestamp || ''}</span>
+            </div>
+            <div class="card-title">\${item.title}</div>
+            <div class="card-body">\${item.body}</div>
+            \${actionHtml}
+          </div>
+        \`;
+      }).join('');
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'select-case' && event.data.caseName) {
+        currentCase = event.data.caseName;
+        loadFeed();
+      }
+    });
+
+    window.onload = loadFeed;
+    setInterval(loadFeed, 6000);
+  </script>
+</body>
+</html>`;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 10. FORENSIC & STATUTORY CHAMBER TOOLS CATALOG & COMING SOON WORKBENCH
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface ToolMetadata {
+  id: string;
+  title: string;
+  shortTitle: string;
+  icon: string;
+  category: string;
+  mandate: string;
+  badge: string;
+  targetRelease: string;
+  description: string;
+  capabilities: string[];
+  simulatedOutput: string;
+}
+
+export const TOOLS_CATALOG: Record<string, ToolMetadata> = {
+  'redact-file': {
+    id: 'redact-file',
+    title: 'Redact & Duplicate File (VDR Mode)',
+    shortTitle: 'Redact File (VDR)',
+    icon: '🔒',
+    category: 'Privacy & VDR Sanitization',
+    mandate: 'Digital Personal Data Protection (DPDP) Act, 2023 & IBBI (CIRP) Reg 36 (Confidentiality of Information Memorandum)',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'Automated deep sanitization of case filings, creditor claims, and financial dossiers into an unalterable sanitized copy (redacted/<filename>) for Virtual Data Rooms and public NCLT filings without mutating original source records.',
+    capabilities: [
+      'Automated PII Masking: Detects PAN, Aadhaar, Passport, Mobile, Personal Email, and Director DIN.',
+      'Commercial Secrets Sanitization: Masks proprietary pricing models, discount matrices, and promoter personal guarantee addresses.',
+      'Bitonal Rasterization: Flattens vector layers to prevent clipboard and OCR text recovery leaks.',
+      'Cryptographic Parent Seal: Embeds immutable SHA-256 provenance link to the original master document.'
+    ],
+    simulatedOutput: 'redacted/loan_sanction_sanitized_vdr.pdf'
+  },
+  'batch-watermark': {
+    id: 'batch-watermark',
+    title: 'Batch Watermark & VDR Docket Stamping',
+    shortTitle: 'Watermark Stamping',
+    icon: '🏷️',
+    category: 'Privacy & VDR Sanitization',
+    mandate: 'IBBI Confidentiality Undertaking (§ 29(2) IBC) & Trade Secret Covenants',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'Dynamic forensic watermarking across paginated court bundles and Information Memoranda distributed to Prospective Resolution Applicants (PRAs).',
+    capabilities: [
+      'Dynamic Bidder Stamping: Imprints PRA Name, CIRP Matter, and Timestamp diagonally across all folios.',
+      'Steganographic Leak Trace: Embeds invisible micro-dot transaction IDs to isolate unauthorized leaks.',
+      'Configurable Legal Alpha: Custom opacity, font size, and NCLT-compliant perimeter margins.'
+    ],
+    simulatedOutput: 'stamped/IM_Bundle_Confidential_PRA_Alpha.pdf'
+  },
+  'bsa-certificate': {
+    id: 'bsa-certificate',
+    title: 'Generate § 63 BSA / § 65B EA Electronic Evidence Certificate',
+    shortTitle: '§ 63 BSA Certificate',
+    icon: '📜',
+    category: 'Evidence & Certification',
+    mandate: 'Section 63, Bharatiya Sakshya Adhiniyam, 2023 & Section 65B, Indian Evidence Act, 1872',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'Instant Court-ready statutory electronic evidence affidavits for computer printouts, bank ledgers, WhatsApp communications, and emails filed before NCLT, NCLAT, and Commercial Courts.',
+    capabilities: [
+      'SHA-256 & SHA-1 Bit-Level Hashing: Automatic cryptographic integrity hashing of target electronic records.',
+      'Hardware Custodian Telemetry: Pulls system machine ID, operating environment, and continuous custody duration.',
+      'Court-Conforming Affidavit: Generates ready-to-execute Section 63 BSA certificate with formal verification clause.'
+    ],
+    simulatedOutput: 'drafts/Section_63_BSA_Certificate_Admissibility.docx'
+  },
+  'tamper-check': {
+    id: 'tamper-check',
+    title: 'Cryptographic File Integrity & Tamper-Check',
+    shortTitle: 'Integrity Check',
+    icon: '🛡️',
+    category: 'Evidence & Certification',
+    mandate: 'Section 65B/63 Evidence Chain-of-Custody & Fiduciary Code of Conduct',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'Instant forensic verification comparing current file hashes against original admission order ingestion hashes in the immutable audit trail.',
+    capabilities: [
+      'SHA-256 Bitwise Verification: Instant comparison against case hash chain (audit_trail.jsonl).',
+      'Custody History Audit: Displays exact ingestion timestamp, user identity, and export logs.',
+      'Cryptographic Verification Certificate: Generates green Courtroom Authenticity seal or red tamper alert.'
+    ],
+    simulatedOutput: 'certificates/evidence_custody_verification.pdf'
+  },
+  'cirp-clock': {
+    id: 'cirp-clock',
+    title: 'CIRP Statutory Milestone Clock (T₀ → T₃₃₀)',
+    shortTitle: 'CIRP Milestone Clock',
+    icon: '⏱️',
+    category: 'Restructuring & Financial Calculators',
+    mandate: 'Section 12 of IBC, 2016 & Regulation 40A (Model CIRP Timeline)',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'Deterministic CIRP statutory milestone engine calculating exact statutory deadlines from NCLT Admission Date ($T_0$) with court vacation and registry holiday auto-adjustments.',
+    capabilities: [
+      'Statutory Milestone Scheduler: Computes Form A (T+3), Claims (T+14), Creditors List (T+21), 1st CoC (T+30), IM (T+54), Form G (T+60), RFRP (T+105), Plan (T+135), and 180/330-day limits.',
+      'Calendar Sync Engine: 1-Click export to Apple Calendar, Google Calendar, and Microsoft Outlook (.ics).',
+      'Pre-Breach Notification Triggers: Dispatches alert cards to Case Action Inbox 7 days and 48 hours prior to cutoffs.'
+    ],
+    simulatedOutput: 'calendar/cirp_statutory_timeline_T0_T330.ics'
+  },
+  'coc-voting': {
+    id: 'coc-voting',
+    title: 'CoC Voting Share & Waterfall Recalculator',
+    shortTitle: 'CoC Voting Share',
+    icon: '🧮',
+    category: 'Restructuring & Financial Calculators',
+    mandate: 'Sections 21, 24, 28, 30(4), and 53 of IBC, 2016',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'Real-time recalculation of Committee of Creditors (CoC) voting shares to two decimal places based on admitted vs disallowed claims, with statutory threshold auditing.',
+    capabilities: [
+      'Dynamic Voting Quota: Auto-calculates each Financial Creditor\'s percentage (Σ = 100.00%) upon any claim modification.',
+      'Statutory Majority Auditing: Simulates voting outcomes against 66% threshold (Plan approval, RP replacement) and 51% threshold.',
+      'Section 53 Waterfall Estimator: Simulates payout distributions across Secured, Unsecured, Operational, and Equity holders.'
+    ],
+    simulatedOutput: 'ledgers/coc_voting_share_matrix_v2.json'
+  },
+  'bank-normalizer': {
+    id: 'bank-normalizer',
+    title: 'Multi-Bank Statement Forensic Normalizer',
+    shortTitle: 'Bank Normalizer',
+    icon: '🏦',
+    category: 'Restructuring & Financial Calculators',
+    mandate: 'Sections 43 (Preferential), 45 (Undervalued), 50 (Extortionate), and 66 (Fraudulent Trading) of IBC',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'Local offline parsing and forensic reconciliation of multi-bank statements (SBI, HDFC, ICICI, Axis, PNB) during statutory look-back periods.',
+    capabilities: [
+      'Contra-Sweep Elimination: Removes internal transfers between debtor accounts to isolate true external cash movements.',
+      'Round-Tripping Inquest: Flags circular payments returned to connected entities within 24–72 hours.',
+      'Avoidance Ledger Export: Populates structured avoidance ledger for automated filing in Form H / avoidance petitions.'
+    ],
+    simulatedOutput: 'ledgers/bank_forensic_reconciliation.json'
+  },
+  'bundle-builder': {
+    id: 'bundle-builder',
+    title: 'Master Exhibit Numberer & Court Bundle Builder',
+    shortTitle: 'Court Bundle Builder',
+    icon: '📑',
+    category: 'Docketing & Court Filing Preparation',
+    mandate: 'NCLT Rules, 2016 (Part III - Form of Pleadings) & High Court Commercial Division Practice Directions',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'Automated assembly, continuous running folio numbering, and exhibit tagging for multi-volume court filings.',
+    capabilities: [
+      'Continuous Folio Pagination: Stitches petitions, affidavits, and annexures into a single running page sequence (Page 1 to N).',
+      'Master Index & Chronology Generator: Generates hyperlinked Master Index and List of Dates referencing exact folio numbers.',
+      'Bitonal Print Optimization: Adjusts margins, gutter width, and Supreme Court/NCLT 14pt typography.'
+    ],
+    simulatedOutput: 'bundles/NCLT_Petition_Bundle_Vol_I_Paginated.pdf'
+  },
+  'legal-redline': {
+    id: 'legal-redline',
+    title: 'Blackline / Legal Redline Diff (Plans & Contracts)',
+    shortTitle: 'Legal Redline Diff',
+    icon: '⚖️',
+    category: 'Docketing & Court Filing Preparation',
+    mandate: 'Commercial Negotiations & CIRP Resolution Plan Compliance (Section 30(2) Audit)',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'High-precision legal diff engine highlighting additions, strikes, and monetary alterations between successive versions of Resolution Plans, CoC Minutes, or Loan Agreements.',
+    capabilities: [
+      'Legal Semantic Differencing: Ignores whitespace while highlighting statutory covenant shifts.',
+      'Financial Haircut Diff: Flags changes in upfront cash payout, deferred equity percentages, and bank guarantee tenors.',
+      'Court-Ready Comparison Memo: Exports side-by-side or strikeout/underline redline memorandum for CoC circulation.'
+    ],
+    simulatedOutput: 'comparisons/Resolution_Plan_V1_vs_V2_Redline.pdf'
+  }
+};
+
+export function toolComingSoonHtml(toolKey: string, isLight: boolean = false): string {
+  const meta: ToolMetadata = TOOLS_CATALOG[toolKey] || {
+    id: toolKey,
+    title: 'Chamber Forensic Tool',
+    shortTitle: 'Chamber Tool',
+    icon: '🛠️',
+    category: 'Chamber Utilities',
+    mandate: 'Insolvency and Bankruptcy Code, 2016',
+    badge: 'Under Active Chamber Development',
+    targetRelease: 'Hayagriva CIRP Studio v1.4',
+    description: 'This specialized legal instrument is being carefully compiled for air-gapped forensic accuracy.',
+    capabilities: [
+      'Deterministic Statutory Validation',
+      'Air-Gapped In-Chamber Execution',
+      'Court-Admissible Evidence Production'
+    ],
+    simulatedOutput: 'outputs/chamber_tool_output.pdf'
+  };
+
+  const capabilitiesHtml = meta.capabilities.map(cap => `
+    <li style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; color: var(--text-primary);">
+      <span style="color: #0284c7; font-weight: bold; flex-shrink: 0;">✓</span>
+      <span>${cap}</span>
+    </li>
+  `).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${meta.title} - Hayagriva</title>
+  <style>
+    :root {
+      --bg-primary: ${isLight ? '#f8fafc' : 'var(--theia-layout-color1, #14161a)'};
+      --bg-card: ${isLight ? '#ffffff' : 'var(--theia-layout-color2, #1e2128)'};
+      --bg-hover: ${isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)'};
+      --border-color: ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)'};
+      --text-primary: ${isLight ? '#0f172a' : '#f8fafc'};
+      --text-secondary: ${isLight ? '#475569' : '#94a3b8'};
+      --text-muted: ${isLight ? '#64748b' : '#64748b'};
+      --brand-primary: #0284c7;
+      --brand-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      --accent-amber: #d97706;
+      --accent-amber-bg: ${isLight ? '#fef3c7' : 'rgba(217, 119, 6, 0.15)'};
+      --accent-cyan-bg: ${isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.12)'};
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 32px 40px;
+      overflow-y: auto;
+      height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Hero Header */
+    .hero-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 28px 32px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, ${isLight ? '0.04' : '0.2'});
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--brand-gradient);
+    }
+    .hero-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .hero-icon {
+      font-size: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 12px;
+      background: var(--accent-cyan-bg);
+      border: 1px solid ${isLight ? '#bae6fd' : 'rgba(2, 132, 199, 0.3)'};
+    }
+    .hero-meta {
+      flex: 1;
+    }
+    .hero-badges {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-amber-bg);
+      color: var(--accent-amber);
+      border: 1px solid ${isLight ? '#fde68a' : 'rgba(217, 119, 6, 0.3)'};
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .badge-cat {
+      background: var(--accent-cyan-bg);
+      color: var(--brand-primary);
+      border: 1px solid ${isLight ? '#bae6fd' : 'rgba(2, 132, 199, 0.3)'};
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .hero-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+    .hero-desc {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    /* Statutory Mandate Callout */
+    .mandate-box {
+      background: ${isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'};
+      border-left: 4px solid var(--brand-primary);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mandate-label {
+      font-weight: 700;
+      color: var(--text-primary);
+      flex-shrink: 0;
+    }
+
+    /* Grid layout */
+    .workbench-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 22px 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, ${isLight ? '0.03' : '0.15'});
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Interactive Simulator */
+    .sim-form-group {
+      margin-bottom: 14px;
+    }
+    .sim-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .sim-select, .sim-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+    }
+    .sim-btn {
+      width: 100%;
+      background: var(--brand-gradient);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+      transition: all 0.15s ease;
+      margin-top: 16px;
+    }
+    .sim-btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    /* Simulation Progress Drawer */
+    #sim-log-box {
+      display: none;
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 6px;
+      background: ${isLight ? '#f1f5f9' : '#0a0c10'};
+      border: 1px solid var(--border-color);
+      font-family: Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: ${isLight ? '#0f172a' : '#38bdf8'};
+    }
+
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-color);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .btn-notify {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-notify:hover {
+      background: var(--bg-hover);
+      border-color: var(--brand-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Hero Box -->
+    <div class="hero-box">
+      <div class="hero-top">
+        <div class="hero-icon">${meta.icon}</div>
+        <div class="hero-meta">
+          <div class="hero-badges">
+            <span class="badge-status">🛠️ ${meta.badge}</span>
+            <span class="badge-cat">${meta.category}</span>
+          </div>
+          <h1 class="hero-title">${meta.title}</h1>
+        </div>
+      </div>
+      <p class="hero-desc">${meta.description}</p>
+    </div>
+
+    <!-- Statutory Mandate Callout -->
+    <div class="mandate-box">
+      <span class="mandate-label">⚖️ Statutory Authority:</span>
+      <span>${meta.mandate}</span>
+    </div>
+
+    <!-- Grid -->
+    <div class="workbench-grid">
+      <!-- Capabilities Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>📋 Operational Capabilities</span>
+        </div>
+        <ul style="list-style: none;">
+          ${capabilitiesHtml}
+        </ul>
+      </div>
+
+      <!-- Interactive Simulator Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>⚡ Chamber Dry-Run Simulator</span>
+        </div>
+        <div class="sim-form-group">
+          <label class="sim-label">Target Ingested File / Docket Record:</label>
+          <select class="sim-select" id="target-file">
+            <option>loan_sanction_agreement.pdf (18 pages)</option>
+            <option>creditor_claim_form_c.pdf (7 pages)</option>
+            <option>corporate_debtor_financial_ledger.xlsx (3,400 rows)</option>
+            <option>resolution_plan_proposal_v1.docx (84 pages)</option>
+          </select>
+        </div>
+        <div class="sim-form-group">
+          <label class="sim-label">Execution Depth & Security Level:</label>
+          <select class="sim-select">
+            <option>Standard Statutory Audit (Air-gapped local)</option>
+            <option>Strict Court-Grade Admissibility (§ 63 BSA)</option>
+            <option>Aggressive Commercial VDR Masking</option>
+          </select>
+        </div>
+        <button class="sim-btn" onclick="runSimulation()">
+          <span>⚡ Simulate In-Chamber Execution</span>
+        </button>
+
+        <div id="sim-log-box"></div>
+      </div>
+    </div>
+
+    <!-- Footer Action -->
+    <div class="footer-actions">
+      <span>Target Production Release: <strong>${meta.targetRelease}</strong> • 100% Local Sovereign Floor</span>
+      <button class="btn-notify" id="btn-notify" onclick="toggleNotify()">
+        <span>🔔 Subscribe to Chamber Beta Alerts</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function runSimulation() {
+      const box = document.getElementById('sim-log-box');
+      box.style.display = 'block';
+      box.innerHTML = '<div>⏳ Initializing sovereign tool sandbox...</div>';
+      
+      setTimeout(() => {
+        box.innerHTML += '<div>🔍 Parsing document structure & cryptographic hash...</div>';
+      }, 500);
+
+      setTimeout(() => {
+        box.innerHTML += '<div>⚙️ Executing statutory logic against local bare acts...</div>';
+      }, 1000);
+
+      setTimeout(() => {
+        box.innerHTML += '<div style="color: #16a34a; font-weight: bold; margin-top: 6px;">✓ Simulation Complete! Output generated: ${meta.simulatedOutput}</div>';
+      }, 1600);
+    }
+
+    function toggleNotify() {
+      const btn = document.getElementById('btn-notify');
+      btn.style.background = '#ecfdf5';
+      btn.style.color = '#047857';
+      btn.style.borderColor = '#10b981';
+      btn.innerHTML = '<span>✓ Subscribed to Early Chamber Release</span>';
+    }
+  </script>
+</body>
+</html>`;
+}
 

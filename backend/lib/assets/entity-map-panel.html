@@ -13,12 +13,14 @@
     .top-toolbar {
       background: #111827;
       border-bottom: 1px solid #1f2937;
-      padding: 10px 18px;
+      padding: 8px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       z-index: 10;
       flex-shrink: 0;
+      flex-wrap: wrap;
+      gap: 8px;
     }
     .toolbar-left { display: flex; align-items: center; gap: 12px; }
     .brand-title { font-size: 14px; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 8px; }
@@ -197,6 +199,139 @@
       z-index: 100;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── Theme Adaptive Light Mode ── */
+    body.theme-light {
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    body.theme-light .top-toolbar {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    body.theme-light .brand-title {
+      color: #0f172a;
+    }
+    body.theme-light .brand-badge {
+      background: rgba(2, 132, 199, 0.12);
+      color: #0284c7;
+      border-color: rgba(2, 132, 199, 0.25);
+    }
+    body.theme-light .filter-pills {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+    }
+    body.theme-light .filter-btn {
+      color: #475569;
+    }
+    body.theme-light .filter-btn:hover {
+      color: #0f172a;
+    }
+    body.theme-light .filter-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: 700;
+    }
+    body.theme-light .search-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+    }
+    body.theme-light .search-box:focus {
+      border-color: #0284c7;
+    }
+    body.theme-light .action-btn {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+    body.theme-light .action-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    body.theme-light .action-btn.primary {
+      background: #0284c7;
+      border-color: #0369a1;
+      color: #ffffff;
+    }
+    body.theme-light .canvas-container {
+      background-color: #f8fafc;
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 24px 24px;
+    }
+    body.theme-light .node text {
+      fill: #0f172a !important;
+      font-weight: 700;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 3px;
+      stroke-linecap: butt;
+      stroke-linejoin: miter;
+    }
+    body.theme-light .node .sub-text {
+      fill: #475569 !important;
+      stroke: #ffffff;
+      stroke-width: 2px;
+    }
+    body.theme-light .link {
+      stroke: #94a3b8;
+      stroke-opacity: 0.7;
+    }
+    body.theme-light .link-label {
+      fill: #475569;
+    }
+    body.theme-light .legend {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    body.theme-light .legend-item {
+      color: #334155;
+    }
+    body.theme-light .inspector-panel {
+      background: rgba(255, 255, 255, 0.98);
+      border-left: 1px solid #e2e8f0;
+      box-shadow: -10px 0 25px rgba(0, 0, 0, 0.08);
+      color: #0f172a;
+    }
+    body.theme-light .inspector-title {
+      color: #0f172a;
+    }
+    body.theme-light .inspector-type {
+      color: #0284c7;
+    }
+    body.theme-light .inspector-header {
+      border-bottom-color: #e2e8f0;
+    }
+    body.theme-light .close-btn {
+      color: #64748b;
+    }
+    body.theme-light .close-btn:hover {
+      color: #0f172a;
+    }
+    body.theme-light .section-label {
+      color: #64748b;
+    }
+    body.theme-light .badge-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+    }
+    body.theme-light .prop-row {
+      border-bottom-color: #f1f5f9;
+    }
+    body.theme-light .prop-key {
+      color: #64748b;
+    }
+    body.theme-light .prop-val {
+      color: #0f172a;
+    }
+    body.theme-light .toast {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      color: #0f172a;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -277,6 +412,44 @@
     const urlParams = new URLSearchParams(window.location.search);
     const caseName = urlParams.get('case') || 'active_case';
 
+    function applyTheme() {
+      const params = new URLSearchParams(window.location.search);
+      const themeParam = params.get('theme');
+      let isLight = false;
+      if (themeParam === 'light') {
+        isLight = true;
+      } else if (themeParam === 'dark') {
+        isLight = false;
+      } else {
+        try {
+          if (window.parent && window.parent.document && window.parent.document.body) {
+            const p = window.parent.document.body;
+            isLight = p.classList.contains('theia-light') || p.classList.contains('light-theia');
+          }
+        } catch (_) {}
+      }
+      if (isLight) {
+        document.body.classList.add('theme-light');
+      } else {
+        document.body.classList.remove('theme-light');
+      }
+    }
+    applyTheme();
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'theme-change') {
+        if (e.data.theme === 'light') {
+          document.body.classList.add('theme-light');
+        } else {
+          document.body.classList.remove('theme-light');
+        }
+      }
+      if (e.data && e.data.type === 'select-case' && e.data.caseName && e.data.caseName !== caseName) {
+        const isCurrentLight = document.body.classList.contains('theme-light');
+        window.location.search = '?case=' + encodeURIComponent(e.data.caseName) + (isCurrentLight ? '&theme=light' : '&theme=dark');
+      }
+    });
+
     function initD3() {
       const container = document.getElementById('canvasContainer');
       const width = container.clientWidth;
@@ -333,7 +506,12 @@
     }
 
     function synthesizeMockIfEmpty(data) {
-      if (data && data.nodes && data.nodes.length > 3) return data;
+      if (data && data.nodes && data.nodes.some(n => 
+        n.category === 'GOVERNANCE' || n.category === 'CREDITORS' || n.category === 'AVOIDANCE' || n.category === 'PRAS' ||
+        n.type === 'DIRECTOR' || n.type === 'FINANCIAL_CREDITOR' || n.type === 'AVOIDANCE_RESPONDENT' || n.type === 'RESOLUTION_APPLICANT'
+      )) {
+        return data;
+      }
       // Synthesized rich IBC case topology for active case
       return {
         nodes: [
@@ -537,12 +715,41 @@
       }
     }
 
-    function showToast(msg) {
-      const t = document.getElementById('toastMsg');
-      t.textContent = msg;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3500);
+    function focusNodeByNameOrId(identifier) {
+      if (!identifier || !rawGraph || !rawGraph.nodes) return;
+      const term = identifier.toLowerCase().trim();
+      const node = rawGraph.nodes.find(n => 
+        (n.id && n.id.toLowerCase() === term) ||
+        (n.name && n.name.toLowerCase() === term) ||
+        (n.name && n.name.toLowerCase().includes(term)) ||
+        (n.identifier && n.identifier.toLowerCase() === term)
+      );
+      if (node) {
+        if (activeFilter !== 'ALL' && node.category !== activeFilter && node.category !== 'ROOT') {
+          const allBtn = document.querySelector('.filter-btn');
+          if (allBtn) setFilter('ALL', allBtn);
+        }
+        showInspector(node);
+        if (typeof node.x === 'number' && typeof node.y === 'number') {
+          const svgEl = document.getElementById('graphSvg');
+          const w = svgEl.clientWidth || 800;
+          const h = svgEl.clientHeight || 600;
+          const scale = 1.35;
+          const x = -node.x * scale + w / 2;
+          const y = -node.y * scale + h / 2;
+          svg.transition().duration(750).call(
+            zoom.transform,
+            d3.zoomIdentity.translate(x, y).scale(scale)
+          );
+        }
+      }
     }
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'focus-entity-in-graph') {
+        focusNodeByNameOrId(e.data.entityName || e.data.entityId);
+      }
+    });
 
     window.onload = () => {
       initD3();

@@ -72,10 +72,11 @@ CoC voting requires compliance with IBC regulations. 👍`;
             if (req.url === '/health') {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'ok' }));
-            } else if (req.url === '/query/data') {
+            } else if (req.url === '/query' || req.url === '/query/data') {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({
                     status: 'success',
+                    response: 'Under Section 7 of the Insolvency and Bankruptcy Code, the Adjudicating Authority must only determine whether there is a financial debt and a default. In Innoventive Industries versus ICICI Bank, the Supreme Court held that once default is established, admission is mandatory. The pendency of any dispute is irrelevant for financial debt.',
                     data: {
                         chunks: [
                             {

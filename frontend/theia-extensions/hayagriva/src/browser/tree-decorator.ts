@@ -5,6 +5,19 @@ import { Event, Emitter, PreferenceService, MessageService } from '@theia/core/l
 import { ILogger } from '@theia/core/lib/common/logger';
 import URI from '@theia/core/lib/common/uri';
 
+export function safeDecodeURI(str: string): string {
+  if (!str) return '';
+  try {
+    return decodeURIComponent(str);
+  } catch (_) {
+    try {
+      return decodeURIComponent(str.replace(/%(?![0-9a-fA-F]{2})/g, '%25'));
+    } catch (_) {
+      return str;
+    }
+  }
+}
+
 @injectable()
 export class HayagrivaTreeDecorator implements TreeDecorator {
   readonly id = 'hayagriva-tree-decorator';
@@ -59,7 +72,7 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
     try {
       const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (workspaceRoot) {
-        const pathStr = decodeURIComponent(workspaceRoot.path.toString());
+        const pathStr = safeDecodeURI(workspaceRoot.path.toString());
         const normalized = pathStr.replace(/\/$/, '');
         if (normalized.endsWith('/Documents') || normalized.endsWith('/Documents/')) {
           return '';
@@ -219,136 +232,142 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
     if (!tree.root) { return result; }
 
     const docExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.csv', '.wiki.html', '.html'];
+    this.logger.debug(`[Hayagriva] buildDecorations called, statusCache keys: ${Object.keys(this.statusCache).length}`);
 
     for (const node of new TopDownTreeIterator(tree.root)) {
-      const uri = this.getUri(node);
-      if (!uri) continue;
-
-      // Always decode so spaces in folder names work (e.g. IBC%20formats → IBC formats)
-      const filePath = decodeURIComponent(uri.path.toString());
-
-      // Skip system/generated folders
-      if (
-        filePath.includes('/concepts/') ||
-        filePath.includes('/wiki/') ||
-        filePath.includes('/conversions/') ||
-        filePath.includes('/reviews/') ||
-        filePath.includes('/drafts/') ||
-        filePath.includes('/exports/')
-      ) {
-        continue;
-      }
-
-      const idxDot = filePath.lastIndexOf('.');
-      if (idxDot === -1) continue;
-      const ext = filePath.substring(idxDot).toLowerCase();
-
-      // Resolve relative path key — must match what file-statuses API returns
-      let relative = filePath;
       try {
-        const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
-        if (wsRoot) {
-          const rootPath = decodeURIComponent(wsRoot.path.toString());
-          const fileLower = filePath.toLowerCase();
-          const rootLower = rootPath.toLowerCase();
-          if (fileLower.startsWith(rootLower)) {
-            relative = filePath.substring(rootPath.length).replace(/^[\/\\]/, '');
-          }
+        const uri = this.getUri(node);
+        if (!uri) continue;
+
+        // Always safely decode so spaces and % in filenames work cleanly
+        const filePath = safeDecodeURI(uri.path.toString());
+
+        // Skip system/generated folders
+        if (
+          filePath.includes('/concepts/') ||
+          filePath.includes('/wiki/') ||
+          filePath.includes('/conversions/') ||
+          filePath.includes('/reviews/') ||
+          filePath.includes('/drafts/') ||
+          filePath.includes('/exports/')
+        ) {
+          continue;
         }
-      } catch (_) {}
 
-      if (!docExts.includes(ext) && !(ext === '.md' && !!this.statusCache[relative])) continue;
+        const idxDot = filePath.lastIndexOf('.');
+        if (idxDot === -1) continue;
+        const ext = filePath.substring(idxDot).toLowerCase();
 
-      const statusObj: any = this.statusCache[relative];
-      if (!statusObj || typeof statusObj !== 'object') continue;
+        // Resolve relative path key — must match what file-statuses API returns
+        let relative = filePath;
+        try {
+          const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+          if (wsRoot) {
+            const rootPath = safeDecodeURI(wsRoot.path.toString());
+            const fileLower = filePath.toLowerCase();
+            const rootLower = rootPath.toLowerCase();
+            if (fileLower.startsWith(rootLower)) {
+              relative = filePath.substring(rootPath.length).replace(/^[\/\\]/, '');
+            }
+          }
+        } catch (_) {}
 
-      const { dot1, dot2, dot3 } = statusObj;
-      const files: any = statusObj.files || {};
+        if (!docExts.includes(ext) && !(ext === '.md' && !!this.statusCache[relative])) continue;
 
-      // D6: Updated color map — 'green' is canonical, legacy aliases map to same colour
-      const colorMap: { [key: string]: string } = {
-        grey: '#6b7280',
-        blue: '#3b82f6',
-        green: '#10b981',
-        red: '#ef4444',
-        // Legacy aliases (backward compat during transition)
-        amber: '#f59e0b',
-        companion_ready: '#10b981',
-        reviewed: '#10b981',
-        indexed: '#10b981',
-        outline_approved: '#10b981',
-      };
-      const dot1Color = colorMap[dot1] || '#6b7280';
-      const dot2Color = colorMap[dot2] || '#6b7280';
-      const dot3Color = colorMap[dot3] || '#6b7280';
+        const statusObj: any = this.statusCache[relative];
+        if (!statusObj || typeof statusObj !== 'object') continue;
 
-      // ── Dot 1 tooltip — Text Extraction (D6) ────────────────────────────────
-      const companionRelPath = files.companion?.path || '';
-      const companionExists = files.companion?.exists === true;
-      let tooltip1: string;
-      if (dot1 === 'green' || dot1 === 'companion_ready' || dot1 === 'reviewed') {
-        tooltip1 = `● Step 1 ✓  Text extracted\n   📝 ${companionRelPath || '—'}  (click file to edit)`;
-      } else if (dot1 === 'blue') {
-        tooltip1 = `● Step 1 ⏳  Extracting text to Markdown… (auto-started on drop)`;
-      } else if (dot1 === 'red') {
-        tooltip1 = `● Step 1 ✗  Extraction failed — drop a companion .md to self-heal`;
-      } else {
-        tooltip1 = `● Step 1 ○  Extracting… (started automatically)`;
+        const { dot1, dot2, dot3 } = statusObj;
+        const files: any = statusObj.files || {};
+
+        // D6: Updated color map — 'green' is canonical, legacy aliases map to same colour
+        const colorMap: { [key: string]: string } = {
+          grey: '#6b7280',
+          blue: '#3b82f6',
+          green: '#10b981',
+          red: '#ef4444',
+          // Legacy aliases (backward compat during transition)
+          amber: '#f59e0b',
+          companion_ready: '#10b981',
+          reviewed: '#10b981',
+          indexed: '#10b981',
+          outline_approved: '#10b981',
+        };
+        const dot1Color = colorMap[dot1] || '#6b7280';
+        const dot2Color = colorMap[dot2] || '#6b7280';
+        const dot3Color = colorMap[dot3] || '#6b7280';
+
+        // ── Dot 1 tooltip — Text Extraction (D6) ────────────────────────────────
+        const companionRelPath = files.companion?.path || '';
+        const companionExists = files.companion?.exists === true;
+        let tooltip1: string;
+        if (dot1 === 'green' || dot1 === 'companion_ready' || dot1 === 'reviewed') {
+          tooltip1 = `● Step 1 ✓  Text extracted\n   📝 ${companionRelPath || '—'}  (click file to edit)`;
+        } else if (dot1 === 'blue') {
+          tooltip1 = `● Step 1 ⏳  Extracting text to Markdown… (auto-started on drop)`;
+        } else if (dot1 === 'red') {
+          tooltip1 = `● Step 1 ✗  Extraction failed — drop a companion .md to self-heal`;
+        } else {
+          tooltip1 = `● Step 1 ○  Extracting… (started automatically)`;
+        }
+
+        // ── Dot 2 tooltip — Index into AI Memory (D6) ────────────────────────────
+        const treePath = files.pageindexTree?.path || '—';
+        const totalCards = files.sectionCards?.total ?? 0;
+        let tooltip2: string;
+        if (dot2 === 'green' || dot2 === 'indexed') {
+          tooltip2 = `● Step 2 ✓  Indexed into AI Memory (${totalCards} sections)\n   🗂 ${treePath}`;
+        } else if (dot2 === 'blue') {
+          tooltip2 = `● Step 2 ⏳  Indexing into AI Memory…`;
+        } else if (dot2 === 'red') {
+          tooltip2 = `● Step 2 ✗  Indexing failed\n   🗂 ${treePath}`;
+        } else {
+          tooltip2 = `● Step 2 ○  Not indexed — right-click › 2. Index into AI Memory`;
+        }
+
+        // ── Dot 3 tooltip — AI Enrichment (D6) ───────────────────────────────────
+        const enrichedCards = files.sectionCards?.enriched ?? 0;
+        let tooltip3: string;
+        if (dot3 === 'green') {
+          tooltip3 = `● Step 3 ✓  AI Enrichment complete (${totalCards} sections enriched)`;
+        } else if (dot3 === 'blue') {
+          tooltip3 = `● Step 3 ⏳  AI Enrichment running… (${enrichedCards}/${totalCards} sections done)`;
+        } else if (dot3 === 'red') {
+          tooltip3 = `● Step 3 ✗  AI Enrichment failed`;
+        } else {
+          tooltip3 = `● Step 3 ○  Not enriched — right-click › 3. Run AI Enrichment`;
+        }
+
+        let errorSuffix = '';
+        if (statusObj.error) {
+          errorSuffix = `\n⚠ Error: ${statusObj.error}`;
+        }
+
+        // D3: Companion .md caption suffix — compact label to prevent truncation
+        const captionSuffixes: TreeDecoration.CaptionAffix[] = [];
+        if (companionExists && companionRelPath) {
+          captionSuffixes.push({
+            data: '  🏛️ Legal Canvas',
+            fontData: { color: '#10b981' }  // emerald green
+          });
+        }
+
+        const decoration: TreeDecoration.Data = {
+          priority: 100,
+          captionPrefixes: [
+            { data: '●', fontData: { color: dot1Color } },
+            { data: '●', fontData: { color: dot2Color } },
+            { data: '● ', fontData: { color: dot3Color } }
+          ],
+          tooltip: `${tooltip1}\n${tooltip2}\n${tooltip3}${errorSuffix}`
+        };
+        if (captionSuffixes.length > 0) {
+          (decoration as any).captionSuffixes = captionSuffixes;
+        }
+        result.set(node.id, decoration);
+      } catch (nodeErr: any) {
+        this.logger.warn(`[Hayagriva] Decoration failed for node ${node.id}: ${nodeErr.message}`);
       }
-
-      // ── Dot 2 tooltip — Index into AI Memory (D6) ────────────────────────────
-      const treePath = files.pageindexTree?.path || '—';
-      const totalCards = files.sectionCards?.total ?? 0;
-      let tooltip2: string;
-      if (dot2 === 'green' || dot2 === 'indexed') {
-        tooltip2 = `● Step 2 ✓  Indexed into AI Memory (${totalCards} sections)\n   🗂 ${treePath}`;
-      } else if (dot2 === 'blue') {
-        tooltip2 = `● Step 2 ⏳  Indexing into AI Memory…`;
-      } else if (dot2 === 'red') {
-        tooltip2 = `● Step 2 ✗  Indexing failed\n   🗂 ${treePath}`;
-      } else {
-        tooltip2 = `● Step 2 ○  Not indexed — right-click › 2. Index into AI Memory`;
-      }
-
-      // ── Dot 3 tooltip — AI Enrichment (D6) ───────────────────────────────────
-      const enrichedCards = files.sectionCards?.enriched ?? 0;
-      let tooltip3: string;
-      if (dot3 === 'green') {
-        tooltip3 = `● Step 3 ✓  AI Enrichment complete (${totalCards} sections enriched)`;
-      } else if (dot3 === 'blue') {
-        tooltip3 = `● Step 3 ⏳  AI Enrichment running… (${enrichedCards}/${totalCards} sections done)`;
-      } else if (dot3 === 'red') {
-        tooltip3 = `● Step 3 ✗  AI Enrichment failed`;
-      } else {
-        tooltip3 = `● Step 3 ○  Not enriched — right-click › 3. Run AI Enrichment`;
-      }
-
-      let errorSuffix = '';
-      if (statusObj.error) {
-        errorSuffix = `\n⚠ Error: ${statusObj.error}`;
-      }
-
-      // D3: Companion .md caption suffix — compact label to prevent truncation
-      const captionSuffixes: TreeDecoration.CaptionAffix[] = [];
-      if (companionExists && companionRelPath) {
-        captionSuffixes.push({
-          data: '  🏛️ Legal Canvas',
-          fontData: { color: '#10b981' }  // emerald green
-        });
-      }
-
-      const decoration: TreeDecoration.Data = {
-        captionPrefixes: [
-          { data: '●', fontData: { color: dot1Color } },
-          { data: '●', fontData: { color: dot2Color } },
-          { data: '● ', fontData: { color: dot3Color } }
-        ],
-        tooltip: `${tooltip1}\n${tooltip2}\n${tooltip3}${errorSuffix}`
-      };
-      if (captionSuffixes.length > 0) {
-        (decoration as any).captionSuffixes = captionSuffixes;
-      }
-      result.set(node.id, decoration);
     }
 
     return result;
@@ -359,8 +378,17 @@ export class HayagrivaTreeDecorator implements TreeDecorator {
   }
 
   private getUri(node: TreeNode): URI | undefined {
-    if (node && 'uri' in node && node.uri instanceof URI) {
-      return node.uri;
+    if (!node) return undefined;
+    if ('uri' in node) {
+      const u = (node as any).uri;
+      if (u instanceof URI) return u;
+      if (typeof u === 'string') return new URI(u);
+      if (u && typeof u.toString === 'function') return new URI(u.toString());
+    }
+    if ('fileStat' in node && (node as any).fileStat && (node as any).fileStat.resource) {
+      const res = (node as any).fileStat.resource;
+      if (res instanceof URI) return res;
+      return new URI(res.toString());
     }
     return undefined;
   }

@@ -200,6 +200,10 @@ Prompt: "${message}"`;
             return 'litigation';
         }
 
+        if (/\b(what is|explain|define|concept of|meaning of|statutory framework|precedent|jurisprudence|landmark|ratio decidendi|binding ruling)\b/i.test(message)) {
+            return 'askhaya';
+        }
+
         try {
             const response = await getChatResponse([
                 { role: 'system', content: 'You are a precise classifier. Return only: advisor, forms, document, bank_analyzer, or precedent.' },

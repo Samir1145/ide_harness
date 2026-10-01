@@ -58,12 +58,41 @@ class SarvamClient {
     }
 
     /**
-     * Resolves the effective API key from options, case settings, or environment.
+     * Resolves the effective API key from case settings, global chamber profile, options, or environment.
+     * Hierarchy: Case Override -> Global Chamber Config (~/.hayagriva/chamber_config.json) -> Environment
      */
     resolveApiKey(caseSettings = null) {
-        if (caseSettings && caseSettings.sarvamApiKey) {
+        if (caseSettings && caseSettings.sarvamEnabled === false) {
+            return '';
+        }
+        if (caseSettings && caseSettings.sarvamApiKey !== undefined && caseSettings.sarvamApiKey !== null) {
             return String(caseSettings.sarvamApiKey).trim();
         }
+
+        // 1. Check Global Chamber Profile (~/.hayagriva/chamber_config.json)
+        try {
+            const os = require('os');
+            const chamberPath = path.join(os.homedir(), '.hayagriva', 'chamber_config.json');
+            if (fs.existsSync(chamberPath)) {
+                const chamberCfg = JSON.parse(fs.readFileSync(chamberPath, 'utf8'));
+                if (chamberCfg && chamberCfg.sarvamApiKey) {
+                    return String(chamberCfg.sarvamApiKey).trim();
+                }
+            }
+        } catch (_) {}
+
+        // 2. Check Legacy Global Settings (~/.gemini/hayagriva_settings.json)
+        try {
+            const os = require('os');
+            const globalPath = path.join(os.homedir(), '.gemini', 'hayagriva_settings.json');
+            if (fs.existsSync(globalPath)) {
+                const globalCfg = JSON.parse(fs.readFileSync(globalPath, 'utf8'));
+                if (globalCfg && globalCfg.sarvamApiKey) {
+                    return String(globalCfg.sarvamApiKey).trim();
+                }
+            }
+        } catch (_) {}
+
         if (this.activeKey) {
             return String(this.activeKey).trim();
         }
@@ -87,6 +116,38 @@ class SarvamClient {
     }
 
     /**
+     * Resolves the default speaker from case settings, chamber profile, or defaults.
+     */
+    resolveSpeaker(caseSettings = null) {
+        if (caseSettings && caseSettings.sarvamSpeaker) return String(caseSettings.sarvamSpeaker).trim();
+        try {
+            const os = require('os');
+            const chamberPath = path.join(os.homedir(), '.hayagriva', 'chamber_config.json');
+            if (fs.existsSync(chamberPath)) {
+                const cfg = JSON.parse(fs.readFileSync(chamberPath, 'utf8'));
+                if (cfg && cfg.sarvamSpeaker) return String(cfg.sarvamSpeaker).trim();
+            }
+        } catch (_) {}
+        return this.defaultSpeaker;
+    }
+
+    /**
+     * Resolves the default language from case settings, chamber profile, or defaults.
+     */
+    resolveLanguage(caseSettings = null) {
+        if (caseSettings && caseSettings.sarvamLanguage) return String(caseSettings.sarvamLanguage).trim();
+        try {
+            const os = require('os');
+            const chamberPath = path.join(os.homedir(), '.hayagriva', 'chamber_config.json');
+            if (fs.existsSync(chamberPath)) {
+                const cfg = JSON.parse(fs.readFileSync(chamberPath, 'utf8'));
+                if (cfg && cfg.sarvamLanguage) return String(cfg.sarvamLanguage).trim();
+            }
+        } catch (_) {}
+        return this.defaultLanguage;
+    }
+
+    /**
      * Checks if Sarvam AI is configured with an active API key.
      */
     isConfigured(caseSettings = null) {
@@ -99,14 +160,20 @@ class SarvamClient {
      */
     getStatus(caseSettings = null) {
         const configured = this.isConfigured(caseSettings);
+        const resolvedSpeaker = this.resolveSpeaker(caseSettings);
+        const resolvedLang = this.resolveLanguage(caseSettings);
+
         return {
             configured,
-            provider: 'Sarvam AI (Indic Sovereign Voice Engine)',
-            defaultSpeaker: this.defaultSpeaker,
-            defaultLanguage: this.defaultLanguage,
+            activeEngine: configured ? 'sarvam' : 'browser',
+            engineReason: configured ? 'active_key' : 'browser_fallback',
+            activeSpeaker: configured ? resolvedSpeaker : 'OS Native Browser Voice',
+            provider: configured ? 'Sarvam AI (Indic Sovereign Voice Engine)' : 'Browser SpeechSynthesis (Air-Gapped / Free)',
+            defaultSpeaker: resolvedSpeaker,
+            defaultLanguage: resolvedLang,
             speakers: BULBUL_SPEAKERS,
             models: {
-                tts: 'bulbul:v1',
+                tts: 'bulbul:v3',
                 stt: 'saaras:v2'
             },
             dataResidency: 'India (MeitY Empaneled / DPDP Act Compliant)',

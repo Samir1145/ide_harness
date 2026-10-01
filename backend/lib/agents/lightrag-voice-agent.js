@@ -96,13 +96,27 @@ class LightRagVoiceAgent {
             // Strip bullet points and list numbers
             .replace(/^\s*[-*•]\s+/gm, '')
             .replace(/^\s*\d+\.\s+/gm, '')
-            // Replace common legal abbreviations for smoother speech
+            // Replace common legal abbreviations for smoother speech and robust sentence parsing
+            .replace(/\bM\/s\.\s*/gi, 'M/s ')
+            .replace(/\bMessrs\.\s*/gi, 'Messrs ')
             .replace(/\bv\.\s*/gi, 'versus ')
             .replace(/\bvs\.\s*/gi, 'versus ')
             .replace(/\bSec\.\s*(\d+)/gi, 'Section $1')
             .replace(/\bSec\s*(\d+)/gi, 'Section $1')
             .replace(/\bReg\.\s*(\d+)/gi, 'Regulation $1')
             .replace(/\bReg\s*(\d+)/gi, 'Regulation $1')
+            .replace(/\bLtd\.\s*/gi, 'Limited ')
+            .replace(/\bPvt\.\s*/gi, 'Private ')
+            .replace(/\bCo\.\s*/gi, 'Company ')
+            .replace(/\bu\/s\.\s*/gi, 'under Section ')
+            .replace(/\bu\/s\s*/gi, 'under Section ')
+            .replace(/\bNo\.\s*/gi, 'No ')
+            .replace(/\bDr\.\s*/gi, 'Dr ')
+            .replace(/\bMr\.\s*/gi, 'Mr ')
+            .replace(/\bMrs\.\s*/gi, 'Mrs ')
+            .replace(/\bMs\.\s*/gi, 'Ms ')
+            .replace(/\bAnr\.\s*/gi, 'and Another ')
+            .replace(/\bOrs\.\s*/gi, 'and Others ')
             .replace(/\bHon'ble\b/gi, 'Honourable')
             .replace(/\bCoC\b/g, 'Committee of Creditors')
             .replace(/\bCIRP\b/g, 'Corporate Insolvency Resolution Process')
@@ -147,41 +161,35 @@ class LightRagVoiceAgent {
         if (caseDir) lightRagClient.refreshConfig(caseDir);
 
         let isLiveCloud = false;
-        let rawContextBlock = '';
+        let fullAnswer = '';
         let citations = [];
-        let rawEntities = [];
-        let rawChunks = [];
 
-        // ── 1. Retrieve Precedents from Online LightRAG ─────────────────────────
+        // ── 1. Retrieve Precedent Synthesis from Online LightRAG ────────────────
         try {
-            const rawRes = await lightRagClient.retrieveRawContext(queryText, {
+            const lrRes = await lightRagClient.queryPrecedents(queryText, {
                 mode: options.mode || lightRagClient.config.queryMode || 'mix',
-                top_k: options.top_k || 4
+                top_k: options.top_k || 6,
+                timeoutMs: options.timeoutMs || 35000
             });
 
-            if (rawRes && rawRes.success && (rawRes.chunks.length > 0 || rawRes.answer)) {
+            if (lrRes && lrRes.success && lrRes.answer) {
                 isLiveCloud = true;
-                rawChunks = rawRes.chunks || [];
-                rawEntities = rawRes.entities || [];
-                rawContextBlock = lightRagClient.formatRawContextForLlm(rawRes, 2400);
+                fullAnswer = lrRes.answer;
 
-                // Build structured citations
-                if (rawChunks.length > 0) {
-                    citations = rawChunks.map((c, i) => ({
-                        id: c.id || `cit-${i + 1}`,
-                        title: c.title || `Precedent Citation #${i + 1}`,
-                        excerpt: c.content ? c.content.slice(0, 300) : '',
-                        filePath: c.filePath || '',
-                        source: 'ResolutionBazaar LightRAG'
-                    }));
-                } else if (rawRes.references) {
-                    citations = rawRes.references.map((r, i) => ({
-                        id: `ref-${i + 1}`,
-                        title: typeof r === 'string' ? r : (r.title || r.name || `Citation ${i + 1}`),
-                        excerpt: r.excerpt || r.ratio || '',
-                        filePath: r.file_path || '',
-                        source: 'ResolutionBazaar LightRAG'
-                    }));
+                // Format structured citations from LightRAG references
+                if (Array.isArray(lrRes.references) && lrRes.references.length > 0) {
+                    citations = lrRes.references.map((r, i) => {
+                        const title = typeof r === 'string' ? r : (r.title || r.name || r.file_path || `Precedent Citation #${i + 1}`);
+                        const excerpt = r.excerpt || r.ratio || r.content || '';
+                        const filePath = r.file_path || '';
+                        return {
+                            id: `ref-${i + 1}`,
+                            title: title,
+                            excerpt: excerpt ? excerpt.slice(0, 300) : '',
+                            filePath: filePath,
+                            source: 'ResolutionBazaar LightRAG'
+                        };
+                    });
                 }
             }
         } catch (cloudErr) {
@@ -196,8 +204,9 @@ class LightRagVoiceAgent {
             } catch (_) {}
 
             if (statutoryHits && statutoryHits.length > 0) {
-                rawContextBlock = '### Authoritative Statutory Provisions (Air-Gapped Vault):\n' +
-                    statutoryHits.map((h, i) => `[Statute #${i + 1} - ${h.title || 'Bare Act'}, Section ${h.section || 'N/A'}]:\n${h.text || ''}`).join('\n\n');
+                fullAnswer = statutoryHits.map((h, i) => 
+                    `### Section ${h.section || 'N/A'}: ${h.title || 'Bare Act'}\n\n${h.text || ''}`
+                ).join('\n\n---\n\n');
 
                 citations = statutoryHits.map((h, i) => ({
                     id: `stat-${i + 1}`,
@@ -208,34 +217,25 @@ class LightRagVoiceAgent {
             }
         }
 
-        // ── 3. LegalParam-2.9B Reasoning (Port 8090) ───────────────────────────
+        // ── 3. Spoken Ratio Extraction & Local LegalParam Reasoning ─────────────
         let spokenText = '';
         let legalParamUsed = false;
         const isLegalParamOnline = await this.llamaProvider.isHealthy();
 
-        if (isLegalParamOnline) {
+        if (isLegalParamOnline && fullAnswer) {
             try {
                 const systemPrompt = `You are HAYAGRIVA Voice Precedent Counsel, an elite Indian corporate and insolvency advocate assisting a practitioner via live audio.
-You are given verified legal precedent findings and statutory provisions from the LightRAG Knowledge Graph.
+Synthesize the authoritative findings into a complete, clear spoken legal ratio (around 3 to 5 sentences, approximately 120 to 160 words).
+State the direct legal holding, the statutory threshold, and authoritative precedent. Never cut off mid-thought or end on a colon.
+Never use markdown, asterisks, bullet points, or citation brackets. Give the direct legal answer first.`;
 
-CRITICAL VOICE INSTRUCTIONS:
-1. Spoken Economy: Deliver your answer in 2 to 4 authoritative spoken sentences (maximum 120 words).
-2. Spoken Cadence: Write in natural conversational English. Never include markdown symbols (no asterisks, hashes, bullet points, numbers, or bracketed citations).
-3. Leading Case Law: State the landmark Supreme Court or NCLAT ruling by name and what it definitively held on the point.
-4. Clear Ratio: Give the direct operative answer first, followed by the supporting statutory rationale.`;
-
-                const userPrompt = `Practitioner Inquest: "${queryText}"
-
-Knowledge Context:
-${rawContextBlock || 'No prior precedents found in graph. Rely on core Indian insolvency jurisprudence.'}
-
-Synthesize your spoken counsel now:`;
+                const userPrompt = `Practitioner Inquest: "${queryText}"\n\nLegal Analysis:\n${fullAnswer.slice(0, 2000)}\n\nSynthesize your spoken counsel now:`;
 
                 const completion = await this.llamaProvider.complete([
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
                 ], {
-                    maxTokens: 220,
+                    maxTokens: 180,
                     temperature: 0.1
                 });
 
@@ -244,17 +244,17 @@ Synthesize your spoken counsel now:`;
                     legalParamUsed = true;
                 }
             } catch (llmErr) {
-                console.warn('[LightRagVoiceAgent] LegalParam reasoning failed, using deterministic voice counsel:', llmErr.message);
+                console.warn('[LightRagVoiceAgent] LegalParam reasoning failed, using direct spoken extraction:', llmErr.message);
             }
         }
 
-        // ── 4. Deterministic Voice Counsel Fallback (Lite Mode Parity) ──────────
+        // ── 4. Deterministic Spoken Extraction from Synthesized Answer ──────────
         if (!spokenText) {
-            spokenText = this._generateDeterministicVoiceCounsel(queryText, rawEntities, rawChunks, citations, isLiveCloud);
+            spokenText = this._extractSpokenProseFromAnswer(queryText, fullAnswer, citations, isLiveCloud);
         }
 
-        // ── 5. Format Professional Markdown Dossier for Monaco Editor ──────────
-        const fullDossier = this._formatFullDossier(queryText, spokenText, citations, isLiveCloud, legalParamUsed);
+        // ── 5. Format Professional Markdown Dossier for Chat / Monaco ──────────
+        const fullDossier = this._formatFullDossier(queryText, fullAnswer, spokenText, citations, isLiveCloud, legalParamUsed);
 
         // ── 6. Immutable Audit Trail Recording ─────────────────────────────────
         if (caseDir && typeof auditTrailInstance.appendEntry === 'function') {
@@ -285,61 +285,97 @@ Synthesize your spoken counsel now:`;
                 latencyMs: totalLatencyMs,
                 isLiveCloud: isLiveCloud,
                 legalParamUsed: legalParamUsed,
-                chunkCount: rawChunks.length,
-                entityCount: rawEntities.length
+                citationCount: citations.length
             }
         };
     }
 
     /**
-     * Deterministic voice counsel generator ensuring Lite Mode operates 100% offline
-     * with zero compute crashes even if LegalParam is stopped.
+     * Extracts clear, natural spoken prose from a synthesized legal answer.
+     * Produces a complete, coherent operative legal ratio (up to ~150 words / 5-6 sentences)
+     * without hanging on introductory colons or truncating mid-thought.
      */
-    _generateDeterministicVoiceCounsel(query, entities, chunks, citations, isLiveCloud) {
-        if (isLiveCloud && chunks.length > 0) {
-            const topChunk = chunks[0];
-            const cleanContent = this.sanitizeForSpeech(topChunk.content);
-            const firstSentence = cleanContent.split(/(?<=[.?!])\s+/)[0] || cleanContent.slice(0, 150);
-            const leadingEntity = entities.length > 0 ? (entities[0].entity_name || entities[0].name) : (topChunk.title || 'the leading precedent');
+    _extractSpokenProseFromAnswer(query, fullAnswer, citations, isLiveCloud) {
+        if (fullAnswer && fullAnswer.trim().length > 0) {
+            // Strip out References/Citations section if present at the end
+            const cleaned = fullAnswer
+                .replace(/###?\s*References[\s\S]*$/i, '')
+                .replace(/\n\s*---\s*\n\s*###?\s*References[\s\S]*$/i, '')
+                .replace(/\n\s*References:\s*\n[\s\S]*$/i, '')
+                .trim();
+            const paragraphs = cleaned.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+            
+            // Collect substantive paragraphs (skipping pure headers) up to ~150-180 words
+            let collectedText = '';
+            for (const p of paragraphs) {
+                const stripped = p.replace(/^#{1,6}\s+.*$/m, '').trim();
+                if (stripped.length > 20) {
+                    collectedText += (collectedText ? ' ' : '') + stripped;
+                    const wordCount = collectedText.split(/\s+/).length;
+                    if (wordCount >= 120) break;
+                }
+            }
+            if (!collectedText && paragraphs.length > 0) collectedText = paragraphs[0];
 
-            return `On the question of ${this.sanitizeForSpeech(query)}, under ${leadingEntity}, the established rule is that ${firstSentence}. This principle governs the issue under the Insolvency and Bankruptcy Code.`;
+            const sanitized = this.sanitizeForSpeech(collectedText);
+            // Robust sentence splitting avoiding abbreviation periods
+            const sentences = sanitized.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(s => s.length > 0);
+            if (sentences && sentences.length > 0) {
+                // Collect sentences up to ~150 words or 5 sentences, ensuring we don't end on a colon
+                let result = [];
+                let currentWords = 0;
+                for (let i = 0; i < sentences.length; i++) {
+                    const s = sentences[i];
+                    result.push(s);
+                    currentWords += s.split(/\s+/).length;
+                    // Stop if we have at least 4 sentences or >= 120 words, provided the sentence does not end in a colon
+                    if ((i >= 3 || currentWords >= 120) && !s.endsWith(':')) {
+                        break;
+                    }
+                    if (i >= 5) break; // Hard ceiling at 6 sentences to prevent overly long TTS
+                }
+                let finalSpoken = result.join(' ').trim();
+                // Clean up any trailing colon or dash
+                finalSpoken = finalSpoken.replace(/[:\-–—\s]+$/, '.');
+                return finalSpoken;
+            }
+            return sanitized.slice(0, 600).trim();
         }
 
-        if (citations.length > 0) {
-            const topCit = citations[0];
-            const cleanExcerpt = this.sanitizeForSpeech(topCit.excerpt);
-            const firstSentence = cleanExcerpt.split(/(?<=[.?!])\s+/)[0] || cleanExcerpt.slice(0, 150);
-
-            return `Regarding ${this.sanitizeForSpeech(query)}, under ${topCit.title}, the statute provides that ${firstSentence}. This statutory provision strictly applies.`;
-        }
-
-        return `Regarding your inquiry on ${this.sanitizeForSpeech(query)}, the settled position under Indian insolvency jurisprudence requires compliance with statutory limitation periods and mandatory provisions of the Code. Full judicial precedents are displayed in your case dossier.`;
+        return `Regarding your inquiry on ${this.sanitizeForSpeech(query)}, the settled position under Indian insolvency jurisprudence governs the matter. Full statutory provisions are displayed in your case dossier.`;
     }
 
     /**
-     * Formats a formal, citation-backed Precedent Intelligence Dossier for Monaco.
+     * Formats a formal, clean Precedent Intelligence Dossier for Monaco/Chat without raw references.
      */
-    _formatFullDossier(query, spokenProse, citations, isLiveCloud, legalParamUsed) {
+    _formatFullDossier(query, fullAnswer, spokenProse, citations, isLiveCloud, legalParamUsed) {
         const sourceLabel = isLiveCloud
-            ? 'ResolutionBazaar LightRAG Knowledge Graph (Live Cloud)'
+            ? 'ResolutionBazaar LightRAG Precedent Knowledge Graph (Live)'
             : 'Sovereign Statutory Bare Acts Vault (Offline Fallback)';
-        const engineLabel = legalParamUsed ? 'LegalParam-2.9B (Port 8090)' : 'Deterministic Legal Synthesizer (Lite Mode)';
+        const engineLabel = isLiveCloud 
+            ? 'LightRAG Deep Precedent Graph Synthesis' 
+            : (legalParamUsed ? 'LegalParam-2.9B (Port 8090)' : 'Deterministic Statutory Retrieval (Lite Mode)');
 
         let md = `## ⚖️ Precedent Voice Counsel Dossier\n`;
         md += `> **Oral Inquiry:** *"${query}"*\n`;
         md += `> **Precedent Source:** ${sourceLabel}\n`;
-        md += `> **Reasoning Engine:** ${engineLabel}\n\n`;
+        md += `> **Synthesis Engine:** ${engineLabel}\n\n`;
 
-        md += `### 🎙️ Operative Spoken Counsel\n\n`;
-        md += `${spokenProse}\n\n`;
+        if (spokenProse) {
+            md += `### 🎙️ Operative Oral Ratio\n`;
+            md += `> *${spokenProse}*\n\n`;
+        }
 
-        if (citations && citations.length > 0) {
-            md += `### 📚 Authoritative Judicial Citations & Ratios\n\n`;
-            citations.forEach((cit, idx) => {
-                md += `#### [${idx + 1}] ${cit.title}\n`;
-                if (cit.filePath) md += `- **File / Locator:** \`${cit.filePath}\`\n`;
-                if (cit.excerpt) md += `> ${cit.excerpt}\n\n`;
-            });
+        // Clean out any References / Citations section from LightRAG answer
+        const cleanedAnswer = (fullAnswer || '')
+            .replace(/###?\s*References[\s\S]*$/i, '')
+            .replace(/\n\s*---\s*\n\s*###?\s*References[\s\S]*$/i, '')
+            .replace(/\n\s*References:\s*\n[\s\S]*$/i, '')
+            .trim();
+
+        if (cleanedAnswer) {
+            md += `### 📖 Authoritative Legal Synthesis\n\n`;
+            md += `${cleanedAnswer}\n\n`;
         }
 
         md += `---\n`;

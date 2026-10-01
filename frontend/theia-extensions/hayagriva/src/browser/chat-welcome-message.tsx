@@ -2,6 +2,7 @@ import { injectable, inject } from '@theia/core/shared/inversify';
 import * as React from 'react';
 import { ChatWelcomeMessageProvider } from '@theia/ai-chat-ui/lib/browser/chat-tree-view';
 import { CommandRegistry } from '@theia/core/lib/common/command';
+import { HAYAGRIVA_EMBLEM_DATA_URI } from './hayagriva-emblem';
 
 @injectable()
 export class HayagrivaChatWelcomeMessageProvider implements ChatWelcomeMessageProvider {
@@ -11,92 +12,223 @@ export class HayagrivaChatWelcomeMessageProvider implements ChatWelcomeMessagePr
     @inject(CommandRegistry) protected readonly commandRegistry: CommandRegistry
   ) {}
 
+  protected insertIntoInput(text: string): void {
+    try {
+      const textareas = document.querySelectorAll('.theia-ChatInput-Editor textarea, .theia-ChatInput-Editor .inputarea');
+      const targetInput = textareas[0] as HTMLTextAreaElement;
+      if (targetInput) {
+        targetInput.focus();
+        targetInput.value = text;
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    } catch (_) {}
+  }
+
   renderWelcomeMessage(): React.ReactNode {
     return (
       <div className="theia-WelcomeMessage theia-WelcomeMessage-Main hayagriva-welcome-banner" key="hayagriva-welcome">
-        <div className="hayagriva-welcome-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <div className="hayagriva-welcome-orb-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2.5L16.5 7.5C17.2 9 16.5 10 12 10C7.5 10 6.8 9 7.5 7.5Z" strokeWidth="1.4"/>
-              <polygon points="12,4.8 13.8,7 12,9.2 10.2,7" strokeWidth="1"/>
-              <path d="M11.4 11V13C11.4 13.5 12.6 13.5 12.6 13V11" strokeWidth="1.2"/>
-              <circle cx="12" cy="14.2" r="0.6" fill="#fbbf24"/>
-              <path d="M7.8 10.8C6.2 12.2 6.5 13.8 8.2 14.5C8.8 17.5 9.8 20 10.2 21.2C10.5 22.2 13.5 22.2 13.8 21.2C14.2 20 15.2 17.5 15.8 14.5C17.5 13.8 17.8 12.2 16.2 10.8" strokeWidth="1.3"/>
-              <path d="M16 13.5C18.8 15 19.5 18 17.8 20.2C19.2 20.8 19.5 23 17.2 23.5" strokeWidth="1.3"/>
-            </svg>
-          </div>
-          <div className="hayagriva-welcome-titles">
-            <h2 style={{ margin: '0 0 2px 0', fontSize: '16px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
-              AskHaya
-            </h2>
-            <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 500 }}>
-              Senior Legal Partner & Coworker Orchestrator
+        <style>{`
+          /* Suppress duplicate generic Theia AI welcome screens and dividers */
+          .theia-WelcomeMessage:not(.hayagriva-welcome-banner),
+          .theia-WelcomeMessage-Compact,
+          .theia-WelcomeMessage-Divider {
+            display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
+          .hayagriva-welcome-banner {
+            display: flex;
+            flex-direction: column;
+            min-height: auto;
+            padding: 10px 14px 14px 14px;
+            box-sizing: border-box;
+            width: 100%;
+          }
+          .theia-WelcomeMessage-Container-Inner {
+            height: auto;
+            display: flex;
+            flex-direction: column;
+          }
+          .hayagriva-emblem-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 6px 0 12px 0;
+            width: 100%;
+          }
+          .hayagriva-emblem-img {
+            max-width: 150px;
+            max-height: 190px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.06));
+            transition: transform 0.2s ease;
+          }
+          .hayagriva-emblem-img:hover {
+            transform: scale(1.02);
+          }
+          body.theia-dark .hayagriva-emblem-img {
+            filter: invert(1) hue-rotate(180deg) drop-shadow(0 2px 12px rgba(255, 255, 255, 0.12));
+          }
+          .hayagriva-bottom-dock {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 8px;
+          }
+          .hayagriva-welcome-coworkers {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+          }
+          .hayagriva-coworker-chip {
+            background: #ffffff;
+            border: 1px solid var(--theia-border-color, #e2e8f0);
+            border-radius: 6px;
+            padding: 7px 9px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+          }
+          body.theia-dark .hayagriva-coworker-chip {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: none;
+          }
+          .hayagriva-coworker-chip:hover {
+            border-color: var(--theia-brand-color1, #0284c7);
+            background: #f8fafc;
+            transform: translateY(-1px);
+          }
+          body.theia-dark .hayagriva-coworker-chip:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: #38bdf8;
+          }
+          .hayagriva-coworker-name {
+            font-weight: 700;
+            font-size: 11px;
+          }
+          .hayagriva-coworker-desc {
+            font-size: 10px;
+            color: var(--theia-ui-font-color2, #64748b);
+            margin-top: 2px;
+          }
+          .hayagriva-prompts-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--theia-ui-font-color2, #64748b);
+            font-weight: 700;
+            margin-bottom: 6px;
+          }
+          .hayagriva-prompts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+          }
+          .hayagriva-prompt-chip {
+            background: #ffffff;
+            border: 1px solid var(--theia-border-color, #e2e8f0);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
+            color: var(--theia-ui-font-color1, #334155);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            line-height: 1.4;
+          }
+          body.theia-dark .hayagriva-prompt-chip {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            box-shadow: none;
+          }
+          .hayagriva-prompt-chip:hover {
+            background: #f1f5f9;
+            border-color: var(--theia-brand-color1, #0284c7);
+            color: var(--theia-ui-font-color0, #0f172a);
+          }
+          body.theia-dark .hayagriva-prompt-chip:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #38bdf8;
+            color: #f8fafc;
+          }
+        `}</style>
+
+        {/* Top Section: Sacred Hayagriva AI Deity Emblem (All Chatbot Text Cleared) */}
+        <div className="hayagriva-emblem-container">
+          <img
+            src={HAYAGRIVA_EMBLEM_DATA_URI}
+            alt="Hayagriva Sacred AI Emblem"
+            className="hayagriva-emblem-img"
+          />
+        </div>
+
+        {/* Compact Bottom Docking Container: Coworker Routing + Suggested Inquiries */}
+        <div className="hayagriva-bottom-dock">
+          {/* Coworker Routing Chips */}
+          <div className="hayagriva-welcome-coworkers">
+            <div
+              className="hayagriva-coworker-chip"
+              onClick={() => this.insertIntoInput('@Advisor ')}
+              title="Click to route inquiry to @Advisor"
+            >
+              <div className="hayagriva-coworker-name" style={{ color: '#0284c7' }}>@Advisor</div>
+              <div className="hayagriva-coworker-desc">Legal grounds & order decoding</div>
+            </div>
+            <div
+              className="hayagriva-coworker-chip"
+              onClick={() => this.insertIntoInput('@Forms ')}
+              title="Click to route inquiry to @Forms"
+            >
+              <div className="hayagriva-coworker-name" style={{ color: '#059669' }}>@Forms</div>
+              <div className="hayagriva-coworker-desc">Fill & audit statutory forms</div>
+            </div>
+            <div
+              className="hayagriva-coworker-chip"
+              onClick={() => this.insertIntoInput('@Document ')}
+              title="Click to route inquiry to @Document"
+            >
+              <div className="hayagriva-coworker-name" style={{ color: '#7c3aed' }}>@Document</div>
+              <div className="hayagriva-coworker-desc">Draft petitions & affidavits</div>
+            </div>
+            <div
+              className="hayagriva-coworker-chip"
+              onClick={() => this.insertIntoInput('@Claims ')}
+              title="Click to route inquiry to @Claims"
+            >
+              <div className="hayagriva-coworker-name" style={{ color: '#0891b2' }}>@Claims</div>
+              <div className="hayagriva-coworker-desc">Audit proofs of debt & CoC %</div>
             </div>
           </div>
-        </div>
 
-        <div className="hayagriva-welcome-body" style={{ margin: '10px 0', fontSize: '11.5px', lineHeight: 1.55, color: '#94a3b8' }}>
-          Direct legal inquiry across case perimeter, bare statutes, and <strong>17,500+ Supreme Court & NCLAT rulings</strong>.
-          Ask any question directly, or route to specialist coworkers:
-        </div>
-
-        <div className="hayagriva-welcome-coworkers" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', margin: '10px 0' }}>
-          <div className="hayagriva-coworker-chip" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '6px 8px' }}>
-            <div style={{ fontWeight: 600, color: '#38bdf8', fontSize: '11px' }}>@Advisor</div>
-            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '1px' }}>Legal grounds & order decoding</div>
-          </div>
-          <div className="hayagriva-coworker-chip" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '6px 8px' }}>
-            <div style={{ fontWeight: 600, color: '#10b981', fontSize: '11px' }}>@Forms</div>
-            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '1px' }}>Fill & audit statutory forms</div>
-          </div>
-          <div className="hayagriva-coworker-chip" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '6px 8px' }}>
-            <div style={{ fontWeight: 600, color: '#c084fc', fontSize: '11px' }}>@Document</div>
-            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '1px' }}>Draft petitions & affidavits</div>
-          </div>
-          <div className="hayagriva-coworker-chip" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '6px 8px' }}>
-            <div style={{ fontWeight: 600, color: '#f59e0b', fontSize: '11px' }}>@Claims</div>
-            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '1px' }}>Audit proofs of debt & CoC %</div>
-          </div>
-        </div>
-
-        <div className="hayagriva-welcome-prompts" style={{ marginTop: '12px' }}>
-          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-            Suggested Inquiries
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            {[
-              'Explain limitation under Section 7 of IBC with Supreme Court ratios',
-              'Summarize the key admission grounds and moratorium in this case',
-              'Check Section 29A connected person eligibility for resolution applicants',
-              'Analyze avoidance look-back periods under Sections 43 and 66'
-            ].map((q, idx) => (
-              <div
-                key={idx}
-                className="hayagriva-prompt-chip"
-                style={{
-                  background: 'rgba(245, 158, 11, 0.06)',
-                  border: '1px solid rgba(245, 158, 11, 0.2)',
-                  borderRadius: '5px',
-                  padding: '5px 8px',
-                  fontSize: '11px',
-                  color: '#fbbf24',
-                  cursor: 'pointer'
-                }}
-                onClick={() => {
-                  try {
-                    const textareas = document.querySelectorAll('.theia-ChatInput-Editor textarea, .theia-ChatInput-Editor .inputarea');
-                    const targetInput = textareas[0] as HTMLTextAreaElement;
-                    if (targetInput) {
-                      targetInput.focus();
-                      targetInput.value = q;
-                      targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                  } catch (_) {}
-                }}
-              >
-                ⚖️ {q}
-              </div>
-            ))}
+          {/* Suggested Inquiries */}
+          <div className="hayagriva-welcome-prompts">
+            <div className="hayagriva-prompts-label">
+              Suggested Inquiries
+            </div>
+            <div className="hayagriva-prompts-list">
+              {[
+                'Explain limitation under Section 7 of IBC with Supreme Court ratios',
+                'Summarize the key admission grounds and moratorium in this case',
+                'Check Section 29A connected person eligibility for resolution applicants',
+                'Analyze avoidance look-back periods under Sections 43 and 66'
+              ].map((q, idx) => (
+                <div
+                  key={idx}
+                  className="hayagriva-prompt-chip"
+                  onClick={() => this.insertIntoInput(q)}
+                  title="Click to insert this inquiry into chat prompt"
+                >
+                  ⚖️ {q}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

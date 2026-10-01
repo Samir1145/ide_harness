@@ -2,6 +2,9 @@ import { ContainerModule } from 'inversify';
 import { FrontendApplicationContribution, OpenHandler } from '@theia/core/lib/browser';
 import { CommandContribution, MenuContribution } from '@theia/core/lib/common';
 import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
+import { WindowTitleContribution } from '@theia/core/lib/browser/window/window-title-service';
+
+
 import { HayagrivaFrontendContribution } from './extension';
 import { HayagrivaCommandContribution } from './commands';
 import { HayagrivaMenuContribution } from './menus';
@@ -77,6 +80,20 @@ export class HayagrivaNavigatorWidgetFactory extends NavigatorWidgetFactory {
   }
 }
 
+@injectable()
+export class HayagrivaWindowTitleContribution implements WindowTitleContribution {
+  enhanceTitle(title: string, _parts: Map<string, string | undefined>): string {
+    const appName = 'Hayagriva';
+    if (!title || title.trim().length === 0) {
+      return appName;
+    }
+    if (!title.includes(appName)) {
+      return `${title} — ${appName}`;
+    }
+    return title;
+  }
+}
+
 export default new ContainerModule((bind, unbind, isBound, rebind) => {
   // Bind preference contribution
   bind(PreferenceContribution).toConstantValue({ schema: hayagrivaPreferenceSchema });
@@ -90,7 +107,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
 
   // Bind File Tree Status color-coding decorator to the native NavigatorTreeDecorator
   bind(HayagrivaTreeDecorator).toSelf().inSingletonScope();
-  bind(NavigatorTreeDecorator).to(HayagrivaTreeDecorator).inSingletonScope();
+  bind(NavigatorTreeDecorator).toService(HayagrivaTreeDecorator);
 
   // Rebind NavigatorWidgetFactory to permanently eliminate Open Editors from Explorer ViewContainer
   bind(HayagrivaNavigatorWidgetFactory).toSelf().inSingletonScope();
@@ -166,4 +183,8 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   // Bind AI Context Chips (#case_facts, #timeline, #claims_registry, #avoidance_ledger)
   bind(HayagrivaContextChipsContribution).toSelf().inSingletonScope();
   bind(AIVariableContribution).toService(HayagrivaContextChipsContribution);
+
+  // Bind Sovereign Legal Workbench Window Title (Ensure Hayagriva is always displayed in the browser tab)
+  bind(HayagrivaWindowTitleContribution).toSelf().inSingletonScope();
+  bind(WindowTitleContribution).toService(HayagrivaWindowTitleContribution);
 });

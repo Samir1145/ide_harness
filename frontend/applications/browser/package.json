@@ -2,7 +2,7 @@
   "private": true,
   "name": "theia-ide-browser-app",
   "description": "Eclipse Theia IDE browser product",
-  "productName": "Theia IDE",
+  "productName": "Hayagriva",
   "version": "1.75.0",
   "license": "MIT",
   "author": "Eclipse Theia <theia-dev@eclipse.org>",
@@ -21,9 +21,10 @@
   "theia": {
     "frontend": {
       "config": {
-        "applicationName": "Theia IDE",
+        "applicationName": "Hayagriva",
         "warnOnPotentiallyInsecureHostPattern": false,
         "preferences": {
+          "window.title": "${dirty}${activeEditorShort}${separator}${rootName}${separator}${appName}",
           "toolbar.showToolbar": true,
           "explorer.openEditors.visible": 0,
           "files.enableTrash": false,

@@ -76,7 +76,61 @@ export class AskHayaVoiceOrb {
 
     this.initSpeechRecognition();
     this.bindKeyboardShortcuts();
+    this.initLightRagStatusWatcher();
     this.logger.info('[AskHayaVoiceService] In-panel voice counsel service initialized.');
+  }
+
+  protected isLightRagOnline: boolean = false;
+  protected latestTelemetry: any = null;
+  protected statusPollTimer: any = null;
+
+  isLightRagConnected(): boolean {
+    return this.isLightRagOnline;
+  }
+
+  getTelemetry(): any {
+    return this.latestTelemetry;
+  }
+
+  isSarvamConfigured(): boolean {
+    return Boolean(this.latestTelemetry?.sarvam?.configured);
+  }
+
+  async checkLightRagStatus(): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/voice/telemetry`);
+      if (res.ok) {
+        const data = await res.json();
+        this.latestTelemetry = data?.telemetry || null;
+        const wasOnline = this.isLightRagOnline;
+        this.isLightRagOnline = Boolean(data && data.success && data.telemetry && data.telemetry.onlineLightRag);
+        if (wasOnline !== this.isLightRagOnline && this.state === 'idle') {
+          this.setState('idle');
+        }
+      } else {
+        this.isLightRagOnline = false;
+        if (this.state === 'idle') {
+          this.setState('idle');
+        }
+      }
+    } catch (_) {
+      this.isLightRagOnline = false;
+      if (this.state === 'idle') {
+        this.setState('idle');
+      }
+    }
+    return this.isLightRagOnline;
+  }
+
+  protected initLightRagStatusWatcher(): void {
+    // Initial status check
+    this.checkLightRagStatus();
+    // Poll telemetry every 15s to keep state accurate
+    if (!this.statusPollTimer) {
+      this.statusPollTimer = setInterval(() => {
+        this.checkLightRagStatus();
+      }, 15000);
+    }
   }
 
   protected bindKeyboardShortcuts(): void {
@@ -126,6 +180,11 @@ export class AskHayaVoiceOrb {
 
       this.recognition.onerror = (event: any) => {
         this.logger.warn(`[AskHayaVoiceService] Speech error: ${event.error}`);
+        if (event.error === 'network') {
+          this.showAirGappedNotice('Speech recognition requires an internet connection in Chromium. You are in Air-Gapped / Offline Mode: please type your query.');
+        } else if (event.error === 'not-allowed') {
+          this.showAirGappedNotice('Microphone access was denied. Please grant microphone permission or type your query.');
+        }
         this.setState('idle');
       };
 
@@ -144,9 +203,25 @@ export class AskHayaVoiceOrb {
     }
   }
 
+  cancel(): void {
+    if (this.recognition) {
+      try {
+        this.recognition.abort();
+      } catch (_) {}
+    }
+    this.stopSpeaking();
+    this.setState('idle');
+  }
+
   startListening(): void {
     this.stopSpeaking();
     this.openInAskHayaPanel();
+
+    // Ensure @AskHaya prefix is visible in the chat composer
+    const current = this.getChatInputText().trim();
+    if (!current.startsWith('@')) {
+      this.updateChatInputText('');
+    }
 
     if (this.recognition) {
       try {
@@ -173,11 +248,15 @@ export class AskHayaVoiceOrb {
   }
 
   protected updateChatInputText(text: string): void {
+    const raw = (text || '').trim();
+    // Always preserve and ensure @AskHaya prefix for voice inquest
+    const formatted = raw ? (raw.startsWith('@') ? raw : `@AskHaya ${raw}`) : '@AskHaya ';
+
     // 1. Try Monaco editor inside ChatViewWidget
     const chatWidget = this.shell.getWidgets('left').find(w => w.id.includes('chat-view-widget') || w.id.includes('chat')) as any;
     if (chatWidget?.inputWidget?.editor?.document?.textEditorModel) {
       try {
-        chatWidget.inputWidget.editor.document.textEditorModel.setValue(text);
+        chatWidget.inputWidget.editor.document.textEditorModel.setValue(formatted);
         return;
       } catch (_) {}
     }
@@ -187,7 +266,7 @@ export class AskHayaVoiceOrb {
     if (textarea) {
       try {
         const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-        setter?.call(textarea, text);
+        setter?.call(textarea, formatted);
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
       } catch (_) {}
     }
@@ -217,33 +296,55 @@ export class AskHayaVoiceOrb {
     textarea?.focus();
   }
 
-  async dispatchToChat(queryText: string): Promise<void> {
-    this.setState('thinking');
+  protected showAirGappedNotice(message: string): void {
+    this.openInAskHayaPanel();
+    this.updateChatInputText('');
+    this.focusChatInput();
 
-    const chatWidget = this.shell.getWidgets('left').find(w => w.id.includes('chat-view-widget') || w.id.includes('chat')) as any;
-    if (chatWidget && typeof chatWidget.onQuery === 'function') {
-      try {
-        // Clear input editor text before sending
-        if (chatWidget.inputWidget?.editor?.document?.textEditorModel) {
-          chatWidget.inputWidget.editor.document.textEditorModel.setValue('');
-        }
-        await chatWidget.onQuery(queryText, 'mix');
-        return;
-      } catch (err: any) {
-        this.logger.warn(`[AskHayaVoiceService] onQuery dispatch failed, routing via direct API: ${err.message}`);
-      }
+    const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.setAttribute('placeholder', message);
+    }
+    const micBtn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
+    if (micBtn) {
+      micBtn.setAttribute('title', message);
+    }
+  }
+
+  async dispatchToChat(queryText: string): Promise<void> {
+    const clean = (queryText || '').trim();
+    if (!clean || clean === '@AskHaya') {
+      this.setState('idle');
+      return;
     }
 
-    // Direct fallback if chat widget is not attached
-    const currentCase = this.getActiveCaseDir();
+    // Ensure @AskHaya is explicitly prefixed so Theia Chat routing passes it to AskHayaChatAgent
+    const targetQuery = clean.startsWith('@') ? clean : `@AskHaya ${clean}`;
+    this.setState('thinking');
+
     try {
+      const chatWidget = this.shell.getWidgets('left').find(w => w.id.includes('chat-view-widget') || w.id.includes('chat')) as any;
+      if (chatWidget && typeof chatWidget.onQuery === 'function') {
+        try {
+          if (chatWidget.inputWidget?.editor?.document?.textEditorModel) {
+            chatWidget.inputWidget.editor.document.textEditorModel.setValue('');
+          }
+          await chatWidget.onQuery(targetQuery, 'mix');
+          return;
+        } catch (err: any) {
+          this.logger.warn(`[AskHayaVoiceService] onQuery dispatch failed, routing via direct API: ${err.message}`);
+        }
+      }
+
+      // Direct fallback if chat widget is not attached
+      const currentCase = this.getActiveCaseDir();
       const res = await fetch(`${this.getBackendUrl()}/api/agents/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           case: currentCase,
           agent: 'askhaya',
-          message: queryText,
+          message: targetQuery,
           mode: 'mix',
           history: []
         })
@@ -253,7 +354,7 @@ export class AskHayaVoiceOrb {
       const data = await res.json();
       const responseText = data.response || 'No response returned from AskHaya.';
       const spokenText = data.spokenText ? this.cleanForSpeech(data.spokenText) : this.cleanForSpeech(responseText);
-      this.lastResult = { query: queryText, spokenText, fullDossier: responseText };
+      this.lastResult = { query: targetQuery, spokenText, fullDossier: responseText };
 
       this.speak(spokenText);
 
@@ -271,7 +372,11 @@ export class AskHayaVoiceOrb {
       }
     } catch (err: any) {
       this.logger.error(`[AskHayaVoiceService] Direct agent call failed: ${err.message}`);
-      this.setState('idle');
+    } finally {
+      // Guaranteed recovery: reset state to idle when thinking completes unless speech actively starts
+      if (this.state === 'thinking') {
+        this.setState('idle');
+      }
     }
   }
 
@@ -294,10 +399,29 @@ export class AskHayaVoiceOrb {
     clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
     clean = clean.replace(/\[(?:\d+|Source\s*#?\d+|Citation\s*#?\d+|source:[^\]]+)\]/gi, '');
     clean = clean.replace(/^\s*[-*•]\s+/gm, '');
-    // 6. Expand legal abbreviations for natural speech
-    clean = clean.replace(/\bv\.\s*/gi, 'versus ')
+    // 6. Expand legal abbreviations for natural speech and prevent abbreviation period splits
+    clean = clean
+      .replace(/\bM\/s\.\s*/gi, 'M/s ')
+      .replace(/\bMessrs\.\s*/gi, 'Messrs ')
+      .replace(/\bv\.\s*/gi, 'versus ')
       .replace(/\bvs\.\s*/gi, 'versus ')
       .replace(/\bSec\.\s*(\d+)/gi, 'Section $1')
+      .replace(/\bSec\s*(\d+)/gi, 'Section $1')
+      .replace(/\bReg\.\s*(\d+)/gi, 'Regulation $1')
+      .replace(/\bReg\s*(\d+)/gi, 'Regulation $1')
+      .replace(/\bLtd\.\s*/gi, 'Limited ')
+      .replace(/\bPvt\.\s*/gi, 'Private ')
+      .replace(/\bCo\.\s*/gi, 'Company ')
+      .replace(/\bu\/s\.\s*/gi, 'under Section ')
+      .replace(/\bu\/s\s*/gi, 'under Section ')
+      .replace(/\bNo\.\s*/gi, 'No ')
+      .replace(/\bDr\.\s*/gi, 'Dr ')
+      .replace(/\bMr\.\s*/gi, 'Mr ')
+      .replace(/\bMrs\.\s*/gi, 'Mrs ')
+      .replace(/\bMs\.\s*/gi, 'Ms ')
+      .replace(/\bAnr\.\s*/gi, 'and Another ')
+      .replace(/\bOrs\.\s*/gi, 'and Others ')
+      .replace(/\bHon'ble\b/gi, 'Honourable')
       .replace(/\bCoC\b/g, 'Committee of Creditors')
       .replace(/\bCIRP\b/g, 'Corporate Insolvency Resolution Process')
       .replace(/\bIBC\b/g, 'Insolvency and Bankruptcy Code')
@@ -306,15 +430,28 @@ export class AskHayaVoiceOrb {
       .replace(/\s+/g, ' ')
       .trim();
 
-    // 7. Limit to first 2-3 sentences max (~350 chars) for an operative oral ratio response
-    const sentences = clean.match(/[^.!?]+[.!?]+/g);
+    // 7. Extract complete substantive ratio (up to ~150 words / 5-6 sentences) without hanging on colons
+    const sentences = clean.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(s => s.length > 0);
     if (sentences && sentences.length > 0) {
-      clean = sentences.slice(0, 3).join(' ').trim();
+      let result: string[] = [];
+      let currentWords = 0;
+      for (let i = 0; i < sentences.length; i++) {
+        const s = sentences[i];
+        result.push(s);
+        currentWords += s.split(/\s+/).length;
+        if ((i >= 3 || currentWords >= 120) && !s.endsWith(':')) {
+          break;
+        }
+        if (i >= 5) break;
+      }
+      let finalSpoken = result.join(' ').trim();
+      finalSpoken = finalSpoken.replace(/[:\-–—\s]+$/, '.');
+      return finalSpoken;
     }
-    if (clean.length > 350) {
-      clean = clean.slice(0, 350).replace(/\s+\S*$/, '') + '.';
+    if (clean.length > 900) {
+      clean = clean.slice(0, 900).replace(/\s+\S*$/, '') + '.';
     }
-    return clean;
+    return clean.replace(/[:\-–—\s]+$/, '.');
   }
 
   async speak(text: string): Promise<void> {
@@ -413,20 +550,31 @@ export class AskHayaVoiceOrb {
     });
 
     // Update in-panel button visual state directly if present in DOM
-    const micBtn = document.querySelector('.askhaya-composer-mic');
+    const micBtn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
     if (micBtn) {
+      micBtn.classList.remove('online', 'offline', 'listening', 'thinking', 'speaking');
       if (newState === 'listening') {
+        micBtn.classList.add('listening');
         micBtn.innerHTML = '<i class="fa fa-circle" style="color: #ef4444; font-size: 11px; animation: pulse 1s infinite;"></i><span style="color: #ef4444; font-size: 11px; font-weight: 600; margin-left: 5px;">Listening…</span>';
         micBtn.setAttribute('title', 'Listening to your legal inquiry... (Click to send or stop)');
       } else if (newState === 'thinking') {
+        micBtn.classList.add('thinking');
         micBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color: #38bdf8; font-size: 12px;"></i><span style="color: #38bdf8; font-size: 11px; font-weight: 600; margin-left: 5px;">Researching…</span>';
         micBtn.setAttribute('title', 'Consulting LightRAG graph & bare acts...');
       } else if (newState === 'speaking') {
+        micBtn.classList.add('speaking');
         micBtn.innerHTML = '<i class="fa fa-volume-up" style="color: #10b981; font-size: 13px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">Advising…</span>';
         micBtn.setAttribute('title', 'Playing Sarvam AI oral ratio (Click to mute)');
       } else {
-        micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #f59e0b; font-size: 13px;"></i><span style="color: #fbbf24; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
-        micBtn.setAttribute('title', 'Speak to AskHaya Senior Counsel (Voice Inquest / Alt+Space)');
+        if (this.isLightRagOnline) {
+          micBtn.classList.add('online');
+          micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
+          micBtn.setAttribute('title', 'AskHaya Precedent Knowledge Graph Online (HTTP 200) • Click to speak (Alt+Space) • Right-click for Settings');
+        } else {
+          micBtn.classList.add('offline');
+          micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #f59e0b; font-size: 12px;"></i><span style="color: #f59e0b; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
+          micBtn.setAttribute('title', 'LightRAG Precedent Graph Disconnected • Click to configure URL & API Key in Settings');
+        }
       }
     }
   }

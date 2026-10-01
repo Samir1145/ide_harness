@@ -22,10 +22,11 @@ import { HayagrivaEditorDecorator } from './highlight-decorator';
 import { HayagrivaLspClient } from './lsp-client';
 import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
-import { pruneNavigatorContextMenu, pruneDeveloperMenus } from './menus';
+import { pruneNavigatorContextMenu, pruneDeveloperMenus, installMenuGuard } from './menus';
 import { AskHayaVoiceOrb } from './askhaya-orb';
+import { safeDecodeURI } from './tree-decorator';
 
-const { inboxExplorerHtml, billingExplorerHtml } = require('./templates');
+const { inboxExplorerHtml, billingExplorerHtml, entityExplorerHtml, notificationCenterHtml, toolComingSoonHtml, TOOLS_CATALOG } = require('./templates');
 
 export const hayagrivaPreferenceSchema: PreferenceSchema = {
   properties: {
@@ -61,6 +62,8 @@ export class HayagrivaFrontendContribution
   protected conceptsWidget?: Widget;
   protected inboxWidget?: Widget;
   protected billingWidget?: Widget;
+  protected entityMapWidget?: Widget;
+  protected notificationWidget?: Widget;
   protected uploadModalElement?: HTMLElement;
 
   constructor(
@@ -95,6 +98,16 @@ export class HayagrivaFrontendContribution
     return this.shell;
   }
 
+  isCurrentThemeLight(): boolean {
+    try {
+      const theme = this.themeService.getCurrentTheme();
+      if (theme && (theme.type === 'light' || theme.id.toLowerCase().includes('light'))) {
+        return true;
+      }
+    } catch (_) {}
+    return document.body.classList.contains('theia-light') || document.body.classList.contains('light-theia');
+  }
+
   // ── OpenHandler ────────────────────────────────────────────────────────────
   canHandle(uri: URI): number {
     if (uri.scheme === 'hayagriva-citation') {
@@ -109,13 +122,13 @@ export class HayagrivaFrontendContribution
 
   async open(uri: URI, _options?: OpenerOptions): Promise<Widget> {
     if (uri.scheme === 'hayagriva-citation') {
-      const docName = decodeURIComponent(uri.authority || uri.path.toString().replace(/^\/+/, ''));
+      const docName = safeDecodeURI(uri.authority || uri.path.toString().replace(/^\/+/, ''));
       const query = new URLSearchParams(uri.query);
       const pageNum = parseInt(query.get('page') || '1', 10);
       return this.previewManager.openCitationPreview(docName, pageNum);
     }
 
-    const filePath = decodeURIComponent(uri.path.toString());
+    const filePath = safeDecodeURI(uri.path.toString());
     const caseName = this.getCaseName(filePath);
 
     if (/\.(pdf|docx|doc|xlsx|xls)$/i.test(filePath)) {
@@ -149,7 +162,7 @@ export class HayagrivaFrontendContribution
       }
 
       if (companionUri) {
-        const companionPath = decodeURIComponent(companionUri.path.toString());
+        const companionPath = safeDecodeURI(companionUri.path.toString());
         await this.previewManager.openMilkdownEditor(companionPath, caseName, 'split-right');
       }
 
@@ -181,6 +194,19 @@ export class HayagrivaFrontendContribution
       this.preferenceService.set('explorer.openEditors.visible', 0);
       this.preferenceService.set('toolbar.showToolbar', false);
       this.preferenceService.set('files.associations', { '*.tid': 'markdown' });
+      this.preferenceService.set('window.title', '${dirty}${activeEditorShort}${separator}${rootName}${separator}${appName}');
+    } catch (_) {}
+
+    // Ensure browser tab favicon is Hayagriva stallion
+    try {
+      let iconLink = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      if (!iconLink) {
+        iconLink = document.createElement('link');
+        iconLink.rel = 'icon';
+        document.head.appendChild(iconLink);
+      }
+      iconLink.type = 'image/x-icon';
+      iconLink.href = './favicon.ico?v=hayagriva';
     } catch (_) {}
 
     // Permanently purge Open Editors from Explorer ViewContainer
@@ -200,39 +226,140 @@ export class HayagrivaFrontendContribution
     setTimeout(purgeOpenEditors, 1200);
 
     // Prune generic developer clutter from Explorer context menu and top menu bar
-    try {
-      pruneNavigatorContextMenu(this.menuRegistry);
-      pruneDeveloperMenus(this.menuRegistry);
-      setTimeout(() => {
-        pruneNavigatorContextMenu(this.menuRegistry);
-        pruneDeveloperMenus(this.menuRegistry);
-      }, 500);
-      setTimeout(() => pruneDeveloperMenus(this.menuRegistry), 1500);
-    } catch (_) {}
+    const FORBIDDEN_MENU_LABELS = new Set([
+      'ai agent history',
+      'ai chat',
+      'ai sessions',
+      'call hierarchy',
+      'debug',
+      'debug console',
+      'explorer',
+      'extensions',
+      'outline',
+      'output',
+      'plugins',
+      'problems',
+      'properties',
+      'search',
+      'source control',
+      'type hierarchy',
+      'open view...',
+      'toggle minimap',
+      'toggle breadcrumbs',
+      'toggle render whitespace',
+      'new text file',
+      'new file...',
+      'new folder...',
+      'new window',
+      'open workspace from file...',
+      'open recent workspace...',
+      'add folder to workspace...',
+      'save workspace as...',
+      'upload files...',
+      'close workspace'
+    ]);
 
-    // Prune developer items from top menu bar (Terminal, Run, Selection, Go)
-    const pruneTopMenuBar = () => {
+    let isCleaning = false;
+    const cleanLuminoMenus = () => {
+      if (isCleaning) return;
+      isCleaning = true;
       try {
-        const items = document.querySelectorAll('.p-MenuBar-item');
-        const hideLabels = ['terminal', 'run', 'selection', 'go'];
-        items.forEach(el => {
+        // 1. Prune top menubar items (Selection, Go, Run, Terminal)
+        const topItems = document.querySelectorAll('.lm-MenuBar-item, .p-MenuBar-item');
+        const hideTop = ['selection', 'go', 'run', 'terminal'];
+        topItems.forEach(el => {
           const text = (el.textContent || '').trim().toLowerCase();
-          if (hideLabels.includes(text)) {
+          if (hideTop.includes(text)) {
             (el as HTMLElement).style.display = 'none';
           }
         });
-      } catch (_) {}
+
+        // 2. Dropdown popup menus (.lm-Menu, .p-Menu)
+        const menus = document.querySelectorAll('.lm-Menu, .p-Menu');
+        menus.forEach(menu => {
+          const items = menu.querySelectorAll('.lm-Menu-item, .p-Menu-item');
+          items.forEach(item => {
+            const labelEl = item.querySelector('.lm-Menu-itemLabel, .p-Menu-itemLabel');
+            if (labelEl) {
+              const text = (labelEl.textContent || '').trim().toLowerCase();
+              if (FORBIDDEN_MENU_LABELS.has(text) || text.includes('toggle minimap') || text.includes('render whitespace') || text.includes('breadcrumbs')) {
+                (item as HTMLElement).style.display = 'none';
+              }
+            }
+          });
+
+          // 3. Clean up orphaned separators
+          let lastWasVisibleSeparator = false;
+          let hasVisibleItems = false;
+          items.forEach(item => {
+            const isSep = item.classList.contains('lm-type-separator') || item.classList.contains('p-type-separator');
+            if ((item as HTMLElement).style.display === 'none') return;
+            if (isSep) {
+              if (!hasVisibleItems || lastWasVisibleSeparator) {
+                (item as HTMLElement).style.display = 'none';
+              } else {
+                lastWasVisibleSeparator = true;
+              }
+            } else {
+              hasVisibleItems = true;
+              lastWasVisibleSeparator = false;
+            }
+          });
+
+          // Trailing separator cleanup
+          for (let i = items.length - 1; i >= 0; i--) {
+            const item = items[i] as HTMLElement;
+            if (item.style.display === 'none') continue;
+            if (item.classList.contains('lm-type-separator') || item.classList.contains('p-type-separator')) {
+              item.style.display = 'none';
+            }
+            break;
+          }
+        });
+      } catch (_) {
+      } finally {
+        isCleaning = false;
+      }
     };
-    pruneTopMenuBar();
-    setTimeout(pruneTopMenuBar, 400);
-    setTimeout(pruneTopMenuBar, 1500);
+
+    try {
+      installMenuGuard(this.menuRegistry);
+      pruneNavigatorContextMenu(this.menuRegistry);
+      pruneDeveloperMenus(this.menuRegistry);
+      cleanLuminoMenus();
+
+      // Debounce menu registry updates to re-prune without blocking main thread
+      let debounceMenuTimer: any = null;
+      this.menuRegistry.onDidChange(() => {
+        if (debounceMenuTimer) clearTimeout(debounceMenuTimer);
+        debounceMenuTimer = setTimeout(() => {
+          pruneNavigatorContextMenu(this.menuRegistry);
+          pruneDeveloperMenus(this.menuRegistry);
+        }, 300);
+      });
+
+      // Multi-interval sweep for late-loading plugins
+      [500, 1500, 3000, 6000, 9000, 12000].forEach(delay => {
+        setTimeout(() => {
+          pruneNavigatorContextMenu(this.menuRegistry);
+          pruneDeveloperMenus(this.menuRegistry);
+          cleanLuminoMenus();
+        }, delay);
+      });
+
+      // Realtime DOM observer on menu dropdowns
+      const menuObserver = new MutationObserver(() => cleanLuminoMenus());
+      menuObserver.observe(document.body, { childList: true, subtree: true });
+      document.addEventListener('pointerdown', () => requestAnimationFrame(cleanLuminoMenus), true);
+      document.addEventListener('click', () => requestAnimationFrame(cleanLuminoMenus), true);
+    } catch (_) {}
 
     // Relocate AI Chat widget to left vertical dock and collapse right panel
     try {
       this.widgetManager.getOrCreateWidget('chat-view-widget').then(widget => {
         if (widget) {
-          widget.title.label = 'AskHaya';
-          widget.title.caption = 'AskHaya Senior Legal Counsel & Coworker Orchestrator';
+          widget.title.label = 'Hayagriva Agents';
+          widget.title.caption = 'Hayagriva Agents';
           widget.title.iconClass = 'hayagriva-horse-icon';
           this.shell.addWidget(widget, { area: 'left', rank: 300 });
         }
@@ -240,11 +367,31 @@ export class HayagrivaFrontendContribution
       this.shell.collapsePanel('right');
     } catch (_) {}
 
+    // Theme-adaptive synchronization across custom iframe sidebars
+    try {
+      this.themeService.onDidColorThemeChange(() => {
+        const isLight = this.isCurrentThemeLight();
+        const currentCase = this.getActiveCaseName();
+        if (this.inboxWidget) {
+          const iframe = this.inboxWidget.node.querySelector('iframe');
+          if (iframe) {
+            iframe.srcdoc = inboxExplorerHtml(currentCase, this.getApiPort(), isLight);
+          }
+        }
+        if (this.entityMapWidget) {
+          const iframe = this.entityMapWidget.node.querySelector('iframe');
+          if (iframe) {
+            iframe.srcdoc = entityExplorerHtml(currentCase, this.getApiPort(), isLight);
+          }
+        }
+      });
+    } catch (_) {}
+
     // Live auto-refresh of Markdown previews when saving .md files
     try {
       this.monacoWorkspace.onDidSaveTextDocument(model => {
         try {
-          const filePath = decodeURIComponent(new URI(model.uri).path.toString());
+          const filePath = safeDecodeURI(new URI(model.uri).path.toString());
           if (filePath.endsWith('.md') || filePath.endsWith('.markdown')) {
             this.previewManager.refreshPreview(filePath);
           }
@@ -289,6 +436,34 @@ export class HayagrivaFrontendContribution
             iframe.src = url.toString();
           }
         }
+
+        const caseName = this.getActiveCaseName();
+        if (this.notificationWidget) {
+          const iframe = this.notificationWidget.node.querySelector('iframe');
+          if (iframe) {
+            iframe.srcdoc = notificationCenterHtml(caseName, this.getApiPort(), isLight);
+          }
+        }
+        if (this.entityMapWidget) {
+          const iframe = this.entityMapWidget.node.querySelector('iframe');
+          if (iframe) {
+            iframe.srcdoc = entityExplorerHtml(caseName, this.getApiPort(), isLight);
+          }
+        }
+        if (this.billingWidget) {
+          const iframe = this.billingWidget.node.querySelector('iframe');
+          if (iframe) {
+            iframe.srcdoc = billingExplorerHtml(caseName, this.getApiPort(), isLight);
+          }
+        }
+        const toolWidgets = this.shell.getWidgets('main').filter(w => w.id && w.id.startsWith('hayagriva-tool-'));
+        for (const tw of toolWidgets) {
+          const toolKey = tw.id.replace('hayagriva-tool-', '');
+          const iframe = tw.node.querySelector('iframe');
+          if (iframe) {
+            iframe.srcdoc = toolComingSoonHtml(toolKey, isLight);
+          }
+        }
       } catch (err: any) {
         this.logger.warn(`[Hayagriva] Failed to sync settings iframe theme: ${err.message}`);
       }
@@ -298,56 +473,66 @@ export class HayagrivaFrontendContribution
   async onDidInitializeLayout(_app: FrontendApplication): Promise<void> {
     const allowedLeftWidgets = new Set([
       'explorer-view-container',
-      'search-view-container',
       'chat-view-widget',
-      'hayagriva-inbox-explorer'
+      'hayagriva-entity-map-explorer',
+      'hayagriva-notification-center',
+      'hayagriva-billing-explorer'
     ]);
 
-    // Pillar 1: Documents (Files Explorer)
-    const explorerWidget = this.shell.getWidgets('left').find(w => w.id.includes('explorer-view-container') || w.id === 'files');
+    // Pillar 1: Documents (Files Explorer) - Rank 100
+    let explorerWidget = this.shell.getWidgets('left').find(w => w.id.includes('explorer-view-container') || w.id === 'files');
+    if (!explorerWidget) {
+      try {
+        explorerWidget = await this.widgetManager.getOrCreateWidget('explorer-view-container');
+      } catch (_) {}
+    }
     if (explorerWidget) {
-      explorerWidget.title.label = 'Documents';
-      explorerWidget.title.caption = 'Case Documents & Workflows';
-      explorerWidget.title.iconClass = 'fa fa-folder-open';
+      explorerWidget.title.label = 'Files & Folders';
+      explorerWidget.title.caption = 'Files & Folders';
+      explorerWidget.title.iconClass = 'hayagriva-pillar1-icon';
+      await this.shell.addWidget(explorerWidget, { area: 'left', rank: 100 });
     }
 
-    // Pillar 2: Search (FTS5 & Lexical Workspace Search)
-    try {
-      const searchWidget = await this.widgetManager.getOrCreateWidget('search-view-container');
-      if (searchWidget) {
-        searchWidget.title.label = 'Search';
-        searchWidget.title.caption = 'FTS5 & Lexical Workspace Search';
-        searchWidget.title.iconClass = 'fa fa-search';
-        await this.shell.addWidget(searchWidget, { area: 'left', rank: 200 });
-      }
-    } catch (_) {}
-
-    // Pillar 3: AskHaya (Senior Partner & AI Counsel)
+    // Pillar 2: Hayagriva Agents (AskHaya) - Rank 200
     try {
       const chatWidget = await this.widgetManager.getOrCreateWidget('chat-view-widget');
       if (chatWidget) {
-        chatWidget.title.label = 'AskHaya';
-        chatWidget.title.caption = 'AskHaya Senior Legal Counsel & Coworker Orchestrator';
+        chatWidget.title.label = 'Hayagriva Agents';
+        chatWidget.title.caption = 'Hayagriva Agents';
         chatWidget.title.iconClass = 'hayagriva-horse-icon';
         chatWidget.title.closable = false;
-        await this.shell.addWidget(chatWidget, { area: 'left', rank: 300 });
+        await this.shell.addWidget(chatWidget, { area: 'left', rank: 200 });
       }
     } catch (err: any) {
       this.logger.warn(`[Hayagriva] Failed to dock chat widget on left: ${err.message}`);
     }
 
-    // Pillar 4: Compliances (Case Action Inbox & Approvals)
+    // Pillar 3: Forensic Entity Map (Master Entity Directory & Topology) - Rank 300
     try {
-      this.initializeInboxExplorerWidget();
+      this.initializeEntityMapWidget();
     } catch (err: any) {
-      this.logger.warn(`[Hayagriva] Failed to dock inbox widget on left: ${err.message}`);
+      this.logger.warn(`[Hayagriva] Failed to dock entity map widget on left: ${err.message}`);
     }
 
-    // Completely omit Outline & Pages (Option A): force close any instance of outline-view
+    // Pillar 4: Notification Center (Statutory Compliances, LexAI Tasks, Approvals & Case Facts) - Rank 400
+    try {
+      this.initializeNotificationCenterWidget();
+    } catch (err: any) {
+      this.logger.warn(`[Hayagriva] Failed to dock notification center widget on left: ${err.message}`);
+    }
+
+    // Pillar 5: Billing Center (Resolution Bazaar Diligence Ledger & Settlement) - Rank 500
+    try {
+      this.initializeBillingExplorerWidget();
+    } catch (err: any) {
+      this.logger.warn(`[Hayagriva] Failed to dock billing explorer widget on left: ${err.message}`);
+    }
+
+    // Completely omit Outline & Search View Container: force close any instance
     try {
       const allWidgets = [...this.shell.getWidgets('left'), ...this.shell.getWidgets('right')];
       for (const w of allWidgets) {
-        if (w.id.toLowerCase() === 'outline-view') {
+        if (w.id.toLowerCase() === 'outline-view' || w.id.includes('search-view-container')) {
           w.close();
         }
       }
@@ -373,43 +558,8 @@ export class HayagrivaFrontendContribution
     registry.registerItem({
       id: 'hayagriva-upload-toolbar-item',
       command: 'hayagriva:openUploadSplit',
-      tooltip: 'Upload to Hayagriva',
+      tooltip: 'Upload Court Documents',
       icon: 'fa fa-upload',
-      priority: 0
-    });
-    registry.registerItem({
-      id: 'hayagriva-theme-toolbar-item',
-      command: 'hayagriva:toggleTheme',
-      tooltip: 'Toggle Light/Dark Theme',
-      icon: 'fa fa-adjust',
-      priority: 2
-    });
-    registry.registerItem({
-      id: 'hayagriva-settings-toolbar-item',
-      command: 'hayagriva:openSettingsPanel',
-      tooltip: 'Open Case Settings',
-      icon: 'fa fa-cog',
-      priority: 3
-    });
-    registry.registerItem({
-      id: 'hayagriva-chronology-toolbar-item',
-      command: 'hayagriva:openChronology',
-      tooltip: 'Open Case Chronology',
-      icon: 'fa fa-calendar',
-      priority: 4
-    });
-    registry.registerItem({
-      id: 'hayagriva-topic-overlap-toolbar-item',
-      command: 'hayagriva:openTopicOverlap',
-      tooltip: 'Open Topic Overlap Map',
-      icon: 'fa fa-link',
-      priority: 5
-    });
-    registry.registerItem({
-      id: 'hayagriva-md-live-preview-toolbar-item',
-      command: 'hayagriva:viewAsHtml',
-      tooltip: '📖 View as HTML (Live Formatted Preview)',
-      icon: 'fa fa-book',
       priority: 0
     });
   }
@@ -476,6 +626,11 @@ export class HayagrivaFrontendContribution
     return this.previewManager.openEntityMapPanel(targetCase);
   }
 
+  async openKvPanel(caseName?: string): Promise<Widget> {
+    const targetCase = caseName || this.getActiveCaseName();
+    return this.previewManager.openKvEditor(targetCase);
+  }
+
   async openTopicOverlapPanel(caseName?: string): Promise<Widget> {
     const targetCase = caseName || this.getActiveCaseName();
     return this.previewManager.openTopicOverlapPanel(targetCase);
@@ -530,7 +685,7 @@ export class HayagrivaFrontendContribution
     try {
       const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (workspaceRoot) {
-        return decodeURIComponent(new URI(workspaceRoot.toString()).path.toString());
+        return safeDecodeURI(new URI(workspaceRoot.toString()).path.toString());
       }
     } catch (e: any) {
       this.logger.error(`[HAYAGRIVA] Error resolving workspace root: ${e.message}`);
@@ -542,14 +697,14 @@ export class HayagrivaFrontendContribution
     try {
       const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (workspaceRoot) {
-        return decodeURIComponent(new URI(workspaceRoot.toString()).path.toString());
+        return safeDecodeURI(new URI(workspaceRoot.toString()).path.toString());
       }
     } catch (_) {}
     const active = this.editorManager.activeEditor;
     if (active) {
       const uri = active.getResourceUri();
       if (uri) {
-        return decodeURIComponent(uri.path.toString());
+        return safeDecodeURI(uri.path.toString());
       }
     }
     return '';
@@ -706,7 +861,7 @@ export class HayagrivaFrontendContribution
             if (workspaceRoot) {
               const uri = new URI(workspaceRoot.toString()).resolve(pathParam);
               if (uri.toString() !== workspaceRoot.toString()) {
-                const filePathStr = decodeURIComponent(uri.path.toString());
+                const filePathStr = safeDecodeURI(uri.path.toString());
                 if (filePathStr.toLowerCase().endsWith('.wiki.html')) {
                   const caseName = this.getCaseName(filePathStr);
                   await this.openWikiHtmlViewer(filePathStr, caseName);
@@ -715,6 +870,14 @@ export class HayagrivaFrontendContribution
                 }
               }
             }
+          }
+        } else if (event.data.type === 'open-entity-map-main') {
+          await this.openEntityMapPanel();
+        } else if (event.data.type === 'focus-entity-in-graph') {
+          const widget = await this.openEntityMapPanel();
+          const iframe = widget.node.querySelector('iframe');
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage(event.data, '*');
           }
         } else if (event.data.type === 'open-citation') {
           const { filePath, anchor } = event.data;
@@ -768,6 +931,21 @@ export class HayagrivaFrontendContribution
             const rightUri = new URI(workspaceRoot.toString()).resolve(draftName);
             this.commandRegistry.executeCommand('vscode.diff', leftUri, rightUri, `Draft Redlines: v${version - 1} vs v${version}`);
           }
+        } else if (event.data.type === 'open-compliance-queue') {
+          await this.openComplianceQueue(undefined, event.data.tier || 'ALL');
+        } else if (event.data.type === 'open-kv-editor') {
+          await this.openKvPanel();
+        } else if (event.data.type === 'open-billing-ledger-main') {
+          await this.openCockpitPanel(undefined, 'billing');
+        } else if (event.data.type === 'open-file') {
+          const pathParam = event.data.filePath || event.data.relativePath;
+          if (pathParam && typeof pathParam === 'string' && pathParam.trim() !== '') {
+            const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
+            if (workspaceRoot) {
+              const uri = new URI(workspaceRoot.toString()).resolve(pathParam);
+              await this.editorManager.open(uri);
+            }
+          }
         }
       }
     });
@@ -800,61 +978,178 @@ export class HayagrivaFrontendContribution
   }
 
   initializeConceptsExplorerWidget(): void {
-    // Suppressed in Left Activity Bar in favor of 4-Pillar Chamber Bar.
+    // Suppressed in Left Activity Bar in favor of 5-Pillar Chamber Bar.
   }
 
-  initializeInboxExplorerWidget(): void {
-    if (this.inboxWidget) {
-      this.inboxWidget.title.label = 'Compliances';
-      this.inboxWidget.title.caption = 'Statutory Deadlines, Claim Audits & Sign-offs Awaiting Approval';
-      this.inboxWidget.title.iconClass = 'fa fa-check-square-o';
-      this.shell.addWidget(this.inboxWidget, { area: 'left', rank: 400 });
+  initializeEntityMapWidget(): void {
+    if (this.entityMapWidget) {
+      this.entityMapWidget.title.label = 'Forensic Entity Map';
+      this.entityMapWidget.title.caption = 'Forensic Entity Directory & Triage';
+      this.entityMapWidget.title.iconClass = 'hayagriva-pillar4-icon';
+      this.shell.addWidget(this.entityMapWidget, { area: 'left', rank: 300 });
       return;
     }
 
     const initialCase = this.getActiveCaseName();
-    const inboxExplorer = new Widget();
-    inboxExplorer.id = 'hayagriva-inbox-explorer';
-    inboxExplorer.title.label = 'Compliances';
-    inboxExplorer.title.caption = 'Statutory Deadlines, Claim Audits & Sign-offs Awaiting Approval';
-    inboxExplorer.title.iconClass = 'fa fa-check-square-o';
-    inboxExplorer.title.closable = false;
+    const entityExplorer = new Widget();
+    entityExplorer.id = 'hayagriva-entity-map-explorer';
+    entityExplorer.title.label = 'Forensic Entity Map';
+    entityExplorer.title.caption = 'Forensic Entity Directory & Triage';
+    entityExplorer.title.iconClass = 'hayagriva-pillar4-icon';
+    entityExplorer.title.closable = false;
 
-    const inboxIframe = document.createElement('iframe');
-    inboxIframe.style.width = '100%';
-    inboxIframe.style.height = '100%';
-    inboxIframe.style.border = 'none';
-    inboxIframe.srcdoc = inboxExplorerHtml(initialCase, this.getApiPort());
-    inboxExplorer.node.appendChild(inboxIframe);
+    const isLight = this.isCurrentThemeLight();
+    const entityIframe = document.createElement('iframe');
+    entityIframe.style.width = '100%';
+    entityIframe.style.height = '100%';
+    entityIframe.style.border = 'none';
+    entityIframe.srcdoc = entityExplorerHtml(initialCase, this.getApiPort(), isLight);
+    entityExplorer.node.appendChild(entityIframe);
 
-    this.inboxWidget = inboxExplorer;
-    this.shell.addWidget(inboxExplorer, { area: 'left', rank: 400 });
+    this.entityMapWidget = entityExplorer;
+    this.shell.addWidget(entityExplorer, { area: 'left', rank: 300 });
+  }
+
+  initializeNotificationCenterWidget(): void {
+    if (this.notificationWidget) {
+      this.notificationWidget.title.label = 'Notification Center';
+      this.notificationWidget.title.caption = 'Statutory Compliances, LexAI Tasks, Approvals & Case Fact Alerts';
+      this.notificationWidget.title.iconClass = 'hayagriva-pillar5-icon';
+      this.shell.addWidget(this.notificationWidget, { area: 'left', rank: 400 });
+      return;
+    }
+
+    const initialCase = this.getActiveCaseName();
+    const notifExplorer = new Widget();
+    notifExplorer.id = 'hayagriva-notification-center';
+    notifExplorer.title.label = 'Notification Center';
+    notifExplorer.title.caption = 'Statutory Compliances, LexAI Tasks, Approvals & Case Fact Alerts';
+    notifExplorer.title.iconClass = 'hayagriva-pillar5-icon';
+    notifExplorer.title.closable = false;
+
+    const isLight = this.isCurrentThemeLight();
+    const notifIframe = document.createElement('iframe');
+    notifIframe.style.width = '100%';
+    notifIframe.style.height = '100%';
+    notifIframe.style.border = 'none';
+    notifIframe.srcdoc = notificationCenterHtml(initialCase, this.getApiPort(), isLight);
+    notifExplorer.node.appendChild(notifIframe);
+
+    this.notificationWidget = notifExplorer;
+    this.shell.addWidget(notifExplorer, { area: 'left', rank: 400 });
+  }
+
+  initializeInboxExplorerWidget(): void {
+    this.initializeNotificationCenterWidget();
   }
 
   initializeBillingExplorerWidget(): void {
-    if (this.billingWidget) return;
+    if (this.billingWidget) {
+      this.billingWidget.title.label = 'Estate Accounts';
+      this.billingWidget.title.caption = 'CIRP Costs, Creditor Ledgers & Diligence Settlement';
+      this.billingWidget.title.iconClass = 'hayagriva-pillar6-icon';
+      this.shell.addWidget(this.billingWidget, { area: 'left', rank: 500 });
+      return;
+    }
 
     const initialCase = this.getActiveCaseName();
     const billingExplorer = new Widget();
     billingExplorer.id = 'hayagriva-billing-explorer';
-    billingExplorer.title.label = 'Billing';
-    billingExplorer.title.caption = 'Resolution Bazaar Diligence Ledger & Settlement';
-    billingExplorer.title.iconClass = 'fa fa-credit-card';
+    billingExplorer.title.label = 'Estate Accounts';
+    billingExplorer.title.caption = 'CIRP Costs, Creditor Ledgers & Diligence Settlement';
+    billingExplorer.title.iconClass = 'hayagriva-pillar6-icon';
     billingExplorer.title.closable = false;
 
+    const isLight = this.isCurrentThemeLight();
     const billingIframe = document.createElement('iframe');
     billingIframe.style.width = '100%';
     billingIframe.style.height = '100%';
     billingIframe.style.border = 'none';
-    billingIframe.srcdoc = billingExplorerHtml(initialCase, this.getApiPort());
+    billingIframe.srcdoc = billingExplorerHtml(initialCase, this.getApiPort(), isLight);
     billingExplorer.node.appendChild(billingIframe);
 
     this.billingWidget = billingExplorer;
-    this.shell.addWidget(billingExplorer, { area: 'left', rank: 535 });
+    this.shell.addWidget(billingExplorer, { area: 'left', rank: 500 });
+  }
+
+  openNotificationCenter(): void {
+    if (!this.notificationWidget) {
+      this.initializeNotificationCenterWidget();
+    }
+    if (this.notificationWidget) {
+      this.shell.activateWidget(this.notificationWidget.id);
+    }
+  }
+
+  openEntityExplorer(): void {
+    if (!this.entityMapWidget) {
+      this.initializeEntityMapWidget();
+    }
+    if (this.entityMapWidget) {
+      this.shell.activateWidget(this.entityMapWidget.id);
+    }
   }
 
   openBillingExplorer(): void {
-    this.openCockpitPanel(undefined, 'billing');
+    if (!this.billingWidget) {
+      this.initializeBillingExplorerWidget();
+    }
+    if (this.billingWidget) {
+      this.shell.activateWidget(this.billingWidget.id);
+    }
+  }
+
+  focusPillar(pillarRank: number): void {
+    switch (pillarRank) {
+      case 100:
+        this.shell.activateWidget('explorer-view-container');
+        break;
+      case 200:
+        this.shell.activateWidget('chat-view-widget');
+        break;
+      case 300:
+        this.openEntityExplorer();
+        break;
+      case 400:
+        this.openNotificationCenter();
+        break;
+      case 500:
+        this.openBillingExplorer();
+        break;
+    }
+  }
+
+  async openToolComingSoon(toolKey: string): Promise<Widget> {
+    const id = `hayagriva-tool-${toolKey}`;
+    let widget = this.shell.getWidgets('main').find(w => w.id === id);
+    if (widget) {
+      this.shell.activateWidget(widget.id);
+      return widget;
+    }
+
+    const meta = (TOOLS_CATALOG && TOOLS_CATALOG[toolKey]) || {
+      title: 'Chamber Tool',
+      shortTitle: 'Tool',
+      icon: '🛠️'
+    };
+
+    widget = new Widget();
+    widget.id = id;
+    widget.title.label = `${meta.icon} ${meta.shortTitle}`;
+    widget.title.caption = meta.title;
+    widget.title.closable = true;
+
+    const isLight = this.isCurrentThemeLight();
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.srcdoc = toolComingSoonHtml(toolKey, isLight);
+    widget.node.appendChild(iframe);
+
+    this.shell.addWidget(widget, { area: 'main' });
+    this.shell.activateWidget(widget.id);
+    return widget;
   }
 
   updateSidebarCase(caseName: string): void {
@@ -882,10 +1177,22 @@ export class HayagrivaFrontendContribution
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
       }
     }
+    if (this.notificationWidget) {
+      const iframe = this.notificationWidget.node.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
+      }
+    }
     if (this.billingWidget) {
       const iframe = this.billingWidget.node.querySelector('iframe');
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({ type: 'select-case', caseName }, '*');
+      }
+    }
+    if (this.entityMapWidget) {
+      const iframe = this.entityMapWidget.node.querySelector('iframe');
+      if (iframe) {
+        iframe.srcdoc = entityExplorerHtml(caseName, this.getApiPort(), this.isCurrentThemeLight());
       }
     }
   }
@@ -1111,46 +1418,172 @@ export class HayagrivaFrontendContribution
         display: inline-block !important;
       }
 
-      /* ── Hayagriva Monoline Horse Head Icon ── */
-      .hayagriva-horse-icon,
-      i.hayagriva-horse-icon,
-      .theia-tab-icon.hayagriva-horse-icon,
-      .p-TabBar-tabIcon.hayagriva-horse-icon {
+      /* ── Hayagriva 6-Pillar Sovereign Left Activity Bar Icons ── */
+
+      /* Universal Reset for 6-Pillar Tab Icons (prevent font icon glyph clashing) */
+      .theia-tab-bar-container.left .p-TabBar-tab .p-TabBar-tabIcon::before,
+      .theia-tab-bar-container.left .lm-TabBar-tab .lm-TabBar-tabIcon::before,
+      .hayagriva-pillar1-icon::before,
+      .hayagriva-pillar2-icon::before,
+      .hayagriva-horse-icon::before,
+      .hayagriva-pillar4-icon::before,
+      .hayagriva-pillar5-icon::before,
+      .hayagriva-pillar6-icon::before {
+        content: "" !important;
+      }
+
+      /* Pillar 1: Documents (Executive Tabbed Dossier Folder) */
+      .hayagriva-pillar1-icon,
+      i.hayagriva-pillar1-icon,
+      .theia-tab-icon.hayagriva-pillar1-icon,
+      .p-TabBar-tabIcon.hayagriva-pillar1-icon,
+      .lm-TabBar-tabIcon.hayagriva-pillar1-icon,
+      #theia-left-content-panel [data-id*="explorer-view-container"] [class*="tabIcon"],
+      .theia-app-left [data-id*="explorer-view-container"] [class*="tabIcon"],
+      [id*="explorer-view-container"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Files & Folders"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Documents"] [class*="tabIcon"],
+      .theia-tab-bar-container.left .p-TabBar-tab:nth-child(1) .p-TabBar-tabIcon,
+      .theia-tab-bar-container.left .lm-TabBar-tab:nth-child(1) .lm-TabBar-tabIcon {
         display: inline-block !important;
         width: 22px !important;
         height: 22px !important;
         background-color: currentColor !important;
-        -webkit-mask: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEmUlEQVR4nOWaeYxdUxzHP+8wtJQSkyE1iLZphLZCQsnYy+gfdEGsfyiNFokJQQVpJQgJERFLGkNCiZBJEE0XMUhHLBlqiw4i2qRTKkaZxDKtZvqTE9/K5GXmzb33vXfPHeeT3LyZ9865y/ec89vOLZkZMeOIHEfkOCLHETmOOLgHODRmAU4H9o9ZgBFxRI4jchyR44gcl/P1SsApwDFEKEAJeAn4ELiTCAW4CmgBPgW+AJqAh4FFRCLAdcBDQB9wGfAdcBuwk4DsXYNznAhcqLU9A9hnyG/fA98CnwMnA0uAWbIBbcBzwFrGqAAtwAPACcA64A2N8M/63Yeek4HpwHyN/GZgG9AJvA/8DvzKGBPAKbm4Qw+8oMJDdJf12w18DCwDBoFxOgYYIzbAASuAa4CTgOUpRtA/PBp932cr4OtxUwmIS9l+KTAHOBv4Wmt+jkYxKb8BZwG7gFVaCrfITeaPmSU9ppvZTjPbZGY9ZvaX/ct2MzsuxXnKj9lm1mtmj1RxjtGOTjObPNxvLoVW42S1V8h47Qs8L4u+sYoxeBs4T/HAPPLG0ik5wcxeNLNtZnZ+jUdpiZltNbPxRZ0BTcB6oFmu780aj8XTwC/AQnLEJWw3BfgE6AFagZ/qcC/eIzyo6HAvCiRAE7BaEdvVwN91vJ/XFEDNpiACNACvAF8CNwzx5VmYmcDVeXFfVuJUCAFuBybJQlfz8I2KAP3yGY0O4IKynCKIAIcDdwHXyu1Vw8V6oCRu7iOJ7ZOnoAK0yUf7SG2/KlNn/+BvAZeOVJ8fgs8R3gHOIQdche+vUOHiceBH5fNZGA+cC9wM9AKLE/TpUoodTIDDgCOAW4EDZbx8KpuFWUqRe7SkluvclfCls6OAiwgkQJ+ma7NcX0MVvt+v5Q36e63qBq8CB42SMN0H3EsgAXbJGvsb2VM32J7xGlOUOe7heqAf+EA5gBd3OJ7RTPEzqG64FG29IczCROCHIf8PKIX2/n6lfP+6YYTw7b5SyS24AP3AITW87qCmt19i04CjgbvL2kxSOe0zCiDAN1VsZvwJHFxBCF8dvlJB12IFTfMVD6zUZ3ABurXHnoWNCfpukMVfJgP8JPCYYpH6Ysny6TNUA2jIkIsfqUrStARtS2bWqM9C1QO6ZJQuyaDxFlWO2itY/P/GQzWB3F5edCnaPipDlSVXXyo78GyeuX6tBWhXXfCmDNfpV4Z3qtxfmipyYQTYoczw/ozByRb18yHu60URwaVs3yX/3aEILy1+Q+RMYIJmQnBchj5+O2wN8K42RtIyoO00v7c4l8C4jP1ulGX3Ilyeob/39U8kTI0LKcBuBS2+TviU6oa+gpR2OWWZQYV6QaIDOF7+vUcGcqSwtxwbJSUeM2+I9CqMnat1vVkuszWBz/+DwLganmu9do1bVU94QS9DtKsmWJ5ON6rUxv/tHaFuGclmvQu0Q4lNnzZY2rS1Nk+vzgSl5BOCnIQ+VtGgjwNO0/ct2nSpN53yOJtCCVCOtw0HKEQmpACOMAzm+PAVcUSOI3IckeOIg/dUnKUoXqAwOCLHETmOyHGhbyA0/wDjXyT4JmvOQwAAAABJRU5ErkJggg==") center / contain no-repeat !important;
-        mask: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEmUlEQVR4nOWaeYxdUxzHP+8wtJQSkyE1iLZphLZCQsnYy+gfdEGsfyiNFokJQQVpJQgJERFLGkNCiZBJEE0XMUhHLBlqiw4i2qRTKkaZxDKtZvqTE9/K5GXmzb33vXfPHeeT3LyZ9865y/ec89vOLZkZMeOIHEfkOCLHETmOOLgHODRmAU4H9o9ZgBFxRI4jchyR44gcl/P1SsApwDFEKEAJeAn4ELiTCAW4CmgBPgW+AJqAh4FFRCLAdcBDQB9wGfAdcBuwk4DsXYNznAhcqLU9A9hnyG/fA98CnwMnA0uAWbIBbcBzwFrGqAAtwAPACcA64A2N8M/63Yeek4HpwHyN/GZgG9AJvA/8DvzKGBPAKbm4Qw+8oMJDdJf12w18DCwDBoFxOgYYIzbAASuAa4CTgOUpRtA/PBp932cr4OtxUwmIS9l+KTAHOBv4Wmt+jkYxKb8BZwG7gFVaCrfITeaPmSU9ppvZTjPbZGY9ZvaX/ct2MzsuxXnKj9lm1mtmj1RxjtGOTjObPNxvLoVW42S1V8h47Qs8L4u+sYoxeBs4T/HAPPLG0ik5wcxeNLNtZnZ+jUdpiZltNbPxRZ0BTcB6oFmu780aj8XTwC/AQnLEJWw3BfgE6AFagZ/qcC/eIzyo6HAvCiRAE7BaEdvVwN91vJ/XFEDNpiACNACvAF8CNwzx5VmYmcDVeXFfVuJUCAFuBybJQlfz8I2KAP3yGY0O4IKynCKIAIcDdwHXyu1Vw8V6oCRu7iOJ7ZOnoAK0yUf7SG2/KlNn/+BvAZeOVJ8fgs8R3gHOIQdche+vUOHiceBH5fNZGA+cC9wM9AKLE/TpUoodTIDDgCOAW4EDZbx8KpuFWUqRe7SkluvclfCls6OAiwgkQJ+ma7NcX0MVvt+v5Q36e63qBq8CB42SMN0H3EsgAXbJGvsb2VM32J7xGlOUOe7heqAf+EA5gBd3OJ7RTPEzqG64FG29IczCROCHIf8PKIX2/n6lfP+6YYTw7b5SyS24AP3AITW87qCmt19i04CjgbvL2kxSOe0zCiDAN1VsZvwJHFxBCF8dvlJB12IFTfMVD6zUZ3ABurXHnoWNCfpukMVfJgP8JPCYYpH6Ysny6TNUA2jIkIsfqUrStARtS2bWqM9C1QO6ZJQuyaDxFlWO2itY/P/GQzWB3F5edCnaPipDlSVXXyo78GyeuX6tBWhXXfCmDNfpV4Z3qtxfmipyYQTYoczw/ozByRb18yHu60URwaVs3yX/3aEILy1+Q+RMYIJmQnBchj5+O2wN8K42RtIyoO00v7c4l8C4jP1ulGX3Ilyeob/39U8kTI0LKcBuBS2+TviU6oa+gpR2OWWZQYV6QaIDOF7+vUcGcqSwtxwbJSUeM2+I9CqMnat1vVkuszWBz/+DwLganmu9do1bVU94QS9DtKsmWJ5ON6rUxv/tHaFuGclmvQu0Q4lNnzZY2rS1Nk+vzgSl5BOCnIQ+VtGgjwNO0/ct2nSpN53yOJtCCVCOtw0HKEQmpACOMAzm+PAVcUSOI3IckeOIg/dUnKUoXqAwOCLHETmOyHGhbyA0/wDjXyT4JmvOQwAAAABJRU5ErkJggg==") center / contain no-repeat !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMgNi41QTIuNSAyLjUgMCAwIDEgNS41IDRIOS4yYy43IDAgMS40LjMgMS44LjhsMS4yIDEuNGMuNS41IDEuMS44IDEuOC44SDE4LjVBMi41IDIuNSAwIDAgMSAyMSA5LjVWMTcuNUEyLjUgMi41IDAgMCAxIDE4LjUgMjBINS41QTIuNSAyLjUgMCAwIDEgMyAxNy41VjYuNXoiLz48cGF0aCBkPSJNMyAxMS41YzEuNS0xIDMuNS0xLjUgNS41LTEuNWg3YzIgMCA0IC41IDUuNSAxLjUiLz48L3N2Zz4=") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMgNi41QTIuNSAyLjUgMCAwIDEgNS41IDRIOS4yYy43IDAgMS40LjMgMS44LjhsMS4yIDEuNGMuNS41IDEuMS44IDEuOC44SDE4LjVBMi41IDIuNSAwIDAgMSAyMSA5LjVWMTcuNUEyLjUgMi41IDAgMCAxIDE4LjUgMjBINS41QTIuNSAyLjUgMCAwIDEgMyAxNy41VjYuNXoiLz48cGF0aCBkPSJNMyAxMS41YzEuNS0xIDMuNS0xLjUgNS41LTEuNWg3YzIgMCA0IC41IDUuNSAxLjUiLz48L3N2Zz4=") center / contain no-repeat !important;
         -webkit-mask-size: contain !important;
         mask-size: contain !important;
         vertical-align: middle !important;
+        transition: color 0.15s ease, filter 0.15s ease !important;
       }
 
-      /* Target Pillar 3 in Left Activity Bar to guarantee the Monoline Horse Head appears */
-      #theia-left-content-panel .p-TabBar-tab[data-id*="chat-view-widget"] .p-TabBar-tabIcon,
-      .theia-app-left .p-TabBar-tab[data-id*="chat-view-widget"] .p-TabBar-tabIcon,
-      [id*="chat-view-widget"].p-TabBar-tab .p-TabBar-tabIcon,
-      .theia-tab-bar-container.left .p-TabBar-tab[title*="AskHaya"] .p-TabBar-tabIcon,
-      .theia-tab-bar-container.left .p-TabBar-tab:nth-child(3) .p-TabBar-tabIcon {
+      /* Suppress Search tab from Left Sovereign Activity Bar */
+      #theia-left-content-panel [data-id*="search-view-container"],
+      .theia-app-left [data-id*="search-view-container"],
+      [id*="search-view-container"].p-TabBar-tab,
+      [id*="search-view-container"].lm-TabBar-tab {
+        display: none !important;
+      }
+
+      /* Pillar 2: AskHaya Senior Partner (Option 3: Flowing Stallion Profile) */
+      .hayagriva-horse-icon,
+      i.hayagriva-horse-icon,
+      .theia-tab-icon.hayagriva-horse-icon,
+      .p-TabBar-tabIcon.hayagriva-horse-icon,
+      .lm-TabBar-tabIcon.hayagriva-horse-icon,
+      #theia-left-content-panel [data-id*="chat-view-widget"] [class*="tabIcon"],
+      .theia-app-left [data-id*="chat-view-widget"] [class*="tabIcon"],
+      [id*="chat-view-widget"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Hayagriva Agents"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="AskHaya"] [class*="tabIcon"],
+      .theia-tab-bar-container.left .p-TabBar-tab:nth-child(2) .p-TabBar-tabIcon,
+      .theia-tab-bar-container.left .lm-TabBar-tab:nth-child(2) .lm-TabBar-tabIcon {
         display: inline-block !important;
         width: 22px !important;
         height: 22px !important;
         background-color: currentColor !important;
-        -webkit-mask: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEmUlEQVR4nOWaeYxdUxzHP+8wtJQSkyE1iLZphLZCQsnYy+gfdEGsfyiNFokJQQVpJQgJERFLGkNCiZBJEE0XMUhHLBlqiw4i2qRTKkaZxDKtZvqTE9/K5GXmzb33vXfPHeeT3LyZ9865y/ec89vOLZkZMeOIHEfkOCLHETmOOLgHODRmAU4H9o9ZgBFxRI4jchyR44gcl/P1SsApwDFEKEAJeAn4ELiTCAW4CmgBPgW+AJqAh4FFRCLAdcBDQB9wGfAdcBuwk4DsXYNznAhcqLU9A9hnyG/fA98CnwMnA0uAWbIBbcBzwFrGqAAtwAPACcA64A2N8M/63Yeek4HpwHyN/GZgG9AJvA/8DvzKGBPAKbm4Qw+8oMJDdJf12w18DCwDBoFxOgYYIzbAASuAa4CTgOUpRtA/PBp932cr4OtxUwmIS9l+KTAHOBv4Wmt+jkYxKb8BZwG7gFVaCrfITeaPmSU9ppvZTjPbZGY9ZvaX/ct2MzsuxXnKj9lm1mtmj1RxjtGOTjObPNxvLoVW42S1V8h47Qs8L4u+sYoxeBs4T/HAPPLG0ik5wcxeNLNtZnZ+jUdpiZltNbPxRZ0BTcB6oFmu780aj8XTwC/AQnLEJWw3BfgE6AFagZ/qcC/eIzyo6HAvCiRAE7BaEdvVwN91vJ/XFEDNpiACNACvAF8CNwzx5VmYmcDVeXFfVuJUCAFuBybJQlfz8I2KAP3yGY0O4IKynCKIAIcDdwHXyu1Vw8V6oCRu7iOJ7ZOnoAK0yUf7SG2/KlNn/+BvAZeOVJ8fgs8R3gHOIQdche+vUOHiceBH5fNZGA+cC9wM9AKLE/TpUoodTIDDgCOAW4EDZbx8KpuFWUqRe7SkluvclfCls6OAiwgkQJ+ma7NcX0MVvt+v5Q36e63qBq8CB42SMN0H3EsgAXbJGvsb2VM32J7xGlOUOe7heqAf+EA5gBd3OJ7RTPEzqG64FG29IczCROCHIf8PKIX2/n6lfP+6YYTw7b5SyS24AP3AITW87qCmt19i04CjgbvL2kxSOe0zCiDAN1VsZvwJHFxBCF8dvlJB12IFTfMVD6zUZ3ABurXHnoWNCfpukMVfJgP8JPCYYpH6Ysny6TNUA2jIkIsfqUrStARtS2bWqM9C1QO6ZJQuyaDxFlWO2itY/P/GQzWB3F5edCnaPipDlSVXXyo78GyeuX6tBWhXXfCmDNfpV4Z3qtxfmipyYQTYoczw/ozByRb18yHu60URwaVs3yX/3aEILy1+Q+RMYIJmQnBchj5+O2wN8K42RtIyoO00v7c4l8C4jP1ulGX3Ilyeob/39U8kTI0LKcBuBS2+TviU6oa+gpR2OWWZQYV6QaIDOF7+vUcGcqSwtxwbJSUeM2+I9CqMnat1vVkuszWBz/+DwLganmu9do1bVU94QS9DtKsmWJ5ON6rUxv/tHaFuGclmvQu0Q4lNnzZY2rS1Nk+vzgSl5BOCnIQ+VtGgjwNO0/ct2nSpN53yOJtCCVCOtw0HKEQmpACOMAzm+PAVcUSOI3IckeOIg/dUnKUoXqAwOCLHETmOyHGhbyA0/wDjXyT4JmvOQwAAAABJRU5ErkJggg==") center / contain no-repeat !important;
-        mask: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEmUlEQVR4nOWaeYxdUxzHP+8wtJQSkyE1iLZphLZCQsnYy+gfdEGsfyiNFokJQQVpJQgJERFLGkNCiZBJEE0XMUhHLBlqiw4i2qRTKkaZxDKtZvqTE9/K5GXmzb33vXfPHeeT3LyZ9865y/ec89vOLZkZMeOIHEfkOCLHETmOOLgHODRmAU4H9o9ZgBFxRI4jchyR44gcl/P1SsApwDFEKEAJeAn4ELiTCAW4CmgBPgW+AJqAh4FFRCLAdcBDQB9wGfAdcBuwk4DsXYNznAhcqLU9A9hnyG/fA98CnwMnA0uAWbIBbcBzwFrGqAAtwAPACcA64A2N8M/63Yeek4HpwHyN/GZgG9AJvA/8DvzKGBPAKbm4Qw+8oMJDdJf12w18DCwDBoFxOgYYIzbAASuAa4CTgOUpRtA/PBp932cr4OtxUwmIS9l+KTAHOBv4Wmt+jkYxKb8BZwG7gFVaCrfITeaPmSU9ppvZTjPbZGY9ZvaX/ct2MzsuxXnKj9lm1mtmj1RxjtGOTjObPNxvLoVW42S1V8h47Qs8L4u+sYoxeBs4T/HAPPLG0ik5wcxeNLNtZnZ+jUdpiZltNbPxRZ0BTcB6oFmu780aj8XTwC/AQnLEJWw3BfgE6AFagZ/qcC/eIzyo6HAvCiRAE7BaEdvVwN91vJ/XFEDNpiACNACvAF8CNwzx5VmYmcDVeXFfVuJUCAFuBybJQlfz8I2KAP3yGY0O4IKynCKIAIcDdwHXyu1Vw8V6oCRu7iOJ7ZOnoAK0yUf7SG2/KlNn/+BvAZeOVJ8fgs8R3gHOIQdche+vUOHiceBH5fNZGA+cC9wM9AKLE/TpUoodTIDDgCOAW4EDZbx8KpuFWUqRe7SkluvclfCls6OAiwgkQJ+ma7NcX0MVvt+v5Q36e63qBq8CB42SMN0H3EsgAXbJGvsb2VM32J7xGlOUOe7heqAf+EA5gBd3OJ7RTPEzqG64FG29IczCROCHIf8PKIX2/n6lfP+6YYTw7b5SyS24AP3AITW87qCmt19i04CjgbvL2kxSOe0zCiDAN1VsZvwJHFxBCF8dvlJB12IFTfMVD6zUZ3ABurXHnoWNCfpukMVfJgP8JPCYYpH6Ysny6TNUA2jIkIsfqUrStARtS2bWqM9C1QO6ZJQuyaDxFlWO2itY/P/GQzWB3F5edCnaPipDlSVXXyo78GyeuX6tBWhXXfCmDNfpV4Z3qtxfmipyYQTYoczw/ozByRb18yHu60URwaVs3yX/3aEILy1+Q+RMYIJmQnBchj5+O2wN8K42RtIyoO00v7c4l8C4jP1ulGX3Ilyeob/39U8kTI0LKcBuBS2+TviU6oa+gpR2OWWZQYV6QaIDOF7+vUcGcqSwtxwbJSUeM2+I9CqMnat1vVkuszWBz/+DwLganmu9do1bVU94QS9DtKsmWJ5ON6rUxv/tHaFuGclmvQu0Q4lNnzZY2rS1Nk+vzgSl5BOCnIQ+VtGgjwNO0/ct2nSpN53yOJtCCVCOtw0HKEQmpACOMAzm+PAVcUSOI3IckeOIg/dUnKUoXqAwOCLHETmOyHGhbyA0/wDjXyT4JmvOQwAAAABJRU5ErkJggg==") center / contain no-repeat !important;
+        -webkit-mask: url("data:image/png;base64,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") center / contain no-repeat !important;
+        mask: url("data:image/png;base64,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") center / contain no-repeat !important;
         -webkit-mask-size: contain !important;
         mask-size: contain !important;
+        vertical-align: middle !important;
         transition: color 0.15s ease, filter 0.15s ease !important;
       }
-      #theia-left-content-panel .p-TabBar-tab.p-mod-current[data-id*="chat-view-widget"] .p-TabBar-tabIcon,
-      .theia-app-left .p-TabBar-tab.p-mod-current[data-id*="chat-view-widget"] .p-TabBar-tabIcon,
-      .theia-tab-bar-container.left .p-TabBar-tab.p-mod-current[title*="AskHaya"] .p-TabBar-tabIcon {
-        color: #ffffff !important;
-        filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.6)) !important;
+
+      /* Pillar 3: Forensic Entity Map (Radial Corporate Web / X-Nodes Network) */
+      .hayagriva-pillar4-icon,
+      i.hayagriva-pillar4-icon,
+      .theia-tab-icon.hayagriva-pillar4-icon,
+      .p-TabBar-tabIcon.hayagriva-pillar4-icon,
+      .lm-TabBar-tabIcon.hayagriva-pillar4-icon,
+      #theia-left-content-panel [data-id*="entity-map"] [class*="tabIcon"],
+      .theia-app-left [data-id*="entity-map"] [class*="tabIcon"],
+      [id*="entity-map"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Forensic Entity Map"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Entity Map"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Forensic Entities"] [class*="tabIcon"],
+      .theia-tab-bar-container.left .p-TabBar-tab:nth-child(3) .p-TabBar-tabIcon,
+      .theia-tab-bar-container.left .lm-TabBar-tab:nth-child(3) .lm-TabBar-tabIcon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMy4yIi8+PGNpcmNsZSBjeD0iNS41IiBjeT0iNS41IiByPSIyLjUiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iNS41IiByPSIyLjUiLz48Y2lyY2xlIGN4PSI1LjUiIGN5PSIxOC41IiByPSIyLjUiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iMTguNSIgcj0iMi41Ii8+PGxpbmUgeDE9IjcuMyIgeTE9IjcuMyIgeDI9IjkuOCIgeTI9IjkuOCIvPjxsaW5lIHgxPSIxNi43IiB5MT0iNy4zIiB4Mj0iMTQuMiIgeTI9IjkuOCIvPjxsaW5lIHgxPSI3LjMiIHkxPSIxNi43IiB4Mj0iOS44IiB5Mj0iMTQuMiIvPjxsaW5lIHgxPSIxNi43IiB5MT0iMTYuNyIgeDI9IjE0LjIiIHkyPSIxNC4yIi8+PC9zdmc+") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMy4yIi8+PGNpcmNsZSBjeD0iNS41IiBjeT0iNS41IiByPSIyLjUiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iNS41IiByPSIyLjUiLz48Y2lyY2xlIGN4PSI1LjUiIGN5PSIxOC41IiByPSIyLjUiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iMTguNSIgcj0iMi41Ii8+PGxpbmUgeDE9IjcuMyIgeTE9IjcuMyIgeDI9IjkuOCIgeTI9IjkuOCIvPjxsaW5lIHgxPSIxNi43IiB5MT0iNy4zIiB4Mj0iMTQuMiIgeTI9IjkuOCIvPjxsaW5lIHgxPSI3LjMiIHkxPSIxNi43IiB4Mj0iOS44IiB5Mj0iMTQuMiIvPjxsaW5lIHgxPSIxNi43IiB5MT0iMTYuNyIgeDI9IjE0LjIiIHkyPSIxNC4yIi8+PC9zdmc+") center / contain no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+        transition: color 0.15s ease, filter 0.15s ease !important;
       }
 
-      /* Top-Left Window Header Brand Icon Replacement */
+      /* Pillar 4: Notification Center (Statutory & Task Notification Bell) */
+      .hayagriva-pillar5-icon,
+      i.hayagriva-pillar5-icon,
+      .theia-tab-icon.hayagriva-pillar5-icon,
+      .p-TabBar-tabIcon.hayagriva-pillar5-icon,
+      .lm-TabBar-tabIcon.hayagriva-pillar5-icon,
+      #theia-left-content-panel [data-id*="notification"] [class*="tabIcon"],
+      .theia-app-left [data-id*="notification"] [class*="tabIcon"],
+      [id*="notification"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Notification Center"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Notification"] [class*="tabIcon"],
+      .theia-tab-bar-container.left .p-TabBar-tab:nth-child(4) .p-TabBar-tabIcon,
+      .theia-tab-bar-container.left .lm-TabBar-tab:nth-child(4) .lm-TabBar-tabIcon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE4IDhBNiA2IDAgMCAwIDYgOGMwIDctMyA5LTMgOWgxOHMtMy0yLTMtOSIvPjxwYXRoIGQ9Ik0xMy43MyAyMWEyIDIgMCAwIDEtMy40NiAwIi8+PC9zdmc+") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE4IDhBNiA2IDAgMCAwIDYgOGMwIDctMyA5LTMgOWgxOHMtMy0yLTMtOSIvPjxwYXRoIGQ9Ik0xMy43MyAyMWEyIDIgMCAwIDEtMy40NiAwIi8+PC9zdmc+") center / contain no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+        transition: color 0.15s ease, filter 0.15s ease !important;
+      }
+
+      /* Pillar 5: Billing Center (Resolution Bazaar Diligence Ledger & Payment Card) */
+      .hayagriva-pillar6-icon,
+      i.hayagriva-pillar6-icon,
+      .theia-tab-icon.hayagriva-pillar6-icon,
+      .p-TabBar-tabIcon.hayagriva-pillar6-icon,
+      .lm-TabBar-tabIcon.hayagriva-pillar6-icon,
+      #theia-left-content-panel [data-id*="billing"] [class*="tabIcon"],
+      .theia-app-left [data-id*="billing"] [class*="tabIcon"],
+      [id*="billing"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Billing Center"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="Billing"] [class*="tabIcon"],
+      .theia-tab-bar-container.left .p-TabBar-tab:nth-child(5) .p-TabBar-tabIcon,
+      .theia-tab-bar-container.left .lm-TabBar-tab:nth-child(5) .lm-TabBar-tabIcon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iMiIgeT0iNSIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE0IiByeD0iMiIvPjxsaW5lIHgxPSIyIiB5MT0iMTAiIHgyPSIyMiIgeTI9IjEwIi8+PC9zdmc+") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iMiIgeT0iNSIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE0IiByeD0iMiIvPjxsaW5lIHgxPSIyIiB5MT0iMTAiIHgyPSIyMiIgeTI9IjEwIi8+PC9zdmc+") center / contain no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+        transition: color 0.15s ease, filter 0.15s ease !important;
+      }
+
+      /* Hover & Current Active Tab States across Left Activity Bar (Theme Adaptive) */
+      #theia-left-content-panel .p-TabBar-tab:hover [class*="tabIcon"],
+      #theia-left-content-panel .lm-TabBar-tab:hover [class*="tabIcon"],
+      .theia-app-left .p-TabBar-tab:hover [class*="tabIcon"],
+      .theia-app-left .lm-TabBar-tab:hover [class*="tabIcon"],
+      .theia-tab-bar-container.left [class*="TabBar-tab"]:hover [class*="tabIcon"] {
+        color: var(--theia-activityBar-foreground, #000000) !important;
+      }
+      #theia-left-content-panel .p-TabBar-tab.p-mod-current [class*="tabIcon"],
+      #theia-left-content-panel .lm-TabBar-tab.lm-mod-current [class*="tabIcon"],
+      .theia-app-left .p-TabBar-tab.p-mod-current [class*="tabIcon"],
+      .theia-app-left .lm-TabBar-tab.lm-mod-current [class*="tabIcon"],
+      .theia-tab-bar-container.left [class*="TabBar-tab"][class*="mod-current"] [class*="tabIcon"] {
+        color: var(--theia-activityBar-foreground, #000000) !important;
+        filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.5)) !important;
+      }
+
+      /* Top-Left Window Header Brand Icon Replacement (Option 3: Flowing Stallion) */
       .theia-icon,
       #theia-top-panel .theia-icon,
       #theia-top-panel [class*="theia-icon"],
@@ -1160,8 +1593,8 @@ export class HayagrivaFrontendContribution
         height: 22px !important;
         margin: 4px 6px 4px 10px !important;
         background-color: #fbbf24 !important;
-        -webkit-mask: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEmUlEQVR4nOWaeYxdUxzHP+8wtJQSkyE1iLZphLZCQsnYy+gfdEGsfyiNFokJQQVpJQgJERFLGkNCiZBJEE0XMUhHLBlqiw4i2qRTKkaZxDKtZvqTE9/K5GXmzb33vXfPHeeT3LyZ9865y/ec89vOLZkZMeOIHEfkOCLHETmOOLgHODRmAU4H9o9ZgBFxRI4jchyR44gcl/P1SsApwDFEKEAJeAn4ELiTCAW4CmgBPgW+AJqAh4FFRCLAdcBDQB9wGfAdcBuwk4DsXYNznAhcqLU9A9hnyG/fA98CnwMnA0uAWbIBbcBzwFrGqAAtwAPACcA64A2N8M/63Yeek4HpwHyN/GZgG9AJvA/8DvzKGBPAKbm4Qw+8oMJDdJf12w18DCwDBoFxOgYYIzbAASuAa4CTgOUpRtA/PBp932cr4OtxUwmIS9l+KTAHOBv4Wmt+jkYxKb8BZwG7gFVaCrfITeaPmSU9ppvZTjPbZGY9ZvaX/ct2MzsuxXnKj9lm1mtmj1RxjtGOTjObPNxvLoVW42S1V8h47Qs8L4u+sYoxeBs4T/HAPPLG0ik5wcxeNLNtZnZ+jUdpiZltNbPxRZ0BTcB6oFmu780aj8XTwC/AQnLEJWw3BfgE6AFagZ/qcC/eIzyo6HAvCiRAE7BaEdvVwN91vJ/XFEDNpiACNACvAF8CNwzx5VmYmcDVeXFfVuJUCAFuBybJQlfz8I2KAP3yGY0O4IKynCKIAIcDdwHXyu1Vw8V6oCRu7iOJ7ZOnoAK0yUf7SG2/KlNn/+BvAZeOVJ8fgs8R3gHOIQdche+vUOHiceBH5fNZGA+cC9wM9AKLE/TpUoodTIDDgCOAW4EDZbx8KpuFWUqRe7SkluvclfCls6OAiwgkQJ+ma7NcX0MVvt+v5Q36e63qBq8CB42SMN0H3EsgAXbJGvsb2VM32J7xGlOUOe7heqAf+EA5gBd3OJ7RTPEzqG64FG29IczCROCHIf8PKIX2/n6lfP+6YYTw7b5SyS24AP3AITW87qCmt19i04CjgbvL2kxSOe0zCiDAN1VsZvwJHFxBCF8dvlJB12IFTfMVD6zUZ3ABurXHnoWNCfpukMVfJgP8JPCYYpH6Ysny6TNUA2jIkIsfqUrStARtS2bWqM9C1QO6ZJQuyaDxFlWO2itY/P/GQzWB3F5edCnaPipDlSVXXyo78GyeuX6tBWhXXfCmDNfpV4Z3qtxfmipyYQTYoczw/ozByRb18yHu60URwaVs3yX/3aEILy1+Q+RMYIJmQnBchj5+O2wN8K42RtIyoO00v7c4l8C4jP1ulGX3Ilyeob/39U8kTI0LKcBuBS2+TviU6oa+gpR2OWWZQYV6QaIDOF7+vUcGcqSwtxwbJSUeM2+I9CqMnat1vVkuszWBz/+DwLganmu9do1bVU94QS9DtKsmWJ5ON6rUxv/tHaFuGclmvQu0Q4lNnzZY2rS1Nk+vzgSl5BOCnIQ+VtGgjwNO0/ct2nSpN53yOJtCCVCOtw0HKEQmpACOMAzm+PAVcUSOI3IckeOIg/dUnKUoXqAwOCLHETmOyHGhbyA0/wDjXyT4JmvOQwAAAABJRU5ErkJggg==") center / contain no-repeat !important;
-        mask: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEmUlEQVR4nOWaeYxdUxzHP+8wtJQSkyE1iLZphLZCQsnYy+gfdEGsfyiNFokJQQVpJQgJERFLGkNCiZBJEE0XMUhHLBlqiw4i2qRTKkaZxDKtZvqTE9/K5GXmzb33vXfPHeeT3LyZ9865y/ec89vOLZkZMeOIHEfkOCLHETmOOLgHODRmAU4H9o9ZgBFxRI4jchyR44gcl/P1SsApwDFEKEAJeAn4ELiTCAW4CmgBPgW+AJqAh4FFRCLAdcBDQB9wGfAdcBuwk4DsXYNznAhcqLU9A9hnyG/fA98CnwMnA0uAWbIBbcBzwFrGqAAtwAPACcA64A2N8M/63Yeek4HpwHyN/GZgG9AJvA/8DvzKGBPAKbm4Qw+8oMJDdJf12w18DCwDBoFxOgYYIzbAASuAa4CTgOUpRtA/PBp932cr4OtxUwmIS9l+KTAHOBv4Wmt+jkYxKb8BZwG7gFVaCrfITeaPmSU9ppvZTjPbZGY9ZvaX/ct2MzsuxXnKj9lm1mtmj1RxjtGOTjObPNxvLoVW42S1V8h47Qs8L4u+sYoxeBs4T/HAPPLG0ik5wcxeNLNtZnZ+jUdpiZltNbPxRZ0BTcB6oFmu780aj8XTwC/AQnLEJWw3BfgE6AFagZ/qcC/eIzyo6HAvCiRAE7BaEdvVwN91vJ/XFEDNpiACNACvAF8CNwzx5VmYmcDVeXFfVuJUCAFuBybJQlfz8I2KAP3yGY0O4IKynCKIAIcDdwHXyu1Vw8V6oCRu7iOJ7ZOnoAK0yUf7SG2/KlNn/+BvAZeOVJ8fgs8R3gHOIQdche+vUOHiceBH5fNZGA+cC9wM9AKLE/TpUoodTIDDgCOAW4EDZbx8KpuFWUqRe7SkluvclfCls6OAiwgkQJ+ma7NcX0MVvt+v5Q36e63qBq8CB42SMN0H3EsgAXbJGvsb2VM32J7xGlOUOe7heqAf+EA5gBd3OJ7RTPEzqG64FG29IczCROCHIf8PKIX2/n6lfP+6YYTw7b5SyS24AP3AITW87qCmt19i04CjgbvL2kxSOe0zCiDAN1VsZvwJHFxBCF8dvlJB12IFTfMVD6zUZ3ABurXHnoWNCfpukMVfJgP8JPCYYpH6Ysny6TNUA2jIkIsfqUrStARtS2bWqM9C1QO6ZJQuyaDxFlWO2itY/P/GQzWB3F5edCnaPipDlSVXXyo78GyeuX6tBWhXXfCmDNfpV4Z3qtxfmipyYQTYoczw/ozByRb18yHu60URwaVs3yX/3aEILy1+Q+RMYIJmQnBchj5+O2wN8K42RtIyoO00v7c4l8C4jP1ulGX3Ilyeob/39U8kTI0LKcBuBS2+TviU6oa+gpR2OWWZQYV6QaIDOF7+vUcGcqSwtxwbJSUeM2+I9CqMnat1vVkuszWBz/+DwLganmu9do1bVU94QS9DtKsmWJ5ON6rUxv/tHaFuGclmvQu0Q4lNnzZY2rS1Nk+vzgSl5BOCnIQ+VtGgjwNO0/ct2nSpN53yOJtCCVCOtw0HKEQmpACOMAzm+PAVcUSOI3IckeOIg/dUnKUoXqAwOCLHETmOyHGhbyA0/wDjXyT4JmvOQwAAAABJRU5ErkJggg==") center / contain no-repeat !important;
+        -webkit-mask: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAALvElEQVR4nO1bCaxdZRH+5r5XFluk2FKqbCqlICAKtBXEkqKAKIsoIokiVEHiSiSIqCAuUIKCgqEY0UipWBArUVEboMgiiLIoLmxCQVqWUsRaQKCFvveZuXzz3rzDufedc9+lmthJbs72bzP/bP/MXGAt/H+DramJSPpcjTZzEkC/mbHGmD6e/xz66vRdIwTg4AIdsf6KfXp025IYasOqY/6vcMDGALYHsC2A12rH+xxRAHcB+BuAO8zs2dSnN+9scJGZ9en5NQDeAmA3AGeZ2b1O9G4QZsTgCyE5heSXSf6W5JMcHu4jeR7JvYX8kPHS/e4k55N8KvXdPM3b4/11behnXeMAarAii+p9/DYAcAyA5wDcC+AeAPcBWC2x2BDAdgBeD2B/ALsDeFkabjGAeQAucg7xXSX5CgCzAHw0tXNuuMHMZpAcZWbP18GltxMCJJbMSi1kMoiyAsBXUztH9gBdtwAwEcAmAMbpfp00xTIATwPYFcAiM7uDpBNqPoBtAPwTwGwAjwM4R8RFIE9yBoC9AUwCMBrAGAAXmNkFRRHp7YQAJMcCeMbMnitRTr5LW0nWHYGdJfOOaBk8CuBKAL/T734AjxV0wdYAfgPA5z0VwHlm9hDJE9TkdrX7GIDjNP8z2ozR4qYbxKFDuLa3JuJBvcMBfIrks0JgtRa3EYAJIkIZrNRibwZwDYCbzOzBRDzfuSMB3Abgp87S4jAXBYc9zexatfe176D3fyd5GIADAZwC4E8A7hSXHAFgXzNb1BUFSck/yT1IziP5CMnn2yi2x0heSvLDJF9XGGscyU+SvJnkCinLT5CcEEqQ5Hs1zq56XidMJUnfVYc3k9ywMPZo3yCS30kEe2mA5LtJ3KQfo7kr0h+gOTEkvZvJ/nL1H5OIJjaBJJXkLwwIR8bMIrkEs01IfqQXFf3R2rsrcISdAvZRgxGcjuS5ycO8N3+BskdSvoZyQO1yw59JM8guWmhTY+ugagrwIOSeYv3E4T8rcnURd9NxVFNHdFN5HvS/TEknxYyD5L8HMmN0vemHdb9VJIL045/k+SrCm2HLDL1dU45KN4l0dhLYx1RaG/yPT5eXPNIke/VdfPEvi5jXyD5cn2b6B5farsuydNIug2n+r0hI9lqdxKX7UTy1fEunBqSf3AxS+1PFLublGdXd743eWAPC5lLg9W1qFkkvxssTXJ7kjeq7TOu7AqI13bCEpu76Hxf795J8jiSnyb5rdyu28gfImSc7Wem77uRvJPkua6kkpJzfUDJ6I5pYbV2JbuxunflN17PR5FcRfLz0kdLxXUDOqTbyN9Ectv0/Xjt7kfSu/2TbnBbPqYbZqigf96arI4r061FmNUkDy22H9GEfEGBOVxCsumru8yT/JHe75n67Cu94HB+2eJHuJbJJH+RlKkjP1fffNf9NLhgxHNyUNlsJHNycfo2Vg6IT75bmvyNaed/mMcpGd+qikJC/j0J8VlyrBy2SW3niSNHZ6etEwL06HolyZ8XkL9eE++RnBMn1F16fy3J9brhfKR1hDfoSnarRJBHMzH9LKB2++T+nU46U05LcIOz/XWa4LAwc7rO1vsl4fm12nld3VS+rVW7aKvfJiJ6FjW3BO8guahAALdSDqd0pHc4OOl4mblN0qJD5s8oIL+rPEG39fu1mzh5aj+uukvu4yeiDjhM4rqLYx3JD3FFeHU74rYlAF64OuJbpvfHCvkbU6QlOCWU0tzhkNf1BJK31V1gGaFcKWc517oWk3x8xHrAQay/ozT70wpKNA8iyUL0KTS1ZSvllry3SSRXyo22KixaOBc0CV9m5xNn+CGMySGrr4c49FBylQb8eomPH7I/ux07p/Yx1pR27SuucYg3mXyWMyWOO3ZDEb5PC14qxZVPguvqELRK9rnV7sdYh2msVWG6aoqAj7+fdE6OHRYJ4G6xwwFVFGGjxft+Lfyzep5jZv8otHcKbwbg12bmMbkXRVu0Q/2Sx6/4q6oIF8aJXXy/wma3k/xa6ICCOPg6HdbvZC6kHfPjpi/+CT+NxQ4nSh8tSs9sJc+prYfPKPmnxm6KWc01bZmcLYfTY540l6/H4ZC8hlbQaPPtg7pebmYPlOzwLtrRKxQlLou19WnxR+vZTZa33Ut9KmloT4Qonrc4IsAAPAK8U9AoNQ+iNpMnw0EjP/iuaDIPcO6jBbo/ELH+PNkOClkvVb8i+/cIyV2UEfJo7w80jofQnBh9NcxUsPqJCpm7JXqipF0zdgDgocJ6hycABp89aDFRE1wnRIoD+QJu0H0ZKwdiQcgrAByryPBkAIdq3EpioHSYE3qBkij/Un4gz+UwJuUWahPAdH2TrreZ2TKxX5GlGPH4FhAcMVXXa8xsOYCmOQXwRUWS+qtaA2WHes3szwAOBnBhmisQ9WSIw0BeoTJwUNl4oNPhLD2bHKJRySm52v3x3C+NY+mgdL/c0whXuf1eoPHnqF3t/EQbN/4ORa3CWWsrYo0WuxZusFPawXXCCWLBoLSzsu9oc57CODHpOJlKN02PJGXph6lbAbjGPtzMVtchgjgh+ySxLtcrniRd4mkycW4tESjKkSc1HV7pOsFTYWm3feDhFu3fR4kAq1J6e7lY2LX6XJLTRISeOkQoyfJ4QtadpGa2qYqVabR4H1Tz/JqDJx6eLAz6Jc/nF9oXIRbou+/3YWXcQixxcwjgLwDcfx8f5m64RbfBw0PtPUkBVu5YhKb8KPsKZXE9wenQVIZmdquZrShLk5fAEG2diLDI833ikIWRbR7BCc5FFd3ggOdlAlekgdfLDdoVHRSAaWEDhEpEWK4qD8/tzZO16fSQFONXJmCjxfPDYt9VevarB0nW8d0Ox6fNzjPtvBOxeVQuikry8JwI0wBMJ/mhuvpgJNAoPAflvGYne3++K5722rjQrhREJEdspcbys/moIF6hbfPgZWaPSyf4ucG9uf4ORCEI3N8pAajrX2UJgnW9BsAXs3kNFouxb5F2HtuqrzjBHZy7dQKdKu6qqhBj3aH83PSOiAC/B/BvyWWIBMSmpUi0AXeBnZ23btdXbO9cc5WZzU/ubx3wQg2U6ZxKBDA5GO5IALg7UdK1dJ9YtNLA6TTm54WVySW2Cg7OQCoMa1gEHMJ78siq1+GFMnNZ9kqsDcSyVfSAy/ZTqgHarwrxsnIVQepwW0SKOBIC9Onq1VeeB4g4wELJ8nQtqo6WPtdPmCTXH454afc3kIf4IsVZAvF9fJ1YQCkBEvUflaMSg1+m61FtAiDFsQLZhRKr6fpUlbVP9fh/RSKgk5Bbo+VIg7G2YMObhcQBnop+oUklWx0idaaqy1DRhLroeL89ahCtdgVYo91C4ufsbmZ+LpitA87xVUNaiQt+AuABjwFU0CGWtPqMwrt2EIe4ytCo2C64YI4sgoe4d67qsYmQq83sJIWzhj0/BPepMrT5qvC9GaAthOs264YSfBFICTbkrZ0kLvh2FDLW0dQVbXtYgknyR0rXJKJmZCcW/JaOD0PtcgXfA7BAYbNZvohOS27LIIIYSoN7NcolLazEzl4hpnKZUJJ+bKc81+4DB3N8myoV7nCUvnWFCCm+f7qKHdYvyRH64coDLFQxZqOQenuXnrt/oOJg3HBKqtc/MCUorEsEmKf/GDTjkIU6AI9PLlPBRBRmTRPB/LdFx4nRmkSYoVphh4Ea/EmPdPYDgfnjHQi9Nj0PDlVqJw80jXUXeikVP56TtrBlkWQFcaOnf6j8v1ji5np1PbgVLs4N6fQO5m7UyJERajDPVH+om9DanxrjutV4FRR1kDBRqpPjKoVh7P1vjs1glWh8F8eL5i4XAv6GUlPi3UEiQgnazzXBxdJ7oPjqBT9zP8K8gHFTK8U5Fz9Ceoy1QZEfYHVHZPkZwpZYapC7BQv51Gbjtje6naowg0Rr1fqa2/58+4Bnh35+6pFuse7v0owkhzT7dAVn/Xh+vZk1o806dtcNnrx00NVi5TYavRvKzrBm/i6Lun+LHeZvsrX/ZrsW1gJK4T+hOe4c8OjN0gAAAABJRU5ErkJggg==") center / contain no-repeat !important;
+        mask: url("data:image/png;base64,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") center / contain no-repeat !important;
         -webkit-mask-size: contain !important;
         mask-size: contain !important;
         filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.4)) !important;
@@ -1239,48 +1672,209 @@ export class HayagrivaFrontendContribution
         display: none !important;
       }
 
+      /* Hide generic developer "New File" button from navigator toolbar (keep New Folder, Refresh, Collapse All) */
+      #theia-left-content-panel [id*="file.newFile"],
+      #theia-left-content-panel [title*="New File"],
+      #theia-left-content-panel .theia-tabBar-toolbar-item[title*="New File"] {
+        display: none !important;
+        width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
       /* ── AskHaya Sovereign AI Chat Styling ───────────────────────────── */
-      /* Suppress generic developer AI welcome banner and dividers */
+      /* Suppress duplicate generic developer AI welcome banner, compact banner, and dividers */
+      .theia-WelcomeMessage:not(.hayagriva-welcome-banner),
       .theia-WelcomeMessage-Main:not(.hayagriva-welcome-banner),
+      .theia-WelcomeMessage-Compact,
       .theia-WelcomeMessage-Divider {
         display: none !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
       }
 
       .hayagriva-welcome-banner {
-        padding: 16px 14px;
-        background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.45) 100%);
-        border: 1px solid rgba(245, 158, 11, 0.22);
-        border-radius: 10px;
-        margin: 12px 10px 18px 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        padding: 14px 12px;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
       }
 
-      .hayagriva-prompt-chip:hover {
-        background: rgba(245, 158, 11, 0.16) !important;
-        border-color: rgba(245, 158, 11, 0.45) !important;
-        transform: translateX(2px);
+      /* ── Sovereign Unified Single-Line Capsule Composer ──────────────────── */
+      .theia-ChatInput-Editor-Box {
+        display: grid !important;
+        grid-template-columns: auto 1fr auto !important;
+        align-items: center !important;
+        min-height: 42px !important;
+        height: auto !important;
+        border-radius: 22px !important;
+        padding: 4px 8px !important;
+        margin: 0 10px 10px 10px !important;
+        box-sizing: border-box !important;
+        background: var(--theia-editor-background, #1e293b) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+      }
+      .theia-ChatInput-Editor-Box:focus-within {
+        border-color: rgba(56, 189, 248, 0.6) !important;
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.12) !important;
       }
 
-      .hayagriva-coworker-chip:hover {
-        background: rgba(255, 255, 255, 0.07) !important;
-        border-color: rgba(245, 158, 11, 0.3) !important;
+      .theia-ChatInputOptions {
+        display: contents !important;
       }
 
-      /* Chat Composer Inline Voice Mic Button */
+      /* 1. Hide unwanted developer clutter: Attach icon, Mode selector, Tools icon, Model selector */
+      .theia-ChatInputOptions .codicon-attach,
+      .theia-ChatInput-ModeSelector,
+      .theia-ChatInputOptions .codicon-tools,
+      .theia-ChatInput-ModelSelector-container {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+
+      /* 2. Left Column: [ @ Coworkers ] pill */
+      .theia-ChatInputOptions .theia-ChatInputOptions-left {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        margin-right: 6px !important;
+        flex-shrink: 0 !important;
+      }
+      .theia-ChatInputOptions .theia-ChatInputOptions-left .option:has(.codicon-mention) {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        padding: 3px 8px !important;
+        height: 24px !important;
+        border-radius: 12px !important;
+        background: rgba(56, 189, 248, 0.08) !important;
+        border: 1px solid rgba(56, 189, 248, 0.25) !important;
+        color: #38bdf8 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+      }
+      .theia-ChatInputOptions .theia-ChatInputOptions-left .option:has(.codicon-mention):hover {
+        background: rgba(56, 189, 248, 0.2) !important;
+        border-color: rgba(56, 189, 248, 0.65) !important;
+        color: #7dd3fc !important;
+      }
+      .theia-ChatInputOptions .theia-ChatInputOptions-left .codicon-mention {
+        font-size: 13px !important;
+        color: inherit !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        border: none !important;
+      }
+      .theia-ChatInputOptions .theia-ChatInputOptions-left .option:has(.codicon-mention)::after {
+        content: "Coworkers";
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        color: inherit !important;
+        letter-spacing: 0.02em;
+      }
+
+      /* 3. Center Column: Monaco Editor input */
+      .theia-ChatInput-Editor {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+        min-height: 24px !important;
+        max-height: 120px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
+        overflow: hidden !important;
+      }
+      .theia-ChatInput-Editor .monaco-editor,
+      .theia-ChatInput-Editor .monaco-editor .overflow-guard {
+        height: 24px !important;
+        min-height: 24px !important;
+      }
+      .theia-ChatInput-Editor .monaco-editor .inputarea.ime-input,
+      .theia-ChatInput-Editor .monaco-editor .margin,
+      .theia-ChatInput-Editor .monaco-editor .monaco-editor-background {
+        padding-left: 2px !important;
+      }
+      .theia-ChatInput-Editor-Placeholder {
+        font-size: 0 !important;
+        position: absolute !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        left: 2px !important;
+        line-height: normal !important;
+      }
+      .theia-ChatInput-Editor-Placeholder::after {
+        content: "Ask legal coworkers or @AskHaya...";
+        font-size: 12px !important;
+        color: var(--theia-descriptionForeground, #64748b) !important;
+        white-space: nowrap !important;
+        pointer-events: none !important;
+      }
+      .theia-ChatInput-Editor .monaco-scrollable-element > .scrollbar.vertical,
+      .theia-ChatInput-Editor .monaco-scrollable-element > .scrollbar.horizontal {
+        display: none !important;
+      }
+
+      /* 4. Right Column: Voice Mic & Send button */
+      .theia-ChatInputOptions .theia-ChatInputOptions-right {
+        grid-column: 3 !important;
+        grid-row: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        margin-left: 6px !important;
+        margin-right: 0 !important;
+        flex-shrink: 0 !important;
+        gap: 4px !important;
+      }
       .askhaya-composer-mic {
         display: inline-flex !important;
         align-items: center;
         gap: 4px;
-        padding: 2px 7px !important;
-        background: rgba(245, 158, 11, 0.12) !important;
-        border: 1px solid rgba(245, 158, 11, 0.3) !important;
-        border-radius: 4px !important;
+        padding: 3px 9px !important;
+        height: 24px !important;
+        border-radius: 12px !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
       }
-      .askhaya-composer-mic:hover {
-        background: rgba(245, 158, 11, 0.25) !important;
-        border-color: rgba(245, 158, 11, 0.6) !important;
+      .askhaya-composer-mic.online {
+        background: rgba(16, 185, 129, 0.12) !important;
+        border: 1px solid rgba(16, 185, 129, 0.38) !important;
+      }
+      .askhaya-composer-mic.online:hover {
+        background: rgba(16, 185, 129, 0.24) !important;
+        border-color: rgba(16, 185, 129, 0.65) !important;
+      }
+      .askhaya-composer-mic.offline {
+        background: rgba(245, 158, 11, 0.12) !important;
+        border: 1px solid rgba(245, 158, 11, 0.38) !important;
+      }
+      .askhaya-composer-mic.offline:hover {
+        background: rgba(245, 158, 11, 0.24) !important;
+        border-color: rgba(245, 158, 11, 0.65) !important;
+      }
+      .askhaya-composer-mic.listening {
+        background: rgba(239, 68, 68, 0.15) !important;
+        border: 1px solid rgba(239, 68, 68, 0.6) !important;
+      }
+      .askhaya-composer-mic.thinking {
+        background: rgba(56, 189, 248, 0.15) !important;
+        border: 1px solid rgba(56, 189, 248, 0.6) !important;
+      }
+      .askhaya-composer-mic.speaking {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border: 1px solid rgba(16, 185, 129, 0.6) !important;
       }
     `;
     document.head.appendChild(style);
@@ -1289,26 +1883,39 @@ export class HayagrivaFrontendContribution
   // ── Inline Voice Mic Button in Chat Composer ─────────────────────────────
   protected initializeChatMicIntegration(): void {
     const updateButtonVisual = (micBtn: HTMLElement, state: string) => {
+      micBtn.classList.remove('online', 'offline', 'listening', 'thinking', 'speaking');
       if (state === 'listening') {
+        micBtn.classList.add('listening');
         micBtn.innerHTML = '<i class="fa fa-circle" style="color: #ef4444; font-size: 11px; animation: pulse 1s infinite;"></i><span style="color: #ef4444; font-size: 11px; font-weight: 600; margin-left: 5px;">Listening…</span>';
         micBtn.setAttribute('title', 'Listening to your inquiry... (Click to stop/send)');
-        micBtn.style.borderColor = 'rgba(239, 68, 68, 0.6)';
-        micBtn.style.background = 'rgba(239, 68, 68, 0.15)';
       } else if (state === 'thinking') {
+        micBtn.classList.add('thinking');
         micBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color: #38bdf8; font-size: 12px;"></i><span style="color: #38bdf8; font-size: 11px; font-weight: 600; margin-left: 5px;">Researching…</span>';
         micBtn.setAttribute('title', 'Consulting LightRAG graph & bare acts...');
-        micBtn.style.borderColor = 'rgba(56, 189, 248, 0.6)';
-        micBtn.style.background = 'rgba(56, 189, 248, 0.15)';
       } else if (state === 'speaking') {
+        micBtn.classList.add('speaking');
         micBtn.innerHTML = '<i class="fa fa-volume-up" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">Advising…</span>';
         micBtn.setAttribute('title', 'Playing Sarvam AI oral ratio (Click to mute)');
-        micBtn.style.borderColor = 'rgba(16, 185, 129, 0.6)';
-        micBtn.style.background = 'rgba(16, 185, 129, 0.15)';
       } else {
-        micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #f59e0b; font-size: 12px;"></i><span style="color: #fbbf24; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
-        micBtn.setAttribute('title', 'Speak to AskHaya Senior Counsel (Voice Inquest / Alt+Space)');
-        micBtn.style.borderColor = 'rgba(245, 158, 11, 0.35)';
-        micBtn.style.background = 'rgba(245, 158, 11, 0.12)';
+        const isOnline = this.voiceOrb.isLightRagConnected();
+        const hasSarvam = this.voiceOrb.isSarvamConfigured();
+        const telemetry = this.voiceOrb.getTelemetry();
+        const speaker = telemetry?.sarvam?.defaultSpeaker || 'aditya';
+
+        if (isOnline) {
+          micBtn.classList.add('online');
+          if (hasSarvam) {
+            micBtn.innerHTML = `<i class="fa fa-microphone" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>`;
+            micBtn.setAttribute('title', `AskHaya Neural Voice Online (Sarvam AI: ${speaker}) • Click to speak (Alt+Space) • Right-click for Settings`);
+          } else {
+            micBtn.innerHTML = `<i class="fa fa-microphone" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>`;
+            micBtn.setAttribute('title', 'AskHaya Online • Voice: Native Browser Voice (Add Sarvam AI key in Settings for Indian legal neural voice) • Click to speak • Right-click for Settings');
+          }
+        } else {
+          micBtn.classList.add('offline');
+          micBtn.innerHTML = `<i class="fa fa-microphone" style="color: #f59e0b; font-size: 12px;"></i><span style="color: #f59e0b; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>`;
+          micBtn.setAttribute('title', 'Offline Mode: Local Bare Acts Vault & Native Browser Voice • Click to speak (Alt+Space) • Right-click for Settings');
+        }
       }
     };
 
@@ -1319,36 +1926,65 @@ export class HayagrivaFrontendContribution
       }
     });
 
+    // Listen for LightRAG configuration updates from settings panel
+    window.addEventListener('message', (ev) => {
+      if (ev.data && ev.data.type === 'hayagriva:lightrag-updated') {
+        this.voiceOrb.checkLightRagStatus();
+      }
+    });
+
+    // Instant probe on window focus
+    window.addEventListener('focus', () => {
+      if (this.voiceOrb.getState() === 'idle') {
+        this.voiceOrb.checkLightRagStatus();
+      }
+    });
+
     const injectMic = () => {
-      const leftOptions = document.querySelector('.theia-ChatInputOptions-left');
-      if (leftOptions && !leftOptions.querySelector('.askhaya-composer-mic')) {
+      const rightOptions = document.querySelector('.theia-ChatInputOptions-right');
+      if (rightOptions && !document.querySelector('.askhaya-composer-mic')) {
         const micBtn = document.createElement('span');
         micBtn.className = 'option askhaya-composer-mic';
         micBtn.style.cursor = 'pointer';
         micBtn.style.display = 'inline-flex';
         micBtn.style.alignItems = 'center';
-        micBtn.style.padding = '3px 8px';
-        micBtn.style.borderRadius = '12px';
-        micBtn.style.marginLeft = '4px';
-        micBtn.style.transition = 'all 0.2s ease';
-        micBtn.style.border = '1px solid rgba(245, 158, 11, 0.35)';
-        micBtn.style.background = 'rgba(245, 158, 11, 0.12)';
+        micBtn.style.marginRight = '6px';
         
         updateButtonVisual(micBtn, this.voiceOrb.getState());
 
-        micBtn.addEventListener('click', (e) => {
+        micBtn.addEventListener('click', async (e) => {
           e.preventDefault();
           e.stopPropagation();
           const state = this.voiceOrb.getState();
           if (state === 'speaking') {
             this.voiceOrb.stopSpeaking();
           } else if (state === 'listening') {
+            // Push-to-talk toggle: Clicking while listening immediately captures and submits speech!
             this.voiceOrb.stopListening();
+          } else if (state === 'thinking') {
+            // Cancel thinking / stuck query
+            this.voiceOrb.cancel();
           } else {
+            // Idle state: Check status asynchronously in background, but NEVER block the user from speaking!
+            this.voiceOrb.checkLightRagStatus().catch(() => {});
             this.voiceOrb.startListening();
           }
         });
-        leftOptions.appendChild(micBtn);
+
+        // Fast hover probe: checks connection instantly before the user even clicks
+        micBtn.addEventListener('mouseenter', () => {
+          if (this.voiceOrb.getState() === 'idle') {
+            this.voiceOrb.checkLightRagStatus();
+          }
+        });
+
+        micBtn.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.openCockpitPanel(undefined, 'settings', 'voice-studio');
+        });
+
+        rightOptions.insertBefore(micBtn, rightOptions.firstChild);
       }
     };
     setInterval(injectMic, 1000);

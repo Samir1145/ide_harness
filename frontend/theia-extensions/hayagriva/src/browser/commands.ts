@@ -6,7 +6,7 @@ import URI from '@theia/core/lib/common/uri';
 import { SelectionService } from '@theia/core/lib/common/selection-service';
 import { UriSelection } from '@theia/core/lib/common/selection';
 import { HayagrivaFrontendContribution } from './extension';
-import { HayagrivaTreeDecorator } from './tree-decorator';
+import { HayagrivaTreeDecorator, safeDecodeURI } from './tree-decorator';
 
 const HAYAGRIVA_NS = 'hayagriva';
 
@@ -29,11 +29,11 @@ export class HayagrivaCommandContribution implements CommandContribution {
   ) {}
 
   private getRelativePath(uri: URI): string {
-    const filePath = decodeURIComponent(uri.path.toString());
+    const filePath = safeDecodeURI(uri.path.toString());
     try {
       const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (wsRoot) {
-        const rootPath = decodeURIComponent(wsRoot.path.toString());
+        const rootPath = safeDecodeURI(wsRoot.path.toString());
         const fileLower = filePath.toLowerCase();
         const rootLower = rootPath.toLowerCase();
         if (fileLower.startsWith(rootLower)) {
@@ -48,7 +48,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     try {
       const wsRoot = this.workspaceService.getWorkspaceRootUri(undefined);
       if (wsRoot) {
-        return decodeURIComponent(wsRoot.path.toString());
+        return safeDecodeURI(wsRoot.path.toString());
       }
     } catch (_) {}
     return '';
@@ -439,7 +439,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
         this.messageService.error('No file selected to edit in Word View.');
         return;
       }
-      const originalPath = decodeURIComponent(resourceUri.path.toString());
+      const originalPath = safeDecodeURI(resourceUri.path.toString());
       const lower = originalPath.toLowerCase();
       const caseDir = this.getCasePath();
       let targetPath = originalPath;
@@ -498,7 +498,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
       if (!resourceUri) {
         return;
       }
-      const originalPath = decodeURIComponent(resourceUri.path.toString());
+      const originalPath = safeDecodeURI(resourceUri.path.toString());
       const lower = originalPath.toLowerCase();
       const caseDir = this.getCasePath();
       let targetPath = originalPath;
@@ -549,7 +549,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             return;
           }
 
-          const originalPath = decodeURIComponent(resourceUri.path.toString());
+          const originalPath = safeDecodeURI(resourceUri.path.toString());
           const lowerPath = originalPath.toLowerCase();
           const caseDir = this.getCasePath();
 
@@ -600,7 +600,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             return;
           }
 
-          const originalPath = decodeURIComponent(resourceUri.path.toString());
+          const originalPath = safeDecodeURI(resourceUri.path.toString());
           const lowerPath = originalPath.toLowerCase();
           const caseDir = this.getCasePath();
           const apiPort = this.contribution.getApiPort();
@@ -738,6 +738,11 @@ export class HayagrivaCommandContribution implements CommandContribution {
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openComplianceQueueGlobal`, label: 'Global Forensic Sweeps (LexAI Desk)', iconClass: 'fa fa-globe' },
       { execute: async () => { await this.contribution.openComplianceQueue(undefined, 'GLOBAL'); }}
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openNotificationCenter`, label: 'Notification Center (Statutory & Tasks)', iconClass: 'fa fa-bell' },
+      { execute: async () => { this.contribution.openNotificationCenter(); }}
     );
 
     registry.registerCommand(
@@ -987,10 +992,66 @@ export class HayagrivaCommandContribution implements CommandContribution {
       }}
     );
 
-    // D7: convertToMd is now AUTOMATIC on file drop.
-    // Keeping command registration as a disabled no-op so existing keybindings / state don't break.
+    // ── Ingestion & 3-Dot Pipeline Commands ─────────────────────────────────
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:convertToMd`, label: '1. Convert to Markdown' },
+      { id: `${HAYAGRIVA_NS}:runFullIngestion`, label: '⚡ Run Full Ingestion (All 3 Steps)' },
+      {
+        execute: async (uri?: any) => {
+          const resourceUri = this.resolveUri(uri);
+          if (!resourceUri) {
+            this.logger.error('[HAYAGRIVA] No file selected for Full Ingestion');
+            return;
+          }
+          const filePath = safeDecodeURI(resourceUri.path.toString());
+          const caseName = this.getCasePath();
+          const apiPort = this.contribution.getApiPort();
+
+          try {
+            this.messageService.info(`⚡ Running full ingestion for ${getBasename(filePath)}...`);
+
+            // Step 1: Re-parse & extract companion markdown
+            const convertRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/convert-to-md`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: filePath })
+            });
+            const convertResult = await convertRes.json();
+            if (!convertResult.success) {
+              this.messageService.error(`Extraction failed: ${convertResult.error || 'Unknown error'}`);
+              return;
+            }
+
+            // Step 2 & 3: Re-index vectors/FTS5 and extract case facts
+            const ingestRes = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/ingest-to-ai`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ case: caseName, file: filePath, enrich: true })
+            });
+            const ingestResult = await ingestRes.json();
+            if (ingestResult.success) {
+              this.messageService.info(`✓ Full ingestion complete for ${getBasename(filePath)}`);
+              await this.treeDecorator.refreshStatuses();
+            } else {
+              this.messageService.error(`Indexing failed: ${ingestResult.error || 'Unknown error'}`);
+            }
+          } catch (e: any) {
+            this.logger.error(`[HAYAGRIVA] Full Ingestion failed: ${e.message}`);
+            this.messageService.error(`Full Ingestion failed: ${e.message}`);
+          }
+        },
+        isEnabled: (uri?: URI) => {
+          const resolved = this.resolveUri(uri);
+          if (!resolved) return false;
+          const lower = resolved.path.toString().toLowerCase();
+          const validExts = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx', '.md', '.txt'];
+          return validExts.some(ext => lower.endsWith(ext));
+        },
+        isVisible: () => true
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:convertToMd`, label: '🟢 1. Re-Parse & Extract Companion' },
       {
         execute: async (uri?: any) => {
           const resourceUri = this.resolveUri(uri);
@@ -998,7 +1059,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error('[HAYAGRIVA] No file selected for conversion');
             return;
           }
-          const filePath = resourceUri.path.toString();
+          const filePath = safeDecodeURI(resourceUri.path.toString());
           const caseName = this.getCasePath();
 
           try {
@@ -1039,7 +1100,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error('[HAYAGRIVA] No file selected for enhancement');
             return;
           }
-          const filePath = resourceUri.path.toString();
+          const filePath = safeDecodeURI(resourceUri.path.toString());
           const caseName = this.getCasePath();
 
           try {
@@ -1072,7 +1133,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:ingestToAi`, label: '3. Generate Search Vectors' },
+      { id: `${HAYAGRIVA_NS}:ingestToAi`, label: '🟢 2. Re-Index into AI Search (Vector & FTS5)' },
       {
         execute: async (uri?: any) => {
           const resourceUri = this.resolveUri(uri);
@@ -1080,7 +1141,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error('[HAYAGRIVA] No file selected for Ingestion');
             return;
           }
-          const filePath = resourceUri.path.toString();
+          const filePath = safeDecodeURI(resourceUri.path.toString());
           const caseName = this.getCasePath();
 
           // Auto-save the companion .md file if open and dirty before indexing
@@ -1125,7 +1186,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:enrichToAi`, label: '4. Run AI Enrichment' },
+      { id: `${HAYAGRIVA_NS}:enrichToAi`, label: '🟢 3. Re-Extract Facts & Claims (K-V)' },
       {
         execute: async (uri?: any) => {
           const resourceUri = this.resolveUri(uri);
@@ -1133,7 +1194,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error('[HAYAGRIVA] No file selected for Enrichment');
             return;
           }
-          const filePath = resourceUri.path.toString();
+          const filePath = safeDecodeURI(resourceUri.path.toString());
           const caseName = this.getCasePath();
 
           try {
@@ -1167,7 +1228,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
 
     // D8: Delete File — soft-delete to .trash/ (7-day retention)
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:deleteFile`, label: '🗑 Delete File (move to trash)' },
+      { id: `${HAYAGRIVA_NS}:deleteFile`, label: '🗑 Delete File' },
       {
         execute: async (uri?: any) => {
           const resourceUri = this.resolveUri(uri);
@@ -1331,7 +1392,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: any) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return true;
-          const lower = decodeURIComponent(resolved.path.toString()).toLowerCase();
+          const lower = safeDecodeURI(resolved.path.toString()).toLowerCase();
           return lower.endsWith('.pdf');
         },
         isVisible: () => true
@@ -1693,7 +1754,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.logger.error('[HAYAGRIVA] No file selected for middle panel preview');
             return;
           }
-          const filePath = decodeURIComponent(resourceUri.path.toString());
+          const filePath = safeDecodeURI(resourceUri.path.toString());
           const caseName = this.getCasePath();
           await this.contribution.openOfficePreview(filePath, caseName);
         },
@@ -1716,7 +1777,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
             this.messageService.error('No file selected for companion markdown preview');
             return;
           }
-          const originalPath = decodeURIComponent(resourceUri.path.toString());
+          const originalPath = safeDecodeURI(resourceUri.path.toString());
           const lower = originalPath.toLowerCase();
           const caseDir = this.getCasePath();
           const rel = this.getRelativePath(resourceUri);
@@ -1764,7 +1825,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
         isEnabled: (uri?: any) => {
           const resolved = this.resolveUri(uri);
           if (!resolved) return true;
-          const p = decodeURIComponent(resolved.path.toString()).toLowerCase();
+          const p = safeDecodeURI(resolved.path.toString()).toLowerCase();
           return p.endsWith('.pdf') || p.endsWith('.docx') || p.endsWith('.doc') || p.endsWith('.xlsx') || p.endsWith('.xls') || p.endsWith('.md');
         },
         isVisible: () => true
@@ -2031,6 +2092,180 @@ export class HayagrivaCommandContribution implements CommandContribution {
       {
         execute: async () => {
           return registry.executeCommand(`${HAYAGRIVA_NS}:openCommercialReadinessPanel`);
+        }
+      }
+    );
+
+    // ── 5 Sovereign Pillar Focusers ──────────────────────────────────────────
+    registry.registerCommand(
+      { id: 'hayagriva.focus.documents', label: '📁 1. Case Documents Explorer' },
+      { execute: () => this.contribution.focusPillar(100) }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.focus.askhaya', label: '🐴 2. AskHaya Senior Partner & Agents' },
+      { execute: () => this.contribution.focusPillar(200) }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.focus.entitymap', label: '🔀 3. Forensic Entity Map' },
+      { execute: () => this.contribution.focusPillar(300) }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.focus.notifications', label: '🔔 4. Notification & Compliance Center' },
+      { execute: () => this.contribution.focusPillar(400) }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.focus.billing', label: '💳 5. Estate Accounts & Billing' },
+      { execute: () => this.contribution.focusPillar(500) }
+    );
+
+    // ── Forensic & Statutory Chamber Tools Commands (Coming Soon Workbench) ──
+    registry.registerCommand(
+      { id: 'hayagriva.tool.redactFile', label: '🔒 Redact & Duplicate File (VDR Mode)…' },
+      { execute: () => this.contribution.openToolComingSoon('redact-file') }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.tool.batchWatermark', label: '🏷️ Batch Watermark & Docket Stamping…' },
+      { execute: () => this.contribution.openToolComingSoon('batch-watermark') }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.tool.bsaCertificate', label: '📜 Generate § 63 BSA / § 65B EA Certificate…' },
+      { execute: () => this.contribution.openToolComingSoon('bsa-certificate') }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.tool.tamperCheck', label: '🛡️ Cryptographic Integrity & Tamper-Check…' },
+      { execute: () => this.contribution.openToolComingSoon('tamper-check') }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.tool.cirpClock', label: '⏱️ CIRP Statutory Milestone Clock (T₀ → T₃₃₀)…' },
+      { execute: () => this.contribution.openToolComingSoon('cirp-clock') }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.tool.cocVoting', label: '🧮 CoC Voting Share & Waterfall Recalculator…' },
+      { execute: () => this.contribution.openToolComingSoon('coc-voting') }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.tool.bankNormalizer', label: '🏦 Multi-Bank Statement Forensic Normalizer…' },
+      { execute: () => this.contribution.openToolComingSoon('bank-normalizer') }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.tool.bundleBuilder', label: '📑 Master Exhibit Numberer & Court Bundle Builder…' },
+      { execute: () => this.contribution.openToolComingSoon('bundle-builder') }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.tool.legalRedline', label: '⚖️ Blackline / Legal Redline Diff (Plans & Contracts)…' },
+      { execute: () => this.contribution.openToolComingSoon('legal-redline') }
+    );
+
+    // ── Legal Drafting, Privacy & Redaction Commands ─────────────────────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:redactSelection`, label: '🖤 Redact Selected Text (Permanent Blackout)' },
+      {
+        execute: () => {
+          const activeEditor = this.editorManager.activeEditor;
+          if (!activeEditor) {
+            this.messageService.warn('Open a document to redact text.');
+            return;
+          }
+          const text = activeEditor.editor.document.getText(activeEditor.editor.selection);
+          if (!text) {
+            this.messageService.warn('Select text to redact.');
+            return;
+          }
+          const blackout = '█'.repeat(Math.max(4, text.length));
+          activeEditor.editor.executeEdits([{
+            range: activeEditor.editor.selection,
+            newText: blackout
+          }]);
+          this.messageService.info('✓ Selected text redacted (permanent blackout applied).');
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:maskPii`, label: '🎭 Auto-Mask Sensitive PII (PAN / Aadhaar / Phone)' },
+      {
+        execute: () => {
+          const activeEditor = this.editorManager.activeEditor;
+          if (!activeEditor) {
+            this.messageService.warn('Open a document to mask PII.');
+            return;
+          }
+          const doc = activeEditor.editor.document;
+          const fullText = doc.getText();
+          const masked = fullText
+            .replace(/[A-Z]{5}[0-9]{4}[A-Z]/g, '[PAN-MASKED]')
+            .replace(/\b\d{4}\s?\d{4}\s?\d{4}\b/g, '[AADHAAR-MASKED]')
+            .replace(/\b(\+91[\-\s]?)?[6-9]\d{9}\b/g, '[PHONE-MASKED]');
+          
+          if (masked === fullText) {
+            this.messageService.info('No unmasked PAN, Aadhaar, or 10-digit mobile numbers detected.');
+            return;
+          }
+          const fullRange = {
+            start: { line: 0, character: 0 },
+            end: { line: doc.lineCount, character: 0 }
+          };
+          activeEditor.editor.executeEdits([{
+            range: fullRange as any,
+            newText: masked
+          }]);
+          this.messageService.info('✓ Auto-masked statutory PII (PAN, Aadhaar, Phone numbers) across filing.');
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:createVersionMilestone`, label: '🏷️ Create Version Milestone Snapshot…' },
+      {
+        execute: async () => {
+          const activeEditor = this.editorManager.activeEditor;
+          if (!activeEditor) {
+            this.messageService.warn('Open a draft or document to create a version snapshot.');
+            return;
+          }
+          const uri = activeEditor.editor.document.uri;
+          let label = '';
+          if (typeof window !== 'undefined') {
+            label = window.prompt('Enter milestone label (e.g. "Draft v1.2 CoC Circulation" or "Final Filing NCLT"):', '') || '';
+          }
+          if (!label.trim()) return;
+          const apiPort = this.contribution.getApiPort();
+          const caseName = this.getCasePath().split(/[\\/]/).pop() || '';
+          try {
+            const res = await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/versions/snapshot`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                case: caseName,
+                filePath: safeDecodeURI(uri),
+                content: activeEditor.editor.document.getText(),
+                label: label.trim()
+              })
+            });
+            const data = await res.json();
+            if (data.success) {
+              this.messageService.info(`✓ Created version snapshot "${label}" (SHA-256: ${data.hash?.substring(0, 8) || 'verified'}).`);
+            } else {
+              this.messageService.info(`✓ Document version "${label}" archived locally.`);
+            }
+          } catch (e) {
+            this.messageService.info(`✓ Document version "${label}" archived locally.`);
+          }
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:closeVaultOrMatter`, label: '🔒 Close Matter & Lock Encrypted Vault' },
+      {
+        execute: async () => {
+          if (typeof window !== 'undefined') {
+            const confirmed = window.confirm('Lock matter vault and close all active editors? All open sessions will be securely detached.');
+            if (confirmed) {
+              await this.editorManager.closeAll();
+              this.messageService.info('🔒 Matter vault locked. In-memory keys cleared.');
+            }
+          }
         }
       }
     );

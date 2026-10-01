@@ -3466,9 +3466,18 @@
               <option value="browser">Browser Native Speech (Offline Lite)</option>
             </select>
           </div>
-          <div style="display: flex; align-items: flex-end;">
-            <button class="btn-header btn-primary" onclick="saveVoiceEndpointConfig()" style="font-size: 11px; padding: 7px 16px; width: 100%; white-space: nowrap;">
-              💾 Save &amp; Test
+          <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+            <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="chkVoiceSaveGlobal" checked style="accent-color: #10b981;">
+              <span><strong>Save as Global Chamber Default</strong> (Persist to <code style="font-size: 10px; color: #38bdf8;">~/.hayagriva/chamber_config.json</code> across all matters)</span>
+            </label>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: flex-end; grid-column: 1 / -1;">
+            <button class="btn-header btn-outline" id="btnTestLightRagConnection" onclick="testCurrentLightRagConnection()" style="font-size: 11px; padding: 7px 12px; white-space: nowrap;">
+              🔌 Test Connection
+            </button>
+            <button class="btn-header btn-primary" onclick="saveVoiceEndpointConfig()" style="font-size: 11px; padding: 7px 16px; white-space: nowrap;">
+              💾 Save &amp; Connect
             </button>
           </div>
         </div>
@@ -4423,6 +4432,20 @@
       }
       if (event.data && (event.data.type === 'open-onboarding' || event.data.action === 'onboarding')) {
         openOnboardingModal();
+      }
+      if (event.data && (event.data.type === 'open-voice-studio' || event.data.action === 'voice-studio' || event.data.action === 'lightrag')) {
+        openVoiceStudioModal();
+        const panel = document.getElementById('voiceEndpointSettingsPanel');
+        if (panel && panel.style.display === 'none') {
+          toggleVoiceEndpointSettings();
+        }
+        setTimeout(() => {
+          const inp = document.getElementById('inputVoiceLightRagUrl');
+          if (inp) {
+            inp.focus();
+            inp.select();
+          }
+        }, 150);
       }
     });
 
@@ -7903,6 +7926,7 @@ ${contacts}
       const sarvamKey = document.getElementById('inputVoiceSarvamKey')?.value || '';
       const sarvamSpeaker = document.getElementById('selectVoiceSarvamSpeaker')?.value || 'arvind';
       const voiceEngine = document.getElementById('selectVoiceEngine')?.value || 'sarvam';
+      const saveAsGlobal = document.getElementById('chkVoiceSaveGlobal')?.checked ?? true;
 
       try {
         const res = await fetch('/api/hayagriva/voice/config', {
@@ -7915,7 +7939,8 @@ ${contacts}
             queryMode: mode,
             sarvamApiKey: sarvamKey,
             sarvamSpeaker: sarvamSpeaker,
-            sarvamEnabled: voiceEngine === 'sarvam'
+            sarvamEnabled: voiceEngine === 'sarvam',
+            saveAsGlobal: saveAsGlobal
           })
         });
 
@@ -7924,11 +7949,39 @@ ${contacts}
           showToast('✓ Voice Studio & Sarvam AI endpoint updated');
           checkVoiceTelemetry();
           toggleVoiceEndpointSettings();
+          try {
+            window.parent.postMessage({ type: 'hayagriva:lightrag-updated' }, '*');
+          } catch (_) {}
         } else {
           showToast(`Error: ${data.error || 'Failed to save config'}`, true);
         }
       } catch (err) {
         showToast(`Save error: ${err.message}`, true);
+      }
+    }
+
+    async function testCurrentLightRagConnection() {
+      const url = document.getElementById('inputVoiceLightRagUrl')?.value || 'http://127.0.0.1:9621';
+      const key = document.getElementById('inputVoiceLightRagKey')?.value || '';
+      const btn = document.getElementById('btnTestLightRagConnection');
+      if (btn) btn.textContent = '⏳ Testing…';
+      try {
+        const res = await fetch('/api/hayagriva/lightrag/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiUrl: url, apiKey: key })
+        });
+        const result = await res.json();
+        if (result && result.online) {
+          showToast(`✓ LightRAG Online (${result.statusCode || 200} OK)`);
+        } else {
+          showToast(`⚠️ LightRAG Unreachable: ${result.error || 'Connection refused'}`, true);
+        }
+      } catch (e) {
+        showToast(`⚠️ Test failed: ${e.message}`, true);
+      } finally {
+        if (btn) btn.textContent = '🔌 Test Connection';
+        checkVoiceTelemetry();
       }
     }
 
@@ -8309,6 +8362,20 @@ ${contacts}
     }
     if (urlParams.get('action') === 'onboarding') {
       setTimeout(openOnboardingModal, 200);
+    }
+    if (urlParams.get('action') === 'voice-studio' || urlParams.get('action') === 'lightrag') {
+      setTimeout(() => {
+        openVoiceStudioModal();
+        const panel = document.getElementById('voiceEndpointSettingsPanel');
+        if (panel && panel.style.display === 'none') {
+          toggleVoiceEndpointSettings();
+        }
+        const inp = document.getElementById('inputVoiceLightRagUrl');
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
+      }, 200);
     }
 
     setInterval(async () => {

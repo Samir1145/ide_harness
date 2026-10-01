@@ -7,6 +7,7 @@ import { ThemeService } from '@theia/core/lib/browser/theming';
 import { ILogger } from '@theia/core/lib/common/logger';
 import URI from '@theia/core/lib/common/uri';
 import { HayagrivaEditorDecorator } from './highlight-decorator';
+import { safeDecodeURI } from './tree-decorator';
 
 const {
   kvEditorHtml,
@@ -329,6 +330,8 @@ export class HayagrivaPreviewManager {
           iframe.contentWindow.postMessage({ type: 'open-new-case' }, '*');
         } else if (action === 'onboarding') {
           iframe.contentWindow.postMessage({ type: 'open-onboarding' }, '*');
+        } else if (action === 'voice-studio' || action === 'lightrag') {
+          iframe.contentWindow.postMessage({ type: 'open-voice-studio', action }, '*');
         }
       }
       return widget;
@@ -505,7 +508,7 @@ export class HayagrivaPreviewManager {
 
     try {
       const workspaceRoot = this.workspaceService.getWorkspaceRootUri(undefined);
-      const casePath = workspaceRoot ? decodeURIComponent(workspaceRoot.path.toString()) : '';
+      const casePath = workspaceRoot ? safeDecodeURI(workspaceRoot.path.toString()) : '';
       const resolveUrl = `${this.getBackendUrl()}/api/hayagriva/citation/resolve?case=${encodeURIComponent(casePath)}&doc=${encodeURIComponent(docName)}&page=${pageNum}`;
       const res = await fetch(resolveUrl);
       if (res.ok) {
@@ -557,7 +560,7 @@ export class HayagrivaPreviewManager {
     if (!workspaceRoot) return;
 
     try {
-      const casePath = decodeURIComponent(workspaceRoot.path.toString());
+      const casePath = safeDecodeURI(workspaceRoot.path.toString());
       const stem = docName.replace(/\.[a-zA-Z0-9]+$/, '');
       const caseNameOnly = casePath.split('/').filter(Boolean).pop() || 'case';
       const possibleCandidates = [
