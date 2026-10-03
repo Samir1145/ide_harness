@@ -28,6 +28,8 @@ export class AskHayaVoiceOrb {
   protected activeLanguage: string = 'en-IN';
   protected silenceTimer: any = null;
   protected accumulatedTranscript: string = '';
+  protected activeAbortController: AbortController | null = null;
+  protected queryEpoch: number = 0;
 
   // DOM Mount & Drag Physics State
   protected domRoot: HTMLElement | null = null;
@@ -194,7 +196,7 @@ export class AskHayaVoiceOrb {
               <button class="orb-btn orb-btn-panel" id="askhaya-btn-panel" title="Open AskHaya Panel (Alt+Space)">
                 <i class="fa fa-columns"></i>
               </button>
-              <button class="orb-btn orb-btn-close" id="askhaya-btn-close" title="Close / Cancel">
+              <button class="orb-btn orb-btn-close" id="askhaya-btn-close" title="Emergency Override / Dismiss (Esc)">
                 <i class="fa fa-times"></i>
               </button>
             </div>
@@ -217,8 +219,8 @@ export class AskHayaVoiceOrb {
               <button class="orb-action-btn orb-btn-insert" id="askhaya-action-insert" title="Insert into Editor">
                 <i class="fa fa-clipboard"></i> <span>Insert</span>
               </button>
-              <button class="orb-action-btn orb-btn-cancel" id="askhaya-action-cancel" title="Cancel">
-                <i class="fa fa-stop"></i> <span>Stop</span>
+              <button class="orb-action-btn orb-btn-override" id="askhaya-action-override" title="Emergency Override: Instantly kill query, silence audio, and reset to idle (Esc)">
+                <i class="fa fa-bolt" style="color: #ef4444;"></i> <span>Override</span>
               </button>
             </div>
             <input type="text" class="orb-fallback-input" id="askhaya-text-fallback-input" placeholder="Type inquiry or press Enter..." />
@@ -415,12 +417,12 @@ export class AskHayaVoiceOrb {
       });
     }
 
-    // Close / Cancel button
+    // Close / Emergency Override button
     const closeBtn = this.domRoot.querySelector('#askhaya-btn-close');
     if (closeBtn) {
       closeBtn.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
-        this.cancel();
+        this.hardAbort();
       });
     }
 
@@ -483,16 +485,12 @@ export class AskHayaVoiceOrb {
       });
     }
 
-    // Cancel action button
-    const actionCancel = this.domRoot.querySelector('#askhaya-action-cancel');
-    if (actionCancel) {
-      actionCancel.addEventListener('click', (e: MouseEvent) => {
+    // Emergency Override action button
+    const actionOverride = this.domRoot.querySelector('#askhaya-action-override') || this.domRoot.querySelector('#askhaya-action-cancel');
+    if (actionOverride) {
+      actionOverride.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
-        if (this.state === 'speaking') {
-          this.stopSpeaking();
-        } else {
-          this.cancel();
-        }
+        this.hardAbort();
       });
     }
 
@@ -639,7 +637,7 @@ export class AskHayaVoiceOrb {
       }
 
       #hayagriva-askhaya-orb-root.orb-speaking {
-        width: 375px;
+        width: 395px;
         height: 115px;
         border-radius: 20px;
         border-color: rgba(16, 185, 129, 0.6);
@@ -647,7 +645,7 @@ export class AskHayaVoiceOrb {
       }
 
       #hayagriva-askhaya-orb-root.orb-answered {
-        width: 375px;
+        width: 395px;
         height: auto;
         min-height: 125px;
         max-height: 260px;
@@ -933,6 +931,21 @@ export class AskHayaVoiceOrb {
         color: #fbbf24;
       }
 
+      .orb-btn-override {
+        background: rgba(239, 68, 68, 0.18) !important;
+        border: 1px solid rgba(239, 68, 68, 0.5) !important;
+        color: #fca5a5 !important;
+        font-weight: 600;
+        transition: all 0.2s ease;
+      }
+
+      .orb-btn-override:hover {
+        background: rgba(239, 68, 68, 0.35) !important;
+        border-color: rgba(239, 68, 68, 0.9) !important;
+        color: #fff !important;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+      }
+
       .orb-fallback-input {
         display: none;
         background: rgba(0, 0, 0, 0.3);
@@ -1024,6 +1037,12 @@ export class AskHayaVoiceOrb {
         e.preventDefault();
         e.stopPropagation();
         this.toggleVoiceOrb();
+      } else if (e.key === 'Escape' || e.code === 'Escape') {
+        if (this.state !== 'idle') {
+          e.preventDefault();
+          e.stopPropagation();
+          this.hardAbort();
+        }
       }
     });
   }
@@ -1116,7 +1135,17 @@ export class AskHayaVoiceOrb {
     }
   }
 
-  cancel(): void {
+  hardAbort(): void {
+    this.logger.info('[AskHayaVoiceService] Emergency Override triggered. Aborting all in-flight queries and audio.');
+    this.queryEpoch++;
+
+    if (this.activeAbortController) {
+      try {
+        this.activeAbortController.abort();
+      } catch (_) {}
+      this.activeAbortController = null;
+    }
+
     this.clearSilenceTimer();
     this.accumulatedTranscript = '';
     if (this.recognition) {
@@ -1125,7 +1154,13 @@ export class AskHayaVoiceOrb {
       } catch (_) {}
     }
     this.stopSpeaking();
+    this.updateTranscriptDisplay('');
+    this.updateSpokenDisplay('');
     this.setState('idle');
+  }
+
+  cancel(): void {
+    this.hardAbort();
   }
 
   startListening(): void {
@@ -1176,9 +1211,16 @@ export class AskHayaVoiceOrb {
   async submitVoiceQuery(query: string): Promise<void> {
     const clean = (query || '').replace(/^@AskHaya\s*/i, '').trim();
     if (!clean) {
-      this.setState('idle');
+      this.hardAbort();
       return;
     }
+
+    // Cancel any previous query and set up clean epoch + abort controller
+    if (this.activeAbortController) {
+      try { this.activeAbortController.abort(); } catch (_) {}
+    }
+    this.activeAbortController = new AbortController();
+    const currentEpoch = ++this.queryEpoch;
 
     this.clearSilenceTimer();
     this.stopSpeaking();
@@ -1190,6 +1232,7 @@ export class AskHayaVoiceOrb {
       const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/voice/inquest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: this.activeAbortController.signal,
         body: JSON.stringify({
           query: clean,
           case: currentCase,
@@ -1199,11 +1242,20 @@ export class AskHayaVoiceOrb {
         })
       });
 
+      // Discard if user triggered override during fetch
+      if (this.queryEpoch !== currentEpoch) {
+        return;
+      }
+
       if (!res.ok) {
         throw new Error(`Inquest endpoint returned HTTP ${res.status}`);
       }
 
       const data = await res.json();
+      if (this.queryEpoch !== currentEpoch) {
+        return;
+      }
+
       const spokenText = data.spokenText ? this.cleanForSpeech(data.spokenText) : (data.response ? this.cleanForSpeech(data.response) : 'No response returned from Voice Inquest.');
       const fullDossier = data.fullDossier || data.response || spokenText;
       const returnedLang = data.languageCode || this.activeLanguage;
@@ -1217,6 +1269,10 @@ export class AskHayaVoiceOrb {
 
       await this.speak(spokenText, returnedLang);
 
+      if (this.queryEpoch !== currentEpoch) {
+        return;
+      }
+
       // Sync with active editor if draft was cited
       const draftMatch = fullDossier.match(/(?:drafts|claims)[\/\\][a-zA-Z0-9_.\-]+\.md/i);
       if (draftMatch && this.editorManager && currentCase) {
@@ -1225,11 +1281,17 @@ export class AskHayaVoiceOrb {
           const cleanCase = currentCase.replace(/\/+$/, '');
           const targetUri = new URI(`file://${cleanCase}/${relPath}`);
           setTimeout(() => {
-            this.editorManager?.open(targetUri);
+            if (this.queryEpoch === currentEpoch) {
+              this.editorManager?.open(targetUri);
+            }
           }, 200);
         } catch (_) {}
       }
     } catch (err: any) {
+      // If user aborted intentionally, exit cleanly without error or fallback
+      if (this.queryEpoch !== currentEpoch || err.name === 'AbortError') {
+        return;
+      }
       this.logger.error(`[AskHayaVoiceService] Voice inquest failed: ${err.message}`);
       // Fallback to chat if inquest failed
       try {
@@ -1556,6 +1618,7 @@ export class AskHayaVoiceOrb {
       return;
     }
 
+    const currentEpoch = this.queryEpoch;
     this.updateSpokenDisplay(cleanSpoken);
     const stateLabel = this.domRoot?.querySelector('#askhaya-state-label');
     if (stateLabel) {
@@ -1569,6 +1632,7 @@ export class AskHayaVoiceOrb {
       const ttsRes = await fetch(`${this.getBackendUrl()}/api/hayagriva/voice/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: this.activeAbortController?.signal,
         body: JSON.stringify({
           text: cleanSpoken,
           speaker: 'aditya',
@@ -1578,15 +1642,29 @@ export class AskHayaVoiceOrb {
         })
       });
 
+      if (this.queryEpoch !== currentEpoch) {
+        return;
+      }
+
       if (ttsRes.ok) {
         const ttsData = await ttsRes.json();
+        if (this.queryEpoch !== currentEpoch) {
+          return;
+        }
         if (ttsData.audioBase64) {
           await this.playAudioPayload(ttsData.audioBase64);
           return;
         }
       }
     } catch (e: any) {
+      if (this.queryEpoch !== currentEpoch || e.name === 'AbortError') {
+        return;
+      }
       this.logger.warn(`[AskHayaVoiceService] Sarvam TTS playback failed: ${e.message}`);
+    }
+
+    if (this.queryEpoch !== currentEpoch) {
+      return;
     }
 
     // Fallback: Browser SpeechSynthesis
