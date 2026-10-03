@@ -50,6 +50,7 @@ class SarvamClient {
         this.baseUrl = 'api.sarvam.ai';
         this.cacheDir = options.cacheDir || path.join(__dirname, '..', '..', '..', 'scratch', 'sarvam_cache');
         this.defaultSpeaker = options.defaultSpeaker || 'arvind';
+        this.defaultLanguage = options.defaultLanguage || 'en-IN';
         this.hasExplicitApiKey = options.apiKey !== undefined;
         this.activeKey = this.hasExplicitApiKey ? String(options.apiKey || '').trim() : (process.env.SARVAM_API_KEY || '');
 
@@ -204,7 +205,7 @@ class SarvamClient {
         if (SPEAKER_ALIAS_MAP[speaker]) {
             speaker = SPEAKER_ALIAS_MAP[speaker];
         }
-        const targetLanguage = params.targetLanguage || params.caseSettings?.sarvamLanguage || this.defaultLanguage;
+        const targetLanguage = params.targetLanguage || params.caseSettings?.sarvamLanguage || this.detectScript(text) || this.defaultLanguage || 'en-IN';
         const pace = typeof params.pace === 'number' ? params.pace : 1.0;
         const pitch = typeof params.pitch === 'number' ? params.pitch : 0.0;
 

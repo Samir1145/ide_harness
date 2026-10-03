@@ -2330,6 +2330,8 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
               this.voiceOrb.stopListening();
             } else if (state === 'speaking') {
               this.voiceOrb.stopSpeaking();
+            } else if (state === 'answered') {
+              this.voiceOrb.cancel();
             } else if (state === 'processing') {
               this.voiceOrb.cancel();
             }

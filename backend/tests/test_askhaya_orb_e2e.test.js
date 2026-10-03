@@ -553,9 +553,12 @@ async function run() {
     assert.strictEqual(orb.getState(), 'speaking', 'State must transition to speaking');
     assert.ok(root.classList.contains('orb-speaking'), 'DOM must reflect orb-speaking');
 
-    // 4. speaking -> idle
+    // 4. speaking -> answered (persistent counsel state so modal does not auto-close)
     orb.stopSpeaking();
-    assert.strictEqual(orb.getState(), 'idle', 'State must return to idle');
+    assert.strictEqual(orb.getState(), 'answered', 'State must transition to answered on stopSpeaking');
+    assert.ok(root.classList.contains('orb-answered'), 'DOM must reflect orb-answered');
+    orb.cancel();
+    assert.strictEqual(orb.getState(), 'idle', 'State must return to idle on cancel');
     assert.ok(root.classList.contains('orb-idle'), 'DOM must return to orb-idle');
 
     // 5. Barge-in test: speaking -> listening
@@ -567,10 +570,10 @@ async function run() {
     subscription.dispose();
     assert.deepStrictEqual(
       stateHistory,
-      ['listening', 'processing', 'speaking', 'idle', 'speaking', 'listening'],
+      ['listening', 'processing', 'speaking', 'answered', 'idle', 'speaking', 'listening'],
       'State transition order must match exact expected sequence'
     );
-    console.log('  ✓ Verified all 4 Orb states, transitions, event notifications, and barge-in interruption.');
+    console.log('  ✓ Verified all Orb states, transitions, event notifications, answered persistence, and barge-in.');
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -697,7 +700,7 @@ async function run() {
     await orb.submitVoiceQuery('What are the voting threshold requirements for Section 30(4) plan approval under IBC?');
 
     assert.ok(mockFetchCalled, 'submitVoiceQuery must invoke the /api/hayagriva/voice/inquest API endpoint');
-    assert.strictEqual(orb.getState(), 'speaking', 'Orb should transition to speaking on API response');
+    assert.ok(orb.getState() === 'speaking' || orb.getState() === 'answered', 'Orb should transition to speaking or answered on API response');
     const lastRes = orb.getLastResult();
     assert.ok(lastRes, 'Orb must store lastResult');
     assert.ok(lastRes.spokenText.length > 0, 'lastResult.spokenText must be populated');

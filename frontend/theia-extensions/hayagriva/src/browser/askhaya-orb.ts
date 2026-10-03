@@ -7,7 +7,7 @@ import { CommandRegistry } from '@theia/core/lib/common/command';
 import { EditorManager } from '@theia/editor/lib/browser';
 import URI from '@theia/core/lib/common/uri';
 
-export type OrbState = 'idle' | 'listening' | 'processing' | 'speaking';
+export type OrbState = 'idle' | 'listening' | 'processing' | 'speaking' | 'answered';
 
 export interface StateChangeListener {
   (state: OrbState): void;
@@ -19,6 +19,10 @@ export class AskHayaVoiceOrb {
   protected recognition: any = null;
   protected currentSpeechUtterance: SpeechSynthesisUtterance | null = null;
   protected currentAudio: HTMLAudioElement | null = null;
+  protected audioContext: AudioContext | null = null;
+  protected currentAudioSource: AudioBufferSourceNode | null = null;
+  protected lastAudioBase64: string | null = null;
+  protected unlockedAudioElement: HTMLAudioElement | null = null;
   protected stateListeners: StateChangeListener[] = [];
   protected lastResult: { spokenText: string; fullDossier: string; query: string } | null = null;
   protected silenceTimer: any = null;
@@ -98,6 +102,36 @@ export class AskHayaVoiceOrb {
     this.logger.info('[AskHayaVoiceService] Ambient Amber Voice Orb initialized & mounted.');
   }
 
+  ensureAudioUnlocked(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        if (!this.audioContext || this.audioContext.state === 'closed') {
+          this.audioContext = new AudioCtx();
+        }
+        if (this.audioContext.state === 'suspended') {
+          this.audioContext.resume().catch(() => {});
+        }
+      }
+      if (!this.unlockedAudioElement && typeof Audio !== 'undefined') {
+        this.unlockedAudioElement = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+        this.unlockedAudioElement.volume = 0.01;
+      }
+      if (this.unlockedAudioElement) {
+        const p = this.unlockedAudioElement.play();
+        if (p && typeof p.then === 'function') {
+          p.then(() => {
+            if (this.unlockedAudioElement) {
+              this.unlockedAudioElement.pause();
+              this.unlockedAudioElement.currentTime = 0;
+            }
+          }).catch(() => {});
+        }
+      }
+    } catch (_) {}
+  }
+
   // ── DOM Mount & Glassmorphic UI ─────────────────────────────────────────────
 
   mountDom(): void {
@@ -166,6 +200,9 @@ export class AskHayaVoiceOrb {
               <button class="orb-action-btn orb-btn-mic" id="askhaya-action-mic" title="Speak or Stop">
                 <i class="fa fa-microphone"></i> <span>Speak</span>
               </button>
+              <button class="orb-action-btn orb-btn-play" id="askhaya-action-play" title="Play or Replay Spoken Audio">
+                <i class="fa fa-volume-up"></i> <span>Play</span>
+              </button>
               <button class="orb-action-btn orb-btn-dossier" id="askhaya-action-dossier" title="View Full Legal Dossier">
                 <i class="fa fa-file-text-o"></i> <span>Dossier</span>
               </button>
@@ -210,9 +247,9 @@ export class AskHayaVoiceOrb {
         } else if (this.state === 'processing') {
           w = w || 280;
           h = h || 74;
-        } else if (this.state === 'speaking') {
-          w = w || 320;
-          h = h || 110;
+        } else if (this.state === 'speaking' || this.state === 'answered') {
+          w = w || 375;
+          h = h || 125;
         } else {
           w = w || 44;
           h = h || 44;
@@ -327,7 +364,10 @@ export class AskHayaVoiceOrb {
       }
     };
 
-    this.domRoot.addEventListener('mousedown', onMouseDown);
+    this.domRoot.addEventListener('mousedown', (e: MouseEvent) => {
+      this.ensureAudioUnlocked();
+      onMouseDown(e);
+    });
   }
 
   protected setupEventListeners(): void {
@@ -335,6 +375,7 @@ export class AskHayaVoiceOrb {
 
     // Click on orb root
     this.domRoot.addEventListener('click', (e: MouseEvent) => {
+      this.ensureAudioUnlocked();
       if (this.hasDragged) {
         this.hasDragged = false;
         return;
@@ -350,6 +391,8 @@ export class AskHayaVoiceOrb {
         // Instant barge-in interrupt: stop speaking and restart listening
         this.stopSpeaking();
         this.startListening();
+      } else if (this.state === 'answered') {
+        this.startListening();
       }
     });
 
@@ -358,6 +401,7 @@ export class AskHayaVoiceOrb {
     if (panelBtn) {
       panelBtn.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
+        this.ensureAudioUnlocked();
         this.openInAskHayaPanel();
       });
     }
@@ -376,10 +420,29 @@ export class AskHayaVoiceOrb {
     if (actionMic) {
       actionMic.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
+        this.ensureAudioUnlocked();
         if (this.state === 'listening') {
           this.stopListening();
         } else {
           this.startListening();
+        }
+      });
+    }
+
+    // Play / Replay action button
+    const actionPlay = this.domRoot.querySelector('#askhaya-action-play');
+    if (actionPlay) {
+      actionPlay.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        this.ensureAudioUnlocked();
+        if (this.state === 'speaking') {
+          this.stopSpeaking();
+        } else if (this.lastAudioBase64) {
+          this.playAudioPayload(this.lastAudioBase64).catch(err => {
+            this.logger.warn(`[AskHayaVoiceService] Replay error: ${err}`);
+          });
+        } else if (this.lastResult?.spokenText) {
+          this.speak(this.lastResult.spokenText);
         }
       });
     }
@@ -407,7 +470,11 @@ export class AskHayaVoiceOrb {
     if (actionCancel) {
       actionCancel.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
-        this.cancel();
+        if (this.state === 'speaking') {
+          this.stopSpeaking();
+        } else {
+          this.cancel();
+        }
       });
     }
 
@@ -514,11 +581,21 @@ export class AskHayaVoiceOrb {
       }
 
       #hayagriva-askhaya-orb-root.orb-speaking {
-        width: 320px;
-        height: 110px;
+        width: 375px;
+        height: 115px;
         border-radius: 20px;
         border-color: rgba(16, 185, 129, 0.6);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(16, 185, 129, 0.3);
+      }
+
+      #hayagriva-askhaya-orb-root.orb-answered {
+        width: 375px;
+        height: auto;
+        min-height: 125px;
+        max-height: 260px;
+        border-radius: 20px;
+        border-color: rgba(16, 185, 129, 0.6);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 0 20px rgba(16, 185, 129, 0.25);
       }
 
       /* Inner Surface & Layout */
@@ -611,6 +688,7 @@ export class AskHayaVoiceOrb {
       .orb-listening .orb-state-label { color: #ef4444; }
       .orb-processing .orb-state-label { color: #38bdf8; }
       .orb-speaking .orb-state-label { color: #10b981; }
+      .orb-answered .orb-state-label { color: #10b981; }
 
       /* Waveform */
       .orb-waveform {
@@ -687,8 +765,17 @@ export class AskHayaVoiceOrb {
         color: #d1fae5;
       }
 
-      .orb-speaking .orb-transcript { display: none; }
-      .orb-speaking .orb-spoken-text { display: -webkit-box; }
+      .orb-speaking .orb-transcript,
+      .orb-answered .orb-transcript { display: none; }
+      .orb-speaking .orb-spoken-text,
+      .orb-answered .orb-spoken-text {
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        max-height: 95px;
+        overflow-y: auto;
+        user-select: text;
+        cursor: text;
+      }
 
       /* Footer / Actions */
       .orb-footer-row {
@@ -724,11 +811,23 @@ export class AskHayaVoiceOrb {
         border-color: rgba(245, 158, 11, 0.5);
       }
 
+      .orb-btn-play {
+        display: none;
+      }
+
+      .orb-speaking .orb-btn-play,
+      .orb-answered .orb-btn-play {
+        display: inline-flex;
+        border-color: rgba(56, 189, 248, 0.4);
+        color: #7dd3fc;
+      }
+
       .orb-btn-dossier {
         display: none;
       }
 
-      .orb-speaking .orb-btn-dossier {
+      .orb-speaking .orb-btn-dossier,
+      .orb-answered .orb-btn-dossier {
         display: inline-flex;
         border-color: rgba(16, 185, 129, 0.4);
         color: #6ee7b7;
@@ -738,7 +837,8 @@ export class AskHayaVoiceOrb {
         display: none;
       }
 
-      .orb-speaking .orb-btn-insert {
+      .orb-speaking .orb-btn-insert,
+      .orb-answered .orb-btn-insert {
         display: inline-flex;
         border-color: rgba(245, 158, 11, 0.4);
         color: #fbbf24;
@@ -940,6 +1040,7 @@ export class AskHayaVoiceOrb {
   }
 
   startListening(): void {
+    this.ensureAudioUnlocked();
     // Instant barge-in interrupt: stop active audio immediately
     this.stopSpeaking();
     this.clearSilenceTimer();
@@ -1250,8 +1351,115 @@ export class AskHayaVoiceOrb {
     return clean.replace(/[:\-–—\s]+$/, '.');
   }
 
+  protected async playAudioPayload(audioBase64: string): Promise<void> {
+    this.lastAudioBase64 = audioBase64;
+    this.stopSpeaking();
+    this.ensureAudioUnlocked();
+
+    // Convert base64 to Blob URL for clean streaming and zero data-URI overhead
+    const binaryString = window.atob(audioBase64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes.buffer], { type: 'audio/wav' });
+    const audioUrl = URL.createObjectURL(blob);
+
+    // 1. Primary: Web Audio API ONLY IF AudioContext is truly RUNNING
+    // (Starting a buffer source on a suspended AudioContext produces silence and hangs indefinitely)
+    if (this.audioContext && this.audioContext.state === 'running') {
+      try {
+        const audioBuffer = await this.audioContext.decodeAudioData(bytes.buffer.slice(0));
+        const source = this.audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(this.audioContext.destination);
+        this.currentAudioSource = source;
+
+        this.setState('speaking');
+
+        return new Promise<void>((resolve) => {
+          source.onended = () => {
+            if (this.currentAudioSource === source) {
+              this.currentAudioSource = null;
+            }
+            try { URL.revokeObjectURL(audioUrl); } catch (_) {}
+            this.setState('answered');
+            resolve();
+          };
+          source.start(0);
+        });
+      } catch (webAudioErr: any) {
+        this.logger.warn(`[AskHayaVoiceService] Running AudioContext playback error, falling back to HTML5 Audio: ${webAudioErr.message}`);
+      }
+    }
+
+    // 2. Secondary: HTML5 Audio Element via Blob URL with timeout watchdog & autoplay recovery
+    return new Promise<void>((resolve) => {
+      try {
+        const audio = new Audio(audioUrl);
+        audio.volume = 1.0;
+        this.currentAudio = audio;
+
+        let finished = false;
+        const cleanup = (newState: OrbState = 'answered') => {
+          if (finished) return;
+          finished = true;
+          this.currentAudio = null;
+          try { URL.revokeObjectURL(audioUrl); } catch (_) {}
+          this.setState(newState);
+          resolve();
+        };
+
+        audio.onended = () => cleanup('answered');
+        audio.onerror = (e) => {
+          this.logger.warn(`[AskHayaVoiceService] HTML5 Audio error: ${e}`);
+          cleanup('answered');
+        };
+
+        const playPromise = audio.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise
+            .then(() => {
+              this.setState('speaking');
+            })
+            .catch((err: any) => {
+              this.logger.warn(`[AskHayaVoiceService] Audio playback blocked by browser policy: ${err.message}`);
+              cleanup('answered');
+              this.showClickToListenNotice();
+            });
+        } else {
+          this.setState('speaking');
+        }
+      } catch (e: any) {
+        this.logger.warn(`[AskHayaVoiceService] HTML5 Audio instantiation error: ${e.message}`);
+        this.currentAudio = null;
+        try { URL.revokeObjectURL(audioUrl); } catch (_) {}
+        this.setState('answered');
+        this.showClickToListenNotice();
+        resolve();
+      }
+    });
+  }
+
+  protected showClickToListenNotice(): void {
+    if (this.domRoot) {
+      const stateLabel = this.domRoot.querySelector('#askhaya-state-label');
+      if (stateLabel) {
+        stateLabel.textContent = 'Audio Ready (Click ▶ to Listen)';
+      }
+      const playBtn = this.domRoot.querySelector('#askhaya-action-play') as HTMLElement;
+      if (playBtn) {
+        playBtn.innerHTML = '<i class="fa fa-play-circle" style="color: #fbbf24;"></i> <span style="font-weight: 600; color: #fbbf24;">Listen</span>';
+        playBtn.style.borderColor = 'rgba(245, 158, 11, 0.8)';
+        playBtn.style.boxShadow = '0 0 12px rgba(245, 158, 11, 0.4)';
+      }
+    }
+  }
+
   async speak(text: string): Promise<void> {
     this.stopSpeaking();
+    this.ensureAudioUnlocked();
     const cleanSpoken = this.cleanForSpeech(text);
     if (!cleanSpoken) {
       this.setState('idle');
@@ -1276,49 +1484,57 @@ export class AskHayaVoiceOrb {
       if (ttsRes.ok) {
         const ttsData = await ttsRes.json();
         if (ttsData.audioBase64) {
-          const audioUrl = `data:audio/wav;base64,${ttsData.audioBase64}`;
-          const audio = new Audio(audioUrl);
-          this.currentAudio = audio;
-          audio.onended = () => {
-            this.currentAudio = null;
-            this.setState('idle');
-          };
-          audio.onerror = () => {
-            this.currentAudio = null;
-            this.setState('idle');
-          };
-          await audio.play();
+          await this.playAudioPayload(ttsData.audioBase64);
           return;
         }
       }
     } catch (e: any) {
-      this.logger.warn(`[AskHayaVoiceService] Sarvam TTS offline or failed, falling back to browser speech: ${e.message}`);
+      this.logger.warn(`[AskHayaVoiceService] Sarvam TTS playback failed: ${e.message}`);
     }
 
+    // Fallback: Browser SpeechSynthesis
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(cleanSpoken);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.lang = 'en-IN';
+      try {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
 
-      utterance.onend = () => {
-        this.currentSpeechUtterance = null;
-        this.setState('idle');
-      };
+        const utterance = new SpeechSynthesisUtterance(cleanSpoken);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.lang = 'en-IN';
 
-      utterance.onerror = () => {
-        this.currentSpeechUtterance = null;
-        this.setState('idle');
-      };
+        utterance.onend = () => {
+          this.currentSpeechUtterance = null;
+          try { delete (window as any).__askHayaUtterance; } catch (_) {}
+          this.setState('answered');
+        };
 
-      this.currentSpeechUtterance = utterance;
-      window.speechSynthesis.speak(utterance);
+        utterance.onerror = () => {
+          this.currentSpeechUtterance = null;
+          try { delete (window as any).__askHayaUtterance; } catch (_) {}
+          this.setState('answered');
+        };
+
+        this.currentSpeechUtterance = utterance;
+        (window as any).__askHayaUtterance = utterance;
+        window.speechSynthesis.speak(utterance);
+      } catch (synthErr: any) {
+        this.logger.warn(`[AskHayaVoiceService] SpeechSynthesis failed: ${synthErr.message}`);
+        this.setState('answered');
+      }
     } else {
-      this.setState('idle');
+      this.setState('answered');
     }
   }
 
   stopSpeaking(): void {
+    if (this.currentAudioSource) {
+      try {
+        this.currentAudioSource.stop();
+        this.currentAudioSource.disconnect();
+      } catch (_) {}
+      this.currentAudioSource = null;
+    }
     if (this.currentAudio) {
       try {
         this.currentAudio.pause();
@@ -1327,11 +1543,19 @@ export class AskHayaVoiceOrb {
       this.currentAudio = null;
     }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+      } catch (_) {}
     }
     this.currentSpeechUtterance = null;
+    try {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__askHayaUtterance;
+      }
+    } catch (_) {}
+
     if (this.state === 'speaking') {
-      this.setState('idle');
+      this.setState('answered');
     }
   }
 
@@ -1345,25 +1569,53 @@ export class AskHayaVoiceOrb {
 
     // Update Floating Orb DOM Element
     if (this.domRoot) {
-      this.domRoot.classList.remove('orb-idle', 'orb-listening', 'orb-processing', 'orb-speaking');
+      this.domRoot.classList.remove('orb-idle', 'orb-listening', 'orb-processing', 'orb-speaking', 'orb-answered');
       this.domRoot.classList.add(`orb-${newState}`);
 
       const stateLabel = this.domRoot.querySelector('#askhaya-state-label');
       const transcriptEl = this.domRoot.querySelector('#askhaya-transcript-text');
       const spokenEl = this.domRoot.querySelector('#askhaya-spoken-text');
+      const cancelBtn = this.domRoot.querySelector('#askhaya-action-cancel') as HTMLElement;
+      const micBtn = this.domRoot.querySelector('#askhaya-action-mic') as HTMLElement;
 
       if (newState === 'listening') {
         if (stateLabel) stateLabel.textContent = 'Listening';
         if (transcriptEl) transcriptEl.textContent = 'Listening to your legal inquiry...';
+        if (cancelBtn) cancelBtn.innerHTML = '<i class="fa fa-times"></i> <span>Cancel</span>';
+        if (micBtn) micBtn.innerHTML = '<i class="fa fa-check"></i> <span>Done</span>';
       } else if (newState === 'processing') {
         if (stateLabel) stateLabel.textContent = 'Researching';
         if (transcriptEl) transcriptEl.textContent = 'Consulting LightRAG graph & bare acts...';
+        if (cancelBtn) cancelBtn.innerHTML = '<i class="fa fa-times"></i> <span>Cancel</span>';
       } else if (newState === 'speaking') {
-        if (stateLabel) stateLabel.textContent = 'Oral Ratio';
+        if (stateLabel) stateLabel.textContent = 'Oral Ratio (Speaking)';
         if (spokenEl) spokenEl.textContent = this.lastResult?.spokenText || 'Advising on case precedents...';
+        if (cancelBtn) cancelBtn.innerHTML = '<i class="fa fa-stop"></i> <span>Stop</span>';
+        if (micBtn) micBtn.innerHTML = '<i class="fa fa-microphone"></i> <span>Speak</span>';
+      } else if (newState === 'answered') {
+        if (stateLabel) stateLabel.textContent = 'Precedent Counsel Ready';
+        if (spokenEl) spokenEl.textContent = this.lastResult?.spokenText || '';
+        if (cancelBtn) cancelBtn.innerHTML = '<i class="fa fa-times"></i> <span>Close</span>';
+        if (micBtn) micBtn.innerHTML = '<i class="fa fa-microphone"></i> <span>Follow-up</span>';
       } else {
         if (stateLabel) stateLabel.textContent = 'AskHaya Counsel';
         if (transcriptEl) transcriptEl.textContent = 'Ready for inquiry (Alt+Space)';
+        if (cancelBtn) cancelBtn.innerHTML = '<i class="fa fa-times"></i> <span>Close</span>';
+        if (micBtn) micBtn.innerHTML = '<i class="fa fa-microphone"></i> <span>Speak</span>';
+      }
+
+      const playBtn = this.domRoot.querySelector('#askhaya-action-play') as HTMLElement;
+      if (playBtn) {
+        if (newState === 'speaking') {
+          playBtn.innerHTML = '<i class="fa fa-volume-off"></i> <span>Mute</span>';
+          playBtn.setAttribute('title', 'Mute audio playback');
+        } else if (newState === 'answered') {
+          playBtn.innerHTML = '<i class="fa fa-volume-up"></i> <span>Replay</span>';
+          playBtn.setAttribute('title', 'Replay spoken legal ratio');
+        } else {
+          playBtn.innerHTML = '<i class="fa fa-volume-up"></i> <span>Play</span>';
+          playBtn.setAttribute('title', 'Play spoken audio');
+        }
       }
 
       // Re-clamp position in case dimension expansion overflows right/bottom edges
@@ -1417,10 +1669,13 @@ export class AskHayaVoiceOrb {
   }
 
   toggleVoiceOrb(): void {
+    this.ensureAudioUnlocked();
     if (this.state === 'listening') {
       this.stopListening();
     } else if (this.state === 'speaking') {
-      this.stopSpeaking();
+      this.cancel();
+    } else if (this.state === 'answered') {
+      this.cancel();
     } else if (this.state === 'processing') {
       this.cancel();
     } else {
