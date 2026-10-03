@@ -46,10 +46,20 @@ function getProfile(caseDir = null) {
 
     const merged = deepMerge(deepMerge(base, globalProfile), matterProfile);
 
-    // Ensure identity object has defaults
+    // Ensure identity and display objects have defaults
     if (!merged.identity) merged.identity = {};
     if (!merged.contact) merged.contact = {};
     if (!merged.branding) merged.branding = {};
+    if (!merged.display) {
+        merged.display = {
+            fontFamily: 'Merriweather',
+            fontSize: 14,
+            lineHeight: 1.6,
+            theme: 'dark',
+            wordWrap: 'on',
+            minimap: false
+        };
+    }
 
     return merged;
 }
@@ -321,9 +331,49 @@ ${contacts}
 `;
 }
 
+/**
+ * Retrieves display preferences for the workspace/matter.
+ */
+function getDisplayPreferences(caseDir = null) {
+    const profile = getProfile(caseDir);
+    return profile.display || {
+        fontFamily: 'Merriweather',
+        fontSize: 14,
+        lineHeight: 1.6,
+        theme: 'dark',
+        wordWrap: 'on',
+        minimap: false
+    };
+}
+
+/**
+ * Saves updated display preferences to user global profile (or matter override if caseDir given).
+ */
+function saveDisplayPreferences(displaySettings, caseDir = null) {
+    if (!displaySettings || typeof displaySettings !== 'object') {
+        throw new Error('Display settings must be an object');
+    }
+
+    if (caseDir && fs.existsSync(caseDir)) {
+        const overridePath = path.join(caseDir, 'profile_override.json');
+        let matterData = {};
+        if (fs.existsSync(overridePath)) {
+            try { matterData = JSON.parse(fs.readFileSync(overridePath, 'utf8')); } catch (_) {}
+        }
+        matterData.display = Object.assign({}, matterData.display || {}, displaySettings);
+        fs.writeFileSync(overridePath, JSON.stringify(matterData, null, 2), 'utf8');
+        return getDisplayPreferences(caseDir);
+    } else {
+        const updated = saveProfile({ display: displaySettings });
+        return updated.display;
+    }
+}
+
 module.exports = {
     getProfile,
     saveProfile,
+    getDisplayPreferences,
+    saveDisplayPreferences,
     sendOtp,
     verifyOtp,
     renderLetterhead,

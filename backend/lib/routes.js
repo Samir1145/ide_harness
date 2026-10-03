@@ -2478,6 +2478,20 @@ module.exports = {
             res.end(JSON.stringify({ formats: list }));
         },
 
+        '/api/hayagriva/settings/display': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const profileManager = require('./core/profile-manager');
+                const caseName = parsedUrl.query ? parsedUrl.query.case : null;
+                const caseDir = (caseName && docsRoot) ? path.join(docsRoot, caseName) : null;
+                const display = profileManager.getDisplayPreferences(caseDir);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, display }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        },
+
         '/api/hayagriva/settings/panel': (req, res, parsedUrl, docsRoot) => {
             const htmlPath = path.join(__dirname, 'assets', 'settings-dashboard.html');
             if (!fs.existsSync(htmlPath)) {
@@ -3431,6 +3445,26 @@ module.exports = {
     },
 
     POST: {
+        '/api/hayagriva/settings/display': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const parsed = body ? JSON.parse(body) : {};
+                    const profileManager = require('./core/profile-manager');
+                    const caseName = (parsed.case || (parsedUrl.query && parsedUrl.query.case)) || null;
+                    const caseDir = (caseName && docsRoot) ? path.join(docsRoot, caseName) : null;
+                    const displaySettings = parsed.display || parsed;
+                    const updated = profileManager.saveDisplayPreferences(displaySettings, caseDir);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, display: updated }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: err.message }));
+                }
+            });
+        },
+
         '/api/auth/login': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
