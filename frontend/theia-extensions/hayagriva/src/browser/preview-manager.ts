@@ -360,8 +360,8 @@ export class HayagrivaPreviewManager {
     return widget;
   }
 
-  async openSettingsPanel(caseName: string): Promise<Widget> {
-    return this.openCockpitPanel(caseName, 'settings');
+  async openSettingsPanel(caseName: string, tab: string = 'settings'): Promise<Widget> {
+    return this.openCockpitPanel(caseName, tab);
   }
 
   async openComplianceQueue(caseName: string, tier: string = 'ALL'): Promise<Widget> {

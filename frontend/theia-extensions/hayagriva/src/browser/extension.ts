@@ -415,17 +415,11 @@ export class HayagrivaFrontendContribution
     this.startBackendMonitor();
     this.initializeRbzAdvisor();
 
-    // Authenticate session on boot with main server & 7-day offline grace fallback
+    // Authenticate session on boot & evaluate local/cloud entitlements without blocking Free Core
     this.authManager.onAuthStateChanged(() => this.syncFeatureGating());
-    this.authManager.verifySession().then((res) => {
-      if (!res.ok) {
-        this.authModal.show();
-      }
+    this.authManager.verifySession().then(() => {
       this.syncFeatureGating();
     }).catch(() => {
-      if (!this.authManager.isAuthenticated()) {
-        this.authModal.show();
-      }
       this.syncFeatureGating();
     });
 
@@ -627,9 +621,9 @@ export class HayagrivaFrontendContribution
     return this.previewManager.openCockpitPanel(targetCase, tab, action);
   }
 
-  async openSettingsPanel(caseName?: string): Promise<Widget> {
+  async openSettingsPanel(caseName?: string, tab: string = 'settings'): Promise<Widget> {
     const targetCase = caseName || this.getActiveCaseName();
-    return this.previewManager.openCockpitPanel(targetCase, 'settings');
+    return this.previewManager.openCockpitPanel(targetCase, tab);
   }
 
   async openComplianceQueue(caseName?: string, tier: string = 'ALL'): Promise<Widget> {
@@ -958,6 +952,15 @@ export class HayagrivaFrontendContribution
           await this.openKvPanel();
         } else if (event.data.type === 'open-billing-ledger-main') {
           await this.openCockpitPanel(undefined, 'billing');
+        } else if (event.data.type === 'set-workspace-preference') {
+          const { key, value } = event.data;
+          if (key && value !== undefined) {
+            try {
+              await this.preferenceService.set(key, value);
+            } catch (err: any) {
+              this.logger.warn(`[HAYAGRIVA] Failed to set preference ${key}: ${err?.message}`);
+            }
+          }
         } else if (event.data.type === 'open-file') {
           const pathParam = event.data.filePath || event.data.relativePath;
           if (pathParam && typeof pathParam === 'string' && pathParam.trim() !== '') {
