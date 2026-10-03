@@ -11,7 +11,7 @@ import shutil
 import re
 from PIL import Image, ImageOps
 
-repo_root = "/Users/atulgrover/Desktop/HAYAGRIVA"
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 master_logo_path = os.path.join(repo_root, "branding/hayagriva_logo.png")
 resources_dir = os.path.join(repo_root, "branding/resources")
 
@@ -53,11 +53,21 @@ def process_branding():
         f.write(base64_white)
 
     # 3. Extract square centered deity icon (512x512)
-    side = min(width, height)
-    left_offset = (width - side) // 2
-    crop_box = (left_offset, 0, left_offset + side, side)
-
-    cropped_alpha = alpha.crop(crop_box).resize((512, 512), Image.Resampling.LANCZOS)
+    # Mask out surrounding text on left (x <= 335) and right (x >= 650)
+    import numpy as np
+    clean_arr = np.array(orig_img)
+    clean_arr[:, :335, :] = [255, 255, 255, 255]
+    clean_arr[:, 650:, :] = [255, 255, 255, 255]
+    clean_img = Image.fromarray(clean_arr)
+    
+    deity_crop = clean_img.crop((320, 20, 660, 460))
+    dw, dh = deity_crop.size
+    max_d = max(dw, dh)
+    sq_alpha = Image.new("L", (max_d, max_d), 0)
+    deity_alpha = ImageOps.invert(deity_crop.convert("L"))
+    sq_alpha.paste(deity_alpha, ((max_d - dw) // 2, (max_d - dh) // 2))
+    
+    cropped_alpha = sq_alpha.resize((512, 512), Image.Resampling.LANCZOS)
     
     white_icon_512 = Image.new("RGBA", (512, 512), (255, 255, 255, 0))
     white_icon_512.putalpha(cropped_alpha)
@@ -68,24 +78,35 @@ def process_branding():
     black_icon_512.save(os.path.join(resources_dir, "icon_black_512.png"), "PNG")
     black_icon_512.save(os.path.join(repo_root, "backend/lib/assets/icon.png"), "PNG")
 
-    # 4. Update preload.html
-    preload_path = os.path.join(resources_dir, "preload.html")
-    if os.path.exists(preload_path):
-        with open(preload_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        content = re.sub(r'<img id="spinner"[\s\S]*?\/>', f'<img id="spinner" src="data:image/png;base64,{base64_white}" alt="Hayagriva Logo" />', content)
-        with open(preload_path, "w", encoding="utf-8") as f:
-            f.write(content)
+    # 4. Update preload.html across all locations
+    preload_targets = [
+        os.path.join(resources_dir, "preload.html"),
+        os.path.join(repo_root, "frontend/applications/browser/resources/preload.html"),
+        os.path.join(repo_root, "frontend/applications/browser/src-gen/frontend/index.html"),
+        os.path.join(repo_root, "frontend/applications/browser/lib/frontend/index.html"),
+        os.path.join(repo_root, "frontend/applications/electron/resources/preload.html"),
+        os.path.join(repo_root, "frontend/applications/electron/src-gen/frontend/index.html"),
+        os.path.join(repo_root, "frontend/applications/electron/lib/frontend/index.html"),
+        os.path.join(repo_root, "frontend/applications/electron-next/resources/preload.html"),
+    ]
+    for p_path in preload_targets:
+        if os.path.exists(p_path):
+            with open(p_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            content = re.sub(r'<img id="spinner"[^>]*src="[^"]*"[^>]*\/>', f'<img id="spinner" src="data:image/png;base64,{base64_white}" alt="Hayagriva Logo" />', content)
+            with open(p_path, "w", encoding="utf-8") as f:
+                f.write(content)
 
     # 5. Update TheiaIDESplash.svg
+    aspect_h = round(445.5 * height / width, 1)
     splash_svg = f"""<?xml version="1.1" encoding="UTF-8" standalone="no"?>
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1160 484" width="445.5" height="186">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {width} {height}" width="445.5" height="{aspect_h}">
   <defs>
     <mask id="logo-mask">
-      <image href="data:image/png;base64,{base64_white}" x="0" y="0" width="1160" height="484" />
+      <image href="data:image/png;base64,{base64_white}" x="0" y="0" width="{width}" height="{height}" />
     </mask>
   </defs>
-  <rect x="0" y="0" width="1160" height="484" fill="#ffffff" mask="url(#logo-mask)" />
+  <rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" mask="url(#logo-mask)" />
 </svg>"""
 
     splash_path = os.path.join(resources_dir, "TheiaIDESplash.svg")
@@ -180,18 +201,27 @@ def process_branding():
     branding_mac_icns = os.path.join(resources_dir, "icons/MacLauncherIcons/icon.icns")
     branding_icns = os.path.join(resources_dir, "icon.icns")
 
+    os.makedirs(os.path.dirname(icns_output_path), exist_ok=True)
     try:
         subprocess.run(["iconutil", "-c", "icns", tmp_iconset, "-o", icns_output_path], check=True)
-        shutil.copyfile(icns_output_path, electron_icns)
-        shutil.copyfile(icns_output_path, electron_mac_icns)
-        shutil.copyfile(icns_output_path, browser_icns)
-        shutil.copyfile(icns_output_path, branding_mac_icns)
-        shutil.copyfile(icns_output_path, branding_icns)
+        for d in [electron_icns, electron_mac_icns, browser_icns, branding_mac_icns, branding_icns]:
+            os.makedirs(os.path.dirname(d), exist_ok=True)
+            shutil.copyfile(icns_output_path, d)
         print(f"Generated macOS .icns icon file at {icns_output_path}")
     except Exception as e:
         print(f"iconutil note: {e}")
     finally:
         shutil.rmtree(tmp_iconset, ignore_errors=True)
+
+    # 9. Generate Windows .ico launcher icons
+    ico_destinations = [
+        os.path.join(resources_dir, "icons/WindowsLauncherIcons/TheiaIDE.ico"),
+        os.path.join(repo_root, "frontend/applications/electron/resources/icons/WindowsLauncherIcons/TheiaIDE.ico"),
+    ]
+    for dest in ico_destinations:
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        black_icon_512.save(dest, format="ICO", sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    print("Generated Windows .ico launcher icons!")
 
     print("✓ All branding assets successfully compiled from master logo!")
 

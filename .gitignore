@@ -22,6 +22,7 @@ twillm/twillm-wiki/tiddlers/vault-loader/tiddlywiki.files
 twillm/twillm-wiki/tiddlers/vault-loader/
 
 # Test/Scratch directories
+.omg/
 **/scratch/
 .tempmediaStorage/
 **/test-results/
@@ -87,4 +88,12 @@ demo_case/
 dev-scratch/
 **/dev-scratch/
 cases/
-
+test_matter/
+ledgers/
+Hayagriva.app/
+*.png
+!backend/tests/fixtures/**
+!backend/lib/assets/**
+!branding/**
+!frontend/**
+hayagriva_settings.json
