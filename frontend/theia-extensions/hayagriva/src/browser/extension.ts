@@ -194,13 +194,13 @@ export class HayagrivaFrontendContribution
     this.injectStyles();
 
     try {
-      this.preferenceService.set('editor.inlineSuggest.enabled', true);
-      this.preferenceService.set('editor.suggestOnTriggerCharacters', true);
-      this.preferenceService.set('editor.quickSuggestions', { other: true, comments: true, strings: true });
-      this.preferenceService.set('explorer.openEditors.visible', 0);
-      this.preferenceService.set('toolbar.showToolbar', false);
-      this.preferenceService.set('files.associations', { '*.tid': 'markdown' });
-      this.preferenceService.set('window.title', '${dirty}${activeEditorShort}${separator}${rootName}${separator}${appName}');
+      this.preferenceService.set('editor.inlineSuggest.enabled', true).catch(() => {});
+      this.preferenceService.set('editor.suggestOnTriggerCharacters', true).catch(() => {});
+      this.preferenceService.set('editor.quickSuggestions', { other: true, comments: true, strings: true }).catch(() => {});
+      this.preferenceService.set('explorer.openEditors.visible', 0).catch(() => {});
+      this.preferenceService.set('toolbar.showToolbar', false).catch(() => {});
+      this.preferenceService.set('files.associations', { '*.tid': 'markdown' }).catch(() => {});
+      this.preferenceService.set('window.title', '${dirty}${activeEditorShort}${separator}${rootName}${separator}${appName}').catch(() => {});
     } catch (_) {}
 
     // Ensure browser tab favicon is Hayagriva stallion
