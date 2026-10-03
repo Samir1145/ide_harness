@@ -1789,16 +1789,46 @@ export class HayagrivaFrontendContribution
         margin: 0 !important;
       }
 
-      /* ── Standard IDE Chat Input Placeholder ───────────────────────────── */
+      /* ── Clean Modern Single-Box Chat Composer ───────────────────────────── */
+      .theia-ChatInputOptions .theia-ChatInputOptions-left,
+      .theia-ChatInputOptions .option:has(.codicon-mention),
+      .theia-ChatInputOptions .codicon-mention {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+
+      .theia-ChatInput-Editor-Box {
+        border-radius: 8px !important;
+        margin: 0 10px 10px 10px !important;
+        background: var(--theia-input-background, #1e293b) !important;
+        border: 1px solid var(--theia-input-border, rgba(255, 255, 255, 0.15)) !important;
+        box-sizing: border-box !important;
+        padding: 4px 8px !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+      }
+      .theia-ChatInput-Editor-Box:focus-within {
+        border-color: var(--theia-focusBorder, #38bdf8) !important;
+        box-shadow: 0 0 0 1px var(--theia-focusBorder, #38bdf8) !important;
+      }
+
       .theia-ChatInput-Editor {
         position: relative !important;
+        width: 100% !important;
+      }
+      .theia-ChatInput-Editor .monaco-editor,
+      .theia-ChatInput-Editor .monaco-editor .overflow-guard {
+        border-radius: 4px !important;
       }
       .theia-ChatInput-Editor-Placeholder {
         font-size: 0 !important;
         position: absolute !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
-        left: 8px !important;
+        left: 4px !important;
         line-height: normal !important;
         pointer-events: none !important;
       }
