@@ -28,7 +28,7 @@ const HAYAGRIVA_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEA__REPLACE_WITH_REAL_PUBLIC_KEY_BASE64_HERE_________=
 -----END PUBLIC KEY-----`;
 
-const LICENSE_SECRET = process.env.HAYAGRIVA_LICENSE_SECRET || 'rbz_hayagriva_master_ed25519_2026_audit_core';
+const LICENSE_SECRET = process.env.HAYAGRIVA_LICENSE_SECRET || 'hayagriva_sovereign_chamber_secret_key_2026';
 
 function toBase64URL(buffer) {
     return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -53,6 +53,7 @@ function generateLicenseKey(payload, secret = LICENSE_SECRET) {
 
 /**
  * Validates a Hayagriva license key envelope.
+ * Supports both 3-part (HAYG.<payload>.<sig>) and 2-part (<payload>.<sig>) formats.
  * @returns {{ valid: boolean, tier: string, payload: object|null, error: string|null }}
  */
 function validateLicenseEnvelope(licenseKey) {
@@ -79,13 +80,22 @@ function validateLicenseEnvelope(licenseKey) {
     }
 
     const parts = cleanKey.split('.');
-    if (parts.length !== 3 || parts[0] !== 'HAYG') {
-        return { valid: false, error: 'Invalid license envelope format (expected HAYG.<payload>.<signature>)' };
+    let payloadB64 = null;
+    let sigB64 = null;
+
+    if (parts.length === 3 && parts[0] === 'HAYG') {
+        // 3-part envelope: HAYG.<payload>.<signature>
+        payloadB64 = parts[1];
+        sigB64 = parts[2];
+    } else if (parts.length === 2) {
+        // 2-part envelope: <payload>.<signature> (cloud portal format)
+        payloadB64 = parts[0];
+        sigB64 = parts[1];
+    } else {
+        return { valid: false, error: 'Invalid license envelope format (expected <payload>.<signature> or HAYG.<payload>.<signature>)' };
     }
 
     try {
-        const payloadB64 = parts[1];
-        const sigB64 = parts[2];
         const expectedSig = toBase64URL(crypto.createHmac('sha256', LICENSE_SECRET).update(payloadB64).digest());
 
         if (sigB64 !== expectedSig) {
@@ -95,9 +105,11 @@ function validateLicenseEnvelope(licenseKey) {
         const payloadJson = fromBase64URL(payloadB64).toString('utf8');
         const payload = JSON.parse(payloadJson);
 
+        const tier = payload.tier || payload.planTier || 'starter';
+
         return {
             valid: true,
-            tier: payload.tier || 'professional',
+            tier,
             payload
         };
     } catch (err) {

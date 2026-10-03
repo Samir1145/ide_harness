@@ -24,6 +24,9 @@ import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
 import { pruneNavigatorContextMenu, pruneDeveloperMenus, installMenuGuard } from './menus';
 import { AskHayaVoiceOrb } from './askhaya-orb';
+import { AuthManager } from './auth-manager';
+import { AuthModal } from './auth-modal';
+import { ProfileWidget } from './profile-widget';
 import { safeDecodeURI } from './tree-decorator';
 
 const { inboxExplorerHtml, billingExplorerHtml, entityExplorerHtml, notificationCenterHtml, toolComingSoonHtml, TOOLS_CATALOG } = require('./templates');
@@ -83,7 +86,10 @@ export class HayagrivaFrontendContribution
     @inject(MenuModelRegistry) protected readonly menuRegistry: MenuModelRegistry,
     @inject(MonacoWorkspace) protected readonly monacoWorkspace: MonacoWorkspace,
     @inject(ILogger) protected readonly logger: ILogger,
-    @inject(AskHayaVoiceOrb) protected readonly voiceOrb: AskHayaVoiceOrb
+    @inject(AskHayaVoiceOrb) protected readonly voiceOrb: AskHayaVoiceOrb,
+    @inject(AuthManager) protected readonly authManager: AuthManager,
+    @inject(AuthModal) protected readonly authModal: AuthModal,
+    @inject(ProfileWidget) protected readonly profileWidget: ProfileWidget
   ) {}
 
   getApiPort(): number {
@@ -403,10 +409,25 @@ export class HayagrivaFrontendContribution
 
     this.registerGlobalEventListeners();
     this.voiceOrb.initialize();
+    this.profileWidget.initialize();
     this.initializeChatMicIntegration();
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
     this.startBackendMonitor();
     this.initializeRbzAdvisor();
+
+    // Authenticate session on boot with main server & 7-day offline grace fallback
+    this.authManager.onAuthStateChanged(() => this.syncFeatureGating());
+    this.authManager.verifySession().then((res) => {
+      if (!res.ok) {
+        this.authModal.show();
+      }
+      this.syncFeatureGating();
+    }).catch(() => {
+      if (!this.authManager.isAuthenticated()) {
+        this.authModal.show();
+      }
+      this.syncFeatureGating();
+    });
 
     // Global click interceptor for hayagriva-citation:// links (e.g. inside AI Chat bubbles or rendered markdown)
     try {
@@ -1044,11 +1065,20 @@ export class HayagrivaFrontendContribution
   }
 
   initializeBillingExplorerWidget(): void {
+    if (!this.authManager.isFeatureAllowed('billing')) {
+      if (this.billingWidget) {
+        try { this.billingWidget.close(); } catch (_) {}
+      }
+      return;
+    }
+
     if (this.billingWidget) {
       this.billingWidget.title.label = 'Estate Accounts';
       this.billingWidget.title.caption = 'CIRP Costs, Creditor Ledgers & Diligence Settlement';
       this.billingWidget.title.iconClass = 'hayagriva-pillar6-icon';
-      this.shell.addWidget(this.billingWidget, { area: 'left', rank: 500 });
+      if (!this.shell.getWidgets('left').some(w => w.id === 'hayagriva-billing-explorer')) {
+        this.shell.addWidget(this.billingWidget, { area: 'left', rank: 500 });
+      }
       return;
     }
 
@@ -1070,6 +1100,31 @@ export class HayagrivaFrontendContribution
 
     this.billingWidget = billingExplorer;
     this.shell.addWidget(billingExplorer, { area: 'left', rank: 500 });
+  }
+
+  syncFeatureGating(): void {
+    const isAuth = this.authManager.isAuthenticated();
+
+    // 1. Sync Estate Accounts & Billing Widget
+    if (isAuth) {
+      this.initializeBillingExplorerWidget();
+    } else {
+      if (this.billingWidget) {
+        try { this.billingWidget.close(); } catch (_) {}
+      }
+    }
+
+    // 2. Sync Hayagriva Agents tab in left sidebar
+    const chatWidget = this.shell.getWidgets('left').find(w => w.id === 'chat-view-widget');
+    if (chatWidget) {
+      if (isAuth) {
+        chatWidget.title.label = 'Hayagriva Agents';
+        chatWidget.title.caption = 'Hayagriva Autonomous Agents';
+      } else {
+        chatWidget.title.label = '🔒 Hayagriva Agents (Locked)';
+        chatWidget.title.caption = 'Sign in to unlock Hayagriva AI Agents';
+      }
+    }
   }
 
   openNotificationCenter(): void {
@@ -1313,13 +1368,14 @@ export class HayagrivaFrontendContribution
             const daysRem = licData.trial_days_remaining || (licData.tri_tier && licData.tri_tier.trial_days_remaining) || (stage2Local.days_remaining || 0);
 
             if (isSubscribed) {
+              const tierStr = (licData.tier || 'Starter').toUpperCase();
               this.statusBar.setElement('hayagriva-license-item', {
-                text: `$(fa-shield) Pro Active`,
+                text: `$(fa-shield) ${tierStr} Active`,
                 alignment: StatusBarAlignment.LEFT,
                 color: '#10b981',
-                tooltip: 'Hayagriva Pro Active: Autonomous Agents + Continuous Model & Statutory Updates.',
+                tooltip: `Hayagriva ${tierStr} Active: Autonomous AI Agents Unlocked. Click to manage settings.`,
                 priority: 140,
-                onclick: () => this.commandRegistry.executeCommand('hayagriva.license.activate')
+                onclick: () => this.commandRegistry.executeCommand('hayagriva:openSettingsPanel')
               });
             } else if (inTrial) {
               this.statusBar.setElement('hayagriva-license-item', {
@@ -1335,17 +1391,17 @@ export class HayagrivaFrontendContribution
                 text: `$(fa-lock) Unlock Pro (₹25k/yr)`,
                 alignment: StatusBarAlignment.LEFT,
                 color: '#f59e0b',
-                tooltip: '7-Day Free Trial Concluded. Click to subscribe to Hayagriva Pro (₹25,000/year) to unlock autonomous agents.',
+                tooltip: '7-Day Free Trial Concluded. Click to enter a license key or subscribe.',
                 priority: 140,
                 onclick: () => this.commandRegistry.executeCommand('hayagriva:openSettingsPanel')
               });
             } else {
-              // Trial available, workbench free
+              // Free Core
               this.statusBar.setElement('hayagriva-license-item', {
-                text: `$(fa-check-circle) Hayagriva Core (Free)`,
+                text: `$(fa-check-circle) Free Core (Agents Gated)`,
                 alignment: StatusBarAlignment.LEFT,
-                color: '#10b981',
-                tooltip: 'Free Legal Workbench: Document Ingestion, PDF OCR, FTS5 Search & Monaco Editor are 100% Free Forever. Click to explore Hayagriva Pro.',
+                color: '#eab308',
+                tooltip: 'Free Legal Workbench: Ingestion, PDF OCR, Search & Monaco Editor are 100% Free Forever. Click to enter your License Key and unlock AI Agents.',
                 priority: 140,
                 onclick: () => this.commandRegistry.executeCommand('hayagriva:openSettingsPanel')
               });

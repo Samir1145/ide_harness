@@ -2523,6 +2523,36 @@
 
   <div class="cockpit-tab-panel" id="tabPanelLicense">
 
+    <!-- ── STATUTORY LICENSE & ACTIVATION HERO BANNER ── -->
+    <section class="pillar-section" style="margin-bottom: 24px;">
+      <div class="card" id="licenseHeroCard" style="border: 2px solid var(--accent-cyan); background: rgba(56, 189, 248, 0.04); padding: 20px 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 26px;" id="licenseHeroIcon">
+              🛡️
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin: 0;" id="licenseHeroTitle">Hayagriva Sovereign License</h3>
+                <span class="card-badge" id="badgeLicenseTier" style="font-size: 11px; padding: 3px 10px; font-weight: 700; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid var(--accent-emerald);">Checking…</span>
+              </div>
+              <p style="font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0 0;" id="licenseHeroSubtitle">
+                Validating local and cloud sovereign entitlements…
+              </p>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="https://app-apnet-net.onrender.com/dashboard/licenses" target="_blank" class="btn-header btn-outline" style="font-size: 12px; padding: 7px 14px; text-decoration: none;">
+              🌐 Manage on Web Portal &rarr;
+            </a>
+            <button class="btn-header btn-primary" onclick="openLicenseActivationModal()" style="font-size: 12px; padding: 7px 16px;">
+              ⚡ Enter License Key
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── STATUTORY PRACTITIONER IDENTITY & HARDWARE ANCHOR ── -->
     <section class="pillar-section" style="margin-bottom: 24px;">
       <div class="pillar-header" style="margin-bottom: 16px;">
@@ -3856,14 +3886,36 @@
     }
 
     // ── License Verification & Model Downloader ──
+    function openLicenseActivationModal() {
+      currentModalTarget = 'license';
+      document.getElementById('inputLicenseKey').value = '';
+      document.getElementById('modalTargetTitle').textContent = 'Activate Hayagriva Sovereign License';
+      document.getElementById('licenseEntryStep').style.display = 'block';
+      document.getElementById('downloadProgressStep').style.display = 'none';
+      const btn = document.getElementById('btnVerifyAndDownload');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Verify Key & Activate';
+      }
+      document.getElementById('downloadModal').classList.add('active');
+      setTimeout(() => {
+        const inp = document.getElementById('inputLicenseKey');
+        if (inp) inp.focus();
+      }, 100);
+    }
+
     async function executeLicenseAndDownload() {
       const key = document.getElementById('inputLicenseKey').value.trim();
+      if (!key) {
+        showToast('Please enter a valid license key or envelope token.', true);
+        return;
+      }
       const btn = document.getElementById('btnVerifyAndDownload');
       btn.disabled = true;
       btn.textContent = 'Verifying License…';
 
       try {
-        const verifyRes = await fetch('/api/hayagriva/license/verify', {
+        const verifyRes = await fetch('/api/hayagriva/license/activate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ licenseKey: key, case: caseName })
@@ -3871,15 +3923,26 @@
         const verifyData = await verifyRes.json();
 
         if (!verifyData.success) {
-          showToast(`License verification failed: ${verifyData.error || 'Invalid key'}`, true);
+          if (verifyData.error === 'DEVICE_LIMIT_EXCEEDED') {
+            showToast(`Device limit reached (${verifyData.activeDevices || 1}/${verifyData.maxDevices || 1}). Manage active machines on the portal.`, true);
+          } else {
+            showToast(`License activation failed: ${verifyData.message || verifyData.error || 'Invalid key'}`, true);
+          }
           btn.disabled = false;
-          btn.textContent = 'Verify Key & Download Pack';
+          btn.textContent = 'Verify Key & Activate';
           return;
         }
 
-        showToast(`✓ ${verifyData.message || 'License activated!'}`);
+        showToast(`✓ ${verifyData.message || 'License activated successfully!'}`);
 
-        // Transition to Download progress view
+        // If target was just activating license (not a brain pack download), close and reload
+        if (currentModalTarget === 'license' || !currentModalTarget) {
+          closeModal('downloadModal');
+          loadSettings();
+          return;
+        }
+
+        // Transition to Download progress view if a specific brain pack was targeted
         document.getElementById('licenseEntryStep').style.display = 'none';
         document.getElementById('downloadProgressStep').style.display = 'block';
         document.getElementById('downloadStatusMsg').textContent = `Streaming ${capitalize(currentModalTarget)} Brain artifacts…`;
@@ -3913,6 +3976,7 @@
                 closeModal('downloadModal');
                 selectBrainTier(currentModalTarget);
                 showToast(`✓ ${capitalize(currentModalTarget)} Brain Ready! You may start the engine.`);
+                loadSettings();
               }, 1200);
             }
           } catch (_) {}
@@ -3921,7 +3985,7 @@
       } catch (err) {
         showToast(`Network error: ${err.message}`, true);
         btn.disabled = false;
-        btn.textContent = 'Verify Key & Download Pack';
+        btn.textContent = 'Verify Key & Activate';
       }
     }
 
@@ -4269,18 +4333,44 @@
             const stage2Local = licData.stage2_local || (licData.tri_tier && licData.tri_tier.stage2_local) || {};
             const daysRem = licData.trial_days_remaining || (licData.tri_tier && licData.tri_tier.trial_days_remaining) || (stage2Local.days_remaining || 0);
 
+            const heroBadge = document.getElementById('badgeLicenseTier');
+            const heroTitle = document.getElementById('licenseHeroTitle');
+            const heroSubtitle = document.getElementById('licenseHeroSubtitle');
+            const heroIcon = document.getElementById('licenseHeroIcon');
+
             if (isSubscribed) {
-              pill.textContent = '🛡️ Hayagriva Pro Active';
+              const tierName = (licData.tier || 'Starter').toUpperCase();
+              pill.textContent = `🛡️ Hayagriva ${tierName} Active`;
               pill.style.background = 'rgba(16, 185, 129, 0.15)';
               pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
               pill.style.color = 'var(--accent-emerald)';
               banner.style.display = 'none';
+
+              if (heroBadge) {
+                heroBadge.textContent = `✓ ${tierName} PLAN ACTIVE`;
+                heroBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+                heroBadge.style.color = 'var(--accent-emerald)';
+                heroBadge.style.borderColor = 'var(--accent-emerald)';
+              }
+              if (heroTitle) heroTitle.textContent = `Hayagriva ${tierName} Activated`;
+              if (heroSubtitle) heroSubtitle.textContent = `Licensed to ${licData.licensee || 'Practitioner'}. Autonomous AI Agents and Bare Act Vaults unlocked.`;
+              if (heroIcon) heroIcon.textContent = '🛡️';
             } else if (inTrial) {
               pill.textContent = `⚡ Pro Trial: ${daysRem}d Left`;
               pill.style.background = 'rgba(56, 189, 248, 0.15)';
               pill.style.borderColor = 'rgba(56, 189, 248, 0.4)';
               pill.style.color = 'var(--accent-cyan)';
               banner.style.display = 'none';
+
+              if (heroBadge) {
+                heroBadge.textContent = `⚡ 7-DAY TRIAL ACTIVE (${daysRem}d Left)`;
+                heroBadge.style.background = 'rgba(56, 189, 248, 0.15)';
+                heroBadge.style.color = 'var(--accent-cyan)';
+                heroBadge.style.borderColor = 'var(--accent-cyan)';
+              }
+              if (heroTitle) heroTitle.textContent = 'Hayagriva Pro Free Trial';
+              if (heroSubtitle) heroSubtitle.textContent = `Autonomous IBC Agents unlocked on this device for ${daysRem} more days.`;
+              if (heroIcon) heroIcon.textContent = '⚡';
             } else if (trialExpired) {
               pill.textContent = '🔒 Trial Expired: Unlock Pro (₹25k)';
               pill.style.background = 'rgba(234, 179, 8, 0.15)';
@@ -4294,6 +4384,16 @@
                 alertBtn.textContent = '⚡ Subscribe (₹25,000 / Yr)';
                 alertBtn.onclick = () => openPaymentModal('hayagriva_pro_annual');
               }
+
+              if (heroBadge) {
+                heroBadge.textContent = '⚠️ TRIAL CONCLUDED';
+                heroBadge.style.background = 'rgba(234, 179, 8, 0.15)';
+                heroBadge.style.color = 'var(--accent-amber)';
+                heroBadge.style.borderColor = 'var(--accent-amber)';
+              }
+              if (heroTitle) heroTitle.textContent = 'Trial Concluded (Core Workbench Free)';
+              if (heroSubtitle) heroSubtitle.textContent = 'Document browsing, ingestion, and Monaco editing remain 100% free forever. Enter a license key to unlock agents.';
+              if (heroIcon) heroIcon.textContent = '🔒';
             } else {
               pill.textContent = '✓ Core Workbench (Free Forever)';
               pill.style.background = 'rgba(16, 185, 129, 0.12)';
@@ -4307,6 +4407,16 @@
                 alertBtn.textContent = '⚡ Start 7-Day Free Trial';
                 alertBtn.onclick = () => startTrialFromSettings();
               }
+
+              if (heroBadge) {
+                heroBadge.textContent = '🟡 FREE CORE (AGENTS GATED)';
+                heroBadge.style.background = 'rgba(234, 179, 8, 0.15)';
+                heroBadge.style.color = 'var(--accent-amber)';
+                heroBadge.style.borderColor = 'var(--accent-amber)';
+              }
+              if (heroTitle) heroTitle.textContent = 'Hayagriva Core (Free Workbench)';
+              if (heroSubtitle) heroSubtitle.textContent = 'Full document ingestion, search, and editing unlocked. Enter your key from the portal to unlock Autonomous AI Agents.';
+              if (heroIcon) heroIcon.textContent = '🟡';
             }
           }
         } catch (_) {}

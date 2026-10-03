@@ -550,6 +550,28 @@ module.exports = {
             }
         },
 
+        '/api/hayagriva/billing/summary': (req, res, parsedUrl, docsRoot) => {
+            try {
+                const authService = require('./core/auth-service');
+                const token = authService.extractBearerToken(req);
+                const verification = authService.verifyToken(token);
+                if (!verification.valid) {
+                    res.writeHead(401, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ ok: false, error: 'Unauthorized: Valid auth session required' }));
+                    return;
+                }
+                const caseName = parsedUrl.query.caseName || parsedUrl.query.case || '';
+                const caseDir = resolveCaseDir(docsRoot, caseName);
+                const { getCaseLedger } = require('./core/case-billing-store');
+                const ledger = caseDir ? getCaseLedger(caseDir) : { total_due_inr: 0, items: [] };
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, success: true, ledger, user: verification.payload }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, success: false, error: err.message }));
+            }
+        },
+
         '/api/billing/case-summary': (req, res, parsedUrl, docsRoot) => {
             try {
                 const caseName = parsedUrl.query.case || '';
@@ -3409,6 +3431,69 @@ module.exports = {
     },
 
     POST: {
+        '/api/auth/login': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const authService = require('./core/auth-service');
+                    const result = authService.authenticateUser(data.email, data.password);
+                    if (!result.ok) {
+                        res.writeHead(401, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify(result));
+                        return;
+                    }
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                } catch (err) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ ok: false, error: 'Malformed JSON payload: ' + err.message }));
+                }
+            });
+        },
+
+        '/api/auth/verify': (req, res, parsedUrl, docsRoot) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    let token = null;
+                    const authService = require('./core/auth-service');
+                    token = authService.extractBearerToken(req);
+                    if (!token && body) {
+                        try {
+                            const data = JSON.parse(body);
+                            token = data.token;
+                        } catch (_) {}
+                    }
+                    const verification = authService.verifyToken(token);
+                    if (!verification.valid) {
+                        res.writeHead(401, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ ok: false, error: verification.error || 'Invalid session' }));
+                        return;
+                    }
+                    const now = new Date();
+                    const leaseExpiresAt = new Date(now.getTime() + authService.LEASE_DURATION_MS).toISOString();
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        ok: true,
+                        user: verification.payload,
+                        verifiedAt: now.toISOString(),
+                        leaseExpiresAt
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ ok: false, error: err.message }));
+                }
+            });
+        },
+
+        '/api/auth/logout': (req, res, parsedUrl, docsRoot) => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: true, message: 'Logged out successfully' }));
+        },
+
         '/api/hayagriva/wiki/file-insight': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
@@ -4197,30 +4282,49 @@ module.exports = {
         '/api/hayagriva/license/verify': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            req.on('end', async () => {
                 try {
                     const data = JSON.parse(body || '{}');
-                    const key = (data.licenseKey || '').trim();
+                    const key = (data.licenseKey || data.key || '').trim();
                     const caseName = data.case || '';
                     const caseDir = resolveCaseDir(docsRoot, caseName);
 
-                    const { validateLicenseEnvelope, writeLicenseToSettings } = require('./utils/license-validator');
-                    const val = validateLicenseEnvelope(key);
+                    const { activateLicenseWithCloud } = require('./core/license-manager');
+                    const { writeLicenseToSettings } = require('./utils/license-validator');
 
-                    if (!val.valid) {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ success: false, error: val.error || 'Invalid cryptographic license envelope' }));
+                    const result = await activateLicenseWithCloud(key, caseDir);
+
+                    if (!result.success) {
+                        const statusCode = result.error === 'DEVICE_LIMIT_EXCEEDED' ? 403 : 400;
+                        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            success: false,
+                            error: result.error,
+                            message: result.message || result.error,
+                            maxDevices: result.maxDevices,
+                            activeDevices: result.activeDevices,
+                            portalUrl: result.portalUrl
+                        }));
                         return;
                     }
 
-                    writeLicenseToSettings(caseDir, val.tier, val.payload);
+                    if (caseDir && fs.existsSync(caseDir)) {
+                        writeLicenseToSettings(caseDir, result.tier, {
+                            sub: result.licensee,
+                            expiresAt: result.valid_until,
+                            allowed_packs: result.allowed_packs
+                        });
+                    }
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({
                         success: true,
-                        tier: val.tier,
-                        payload: val.payload,
-                        message: `License activated successfully (${val.tier.toUpperCase()} tier).`
+                        tier: result.tier,
+                        licensedTo: result.licensee,
+                        allowed_packs: result.allowed_packs,
+                        expiresAt: result.valid_until,
+                        cloudActivated: result.cloudActivated || false,
+                        message: `License activated successfully (${result.tier.toUpperCase()} tier).`
                     }));
                 } catch (err) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -7303,31 +7407,40 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
 
         // ─── Marketplace: License Activation (GET Callback & POST) ────────────
         '/api/hayagriva/license/activate': (req, res, parsedUrl, docsRoot) => {
-            const handleActivation = (licenseKey, caseName, isHtmlPreferred) => {
+            const handleActivation = async (licenseKey, caseName, isHtmlPreferred) => {
                 const caseDir = resolveCaseDir(docsRoot, caseName || '');
-                const { activateLicense } = require('./core/license-manager');
+                const { activateLicenseWithCloud } = require('./core/license-manager');
                 const { writeLicenseToSettings } = require('./utils/license-validator');
 
-                const result = activateLicense(licenseKey, caseDir);
+                const result = await activateLicenseWithCloud(licenseKey, caseDir);
                 if (!result.success) {
+                    const statusCode = result.error === 'DEVICE_LIMIT_EXCEEDED' ? 403 : 400;
                     if (isHtmlPreferred) {
-                        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+                        res.writeHead(statusCode, { 'Content-Type': 'text/html; charset=utf-8' });
                         res.end(`
                             <!DOCTYPE html>
                             <html>
-                            <head><title>Activation Failed</title><style>body { font-family: sans-serif; background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .card { background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #ef4444; max-width: 450px; text-align: center; } h2 { color: #ef4444; margin-top: 0; } button { background: #38bdf8; border: none; padding: 10px 20px; color: #000; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 15px; }</style></head>
+                            <head><title>Activation Failed</title><style>body { font-family: sans-serif; background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .card { background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #ef4444; max-width: 450px; text-align: center; } h2 { color: #ef4444; margin-top: 0; } button { background: #38bdf8; border: none; padding: 10px 20px; color: #000; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 15px; } a { color: #38bdf8; text-decoration: none; }</style></head>
                             <body>
                               <div class="card">
                                 <h2>❌ License Activation Failed</h2>
-                                <p>${result.error || 'The provided license token is invalid or corrupted.'}</p>
+                                <p>${result.message || result.error || 'The provided license token is invalid or corrupted.'}</p>
+                                ${result.portalUrl ? `<p style="font-size: 13px;"><a href="${result.portalUrl}" target="_blank">Manage Active Devices on Portal &rarr;</a></p>` : ''}
                                 <button onclick="window.close()">Close Window</button>
                               </div>
                             </body>
                             </html>
                         `);
                     } else {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ success: false, error: result.error }));
+                        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            success: false,
+                            error: result.error,
+                            message: result.message || result.error,
+                            maxDevices: result.maxDevices,
+                            activeDevices: result.activeDevices,
+                            portalUrl: result.portalUrl
+                        }));
                     }
                     return;
                 }
@@ -7373,7 +7486,9 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                         tier: result.tier,
                         licensedTo: result.licensee,
                         allowed_packs: result.allowed_packs,
-                        expiresAt: result.valid_until
+                        expiresAt: result.valid_until,
+                        cloudActivated: result.cloudActivated || false,
+                        message: `License activated successfully (${result.tier.toUpperCase()} tier).`
                     }));
                 }
             };
@@ -7392,10 +7507,10 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
             } else {
                 let body = '';
                 req.on('data', chunk => body += chunk);
-                req.on('end', () => {
+                req.on('end', async () => {
                     try {
                         const { licenseKey, token, case: caseName } = JSON.parse(body || '{}');
-                        handleActivation(licenseKey || token, caseName, false);
+                        await handleActivation(licenseKey || token, caseName, false);
                     } catch (e) {
                         res.writeHead(500, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: e.message }));

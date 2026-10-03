@@ -532,6 +532,94 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
 }
 
 /**
+ * Activates a license key with automated cloud handshake fallback for raw HAYA-* keys.
+ * 
+ * @param {string} rawOrEnvelopeKey
+ * @param {string} [caseDir]
+ * @param {string} [customDbPath]
+ */
+async function activateLicenseWithCloud(rawOrEnvelopeKey, caseDir = '', customDbPath = null) {
+    if (!rawOrEnvelopeKey || typeof rawOrEnvelopeKey !== 'string') {
+        return { success: false, error: 'License key is required' };
+    }
+
+    const cleanKey = rawOrEnvelopeKey.trim();
+
+    // Check if key is raw portal key (e.g. HAYA-STR-...) without envelope dots
+    const isRawPortalKey = !cleanKey.includes('.') && (cleanKey.startsWith('HAYA-') || cleanKey.startsWith('STR-') || cleanKey.length < 40);
+
+    if (isRawPortalKey) {
+        const { getMachineId, getSystemTelemetry } = require('../utils/machine-fingerprint');
+        const telemetry = getSystemTelemetry();
+        const portalUrl = process.env.HAYAGRIVA_PORTAL_URL || 'https://app-apnet-net.onrender.com';
+
+        try {
+            const payload = {
+                license_key: cleanKey,
+                hardware_fingerprint: getMachineId(),
+                device_name: require('os').hostname() || 'Desktop Workstation',
+                os_info: telemetry.osPlatform || `${process.platform}_${process.arch}`,
+                app_version: telemetry.appVersion || 'v2.4.0'
+            };
+
+            const resp = await fetch(`${portalUrl}/api/v1/activate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': `Hayagriva-Harness/${telemetry.appVersion}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await resp.json();
+
+            if (!resp.ok || !data.success) {
+                return {
+                    success: false,
+                    error: data.error || 'ACTIVATION_FAILED',
+                    message: data.message || 'Cloud activation failed',
+                    maxDevices: data.maxDevices,
+                    activeDevices: data.activeDevices,
+                    portalUrl: `${portalUrl}/dashboard/licenses`
+                };
+            }
+
+            // Cloud activation succeeded, extract offline token
+            const offlineToken = data.tokens && data.tokens.offlineToken;
+            if (!offlineToken) {
+                return { success: false, error: 'MISSING_OFFLINE_TOKEN', message: 'Portal did not return a valid offline token envelope.' };
+            }
+
+            // Also capture MCP bearer token if returned
+            if (data.tokens && data.tokens.mcpBearerToken) {
+                try {
+                    const home = process.env.HOME || process.env.USERPROFILE || '.';
+                    const tokenPath = path.join(home, '.hayagriva', 'mcp_live_token.key');
+                    fs.writeFileSync(tokenPath, data.tokens.mcpBearerToken, 'utf8');
+                } catch (_) {}
+            }
+
+            const localActivation = activateLicense(offlineToken, caseDir, customDbPath);
+            return {
+                ...localActivation,
+                cloudActivated: true,
+                rawKey: cleanKey,
+                mcpTokenConfigured: Boolean(data.tokens && data.tokens.mcpBearerToken)
+            };
+        } catch (networkErr) {
+            return {
+                success: false,
+                error: 'NETWORK_ERROR',
+                message: `Could not connect to licensing server at ${portalUrl}: ${networkErr.message}. If this machine is air-gapped, please paste an offline token envelope.`
+            };
+        }
+    }
+
+    // Direct offline envelope activation
+    return activateLicense(cleanKey, caseDir, customDbPath);
+}
+
+/**
  * Returns active license entitlements (allowed packs & cloud features).
  */
 function getActiveEntitlements() {
@@ -596,6 +684,7 @@ module.exports = {
     recordAgentTurn,
     reanchorFromNetwork,
     activateLicense,
+    activateLicenseWithCloud,
     getLicenseStatus,
     getActiveEntitlements
 };

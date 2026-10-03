@@ -771,14 +771,18 @@ export class HayagrivaCommandContribution implements CommandContribution {
     );
 
     registry.registerCommand(
-      { id: `${HAYAGRIVA_NS}:openSettingsPanel`, label: 'Practice Settings & AI Engines', iconClass: 'fa fa-cog' },
+      { id: `${HAYAGRIVA_NS}:openSettingsPanel`, label: 'Settings: Dashboard', iconClass: 'fa fa-cog' },
       { 
         execute: async () => { await this.contribution.openCockpitPanel(undefined, 'settings'); },
-        isVisible: (widget: any) => {
-          if (!widget) return true;
-          const id = (widget.id || '').toLowerCase();
-          return id.includes('explorer-view-container') || id === 'files';
-        }
+        isVisible: () => true
+      }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openSettingsDashboard`, label: 'Dashboard', iconClass: 'fa fa-tachometer' },
+      { 
+        execute: async () => { await this.contribution.openCockpitPanel(undefined, 'settings'); },
+        isVisible: () => true
       }
     );
 
@@ -1884,7 +1888,7 @@ export class HayagrivaCommandContribution implements CommandContribution {
           const caseName = this.getCasePath().split(/[\\/]/).pop() || '';
           let key = '';
           if (typeof window !== 'undefined') {
-            key = window.prompt('Enter your Hayagriva / Resolution Bazaar Agentic License Key (e.g. HAYG...):', '') || '';
+            key = window.prompt('Enter your Agentic Professionals License Key (e.g. HAYA-STR-... or paste offline token envelope):', '') || '';
           }
           if (!key.trim()) return;
 
@@ -1896,9 +1900,11 @@ export class HayagrivaCommandContribution implements CommandContribution {
             });
             const data = await res.json();
             if (data.success) {
-              this.messageService.info(`✓ License activated for ${data.licensedTo || 'Practitioner'} (${data.tier || 'Enterprise'}). Agentic drafting unlocked!`);
+              this.messageService.info(`✓ License activated for ${data.licensedTo || 'Practitioner'} (${(data.tier || 'Starter').toUpperCase()} tier). Autonomous AI Agents unlocked!`);
+            } else if (data.error === 'DEVICE_LIMIT_EXCEEDED') {
+              this.messageService.error(`Device limit reached (${data.activeDevices || 1}/${data.maxDevices || 1}). Please deactivate an unused machine at https://app-apnet-net.onrender.com/dashboard/licenses`);
             } else {
-              this.messageService.error(`License activation failed: ${data.error}`);
+              this.messageService.error(`License activation failed: ${data.message || data.error}`);
             }
           } catch (err: any) {
             this.messageService.error(`Failed to activate license: ${err.message}`);
