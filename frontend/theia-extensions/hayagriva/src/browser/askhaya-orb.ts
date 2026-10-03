@@ -22,6 +22,23 @@ export class AskHayaVoiceOrb {
   protected stateListeners: StateChangeListener[] = [];
   protected lastResult: { spokenText: string; fullDossier: string; query: string } | null = null;
 
+  // DOM Mount & Drag Physics State
+  protected domRoot: HTMLElement | null = null;
+  protected styleElement: HTMLStyleElement | null = null;
+  protected isDragging: boolean = false;
+  protected dragStartX: number = 0;
+  protected dragStartY: number = 0;
+  protected orbStartX: number = 0;
+  protected orbStartY: number = 0;
+  protected hasDragged: boolean = false;
+  protected posX: number = 0;
+  protected posY: number = 0;
+
+  // Telemetry & Status
+  protected isLightRagOnline: boolean = false;
+  protected latestTelemetry: any = null;
+  protected statusPollTimer: any = null;
+
   constructor(
     @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
     @inject(PreferenceService) protected readonly preferenceService: PreferenceService,
@@ -72,25 +89,673 @@ export class AskHayaVoiceOrb {
   }
 
   initialize(): void {
-    // Ensure any legacy floating orb DOM elements are removed
-    const legacyRoot = document.getElementById('hayagriva-askhaya-orb-root');
-    if (legacyRoot && legacyRoot.parentNode) {
-      legacyRoot.parentNode.removeChild(legacyRoot);
-    }
-    const legacyStyles = document.getElementById('hayagriva-askhaya-orb-styles');
-    if (legacyStyles && legacyStyles.parentNode) {
-      legacyStyles.parentNode.removeChild(legacyStyles);
-    }
-
+    this.mountDom();
     this.initSpeechRecognition();
     this.bindKeyboardShortcuts();
     this.initLightRagStatusWatcher();
-    this.logger.info('[AskHayaVoiceService] In-panel voice counsel service initialized.');
+    this.logger.info('[AskHayaVoiceService] Ambient Amber Voice Orb initialized & mounted.');
   }
 
-  protected isLightRagOnline: boolean = false;
-  protected latestTelemetry: any = null;
-  protected statusPollTimer: any = null;
+  // ── DOM Mount & Glassmorphic UI ─────────────────────────────────────────────
+
+  mountDom(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    // Clean up any existing instances first
+    const existingRoot = document.getElementById('hayagriva-askhaya-orb-root');
+    if (existingRoot && existingRoot.parentNode) {
+      existingRoot.parentNode.removeChild(existingRoot);
+    }
+    const existingStyles = document.getElementById('hayagriva-askhaya-orb-styles');
+    if (existingStyles && existingStyles.parentNode) {
+      existingStyles.parentNode.removeChild(existingStyles);
+    }
+
+    // 1. Inject Styles
+    this.styleElement = document.createElement('style');
+    this.styleElement.id = 'hayagriva-askhaya-orb-styles';
+    this.styleElement.textContent = this.getOrbCss();
+    if (document.head) {
+      document.head.appendChild(this.styleElement);
+    } else if (document.body) {
+      document.body.appendChild(this.styleElement);
+    }
+
+    // 2. Create Root Element
+    const root = document.createElement('div');
+    root.id = 'hayagriva-askhaya-orb-root';
+    root.className = 'hayagriva-askhaya-orb orb-idle';
+    root.setAttribute('title', 'AskHaya Ambient Voice Counsel (Alt+Space)');
+
+    root.innerHTML = `
+      <div class="orb-glass-surface">
+        <div class="orb-glyph-container" id="askhaya-glyph-btn" title="AskHaya Voice Counsel (Alt+Space)">
+          <div class="orb-glyph hayagriva-horse-icon"></div>
+          <div class="orb-status-ring"></div>
+        </div>
+        <div class="orb-content-container">
+          <div class="orb-header-row">
+            <div class="orb-indicator-dot"></div>
+            <div class="orb-state-label" id="askhaya-state-label">AskHaya Counsel</div>
+            <div class="orb-waveform" id="askhaya-waveform-container">
+              <span class="wave-bar bar-1"></span>
+              <span class="wave-bar bar-2"></span>
+              <span class="wave-bar bar-3"></span>
+              <span class="wave-bar bar-4"></span>
+              <span class="wave-bar bar-5"></span>
+            </div>
+            <div class="orb-header-actions">
+              <button class="orb-btn orb-btn-panel" id="askhaya-btn-panel" title="Open AskHaya Panel (Alt+Space)">
+                <i class="fa fa-columns"></i>
+              </button>
+              <button class="orb-btn orb-btn-close" id="askhaya-btn-close" title="Close / Cancel">
+                <i class="fa fa-times"></i>
+              </button>
+            </div>
+          </div>
+          <div class="orb-body-row">
+            <div class="orb-transcript" id="askhaya-transcript-text">Listening to your inquiry...</div>
+            <div class="orb-spoken-text" id="askhaya-spoken-text"></div>
+          </div>
+          <div class="orb-footer-row">
+            <div class="orb-footer-actions">
+              <button class="orb-action-btn orb-btn-mic" id="askhaya-action-mic" title="Speak or Stop">
+                <i class="fa fa-microphone"></i> <span>Speak</span>
+              </button>
+              <button class="orb-action-btn orb-btn-dossier" id="askhaya-action-dossier" title="View Full Legal Dossier">
+                <i class="fa fa-file-text-o"></i> <span>Dossier</span>
+              </button>
+              <button class="orb-action-btn orb-btn-cancel" id="askhaya-action-cancel" title="Cancel">
+                <i class="fa fa-stop"></i> <span>Stop</span>
+              </button>
+            </div>
+            <input type="text" class="orb-fallback-input" id="askhaya-text-fallback-input" placeholder="Type inquiry or press Enter..." />
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (document.body) {
+      document.body.appendChild(root);
+    }
+    this.domRoot = root;
+
+    this.restorePosition();
+    this.setupDraggability();
+    this.setupEventListeners();
+  }
+
+  // ── Drag & Viewport Bounds Physics ──────────────────────────────────────────
+
+  clampPosition(x: number, y: number, width?: number, height?: number): { x: number; y: number } {
+    let w = width;
+    let h = height;
+
+    if (!w || !h) {
+      if (this.domRoot && typeof this.domRoot.getBoundingClientRect === 'function') {
+        const rect = this.domRoot.getBoundingClientRect();
+        w = w || rect.width || 44;
+        h = h || rect.height || 44;
+      } else {
+        if (this.state === 'listening') {
+          w = w || 280;
+          h = h || 80;
+        } else if (this.state === 'processing') {
+          w = w || 280;
+          h = h || 74;
+        } else if (this.state === 'speaking') {
+          w = w || 320;
+          h = h || 110;
+        } else {
+          w = w || 44;
+          h = h || 44;
+        }
+      }
+    }
+
+    const winW = typeof window !== 'undefined' ? window.innerWidth : 1920;
+    const winH = typeof window !== 'undefined' ? window.innerHeight : 1080;
+    const minX = 8;
+    const minY = 8;
+    const maxX = Math.max(minX, winW - w - 8);
+    const maxY = Math.max(minY, winH - h - 32); // preserves bottom 32px clearance for status bar
+
+    return {
+      x: Math.min(Math.max(minX, x), maxX),
+      y: Math.min(Math.max(minY, y), maxY)
+    };
+  }
+
+  setPosition(x: number, y: number): void {
+    const clamped = this.clampPosition(x, y);
+    this.posX = clamped.x;
+    this.posY = clamped.y;
+    if (this.domRoot) {
+      this.domRoot.style.left = `${this.posX}px`;
+      this.domRoot.style.top = `${this.posY}px`;
+    }
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('haya_voice_orb_pos', JSON.stringify({ x: this.posX, y: this.posY }));
+      }
+    } catch (_) {}
+  }
+
+  protected restorePosition(): void {
+    let restored = false;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem('haya_voice_orb_pos');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+            this.setPosition(parsed.x, parsed.y);
+            restored = true;
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (!restored) {
+      const winW = typeof window !== 'undefined' ? window.innerWidth : 1920;
+      const winH = typeof window !== 'undefined' ? window.innerHeight : 1080;
+      this.setPosition(winW - 70, winH - 90);
+    }
+  }
+
+  protected setupDraggability(): void {
+    if (!this.domRoot) return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+
+      const target = e.target as HTMLElement;
+      if (target && (target.closest('button') || target.closest('input') || target.closest('.orb-btn') || target.closest('.orb-action-btn'))) {
+        return;
+      }
+
+      this.isDragging = true;
+      this.hasDragged = false;
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+      this.orbStartX = this.posX;
+      this.orbStartY = this.posY;
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        if (!this.isDragging) return;
+        const dx = moveEvent.clientX - this.dragStartX;
+        const dy = moveEvent.clientY - this.dragStartY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+          this.hasDragged = true;
+        }
+        const rawX = this.orbStartX + dx;
+        const rawY = this.orbStartY + dy;
+        const clamped = this.clampPosition(rawX, rawY);
+        this.posX = clamped.x;
+        this.posY = clamped.y;
+        if (this.domRoot) {
+          this.domRoot.style.left = `${this.posX}px`;
+          this.domRoot.style.top = `${this.posY}px`;
+        }
+      };
+
+      const onMouseUp = () => {
+        if (this.isDragging) {
+          this.isDragging = false;
+          try {
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('haya_voice_orb_pos', JSON.stringify({ x: this.posX, y: this.posY }));
+            }
+          } catch (_) {}
+        }
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        }
+      };
+
+      if (typeof window !== 'undefined') {
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      }
+    };
+
+    this.domRoot.addEventListener('mousedown', onMouseDown);
+  }
+
+  protected setupEventListeners(): void {
+    if (!this.domRoot) return;
+
+    // Click on orb root
+    this.domRoot.addEventListener('click', (e: MouseEvent) => {
+      if (this.hasDragged) {
+        this.hasDragged = false;
+        return;
+      }
+      const target = e.target as HTMLElement;
+      if (target && (target.closest('button') || target.closest('input') || target.closest('.orb-btn') || target.closest('.orb-action-btn'))) {
+        return;
+      }
+
+      if (this.state === 'idle') {
+        this.startListening();
+      } else if (this.state === 'speaking') {
+        // Instant barge-in interrupt: stop speaking and restart listening
+        this.stopSpeaking();
+        this.startListening();
+      }
+    });
+
+    // Panel open button
+    const panelBtn = this.domRoot.querySelector('#askhaya-btn-panel');
+    if (panelBtn) {
+      panelBtn.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        this.openInAskHayaPanel();
+      });
+    }
+
+    // Close / Cancel button
+    const closeBtn = this.domRoot.querySelector('#askhaya-btn-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        this.cancel();
+      });
+    }
+
+    // Mic action button
+    const actionMic = this.domRoot.querySelector('#askhaya-action-mic');
+    if (actionMic) {
+      actionMic.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        if (this.state === 'listening') {
+          this.stopListening();
+        } else {
+          this.startListening();
+        }
+      });
+    }
+
+    // Dossier action button
+    const actionDossier = this.domRoot.querySelector('#askhaya-action-dossier');
+    if (actionDossier) {
+      actionDossier.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        this.openInAskHayaPanel();
+      });
+    }
+
+    // Cancel action button
+    const actionCancel = this.domRoot.querySelector('#askhaya-action-cancel');
+    if (actionCancel) {
+      actionCancel.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        this.cancel();
+      });
+    }
+
+    // Fallback text input
+    const fallbackInput = this.domRoot.querySelector('#askhaya-text-fallback-input') as HTMLInputElement;
+    if (fallbackInput) {
+      fallbackInput.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          const val = fallbackInput.value ? fallbackInput.value.trim() : '';
+          if (val) {
+            fallbackInput.value = '';
+            this.dispatchToChat(val);
+          }
+        }
+      });
+    }
+
+    // Window resize listener
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => {
+        if (this.domRoot) {
+          const clamped = this.clampPosition(this.posX, this.posY);
+          this.posX = clamped.x;
+          this.posY = clamped.y;
+          this.domRoot.style.left = `${this.posX}px`;
+          this.domRoot.style.top = `${this.posY}px`;
+        }
+      });
+    }
+  }
+
+  protected updateTranscriptDisplay(text: string): void {
+    if (this.domRoot) {
+      const transcriptEl = this.domRoot.querySelector('#askhaya-transcript-text') as HTMLElement;
+      if (transcriptEl) {
+        transcriptEl.textContent = text || 'Listening to your inquiry...';
+      }
+    }
+  }
+
+  protected updateSpokenDisplay(text: string): void {
+    if (this.domRoot) {
+      const spokenEl = this.domRoot.querySelector('#askhaya-spoken-text') as HTMLElement;
+      if (spokenEl) {
+        spokenEl.textContent = text || '';
+      }
+    }
+  }
+
+  protected getOrbCss(): string {
+    return `
+      #hayagriva-askhaya-orb-root {
+        position: fixed;
+        z-index: 99999;
+        width: 44px;
+        height: 44px;
+        border-radius: 22px;
+        background: rgba(22, 17, 13, 0.88);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 16px rgba(245, 158, 11, 0.2);
+        color: #f3f4f6;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 12px;
+        box-sizing: border-box;
+        overflow: hidden;
+        cursor: grab;
+        user-select: none;
+        transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                    height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                    border-radius 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                    box-shadow 0.3s ease,
+                    border-color 0.3s ease,
+                    background 0.3s ease;
+      }
+
+      #hayagriva-askhaya-orb-root:active {
+        cursor: grabbing;
+      }
+
+      /* 4-State Dimensions & Aesthetics */
+      #hayagriva-askhaya-orb-root.orb-idle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border-color: rgba(245, 158, 11, 0.35);
+      }
+
+      #hayagriva-askhaya-orb-root.orb-listening {
+        width: 280px;
+        height: 80px;
+        border-radius: 20px;
+        border-color: rgba(239, 68, 68, 0.6);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(239, 68, 68, 0.3);
+      }
+
+      #hayagriva-askhaya-orb-root.orb-processing {
+        width: 280px;
+        height: 74px;
+        border-radius: 20px;
+        border-color: rgba(56, 189, 248, 0.6);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.3);
+      }
+
+      #hayagriva-askhaya-orb-root.orb-speaking {
+        width: 320px;
+        height: 110px;
+        border-radius: 20px;
+        border-color: rgba(16, 185, 129, 0.6);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(16, 185, 129, 0.3);
+      }
+
+      /* Inner Surface & Layout */
+      #hayagriva-askhaya-orb-root .orb-glass-surface {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      #hayagriva-askhaya-orb-root .orb-glyph-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        z-index: 2;
+        cursor: pointer;
+      }
+
+      #hayagriva-askhaya-orb-root .orb-glyph {
+        width: 24px;
+        height: 24px;
+        color: #f59e0b;
+        filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));
+        animation: orb-amber-pulse 3s infinite ease-in-out;
+      }
+
+      #hayagriva-askhaya-orb-root .orb-content-container {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        padding: 8px 12px 8px 48px;
+        box-sizing: border-box;
+        justify-content: space-between;
+      }
+
+      #hayagriva-askhaya-orb-root:not(.orb-idle) .orb-content-container {
+        display: flex;
+      }
+
+      /* Header Row */
+      .orb-header-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+      }
+
+      .orb-indicator-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #f59e0b;
+      }
+
+      .orb-listening .orb-indicator-dot {
+        background: #ef4444;
+        animation: orb-dot-pulse 1s infinite;
+      }
+
+      .orb-processing .orb-indicator-dot {
+        background: #38bdf8;
+        animation: orb-dot-pulse 1s infinite;
+      }
+
+      .orb-speaking .orb-indicator-dot {
+        background: #10b981;
+        animation: orb-dot-pulse 1.5s infinite;
+      }
+
+      .orb-state-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #f59e0b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex-grow: 1;
+      }
+
+      .orb-listening .orb-state-label { color: #ef4444; }
+      .orb-processing .orb-state-label { color: #38bdf8; }
+      .orb-speaking .orb-state-label { color: #10b981; }
+
+      /* Waveform */
+      .orb-waveform {
+        display: none;
+        align-items: center;
+        gap: 2px;
+        height: 14px;
+      }
+
+      .orb-listening .orb-waveform,
+      .orb-speaking .orb-waveform {
+        display: flex;
+      }
+
+      .wave-bar {
+        width: 3px;
+        height: 4px;
+        background: #f59e0b;
+        border-radius: 2px;
+        animation: orb-wave-bar 1.2s infinite ease-in-out;
+      }
+
+      .orb-listening .wave-bar { background: #ef4444; }
+      .orb-speaking .wave-bar { background: #10b981; }
+
+      .wave-bar.bar-1 { animation-delay: 0.0s; height: 6px; }
+      .wave-bar.bar-2 { animation-delay: 0.2s; height: 12px; }
+      .wave-bar.bar-3 { animation-delay: 0.4s; height: 16px; }
+      .wave-bar.bar-4 { animation-delay: 0.1s; height: 10px; }
+      .wave-bar.bar-5 { animation-delay: 0.3s; height: 8px; }
+
+      .orb-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .orb-btn {
+        background: transparent;
+        border: none;
+        color: rgba(243, 244, 246, 0.7);
+        cursor: pointer;
+        padding: 2px 4px;
+        font-size: 11px;
+        border-radius: 4px;
+        transition: all 0.2s;
+      }
+
+      .orb-btn:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      /* Body & Transcript */
+      .orb-body-row {
+        width: 100%;
+        overflow: hidden;
+        max-height: 48px;
+      }
+
+      .orb-transcript, .orb-spoken-text {
+        font-size: 11.5px;
+        color: #e5e7eb;
+        line-height: 1.35;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .orb-spoken-text {
+        display: none;
+        color: #d1fae5;
+      }
+
+      .orb-speaking .orb-transcript { display: none; }
+      .orb-speaking .orb-spoken-text { display: -webkit-box; }
+
+      /* Footer / Actions */
+      .orb-footer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 6px;
+      }
+
+      .orb-footer-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .orb-action-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #e5e7eb;
+        border-radius: 4px;
+        font-size: 10.5px;
+        padding: 2px 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s;
+      }
+
+      .orb-action-btn:hover {
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(245, 158, 11, 0.5);
+      }
+
+      .orb-btn-dossier {
+        display: none;
+      }
+
+      .orb-speaking .orb-btn-dossier {
+        display: inline-flex;
+        border-color: rgba(16, 185, 129, 0.4);
+        color: #6ee7b7;
+      }
+
+      .orb-fallback-input {
+        display: none;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+        color: #fff;
+        font-size: 10.5px;
+        padding: 2px 6px;
+        width: 100%;
+        box-sizing: border-box;
+        outline: none;
+      }
+
+      .orb-fallback-input:focus {
+        border-color: #f59e0b;
+      }
+
+      /* Keyframe Animations */
+      @keyframes orb-amber-pulse {
+        0%, 100% { filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6)); transform: scale(1); }
+        50% { filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.9)); transform: scale(1.05); }
+      }
+
+      @keyframes orb-dot-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.85); }
+      }
+
+      @keyframes orb-wave-bar {
+        0%, 100% { height: 4px; }
+        50% { height: 14px; }
+      }
+    `;
+  }
+
+  // ── Telemetry & Connection Status ──────────────────────────────────────────
 
   isLightRagConnected(): boolean {
     return this.isLightRagOnline;
@@ -131,9 +796,7 @@ export class AskHayaVoiceOrb {
   }
 
   protected initLightRagStatusWatcher(): void {
-    // Initial status check
     this.checkLightRagStatus();
-    // Poll telemetry every 15s to keep state accurate
     if (!this.statusPollTimer) {
       this.statusPollTimer = setInterval(() => {
         this.checkLightRagStatus();
@@ -142,8 +805,8 @@ export class AskHayaVoiceOrb {
   }
 
   protected bindKeyboardShortcuts(): void {
+    if (typeof window === 'undefined') return;
     window.addEventListener('keydown', (e: KeyboardEvent) => {
-      // Alt + Space hotkey to focus AskHaya chat panel and begin voice counsel
       if (e.altKey && e.code === 'Space') {
         e.preventDefault();
         e.stopPropagation();
@@ -159,7 +822,10 @@ export class AskHayaVoiceOrb {
     });
   }
 
+  // ── Speech Recognition & Audio Pipeline ─────────────────────────────────────
+
   protected initSpeechRecognition(): void {
+    if (typeof window === 'undefined') return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       this.logger.warn('[AskHayaVoiceService] Web Speech API not supported in this Chromium context.');
@@ -170,7 +836,7 @@ export class AskHayaVoiceOrb {
       this.recognition = new SpeechRecognition();
       this.recognition.continuous = false;
       this.recognition.interimResults = true;
-      this.recognition.lang = 'en-IN'; // Indian English legal terminology optimization
+      this.recognition.lang = 'en-IN';
 
       this.recognition.onstart = () => {
         this.setState('listening');
@@ -182,8 +848,8 @@ export class AskHayaVoiceOrb {
           transcript += event.results[i][0].transcript;
         }
 
-        // Live populate into Theia Chat input
         this.updateChatInputText(transcript);
+        this.updateTranscriptDisplay(transcript);
       };
 
       this.recognition.onerror = (event: any) => {
@@ -225,7 +891,6 @@ export class AskHayaVoiceOrb {
     this.stopSpeaking();
     this.openInAskHayaPanel();
 
-    // Ensure @AskHaya prefix is visible in the chat composer
     const current = this.getChatInputText().trim();
     if (!current.startsWith('@')) {
       this.updateChatInputText('');
@@ -257,10 +922,8 @@ export class AskHayaVoiceOrb {
 
   protected updateChatInputText(text: string): void {
     const raw = (text || '').trim();
-    // Always preserve and ensure @AskHaya prefix for voice inquest
     const formatted = raw ? (raw.startsWith('@') ? raw : `@AskHaya ${raw}`) : '@AskHaya ';
 
-    // 1. Try Monaco editor inside ChatViewWidget
     const chatWidget = this.shell.getWidgets('left').find(w => w.id.includes('chat-view-widget') || w.id.includes('chat')) as any;
     if (chatWidget?.inputWidget?.editor?.document?.textEditorModel) {
       try {
@@ -269,14 +932,15 @@ export class AskHayaVoiceOrb {
       } catch (_) {}
     }
 
-    // 2. Fallback to DOM textarea if present
-    const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
-    if (textarea) {
-      try {
-        const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-        setter?.call(textarea, formatted);
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
-      } catch (_) {}
+    if (typeof document !== 'undefined') {
+      const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        try {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+          setter?.call(textarea, formatted);
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        } catch (_) {}
+      }
     }
   }
 
@@ -288,8 +952,11 @@ export class AskHayaVoiceOrb {
       } catch (_) {}
     }
 
-    const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
-    return textarea ? textarea.value : '';
+    if (typeof document !== 'undefined') {
+      const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
+      return textarea ? textarea.value : '';
+    }
+    return '';
   }
 
   protected focusChatInput(): void {
@@ -300,8 +967,10 @@ export class AskHayaVoiceOrb {
         return;
       } catch (_) {}
     }
-    const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
-    textarea?.focus();
+    if (typeof document !== 'undefined') {
+      const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
+      textarea?.focus();
+    }
   }
 
   protected showAirGappedNotice(message: string): void {
@@ -309,13 +978,15 @@ export class AskHayaVoiceOrb {
     this.updateChatInputText('');
     this.focusChatInput();
 
-    const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
-    if (textarea) {
-      textarea.setAttribute('placeholder', message);
-    }
-    const micBtn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
-    if (micBtn) {
-      micBtn.setAttribute('title', message);
+    if (typeof document !== 'undefined') {
+      const textarea = document.querySelector('.theia-ChatInput textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.setAttribute('placeholder', message);
+      }
+      const micBtn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
+      if (micBtn) {
+        micBtn.setAttribute('title', message);
+      }
     }
   }
 
@@ -326,7 +997,6 @@ export class AskHayaVoiceOrb {
       return;
     }
 
-    // Ensure @AskHaya is explicitly prefixed so Theia Chat routing passes it to AskHayaChatAgent
     const targetQuery = clean.startsWith('@') ? clean : `@AskHaya ${clean}`;
     this.setState('processing');
 
@@ -344,7 +1014,6 @@ export class AskHayaVoiceOrb {
         }
       }
 
-      // Direct fallback if chat widget is not attached
       const currentCase = this.getActiveCaseDir();
       const res = await fetch(`${this.getBackendUrl()}/api/agents/chat`, {
         method: 'POST',
@@ -366,7 +1035,6 @@ export class AskHayaVoiceOrb {
 
       this.speak(spokenText);
 
-      // Auto-open draft in Monaco if referenced
       const draftMatch = responseText.match(/(?:drafts|claims)[\/\\][a-zA-Z0-9_.\-]+\.md/i);
       if (draftMatch && this.editorManager && currentCase) {
         try {
@@ -381,7 +1049,6 @@ export class AskHayaVoiceOrb {
     } catch (err: any) {
       this.logger.error(`[AskHayaVoiceService] Direct agent call failed: ${err.message}`);
     } finally {
-      // Guaranteed recovery: reset state to idle when processing completes unless speech actively starts
       if (this.state === 'processing') {
         this.setState('idle');
       }
@@ -390,24 +1057,18 @@ export class AskHayaVoiceOrb {
 
   cleanForSpeech(text: string): string {
     if (!text) return '';
-    // 1. Strip accordion details and thought logs
     let clean = text.replace(/<details[\s\S]*?<\/details>/gi, '');
     clean = clean.replace(/<[^>]*>/g, '');
-    // 2. Strip code blocks and inline code
     clean = clean.replace(/```[\s\S]*?```/g, '');
     clean = clean.replace(/`([^`]+)`/g, '$1');
-    // 3. Strip YAML frontmatter blocks
     clean = clean.replace(/^---[\s\S]*?---\s*/gm, '');
     clean = clean.replace(/(?:documentid|sections_referenced|datedecided|court|parties|category):[^\n]+/gi, '');
-    // 4. Strip markdown headings
     clean = clean.replace(/^#{1,6}\s+.*$/gm, '');
-    // 5. Clean markdown bold / italics / links / list bullets
     clean = clean.replace(/\*\*([^*]+)\*\*/g, '$1');
     clean = clean.replace(/\*([^*]+)\*/g, '$1');
     clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
     clean = clean.replace(/\[(?:\d+|Source\s*#?\d+|Citation\s*#?\d+|source:[^\]]+)\]/gi, '');
     clean = clean.replace(/^\s*[-*•]\s+/gm, '');
-    // 6. Expand legal abbreviations for natural speech and prevent abbreviation period splits
     clean = clean
       .replace(/\bM\/s\.\s*/gi, 'M/s ')
       .replace(/\bMessrs\.\s*/gi, 'Messrs ')
@@ -438,7 +1099,6 @@ export class AskHayaVoiceOrb {
       .replace(/\s+/g, ' ')
       .trim();
 
-    // 7. Extract complete substantive ratio (up to ~150 words / 5-6 sentences) without hanging on colons
     const sentences = clean.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(s => s.length > 0);
     if (sentences && sentences.length > 0) {
       let result: string[] = [];
@@ -470,9 +1130,9 @@ export class AskHayaVoiceOrb {
       return;
     }
 
+    this.updateSpokenDisplay(cleanSpoken);
     this.setState('speaking');
 
-    // 1. Attempt Sarvam AI Sovereign Voice synthesis (bulbul:v3 with speaker aditya)
     try {
       const currentCase = this.getActiveCaseDir();
       const ttsRes = await fetch(`${this.getBackendUrl()}/api/hayagriva/voice/tts`, {
@@ -480,7 +1140,7 @@ export class AskHayaVoiceOrb {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: cleanSpoken,
-          speaker: 'aditya', // Senior Partner Advocate persona on Sarvam bulbul:v3
+          speaker: 'aditya',
           case: currentCase
         })
       });
@@ -507,29 +1167,27 @@ export class AskHayaVoiceOrb {
       this.logger.warn(`[AskHayaVoiceService] Sarvam TTS offline or failed, falling back to browser speech: ${e.message}`);
     }
 
-    // 2. Air-gapped fallback to browser SpeechSynthesisUtterance if Sarvam is unreachable
-    if (!('speechSynthesis' in window)) {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(cleanSpoken);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-IN';
+
+      utterance.onend = () => {
+        this.currentSpeechUtterance = null;
+        this.setState('idle');
+      };
+
+      utterance.onerror = () => {
+        this.currentSpeechUtterance = null;
+        this.setState('idle');
+      };
+
+      this.currentSpeechUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+    } else {
       this.setState('idle');
-      return;
     }
-
-    const utterance = new SpeechSynthesisUtterance(cleanSpoken);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.lang = 'en-IN';
-
-    utterance.onend = () => {
-      this.currentSpeechUtterance = null;
-      this.setState('idle');
-    };
-
-    utterance.onerror = () => {
-      this.currentSpeechUtterance = null;
-      this.setState('idle');
-    };
-
-    this.currentSpeechUtterance = utterance;
-    window.speechSynthesis.speak(utterance);
   }
 
   stopSpeaking(): void {
@@ -540,7 +1198,7 @@ export class AskHayaVoiceOrb {
       } catch (_) {}
       this.currentAudio = null;
     }
-    if ('speechSynthesis' in window) {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
     this.currentSpeechUtterance = null;
@@ -557,31 +1215,64 @@ export class AskHayaVoiceOrb {
       } catch (_) {}
     });
 
-    // Update in-panel button visual state directly if present in DOM
-    const micBtn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
-    if (micBtn) {
-      micBtn.classList.remove('online', 'offline', 'listening', 'processing', 'thinking', 'speaking');
+    // Update Floating Orb DOM Element
+    if (this.domRoot) {
+      this.domRoot.classList.remove('orb-idle', 'orb-listening', 'orb-processing', 'orb-speaking');
+      this.domRoot.classList.add(`orb-${newState}`);
+
+      const stateLabel = this.domRoot.querySelector('#askhaya-state-label');
+      const transcriptEl = this.domRoot.querySelector('#askhaya-transcript-text');
+      const spokenEl = this.domRoot.querySelector('#askhaya-spoken-text');
+
       if (newState === 'listening') {
-        micBtn.classList.add('listening');
-        micBtn.innerHTML = '<i class="fa fa-circle" style="color: #ef4444; font-size: 11px; animation: pulse 1s infinite;"></i><span style="color: #ef4444; font-size: 11px; font-weight: 600; margin-left: 5px;">Listening…</span>';
-        micBtn.setAttribute('title', 'Listening to your legal inquiry... (Click to send or stop)');
+        if (stateLabel) stateLabel.textContent = 'Listening';
+        if (transcriptEl) transcriptEl.textContent = 'Listening to your legal inquiry...';
       } else if (newState === 'processing') {
-        micBtn.classList.add('processing');
-        micBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color: #38bdf8; font-size: 12px;"></i><span style="color: #38bdf8; font-size: 11px; font-weight: 600; margin-left: 5px;">Researching…</span>';
-        micBtn.setAttribute('title', 'Consulting LightRAG graph & bare acts...');
+        if (stateLabel) stateLabel.textContent = 'Researching';
+        if (transcriptEl) transcriptEl.textContent = 'Consulting LightRAG graph & bare acts...';
       } else if (newState === 'speaking') {
-        micBtn.classList.add('speaking');
-        micBtn.innerHTML = '<i class="fa fa-volume-up" style="color: #10b981; font-size: 13px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">Advising…</span>';
-        micBtn.setAttribute('title', 'Playing Sarvam AI oral ratio (Click to mute)');
+        if (stateLabel) stateLabel.textContent = 'Oral Ratio';
+        if (spokenEl) spokenEl.textContent = this.lastResult?.spokenText || 'Advising on case precedents...';
       } else {
-        if (this.isLightRagOnline) {
-          micBtn.classList.add('online');
-          micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
-          micBtn.setAttribute('title', 'AskHaya Precedent Knowledge Graph Online (HTTP 200) • Click to speak (Alt+Space) • Right-click for Settings');
+        if (stateLabel) stateLabel.textContent = 'AskHaya Counsel';
+        if (transcriptEl) transcriptEl.textContent = 'Ready for inquiry (Alt+Space)';
+      }
+
+      // Re-clamp position in case dimension expansion overflows right/bottom edges
+      const clamped = this.clampPosition(this.posX, this.posY);
+      this.posX = clamped.x;
+      this.posY = clamped.y;
+      this.domRoot.style.left = `${this.posX}px`;
+      this.domRoot.style.top = `${this.posY}px`;
+    }
+
+    // Update in-panel button visual state directly if present in DOM
+    if (typeof document !== 'undefined') {
+      const micBtn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
+      if (micBtn) {
+        micBtn.classList.remove('online', 'offline', 'listening', 'processing', 'thinking', 'speaking');
+        if (newState === 'listening') {
+          micBtn.classList.add('listening');
+          micBtn.innerHTML = '<i class="fa fa-circle" style="color: #ef4444; font-size: 11px; animation: pulse 1s infinite;"></i><span style="color: #ef4444; font-size: 11px; font-weight: 600; margin-left: 5px;">Listening…</span>';
+          micBtn.setAttribute('title', 'Listening to your legal inquiry... (Click to send or stop)');
+        } else if (newState === 'processing') {
+          micBtn.classList.add('processing');
+          micBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color: #38bdf8; font-size: 12px;"></i><span style="color: #38bdf8; font-size: 11px; font-weight: 600; margin-left: 5px;">Researching…</span>';
+          micBtn.setAttribute('title', 'Consulting LightRAG graph & bare acts...');
+        } else if (newState === 'speaking') {
+          micBtn.classList.add('speaking');
+          micBtn.innerHTML = '<i class="fa fa-volume-up" style="color: #10b981; font-size: 13px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">Advising…</span>';
+          micBtn.setAttribute('title', 'Playing Sarvam AI oral ratio (Click to mute)');
         } else {
-          micBtn.classList.add('offline');
-          micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #f59e0b; font-size: 12px;"></i><span style="color: #f59e0b; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
-          micBtn.setAttribute('title', 'LightRAG Precedent Graph Disconnected • Click to configure URL & API Key in Settings');
+          if (this.isLightRagOnline) {
+            micBtn.classList.add('online');
+            micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
+            micBtn.setAttribute('title', 'AskHaya Precedent Knowledge Graph Online (HTTP 200) • Click to speak (Alt+Space) • Right-click for Settings');
+          } else {
+            micBtn.classList.add('offline');
+            micBtn.innerHTML = '<i class="fa fa-microphone" style="color: #f59e0b; font-size: 12px;"></i><span style="color: #f59e0b; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>';
+            micBtn.setAttribute('title', 'LightRAG Precedent Graph Disconnected • Click to configure URL & API Key in Settings');
+          }
         }
       }
     }
