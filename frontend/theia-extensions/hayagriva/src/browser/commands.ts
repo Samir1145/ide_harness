@@ -1,5 +1,6 @@
-import { injectable, inject } from '@theia/core/shared/inversify';
+import { injectable, inject, optional } from '@theia/core/shared/inversify';
 import { CommandContribution, CommandRegistry, ILogger, MessageService } from '@theia/core/lib/common';
+import { KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import URI from '@theia/core/lib/common/uri';
@@ -7,6 +8,7 @@ import { SelectionService } from '@theia/core/lib/common/selection-service';
 import { UriSelection } from '@theia/core/lib/common/selection';
 import { HayagrivaFrontendContribution } from './extension';
 import { HayagrivaTreeDecorator, safeDecodeURI } from './tree-decorator';
+import { AskHayaVoiceOrb } from './askhaya-orb';
 
 const HAYAGRIVA_NS = 'hayagriva';
 
@@ -16,7 +18,7 @@ function getBasename(p: string): string {
 }
 
 @injectable()
-export class HayagrivaCommandContribution implements CommandContribution {
+export class HayagrivaCommandContribution implements CommandContribution, KeybindingContribution {
 
   constructor(
     @inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
@@ -25,7 +27,8 @@ export class HayagrivaCommandContribution implements CommandContribution {
     @inject(HayagrivaTreeDecorator) private readonly treeDecorator: HayagrivaTreeDecorator,
     @inject(SelectionService) private readonly selectionService: SelectionService,
     @inject(MessageService) private readonly messageService: MessageService,
-    @inject(ILogger) private readonly logger: ILogger
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(AskHayaVoiceOrb) @optional() private readonly voiceOrb?: AskHayaVoiceOrb
   ) {}
 
   private getRelativePath(uri: URI): string {
@@ -2313,5 +2316,42 @@ export class HayagrivaCommandContribution implements CommandContribution {
         }
       }
     );
+
+    // ── AskHaya Ambient Voice Counsel Commands ───────────────────────────────
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:toggleVoiceOrb`, label: '🎙️ Toggle AskHaya Voice Counsel (Alt+Space)', iconClass: 'fa fa-microphone' },
+      {
+        execute: () => {
+          if (this.voiceOrb) {
+            const state = this.voiceOrb.getState();
+            if (state === 'idle') {
+              this.voiceOrb.startListening();
+            } else if (state === 'listening') {
+              this.voiceOrb.stopListening();
+            } else if (state === 'speaking') {
+              this.voiceOrb.stopSpeaking();
+            } else if (state === 'processing') {
+              this.voiceOrb.cancel();
+            }
+          }
+        }
+      }
+    );
+
+    registry.registerCommand(
+      { id: 'hayagriva.toggleVoiceOrb', label: '🎙️ Toggle AskHaya Voice Counsel (Alt+Space)', iconClass: 'fa fa-microphone' },
+      {
+        execute: async () => {
+          await registry.executeCommand(`${HAYAGRIVA_NS}:toggleVoiceOrb`);
+        }
+      }
+    );
+  }
+
+  registerKeybindings(keybindings: KeybindingRegistry): void {
+    keybindings.registerKeybinding({
+      command: `${HAYAGRIVA_NS}:toggleVoiceOrb`,
+      keybinding: 'alt space'
+    });
   }
 }

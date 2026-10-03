@@ -169,6 +169,9 @@ export class AskHayaVoiceOrb {
               <button class="orb-action-btn orb-btn-dossier" id="askhaya-action-dossier" title="View Full Legal Dossier">
                 <i class="fa fa-file-text-o"></i> <span>Dossier</span>
               </button>
+              <button class="orb-action-btn orb-btn-insert" id="askhaya-action-insert" title="Insert into Editor">
+                <i class="fa fa-clipboard"></i> <span>Insert</span>
+              </button>
               <button class="orb-action-btn orb-btn-cancel" id="askhaya-action-cancel" title="Cancel">
                 <i class="fa fa-stop"></i> <span>Stop</span>
               </button>
@@ -387,6 +390,15 @@ export class AskHayaVoiceOrb {
       actionDossier.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
         this.openInAskHayaPanel();
+      });
+    }
+
+    // Insert action button
+    const actionInsert = this.domRoot.querySelector('#askhaya-action-insert');
+    if (actionInsert) {
+      actionInsert.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        this.insertDossierIntoEditor();
       });
     }
 
@@ -722,6 +734,16 @@ export class AskHayaVoiceOrb {
         color: #6ee7b7;
       }
 
+      .orb-btn-insert {
+        display: none;
+      }
+
+      .orb-speaking .orb-btn-insert {
+        display: inline-flex;
+        border-color: rgba(245, 158, 11, 0.4);
+        color: #fbbf24;
+      }
+
       .orb-fallback-input {
         display: none;
         background: rgba(0, 0, 0, 0.3);
@@ -812,14 +834,7 @@ export class AskHayaVoiceOrb {
       if (e.altKey && e.code === 'Space') {
         e.preventDefault();
         e.stopPropagation();
-        this.openInAskHayaPanel();
-        if (this.state === 'listening') {
-          this.stopListening();
-        } else if (this.state === 'speaking') {
-          this.stopSpeaking();
-        } else {
-          this.startListening();
-        }
+        this.toggleVoiceOrb();
       }
     });
   }
@@ -1399,5 +1414,86 @@ export class AskHayaVoiceOrb {
     } else {
       this.shell.activateWidget('chat-view-widget');
     }
+  }
+
+  toggleVoiceOrb(): void {
+    if (this.state === 'listening') {
+      this.stopListening();
+    } else if (this.state === 'speaking') {
+      this.stopSpeaking();
+    } else if (this.state === 'processing') {
+      this.cancel();
+    } else {
+      this.startListening();
+    }
+  }
+
+  async insertDossierIntoEditor(): Promise<boolean> {
+    const lastRes = this.lastResult;
+    const dossier = lastRes?.fullDossier || lastRes?.spokenText || '';
+    if (!dossier) {
+      this.logger.warn('[AskHayaVoiceService] No precedent dossier available to insert.');
+      return false;
+    }
+
+    const activeEditor = this.editorManager?.currentEditor || this.editorManager?.activeEditor;
+    if (activeEditor && activeEditor.editor) {
+      try {
+        const editor = activeEditor.editor;
+        const selection = editor.selection || (typeof (editor as any).getSelection === 'function' ? (editor as any).getSelection() : {
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 0 }
+        });
+
+        const newText = `\n\n${dossier.trim()}\n`;
+
+        if (typeof editor.executeEdits === 'function') {
+          editor.executeEdits([{
+            range: selection,
+            newText
+          }]);
+          this.logger.info('[AskHayaVoiceService] Successfully injected precedent dossier into active Monaco editor.');
+          return true;
+        } else if (editor.document && typeof (editor.document as any).applyEdits === 'function') {
+          (editor.document as any).applyEdits([{
+            range: selection,
+            text: newText
+          }]);
+          return true;
+        }
+      } catch (err: any) {
+        this.logger.error(`[AskHayaVoiceService] Monaco executeEdits failed: ${err.message}`);
+      }
+    }
+
+    // Fallback: If no active editor is open, open a scratch markdown note
+    if (this.editorManager) {
+      try {
+        const currentCase = this.getActiveCaseDir();
+        const casePath = currentCase ? currentCase.replace(/\/+$/, '') : '';
+        const scratchPath = casePath ? `${casePath}/drafts/scratch_voice_dossier.md` : '/tmp/scratch_voice_dossier.md';
+        const scratchUri = new URI(scratchPath.startsWith('file://') ? scratchPath : `file://${scratchPath}`);
+
+        const openedWidget = await this.editorManager.open(scratchUri, { mode: 'open' });
+        if (openedWidget && openedWidget.editor) {
+          setTimeout(() => {
+            try {
+              if (typeof openedWidget.editor.executeEdits === 'function') {
+                openedWidget.editor.executeEdits([{
+                  range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                  newText: `${dossier.trim()}\n`
+                }]);
+              }
+            } catch (_) {}
+          }, 300);
+        }
+        this.logger.info(`[AskHayaVoiceService] Opened scratch markdown note at ${scratchPath}`);
+        return true;
+      } catch (err: any) {
+        this.logger.warn(`[AskHayaVoiceService] Could not open scratch markdown tab: ${err.message}`);
+      }
+    }
+
+    return false;
   }
 }

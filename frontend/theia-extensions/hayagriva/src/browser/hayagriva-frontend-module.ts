@@ -1,5 +1,5 @@
 import { ContainerModule } from 'inversify';
-import { FrontendApplicationContribution, OpenHandler } from '@theia/core/lib/browser';
+import { FrontendApplicationContribution, OpenHandler, KeybindingContribution } from '@theia/core/lib/browser';
 import { CommandContribution, MenuContribution } from '@theia/core/lib/common';
 import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { WindowTitleContribution } from '@theia/core/lib/browser/window/window-title-service';
@@ -125,9 +125,10 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(OpenHandler).toService(HayagrivaFrontendContribution);
   bind(TabBarToolbarContribution).toService(HayagrivaFrontendContribution);
 
-  // Bind separate commands registry
+  // Bind separate commands & keybindings registry
   bind(HayagrivaCommandContribution).toSelf().inSingletonScope();
   bind(CommandContribution).toService(HayagrivaCommandContribution);
+  bind(KeybindingContribution).toService(HayagrivaCommandContribution);
 
   // Bind separate menus registry
   bind(HayagrivaMenuContribution).toSelf().inSingletonScope();
