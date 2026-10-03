@@ -3468,11 +3468,11 @@ module.exports = {
         '/api/auth/login': (req, res, parsedUrl, docsRoot) => {
             let body = '';
             req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            req.on('end', async () => {
                 try {
                     const data = JSON.parse(body || '{}');
                     const authService = require('./core/auth-service');
-                    const result = authService.authenticateUser(data.email, data.password);
+                    const result = await authService.authenticateUser(data.email, data.password);
                     if (!result.ok) {
                         res.writeHead(401, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify(result));
