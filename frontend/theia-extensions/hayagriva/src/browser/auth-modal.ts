@@ -380,6 +380,7 @@ export class AuthModal {
                     });
                     const data = await res.json();
                     if (data.success) {
+                        await this.authManager.syncFromLocalLicense();
                         this.hide();
                         if (keyInput) keyInput.value = '';
                     } else if (data.error === 'DEVICE_LIMIT_EXCEEDED') {

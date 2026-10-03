@@ -29,6 +29,9 @@ export class ProfileWidget {
         this.injectStyles();
         this.mountProfileButton();
         this.setupOutsideClickListener();
+        if (!this.authManager.isAuthenticated()) {
+            this.authManager.syncFromLocalLicense().catch(() => {});
+        }
     }
 
     protected injectStyles(): void {
@@ -286,6 +289,13 @@ export class ProfileWidget {
 
     openPopover(): void {
         if (!this.popoverElement) return;
+        if (!this.authManager.isAuthenticated()) {
+            this.authManager.syncFromLocalLicense().then(() => {
+                if (this.isPopoverOpen) {
+                    this.renderPopoverContent();
+                }
+            }).catch(() => {});
+        }
         this.renderPopoverContent();
         this.popoverElement.style.display = 'block';
         this.isPopoverOpen = true;
