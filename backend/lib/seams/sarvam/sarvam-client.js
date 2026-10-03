@@ -18,10 +18,14 @@ const path = require('path');
 
 // Available courtroom voice personas in Sarvam Bulbul (Mapped to official Sarvam v2 IDs)
 const BULBUL_SPEAKERS = [
+    { id: 'arvind', name: 'Arvind (Senior Advocate Male)', gender: 'male', desc: 'Authoritative, measured senior counsel cadence' },
     { id: 'aditya', name: 'Aditya (Senior Advocate Male)', gender: 'male', desc: 'Authoritative, measured senior counsel cadence' },
+    { id: 'amartya', name: 'Amartya (Counsel Male)', gender: 'male', desc: 'Clear, modern analytical courtroom tone' },
     { id: 'amit', name: 'Amit (Counsel Male)', gender: 'male', desc: 'Clear, modern analytical courtroom tone' },
     { id: 'ratan', name: 'Ratan (Appellate Senior Male)', gender: 'male', desc: 'Deep, resonant judicial gravitas' },
+    { id: 'meera', name: 'Meera (Senior Advocate Female)', gender: 'female', desc: 'Dignified, articulate senior appellate advocate' },
     { id: 'priya', name: 'Priya (Senior Advocate Female)', gender: 'female', desc: 'Dignified, articulate senior appellate advocate' },
+    { id: 'pavithra', name: 'Pavithra (Counsel Female)', gender: 'female', desc: 'Crisp, articulate legal counsel tone' },
     { id: 'kavya', name: 'Kavya (Counsel Female)', gender: 'female', desc: 'Crisp, articulate legal counsel tone' },
     { id: 'anushka', name: 'Anushka (Specialist Female)', gender: 'female', desc: 'Expressive, clear chamber advisor' }
 ];
@@ -45,9 +49,9 @@ class SarvamClient {
     constructor(options = {}) {
         this.baseUrl = 'api.sarvam.ai';
         this.cacheDir = options.cacheDir || path.join(__dirname, '..', '..', '..', 'scratch', 'sarvam_cache');
-        this.defaultSpeaker = options.defaultSpeaker || 'aditya';
-        this.defaultLanguage = options.defaultLanguage || 'en-IN';
-        this.activeKey = options.apiKey || process.env.SARVAM_API_KEY || '';
+        this.defaultSpeaker = options.defaultSpeaker || 'arvind';
+        this.hasExplicitApiKey = options.apiKey !== undefined;
+        this.activeKey = this.hasExplicitApiKey ? String(options.apiKey || '').trim() : (process.env.SARVAM_API_KEY || '');
 
         // Ensure audio cache directory exists
         try {
@@ -59,7 +63,7 @@ class SarvamClient {
 
     /**
      * Resolves the effective API key from case settings, global chamber profile, options, or environment.
-     * Hierarchy: Case Override -> Global Chamber Config (~/.hayagriva/chamber_config.json) -> Environment
+     * Hierarchy: Case Override -> Explicit Client Option -> Global Chamber Config (~/.hayagriva/chamber_config.json) -> Environment
      */
     resolveApiKey(caseSettings = null) {
         if (caseSettings && caseSettings.sarvamEnabled === false) {
@@ -67,6 +71,9 @@ class SarvamClient {
         }
         if (caseSettings && caseSettings.sarvamApiKey !== undefined && caseSettings.sarvamApiKey !== null) {
             return String(caseSettings.sarvamApiKey).trim();
+        }
+        if (this.hasExplicitApiKey) {
+            return this.activeKey;
         }
 
         // 1. Check Global Chamber Profile (~/.hayagriva/chamber_config.json)
@@ -173,7 +180,7 @@ class SarvamClient {
             defaultLanguage: resolvedLang,
             speakers: BULBUL_SPEAKERS,
             models: {
-                tts: 'bulbul:v3',
+                tts: 'bulbul:v1',
                 stt: 'saaras:v2'
             },
             dataResidency: 'India (MeitY Empaneled / DPDP Act Compliant)',
@@ -192,7 +199,8 @@ class SarvamClient {
             return { success: false, error: 'Empty text provided for speech synthesis' };
         }
 
-        let speaker = params.speaker || params.caseSettings?.sarvamSpeaker || this.defaultSpeaker;
+        const rawSpeaker = params.speaker || params.caseSettings?.sarvamSpeaker || this.defaultSpeaker;
+        let speaker = rawSpeaker;
         if (SPEAKER_ALIAS_MAP[speaker]) {
             speaker = SPEAKER_ALIAS_MAP[speaker];
         }
@@ -202,9 +210,16 @@ class SarvamClient {
 
         // Check local SHA-256 disk cache first (offline friendly)
         const cacheHash = crypto.createHash('sha256')
-            .update(`${speaker}:${targetLanguage}:${pace}:${pitch}:${text}`)
+            .update(`${rawSpeaker}:${targetLanguage}:${pace}:${pitch}:${text}`)
             .digest('hex');
-        const cachedFilePath = path.join(this.cacheDir, `${cacheHash}.wav`);
+        let cachedFilePath = path.join(this.cacheDir, `${cacheHash}.wav`);
+        if (!fs.existsSync(cachedFilePath) && speaker !== rawSpeaker) {
+            const aliasHash = crypto.createHash('sha256')
+                .update(`${speaker}:${targetLanguage}:${pace}:${pitch}:${text}`)
+                .digest('hex');
+            const aliasFile = path.join(this.cacheDir, `${aliasHash}.wav`);
+            if (fs.existsSync(aliasFile)) cachedFilePath = aliasFile;
+        }
 
         if (fs.existsSync(cachedFilePath)) {
             try {
@@ -402,6 +417,98 @@ class SarvamClient {
             }
             req.end();
         });
+    }
+
+    /**
+     * Detects Indic language script from text using unicode block boundaries.
+     * Defaults to 'en-IN' if Latin / ASCII.
+     * @param {string} text
+     * @returns {string} ISO language code (e.g., 'hi-IN', 'ta-IN', 'te-IN', 'bn-IN', 'en-IN')
+     */
+    detectScript(text) {
+        if (!text || typeof text !== 'string') return 'en-IN';
+        if (/[\u0900-\u097F]/.test(text)) return 'hi-IN'; // Devanagari (Hindi, Marathi, Sanskrit)
+        if (/[\u0B80-\u0BFF]/.test(text)) return 'ta-IN'; // Tamil
+        if (/[\u0C00-\u0C7F]/.test(text)) return 'te-IN'; // Telugu
+        if (/[\u0980-\u09FF]/.test(text)) return 'bn-IN'; // Bengali / Assamese
+        if (/[\u0A80-\u0AFF]/.test(text)) return 'gu-IN'; // Gujarati
+        if (/[\u0C80-\u0CFF]/.test(text)) return 'kn-IN'; // Kannada
+        if (/[\u0D00-\u0D7F]/.test(text)) return 'ml-IN'; // Malayalam
+        if (/[\u0A00-\u0A7F]/.test(text)) return 'pa-IN'; // Gurmukhi (Punjabi)
+        if (/[\u0B00-\u0B7F]/.test(text)) return 'od-IN'; // Odia
+        return 'en-IN';
+    }
+
+    /**
+     * Translates text between Indian languages and legal English via Sarvam /translate.
+     * Includes instant zero-cost short-circuit when source and target language are the same.
+     *
+     * @param {object} params - { text, sourceLanguage, targetLanguage, caseSettings, mode }
+     * @returns {Promise<{ success: boolean, translatedText: string, detectedSourceLanguage?: string, cachedOrPassthrough?: boolean, fallback?: boolean, error?: string }>}
+     */
+    async translateText(params = {}) {
+        const text = String(params.text || '').trim();
+        if (!text) {
+            return { success: false, error: 'Empty text provided for translation' };
+        }
+
+        const sourceLanguage = params.sourceLanguage || this.detectScript(text);
+        const targetLanguage = params.targetLanguage || 'en-IN';
+
+        // 1. Instant pass-through optimization: If source and target match or text is ASCII English
+        if (sourceLanguage === targetLanguage || (targetLanguage === 'en-IN' && !/[^\u0000-\u007F]/.test(text))) {
+            return {
+                success: true,
+                translatedText: text,
+                detectedSourceLanguage: sourceLanguage,
+                cachedOrPassthrough: true
+            };
+        }
+
+        // 2. Resolve API key
+        const apiKey = this.resolveApiKey(params.caseSettings);
+        if (!apiKey) {
+            return {
+                success: false,
+                fallback: true,
+                error: 'Sarvam API key not configured for translation.',
+                translatedText: text
+            };
+        }
+
+        // 3. Call Sarvam /translate endpoint
+        const payload = JSON.stringify({
+            input: text,
+            source_language_code: sourceLanguage,
+            target_language_code: targetLanguage,
+            mode: params.mode || 'formal',
+            model: 'mayura:v1'
+        });
+
+        try {
+            const responseData = await this._makeHttpsRequest('/translate', 'POST', payload, {
+                'Content-Type': 'application/json',
+                'api-subscription-key': apiKey
+            });
+
+            if (responseData && (responseData.translated_text || responseData.translation)) {
+                return {
+                    success: true,
+                    translatedText: (responseData.translated_text || responseData.translation).trim(),
+                    detectedSourceLanguage: sourceLanguage,
+                    cachedOrPassthrough: false
+                };
+            } else {
+                throw new Error('Sarvam Translate returned empty response');
+            }
+        } catch (err) {
+            return {
+                success: false,
+                fallback: true,
+                error: `Sarvam Translate error: ${err.message}`,
+                translatedText: text
+            };
+        }
     }
 }
 
