@@ -190,6 +190,55 @@ class SarvamClient {
     }
 
     /**
+     * Splits text into at most 3 sentences/chunks of <= 450 characters
+     * strictly conforming to Sarvam Bulbul API validation limits.
+     * @param {string} text
+     * @returns {string[]}
+     */
+    chunkTextForSarvam(text) {
+        if (!text) return [];
+        const clean = String(text).trim();
+        if (clean.length <= 450) return [clean];
+
+        const sentences = clean.split(/(?<=[.!?])\s+/);
+        const chunks = [];
+        let current = '';
+
+        for (const s of sentences) {
+            if ((current + ' ' + s).trim().length <= 450) {
+                current = (current ? current + ' ' : '') + s;
+            } else {
+                if (current) chunks.push(current.trim());
+                if (chunks.length >= 3) break;
+
+                if (s.length > 450) {
+                    const words = s.split(/\s+/);
+                    let sub = '';
+                    for (const w of words) {
+                        if ((sub + ' ' + w).trim().length <= 450) {
+                            sub = (sub ? sub + ' ' : '') + w;
+                        } else {
+                            if (sub) chunks.push(sub.trim());
+                            if (chunks.length >= 3) break;
+                            sub = w;
+                        }
+                    }
+                    current = sub.trim();
+                } else {
+                    current = s;
+                }
+            }
+            if (chunks.length >= 3) break;
+        }
+
+        if (current && chunks.length < 3) {
+            chunks.push(current.trim());
+        }
+
+        return chunks.slice(0, 3);
+    }
+
+    /**
      * Bulbul v1: Synthesizes oral legal counsel prose into natural Indian Advocate audio.
      * @param {object} params - { text, speaker, targetLanguage, pitch, pace, caseSettings }
      * @returns {Promise<{ success: boolean, audioBase64?: string, mimeType?: string, speaker?: string, cached?: boolean, fallback?: boolean, error?: string }>}
@@ -225,14 +274,16 @@ class SarvamClient {
         if (fs.existsSync(cachedFilePath)) {
             try {
                 const cachedBuffer = fs.readFileSync(cachedFilePath);
-                return {
-                    success: true,
-                    audioBase64: cachedBuffer.toString('base64'),
-                    mimeType: 'audio/wav',
-                    speaker: speaker,
-                    cached: true,
-                    durationEstimatedSec: Math.round(text.split(/\s+/).length / 2.5)
-                };
+                if (cachedBuffer.length > 0) {
+                    return {
+                        success: true,
+                        audioBase64: cachedBuffer.toString('base64'),
+                        mimeType: 'audio/wav',
+                        speaker: speaker,
+                        cached: true,
+                        durationEstimatedSec: Math.round(text.split(/\s+/).length / 2.5)
+                    };
+                }
             } catch (_) {}
         }
 
@@ -245,9 +296,15 @@ class SarvamClient {
             };
         }
 
+        // Chunk text to strictly obey Sarvam Bulbul limits (max 3 items, max 500 chars/item)
+        const inputs = this.chunkTextForSarvam(text);
+        if (!inputs || inputs.length === 0) {
+            inputs.push(text.slice(0, 450));
+        }
+
         // Call Sarvam /text-to-speech API
         const payload = JSON.stringify({
-            inputs: [text],
+            inputs: inputs,
             target_language_code: targetLanguage,
             speaker: speaker,
             pitch: pitch,
