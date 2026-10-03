@@ -25,14 +25,14 @@ export class HayagrivaChatAgentServiceImpl extends ChatAgentServiceImpl implemen
         tags.includes('insolvency') ||
         tags.includes('claims') ||
         tags.includes('finance') ||
-        ['askhaya', 'advisor', 'forms', 'document', 'claims', 'claim-prep', 'claim_prep', 'claim_preparation', 'claim-prep', 'claim_preparer', 'claim-preparer', 'claim-verify', 'claim_verification', 'claim_verifier', 'claim-verifier', 'im', 'plan', 'avoidance', 'litigation'].some(k => id === k || id === `hayagriva-${k}`);
+        ['advisor', 'forms', 'document', 'claims', 'claim-prep', 'claim_prep', 'claim_preparation', 'claim_preparer', 'claim-preparer', 'claim-verify', 'claim_verification', 'claim_verifier', 'claim-verifier', 'im', 'plan', 'avoidance', 'litigation', 'precedent'].some(k => id === k || id === `hayagriva-${k}`);
 
       return isLegalDomain;
     });
 
     filtered.sort((a, b) => {
-      if (a.id === 'AskHaya') return -1;
-      if (b.id === 'AskHaya') return 1;
+      if (a.id === 'Advisor') return -1;
+      if (b.id === 'Advisor') return 1;
       return 0;
     });
 
@@ -40,22 +40,22 @@ export class HayagrivaChatAgentServiceImpl extends ChatAgentServiceImpl implemen
   }
 
   override getDefaultAgent(): ChatAgent | undefined {
-    return this.getAgent('AskHaya') || this.getAgent('askhaya') || this.getAgents()[0];
+    return this.getAgent('Advisor') || this.getAgent('advisor') || this.getAgents()[0];
   }
 
   override getFallbackAgent(): ChatAgent | undefined {
-    return this.getAgent('AskHaya') || this.getAgent('askhaya') || this.getAgents()[0];
+    return this.getAgent('Advisor') || this.getAgent('advisor') || this.getAgents()[0];
   }
 
   override getPreferenceDefaultAgent(): ChatAgent | undefined {
     const prefAgent = super.getPreferenceDefaultAgent();
-    if (prefAgent && (prefAgent.id === 'AskHaya' || prefAgent.id === 'askhaya')) {
+    if (prefAgent && (prefAgent.id === 'Advisor' || prefAgent.id === 'advisor')) {
       return prefAgent;
     }
-    return this.getAgent('AskHaya') || prefAgent || this.getDefaultAgent();
+    return this.getAgent('Advisor') || prefAgent || this.getDefaultAgent();
   }
 
   override getEffectiveDefaultAgent(): ChatAgent | undefined {
-    return this.getAgent('AskHaya') || this.getPreferenceDefaultAgent() || this.getDefaultAgent();
+    return this.getAgent('Advisor') || this.getPreferenceDefaultAgent() || this.getDefaultAgent();
   }
 }

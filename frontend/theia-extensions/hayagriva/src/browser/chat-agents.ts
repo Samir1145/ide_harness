@@ -133,14 +133,6 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
       
       request.response.response.addContent(new MarkdownChatResponseContentImpl(responseText));
 
-      // Stream concise Sarvam AI spoken ratio when AskHaya responds
-      if (this.id === 'AskHaya' && this.voiceOrb && (data.spokenText || responseText)) {
-        try {
-          const spoken = data.spokenText || this.voiceOrb.cleanForSpeech(responseText);
-          this.voiceOrb.speak(spoken);
-        } catch (_) {}
-      }
-
       // Auto-Open generated claim drafts / verification reports in Monaco Editor (Middle Panel)
       if (this.editorManager && currentCase) {
         const draftMatch = responseText.match(/(?:drafts|claims)[\/\\][a-zA-Z0-9_.\-]+\.md/i);
@@ -164,30 +156,6 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
       request.response.complete();
     }
   }
-}
-
-@injectable()
-export class AskHayaChatAgent extends BaseHayagrivaChatAgent {
-  readonly id = 'AskHaya';
-  readonly name = 'AskHaya';
-  readonly description = 'Senior Legal Counsel & Coworker Orchestrator (IBC, Commercial Law & Precedents)';
-  readonly iconClass = 'hayagriva-horse-icon';
-  override readonly tags = ['hayagriva', 'legal', 'askhaya', 'counsel', 'precedents', 'research'];
-  override readonly modes: ChatMode[] = [
-    { id: 'mix', name: 'Comprehensive (Hybrid)', isDefault: true },
-    { id: 'hybrid', name: 'Precedents & Ratio' },
-    { id: 'local', name: 'Matter Facts Only' },
-    { id: 'global', name: 'Jurisprudence & Statutes' }
-  ];
-  override readonly prompts: PromptVariantSet[] = [
-    {
-      id: 'askhaya-system-prompt',
-      defaultVariant: {
-        id: 'default',
-        template: 'You are AskHaya, the Senior Partner and Legal Counsel for the chamber. You synthesize case facts, bare statutes, and 17,500+ court precedents to provide definitive strategic counsel and orchestrate specialist legal coworkers.'
-      }
-    }
-  ];
 }
 
 @injectable()

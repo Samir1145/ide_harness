@@ -22,7 +22,6 @@ import { PreferenceContribution } from '@theia/core/lib/common/preferences';
 import { hayagrivaPreferenceSchema } from './extension';
 import { ChatAgent } from '@theia/ai-chat/lib/common/chat-agents';
 import {
-  AskHayaChatAgent,
   AdvisorChatAgent,
   FormsChatAgent,
   DocumentChatAgent,
@@ -134,8 +133,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(HayagrivaMenuContribution).toSelf().inSingletonScope();
   bind(MenuContribution).toService(HayagrivaMenuContribution);
 
-  // Bind custom Chat Agents
-  bind(ChatAgent).to(AskHayaChatAgent).inSingletonScope();
+  // Bind custom Chat Agents (Written In-Chamber Coworkers)
   bind(ChatAgent).to(AdvisorChatAgent).inSingletonScope();
   bind(ChatAgent).to(FormsChatAgent).inSingletonScope();
   bind(ChatAgent).to(DocumentChatAgent).inSingletonScope();
@@ -152,16 +150,16 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   rebind(ChatAgentServiceImpl).to(HayagrivaChatAgentServiceImpl).inSingletonScope();
   rebind(ChatAgentService).toService(ChatAgentServiceImpl);
 
-  // Set default & fallback chat agent to @AskHaya (Senior Partner & Coworker Orchestrator)
+  // Set default & fallback chat agent to @Advisor (Legal Strategist & Coworker Coordinator)
   if (isBound(DefaultChatAgentId)) {
-    rebind(DefaultChatAgentId).toConstantValue({ id: 'AskHaya' });
+    rebind(DefaultChatAgentId).toConstantValue({ id: 'Advisor' });
   } else {
-    bind(DefaultChatAgentId).toConstantValue({ id: 'AskHaya' });
+    bind(DefaultChatAgentId).toConstantValue({ id: 'Advisor' });
   }
   if (isBound(FallbackChatAgentId)) {
-    rebind(FallbackChatAgentId).toConstantValue({ id: 'AskHaya' });
+    rebind(FallbackChatAgentId).toConstantValue({ id: 'Advisor' });
   } else {
-    bind(FallbackChatAgentId).toConstantValue({ id: 'AskHaya' });
+    bind(FallbackChatAgentId).toConstantValue({ id: 'Advisor' });
   }
 
   // Bind Sovereign Legal Chat Welcome Banner (@AskHaya Senior Partner)

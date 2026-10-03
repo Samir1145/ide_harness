@@ -410,7 +410,6 @@ export class HayagrivaFrontendContribution
     this.registerGlobalEventListeners();
     this.voiceOrb.initialize();
     this.profileWidget.initialize();
-    this.initializeChatMicIntegration();
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
     this.startBackendMonitor();
     this.initializeRbzAdvisor();
@@ -1964,116 +1963,6 @@ export class HayagrivaFrontendContribution
       }
     `;
     document.head.appendChild(style);
-  }
-
-  // ── Inline Voice Mic Button in Chat Composer ─────────────────────────────
-  protected initializeChatMicIntegration(): void {
-    const updateButtonVisual = (micBtn: HTMLElement, state: string) => {
-      micBtn.classList.remove('online', 'offline', 'listening', 'processing', 'thinking', 'speaking');
-      if (state === 'listening') {
-        micBtn.classList.add('listening');
-        micBtn.innerHTML = '<i class="fa fa-circle" style="color: #ef4444; font-size: 11px; animation: pulse 1s infinite;"></i><span style="color: #ef4444; font-size: 11px; font-weight: 600; margin-left: 5px;">Listening…</span>';
-        micBtn.setAttribute('title', 'Listening to your inquiry... (Click to stop/send)');
-      } else if (state === 'processing' || state === 'thinking') {
-        micBtn.classList.add('processing');
-        micBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color: #38bdf8; font-size: 12px;"></i><span style="color: #38bdf8; font-size: 11px; font-weight: 600; margin-left: 5px;">Researching…</span>';
-        micBtn.setAttribute('title', 'Consulting LightRAG graph & bare acts...');
-      } else if (state === 'speaking') {
-        micBtn.classList.add('speaking');
-        micBtn.innerHTML = '<i class="fa fa-volume-up" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">Advising…</span>';
-        micBtn.setAttribute('title', 'Playing Sarvam AI oral ratio (Click to mute)');
-      } else {
-        const isOnline = this.voiceOrb.isLightRagConnected();
-        const hasSarvam = this.voiceOrb.isSarvamConfigured();
-        const telemetry = this.voiceOrb.getTelemetry();
-        const speaker = telemetry?.sarvam?.defaultSpeaker || 'aditya';
-
-        if (isOnline) {
-          micBtn.classList.add('online');
-          if (hasSarvam) {
-            micBtn.innerHTML = `<i class="fa fa-microphone" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>`;
-            micBtn.setAttribute('title', `AskHaya Neural Voice Online (Sarvam AI: ${speaker}) • Click to speak (Alt+Space) • Right-click for Settings`);
-          } else {
-            micBtn.innerHTML = `<i class="fa fa-microphone" style="color: #10b981; font-size: 12px;"></i><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>`;
-            micBtn.setAttribute('title', 'AskHaya Online • Voice: Native Browser Voice (Add Sarvam AI key in Settings for Indian legal neural voice) • Click to speak • Right-click for Settings');
-          }
-        } else {
-          micBtn.classList.add('offline');
-          micBtn.innerHTML = `<i class="fa fa-microphone" style="color: #f59e0b; font-size: 12px;"></i><span style="color: #f59e0b; font-size: 11px; font-weight: 600; margin-left: 5px;">AskHaya</span>`;
-          micBtn.setAttribute('title', 'Offline Mode: Local Bare Acts Vault & Native Browser Voice • Click to speak (Alt+Space) • Right-click for Settings');
-        }
-      }
-    };
-
-    this.voiceOrb.onStateChanged((state) => {
-      const btn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
-      if (btn) {
-        updateButtonVisual(btn, state);
-      }
-    });
-
-    // Listen for LightRAG configuration updates from settings panel
-    window.addEventListener('message', (ev) => {
-      if (ev.data && ev.data.type === 'hayagriva:lightrag-updated') {
-        this.voiceOrb.checkLightRagStatus();
-      }
-    });
-
-    // Instant probe on window focus
-    window.addEventListener('focus', () => {
-      if (this.voiceOrb.getState() === 'idle') {
-        this.voiceOrb.checkLightRagStatus();
-      }
-    });
-
-    const injectMic = () => {
-      const rightOptions = document.querySelector('.theia-ChatInputOptions-right');
-      if (rightOptions && !document.querySelector('.askhaya-composer-mic')) {
-        const micBtn = document.createElement('span');
-        micBtn.className = 'option askhaya-composer-mic';
-        micBtn.style.cursor = 'pointer';
-        micBtn.style.display = 'inline-flex';
-        micBtn.style.alignItems = 'center';
-        micBtn.style.marginRight = '6px';
-        
-        updateButtonVisual(micBtn, this.voiceOrb.getState());
-
-        micBtn.addEventListener('click', async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const state = this.voiceOrb.getState();
-          if (state === 'speaking') {
-            this.voiceOrb.stopSpeaking();
-          } else if (state === 'listening') {
-            // Push-to-talk toggle: Clicking while listening immediately captures and submits speech!
-            this.voiceOrb.stopListening();
-          } else if (state === 'processing' || (state as any) === 'thinking') {
-            // Cancel processing / stuck query
-            this.voiceOrb.cancel();
-          } else {
-            // Idle state: Check status asynchronously in background, but NEVER block the user from speaking!
-            this.voiceOrb.checkLightRagStatus().catch(() => {});
-            this.voiceOrb.startListening();
-          }
-        });
-
-        // Fast hover probe: checks connection instantly before the user even clicks
-        micBtn.addEventListener('mouseenter', () => {
-          if (this.voiceOrb.getState() === 'idle') {
-            this.voiceOrb.checkLightRagStatus();
-          }
-        });
-
-        micBtn.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.openCockpitPanel(undefined, 'settings', 'voice-studio');
-        });
-
-        rightOptions.insertBefore(micBtn, rightOptions.firstChild);
-      }
-    };
-    setInterval(injectMic, 1000);
   }
 
   // ── RBZ Proactive Context Advisor (Bottom-Right Non-Blocking Toast) ────────
