@@ -41,8 +41,8 @@ export class ProfileWidget {
         style.textContent = `
             #hayagriva-profile-anchor {
                 position: fixed;
-                bottom: 16px;
-                left: 6px;
+                bottom: 30px !important;
+                left: 6px !important;
                 z-index: 10000;
                 width: 36px;
                 height: 36px;
@@ -100,8 +100,8 @@ export class ProfileWidget {
             /* Popover Card */
             #haya-profile-popover {
                 position: fixed;
-                bottom: 16px;
-                left: 54px;
+                bottom: 30px !important;
+                left: 54px !important;
                 width: 290px;
                 background: rgba(22, 27, 46, 0.94);
                 border: 1px solid rgba(212, 160, 23, 0.3);
