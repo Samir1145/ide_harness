@@ -64,6 +64,30 @@ class LightRagVoiceAgent {
     }
 
     /**
+     * Cleans raw statutory markdown by stripping scraper metadata and internal file identifiers.
+     * @param {string} text
+     * @returns {string}
+     */
+    cleanStatutoryText(text) {
+        if (!text) return '';
+        return text
+            // Strip YAML frontmatter blocks
+            .replace(/^---[\s\S]*?---\s*/gm, '')
+            // Strip scraper header lines
+            .replace(/^---?\s*(?:Act[-/]Code|Legal[-/]Provision|Folder[-/]Name|File[-/]Name|Stakeholder|Provision):[^\n]+/gim, '')
+            .replace(/\b(?:Act[-/]Code|Legal[-/]Provision|Folder[-/]Name|File[-/]Name|Stakeholder|IBC-Process|Insolvency-Type):[^\n]+/gi, '')
+            // Strip raw scraper filenames like mcachap20windings... or ibc_gen_misc_...
+            .replace(/\b[a-z0-9_]{15,}\b/gi, (match) => {
+                if (/(?:chap|sec|rule|reg|windings|insolv)/i.test(match)) return '';
+                return match;
+            })
+            // Clean excessive dashes and spaces
+            .replace(/^\s*[-–—]{2,}\s*$/gm, '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
+    /**
      * Sanitizes text into natural spoken prose suitable for TTS / SpeechSynthesis.
      * Strips markdown artifacts, bullets, bracketed links, and formatting noise.
      * @param {string} text
@@ -73,6 +97,13 @@ class LightRagVoiceAgent {
         if (!text) return '';
 
         return text
+            // Strip scraper headers and filenames first
+            .replace(/^---?\s*(?:Act[-/]Code|Legal[-/]Provision|Folder[-/]Name|File[-/]Name|Stakeholder|Provision):[^\n]+/gim, '')
+            .replace(/\b(?:Act[-/]Code|Legal[-/]Provision|Folder[-/]Name|File[-/]Name|Stakeholder|IBC-Process|Insolvency-Type):[^\n]+/gi, '')
+            .replace(/\b[a-z0-9_]{15,}\b/gi, (match) => {
+                if (/(?:chap|sec|rule|reg|windings|insolv)/i.test(match)) return '';
+                return match;
+            })
             // Strip HTML details/summary and generic tags
             .replace(/<details[\s\S]*?<\/details>/gi, '')
             .replace(/<[^>]*>/g, '')
@@ -225,9 +256,10 @@ class LightRagVoiceAgent {
             } catch (_) {}
 
             if (statutoryHits && statutoryHits.length > 0) {
-                fullAnswer = statutoryHits.map((h, i) => 
-                    `### Section ${h.section || 'N/A'}: ${h.title || 'Bare Act'}\n\n${h.text || ''}`
-                ).join('\n\n---\n\n');
+                fullAnswer = statutoryHits.map((h, i) => {
+                    const cleanedContent = this.cleanStatutoryText(h.text || '');
+                    return `### Section ${h.section || 'N/A'}: ${h.title || 'Statutory Provision'}\n\n${cleanedContent}`;
+                }).join('\n\n---\n\n');
 
                 citations = statutoryHits.map((h, i) => ({
                     id: `stat-${i + 1}`,
@@ -310,24 +342,26 @@ class LightRagVoiceAgent {
     _extractSpokenProseFromAnswer(query, fullAnswer, citations, isLiveCloud) {
         if (fullAnswer && fullAnswer.trim().length > 0) {
             // Strip out References/Citations section if present at the end
-            const cleaned = fullAnswer
+            const cleaned = this.cleanStatutoryText(fullAnswer)
                 .replace(/###?\s*References[\s\S]*$/i, '')
                 .replace(/\n\s*---\s*\n\s*###?\s*References[\s\S]*$/i, '')
                 .replace(/\n\s*References:\s*\n[\s\S]*$/i, '')
                 .trim();
             const paragraphs = cleaned.split(/\n\s*\n/).filter(p => p.trim().length > 0);
             
-            // Collect substantive paragraphs (skipping pure headers) up to ~150-180 words
+            // Collect substantive paragraphs (skipping pure headers or metadata) up to ~150-180 words
             let collectedText = '';
             for (const p of paragraphs) {
                 const stripped = p.replace(/^#{1,6}\s+.*$/m, '').trim();
-                if (stripped.length > 20) {
+                if (stripped.length > 20 && !/^[-–—\s]*(?:Act[-/]Code|Legal[-/]Provision|Folder[-/]Name|File[-/]Name)/i.test(stripped)) {
                     collectedText += (collectedText ? ' ' : '') + stripped;
                     const wordCount = collectedText.split(/\s+/).length;
                     if (wordCount >= 120) break;
                 }
             }
-            if (!collectedText && paragraphs.length > 0) collectedText = paragraphs[0];
+            if (!collectedText && paragraphs.length > 0) {
+                collectedText = paragraphs.find(p => !/^#{1,6}/.test(p.trim())) || paragraphs[0];
+            }
 
             const sanitized = this.sanitizeForSpeech(collectedText);
             // Robust sentence splitting avoiding abbreviation periods
