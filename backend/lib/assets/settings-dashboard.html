@@ -3616,6 +3616,22 @@
               <option value="browser">Browser Native Speech (Offline Lite)</option>
             </select>
           </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Inquest &amp; Synthesis Language</label>
+            <select class="form-control" id="selectVoiceLanguage" style="font-size: 11px; padding: 6px 10px;">
+              <option value="en-IN" selected>English (India) — Default</option>
+              <option value="hi-IN">Hindi (हिंदी)</option>
+              <option value="ta-IN">Tamil (தமிழ்)</option>
+              <option value="te-IN">Telugu (తెలుగు)</option>
+              <option value="bn-IN">Bengali (বাংলা)</option>
+              <option value="mr-IN">Marathi (मराठी)</option>
+              <option value="gu-IN">Gujarati (ગુજરાતી)</option>
+              <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+              <option value="ml-IN">Malayalam (മലയാളം)</option>
+              <option value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</option>
+              <option value="od-IN">Odia (ଓଡ଼ିଆ)</option>
+            </select>
+          </div>
           <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 11px; color: var(--text-muted);">
             <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
               <input type="checkbox" id="chkVoiceSaveGlobal" checked style="accent-color: #10b981;">
@@ -8225,6 +8241,13 @@ ${contacts}
             lblSarvam.textContent = sarvamActive ? `Sarvam AI: Bulbul (${capSpeaker})` : 'Sarvam AI: Browser Fallback';
           }
 
+          if (t.sarvam && t.sarvam.defaultLanguage) {
+            const selLang = document.getElementById('selectVoiceLanguage');
+            if (selLang && !selLang.dataset.userEdited) {
+              selLang.value = t.sarvam.defaultLanguage;
+            }
+          }
+
           if (t.lightRagUrl) {
             const inpUrl = document.getElementById('inputVoiceLightRagUrl');
             if (inpUrl && (!inpUrl.dataset.userEdited || inpUrl.value === 'http://127.0.0.1:9621')) {
@@ -8285,6 +8308,7 @@ ${contacts}
       const mode = document.getElementById('selectVoiceQueryMode')?.value || 'mix';
       const sarvamKey = document.getElementById('inputVoiceSarvamKey')?.value || '';
       const sarvamSpeaker = document.getElementById('selectVoiceSarvamSpeaker')?.value || 'arvind';
+      const voiceLanguage = document.getElementById('selectVoiceLanguage')?.value || 'en-IN';
       const voiceEngine = document.getElementById('selectVoiceEngine')?.value || 'sarvam';
       const saveAsGlobal = document.getElementById('chkVoiceSaveGlobal')?.checked ?? true;
 
@@ -8299,6 +8323,8 @@ ${contacts}
             queryMode: mode,
             sarvamApiKey: sarvamKey,
             sarvamSpeaker: sarvamSpeaker,
+            sarvamLanguage: voiceLanguage,
+            voiceLanguage: voiceLanguage,
             sarvamEnabled: voiceEngine === 'sarvam',
             saveAsGlobal: saveAsGlobal
           })
@@ -8534,13 +8560,15 @@ ${contacts}
 
       try {
         const mode = document.getElementById('selectVoiceQueryMode')?.value || 'mix';
+        const voiceLanguage = document.getElementById('selectVoiceLanguage')?.value || 'en-IN';
         const res = await fetch('/api/hayagriva/voice/inquest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: queryText,
             case: caseName,
-            mode: mode
+            mode: mode,
+            languageCode: voiceLanguage
           })
         });
 
@@ -8563,8 +8591,8 @@ ${contacts}
 
           const engineBadge = document.getElementById('voiceEngineBadge');
           if (engineBadge) {
-            engineBadge.textContent = data.telemetry?.legalParamUsed ? 'LegalParam-2.9B' : 'Deterministic Legal Synthesizer';
-            engineBadge.className = data.telemetry?.legalParamUsed ? 'card-badge badge-emerald' : 'card-badge badge-warn';
+            engineBadge.textContent = data.telemetry?.sarvamTranslated ? 'Sarvam Indic + LightRAG' : (data.telemetry?.legalParamUsed ? 'LegalParam-2.9B' : 'Direct LightRAG Precedents');
+            engineBadge.className = 'card-badge badge-emerald';
           }
 
           // Render Citations
@@ -8608,6 +8636,7 @@ ${contacts}
 
       const engine = document.getElementById('selectVoiceEngine')?.value || 'sarvam';
       const speaker = document.getElementById('selectVoiceSarvamSpeaker')?.value || 'arvind';
+      const voiceLanguage = document.getElementById('selectVoiceLanguage')?.value || 'en-IN';
       const btnStop = document.getElementById('btnStopSpeaking');
 
       // 1. Attempt Sarvam Bulbul TTS if engine is 'sarvam'
@@ -8620,6 +8649,7 @@ ${contacts}
             body: JSON.stringify({
               text: text,
               speaker: speaker,
+              languageCode: voiceLanguage,
               case: caseName
             })
           });

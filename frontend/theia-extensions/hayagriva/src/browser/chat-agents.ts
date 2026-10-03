@@ -471,5 +471,28 @@ export class PrecedentChatAgent extends BaseHayagrivaChatAgent {
   ];
 }
 
+@injectable()
+export class AskHayaChatAgent extends BaseHayagrivaChatAgent {
+  readonly id = 'AskHaya';
+  readonly name = 'AskHaya';
+  readonly description = 'Senior Partner & Multilingual Precedent Counsel. Direct LightRAG + Sarvam AI oral & court-ready synthesis in 11 Indian languages.';
+  readonly iconClass = 'codicon codicon-organization';
+  override readonly tags = ['askhaya', 'legal', 'precedents', 'caselaw', 'voice', 'multilingual', 'counsel'];
+  override readonly modes: ChatMode[] = [
+    { id: 'mix', name: 'Comprehensive (Hybrid)', isDefault: true },
+    { id: 'local', name: 'Local Entities & Ratios' },
+    { id: 'global', name: 'Global Legal Synthesis' }
+  ];
+  override readonly prompts: PromptVariantSet[] = [
+    {
+      id: 'askhaya-system-prompt',
+      defaultVariant: {
+        id: 'default',
+        template: 'You are AskHaya, Senior Partner of the chamber. You provide authoritative, court-ready precedent counsel synthesizing Supreme Court, NCLAT, and High Court jurisprudence in English and 10 Indian languages.'
+      }
+    }
+  ];
+}
+
 
 

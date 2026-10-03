@@ -455,10 +455,14 @@ Prompt: "${message}"`;
                             return res.fullDossier || res.spokenText;
                         }
                     } catch (e) {
-                        agentLogger.log(reqId, 'AskHaya', 'FALLBACK', `LightRAG query failed or unavailable (${e.message}), falling back to Advisor agent`);
+                        agentLogger.log(reqId, 'AskHaya', 'FALLBACK', `Precedent counsel error (${e.message})`);
+                        const notice = `### 🏛️ Hayagriva Precedent Counsel\n\nUnable to retrieve precedent counsel: ${e.message}.\n\nPlease ensure your LightRAG endpoint or Bare Act Vault is accessible in **Settings → Precedents & LightRAG**.`;
+                        if (opts && opts.returnObject) {
+                            return { response: notice, spokenText: '' };
+                        }
+                        return notice;
                     }
-                    const fallbackAgent = agentMap['advisor'] || agentMap['precedent'];
-                    return fallbackAgent ? fallbackAgent.run(cDir, cleanMsg, hist, opts) : "AskHaya counsel ready.";
+                    return "AskHaya counsel ready.";
                 }
             },
             'voiceprecedent': {

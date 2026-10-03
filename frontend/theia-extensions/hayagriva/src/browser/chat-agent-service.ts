@@ -25,7 +25,7 @@ export class HayagrivaChatAgentServiceImpl extends ChatAgentServiceImpl implemen
         tags.includes('insolvency') ||
         tags.includes('claims') ||
         tags.includes('finance') ||
-        ['advisor', 'forms', 'document', 'claims', 'claim-prep', 'claim_prep', 'claim_preparation', 'claim_preparer', 'claim-preparer', 'claim-verify', 'claim_verification', 'claim_verifier', 'claim-verifier', 'im', 'plan', 'avoidance', 'litigation', 'precedent'].some(k => id === k || id === `hayagriva-${k}`);
+        ['askhaya', 'advisor', 'forms', 'document', 'claims', 'claim-prep', 'claim_prep', 'claim_preparation', 'claim_preparer', 'claim-preparer', 'claim-verify', 'claim_verification', 'claim_verifier', 'claim-verifier', 'im', 'plan', 'avoidance', 'litigation', 'precedent'].some(k => id === k || id === `hayagriva-${k}`);
 
       return isLegalDomain;
     });

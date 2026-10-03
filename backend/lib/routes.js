@@ -7819,7 +7819,11 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                         if (data.speechVoice !== undefined) caseSettings.speechVoice = data.speechVoice;
                         if (data.sarvamApiKey !== undefined) caseSettings.sarvamApiKey = String(data.sarvamApiKey).trim();
                         if (data.sarvamSpeaker !== undefined) caseSettings.sarvamSpeaker = String(data.sarvamSpeaker).trim();
-                        if (data.sarvamLanguage !== undefined) caseSettings.sarvamLanguage = String(data.sarvamLanguage).trim();
+                        const resolvedLang = data.voiceLanguage !== undefined ? data.voiceLanguage : data.sarvamLanguage;
+                        if (resolvedLang !== undefined) {
+                            caseSettings.sarvamLanguage = String(resolvedLang).trim();
+                            caseSettings.voiceLanguage = String(resolvedLang).trim();
+                        }
                         if (data.sarvamEnabled !== undefined) caseSettings.sarvamEnabled = Boolean(data.sarvamEnabled);
 
                         fs.writeFileSync(caseSettingsPath, JSON.stringify(caseSettings, null, 2), 'utf8');
@@ -7842,7 +7846,11 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                         if (data.speechVoice !== undefined) chamberSettings.speechVoice = data.speechVoice;
                         if (data.sarvamApiKey !== undefined) chamberSettings.sarvamApiKey = String(data.sarvamApiKey).trim();
                         if (data.sarvamSpeaker !== undefined) chamberSettings.sarvamSpeaker = String(data.sarvamSpeaker).trim();
-                        if (data.sarvamLanguage !== undefined) chamberSettings.sarvamLanguage = String(data.sarvamLanguage).trim();
+                        const resolvedLang = data.voiceLanguage !== undefined ? data.voiceLanguage : data.sarvamLanguage;
+                        if (resolvedLang !== undefined) {
+                            chamberSettings.sarvamLanguage = String(resolvedLang).trim();
+                            chamberSettings.voiceLanguage = String(resolvedLang).trim();
+                        }
                         if (data.sarvamEnabled !== undefined) chamberSettings.sarvamEnabled = Boolean(data.sarvamEnabled);
 
                         fs.writeFileSync(chamberFile, JSON.stringify(chamberSettings, null, 2), 'utf8');
@@ -7865,7 +7873,11 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                         if (data.speechVoice !== undefined) globalSettings.speechVoice = data.speechVoice;
                         if (data.sarvamApiKey !== undefined) globalSettings.sarvamApiKey = String(data.sarvamApiKey).trim();
                         if (data.sarvamSpeaker !== undefined) globalSettings.sarvamSpeaker = String(data.sarvamSpeaker).trim();
-                        if (data.sarvamLanguage !== undefined) globalSettings.sarvamLanguage = String(data.sarvamLanguage).trim();
+                        const resolvedLang = data.voiceLanguage !== undefined ? data.voiceLanguage : data.sarvamLanguage;
+                        if (resolvedLang !== undefined) {
+                            globalSettings.sarvamLanguage = String(resolvedLang).trim();
+                            globalSettings.voiceLanguage = String(resolvedLang).trim();
+                        }
                         if (data.sarvamEnabled !== undefined) globalSettings.sarvamEnabled = Boolean(data.sarvamEnabled);
 
                         fs.writeFileSync(globalFile, JSON.stringify(globalSettings, null, 2), 'utf8');
@@ -7907,7 +7919,7 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     const result = await sarvamClient.synthesizeSpeech({
                         text: data.text,
                         speaker: data.speaker,
-                        targetLanguage: data.target_language_code || data.language,
+                        targetLanguage: data.target_language_code || data.languageCode || data.language,
                         pitch: data.pitch,
                         pace: data.pace,
                         caseSettings: caseSettings
