@@ -56,7 +56,6 @@ import { HayagrivaContextChipsContribution } from './hayagriva-context-chips';
 import {
   ChatAgentService,
   ChatAgentServiceImpl,
-  DefaultChatAgentId,
   FallbackChatAgentId
 } from '@theia/ai-chat/lib/common/chat-agent-service';
 import { HayagrivaChatAgentServiceImpl } from './chat-agent-service';
@@ -150,12 +149,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   rebind(ChatAgentServiceImpl).to(HayagrivaChatAgentServiceImpl).inSingletonScope();
   rebind(ChatAgentService).toService(ChatAgentServiceImpl);
 
-  // Set default & fallback chat agent to @Advisor (Legal Strategist & Coworker Coordinator)
-  if (isBound(DefaultChatAgentId)) {
-    rebind(DefaultChatAgentId).toConstantValue({ id: 'Advisor' });
-  } else {
-    bind(DefaultChatAgentId).toConstantValue({ id: 'Advisor' });
-  }
+  // Fallback chat agent (when inquiry has no @mention) routes to Advisor
   if (isBound(FallbackChatAgentId)) {
     rebind(FallbackChatAgentId).toConstantValue({ id: 'Advisor' });
   } else {

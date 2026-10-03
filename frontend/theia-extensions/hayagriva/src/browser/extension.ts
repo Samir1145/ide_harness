@@ -1789,6 +1789,26 @@ export class HayagrivaFrontendContribution
         margin: 0 !important;
       }
 
+      /* ── Standard IDE Chat Input Placeholder ───────────────────────────── */
+      .theia-ChatInput-Editor {
+        position: relative !important;
+      }
+      .theia-ChatInput-Editor-Placeholder {
+        font-size: 0 !important;
+        position: absolute !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        left: 8px !important;
+        line-height: normal !important;
+        pointer-events: none !important;
+      }
+      .theia-ChatInput-Editor-Placeholder::after {
+        content: "Ask a question or type '/' for commands, '@' to mention..";
+        font-size: 13px !important;
+        color: var(--theia-descriptionForeground, #64748b) !important;
+        white-space: nowrap !important;
+        pointer-events: none !important;
+      }
     `;
     document.head.appendChild(style);
   }
