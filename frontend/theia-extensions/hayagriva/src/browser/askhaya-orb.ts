@@ -340,7 +340,7 @@ export class AskHayaVoiceOrb {
         if (!this.isDragging) return;
         const dx = moveEvent.clientX - this.dragStartX;
         const dy = moveEvent.clientY - this.dragStartY;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
           this.hasDragged = true;
         }
         const rawX = this.orbStartX + dx;
@@ -384,6 +384,20 @@ export class AskHayaVoiceOrb {
   protected setupEventListeners(): void {
     if (!this.domRoot) return;
 
+    // Direct click on glyph button (guaranteed instant open/toggle without drag suppression)
+    const glyphBtn = this.domRoot.querySelector('#askhaya-glyph-btn');
+    if (glyphBtn) {
+      glyphBtn.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        this.ensureAudioUnlocked();
+        if (this.state === 'idle') {
+          this.startListening();
+        } else {
+          this.toggleVoiceOrb();
+        }
+      });
+    }
+
     // Click on orb root
     this.domRoot.addEventListener('click', (e: MouseEvent) => {
       this.ensureAudioUnlocked();
@@ -392,7 +406,7 @@ export class AskHayaVoiceOrb {
         return;
       }
       const target = e.target as HTMLElement;
-      if (target && (target.closest('button') || target.closest('input') || target.closest('.orb-btn') || target.closest('.orb-action-btn'))) {
+      if (target && (target.closest('button') || target.closest('input') || target.closest('.orb-btn') || target.closest('.orb-action-btn') || target.closest('#askhaya-glyph-btn'))) {
         return;
       }
 
@@ -1110,12 +1124,14 @@ export class AskHayaVoiceOrb {
       this.recognition.onerror = (event: any) => {
         this.logger.warn(`[AskHayaVoiceService] Speech error: ${event.error}`);
         this.clearSilenceTimer();
+        if (event.error === 'aborted' || event.error === 'no-speech') {
+          return;
+        }
         if (event.error === 'network') {
           this.showAirGappedNotice('Speech recognition requires an internet connection in Chromium. You are in Air-Gapped / Offline Mode: please type your query.');
         } else if (event.error === 'not-allowed') {
           this.showAirGappedNotice('Microphone access was denied. Please grant microphone permission or type your query.');
         }
-        this.setState('idle');
       };
 
       this.recognition.onend = () => {
@@ -1125,9 +1141,8 @@ export class AskHayaVoiceOrb {
           const currentText = recognized || this.getChatInputText().replace(/^@AskHaya\s*/i, '').trim();
           if (currentText) {
             this.submitVoiceQuery(currentText);
-          } else {
-            this.setState('idle');
           }
+          // Keep orb expanded in 'listening' mode so practitioner can type inquiry or retry speaking
         }
       };
     } catch (e: any) {
@@ -1150,8 +1165,13 @@ export class AskHayaVoiceOrb {
     this.accumulatedTranscript = '';
     if (this.recognition) {
       try {
+        this.recognition.onstart = null;
+        this.recognition.onresult = null;
+        this.recognition.onerror = null;
+        this.recognition.onend = null;
         this.recognition.abort();
       } catch (_) {}
+      this.recognition = null;
     }
     this.stopSpeaking();
     this.updateTranscriptDisplay('');
@@ -1178,15 +1198,34 @@ export class AskHayaVoiceOrb {
 
     this.updateTranscriptDisplay('Listening to your legal inquiry...');
 
+    // Synchronously transition to 'listening' (guaranteed 0ms UI response)
+    this.setState('listening');
+    this.focusChatInput();
+
+    if (!this.recognition) {
+      this.initSpeechRecognition();
+    }
+
     if (this.recognition) {
       this.recognition.lang = this.activeLanguage;
       try {
         this.recognition.start();
-        return;
-      } catch (_) {}
+      } catch (err: any) {
+        this.logger.warn(`[AskHayaVoiceService] SpeechRecognition start notice: ${err?.message}`);
+        try {
+          this.recognition.onstart = null;
+          this.recognition.onresult = null;
+          this.recognition.onerror = null;
+          this.recognition.onend = null;
+          this.recognition.abort();
+        } catch (_) {}
+        this.recognition = null;
+        this.initSpeechRecognition();
+        try {
+          this.recognition?.start();
+        } catch (_) {}
+      }
     }
-    this.setState('listening');
-    this.focusChatInput();
   }
 
   stopListening(): void {
