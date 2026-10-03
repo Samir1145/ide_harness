@@ -3,6 +3,7 @@ import { injectable, inject } from '@theia/core/shared/inversify';
 import { AuthManager } from './auth-manager';
 import { AuthModal } from './auth-modal';
 import { ILogger } from '@theia/core/lib/common/logger';
+import { CommandService } from '@theia/core/lib/common/command';
 
 @injectable()
 export class ProfileWidget {
@@ -13,6 +14,7 @@ export class ProfileWidget {
     constructor(
         @inject(AuthManager) protected readonly authManager: AuthManager,
         @inject(AuthModal) protected readonly authModal: AuthModal,
+        @inject(CommandService) protected readonly commandService: CommandService,
         @inject(ILogger) protected readonly logger: ILogger
     ) {
         this.authManager.onAuthStateChanged((e) => {
@@ -321,10 +323,21 @@ export class ProfileWidget {
                 <div class="haya-popover-status-row">
                     <span>${statusText}</span>
                 </div>
+                <button class="haya-popover-manage-btn" id="haya-popover-manage-btn" style="width: 100%; padding: 8px 12px; margin-bottom: 8px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
+                    <span>⚙️</span> Manage Identity &amp; Chamber
+                </button>
                 <button class="haya-popover-btn" id="haya-popover-signout-btn">
                     <span>🚪</span> Sign Out
                 </button>
             `;
+
+            const manageBtn = this.popoverElement.querySelector('#haya-popover-manage-btn');
+            if (manageBtn) {
+                manageBtn.addEventListener('click', () => {
+                    this.closePopover();
+                    this.commandService.executeCommand('hayagriva:openIdentitySettings');
+                });
+            }
 
             const signoutBtn = this.popoverElement.querySelector('#haya-popover-signout-btn');
             if (signoutBtn) {
@@ -344,12 +357,23 @@ export class ProfileWidget {
                     </div>
                 </div>
                 <div style="font-size: 12px; color: #94a3b8; line-height: 1.45; margin-bottom: 14px;">
-                    Activate your Hayagriva License or sign in to link your chamber server and unlock Autonomous AI Agents.
+                    Activate your Hayagriva License or configure your chamber credentials to unlock Autonomous AI Agents.
                 </div>
+                <button class="haya-popover-manage-btn" id="haya-popover-guest-manage-btn" style="width: 100%; padding: 8px 12px; margin-bottom: 8px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
+                    <span>⚙️</span> Practitioner &amp; Chamber Settings
+                </button>
                 <button class="haya-popover-signin-btn" id="haya-popover-signin-btn">
                     ⚡ Activate License / Sign In
                 </button>
             `;
+
+            const guestManageBtn = this.popoverElement.querySelector('#haya-popover-guest-manage-btn');
+            if (guestManageBtn) {
+                guestManageBtn.addEventListener('click', () => {
+                    this.closePopover();
+                    this.commandService.executeCommand('hayagriva:openIdentitySettings');
+                });
+            }
 
             const signinBtn = this.popoverElement.querySelector('#haya-popover-signin-btn');
             if (signinBtn) {
