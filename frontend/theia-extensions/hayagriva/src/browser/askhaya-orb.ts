@@ -1459,78 +1459,75 @@ export class AskHayaVoiceOrb {
     const blob = new Blob([bytes.buffer], { type: 'audio/wav' });
     const audioUrl = URL.createObjectURL(blob);
 
-    // 1. Primary: Web Audio API ONLY IF AudioContext is truly RUNNING
-    // (Starting a buffer source on a suspended AudioContext produces silence and hangs indefinitely)
-    if (this.audioContext && this.audioContext.state === 'running') {
-      try {
-        const audioBuffer = await this.audioContext.decodeAudioData(bytes.buffer.slice(0));
-        const source = this.audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(this.audioContext.destination);
-        this.currentAudioSource = source;
-
-        this.setState('speaking');
-
-        return new Promise<void>((resolve) => {
-          source.onended = () => {
-            if (this.currentAudioSource === source) {
-              this.currentAudioSource = null;
-            }
-            try { URL.revokeObjectURL(audioUrl); } catch (_) {}
-            this.setState('answered');
-            resolve();
-          };
-          source.start(0);
-        });
-      } catch (webAudioErr: any) {
-        this.logger.warn(`[AskHayaVoiceService] Running AudioContext playback error, falling back to HTML5 Audio: ${webAudioErr.message}`);
-      }
+    // Primary: Reusable primed HTML5 Audio element
+    let audio = this.unlockedAudioElement;
+    if (!audio && typeof Audio !== 'undefined') {
+      audio = new Audio();
+      this.unlockedAudioElement = audio;
     }
+    const targetAudio: HTMLAudioElement = audio || (typeof Audio !== 'undefined' ? new Audio() : ({} as any));
+    this.currentAudio = targetAudio;
+    targetAudio.src = audioUrl;
+    targetAudio.volume = 1.0;
+    targetAudio.currentTime = 0;
 
-    // 2. Secondary: HTML5 Audio Element via Blob URL with timeout watchdog & autoplay recovery
     return new Promise<void>((resolve) => {
-      try {
-        const audio = new Audio(audioUrl);
-        audio.volume = 1.0;
-        this.currentAudio = audio;
-
-        let finished = false;
-        const cleanup = (newState: OrbState = 'answered') => {
-          if (finished) return;
-          finished = true;
-          this.currentAudio = null;
-          try { URL.revokeObjectURL(audioUrl); } catch (_) {}
-          this.setState(newState);
-          resolve();
-        };
-
-        audio.onended = () => cleanup('answered');
-        audio.onerror = (e) => {
-          this.logger.warn(`[AskHayaVoiceService] HTML5 Audio error: ${e}`);
-          cleanup('answered');
-        };
-
-        const playPromise = audio.play();
-        if (playPromise && typeof playPromise.then === 'function') {
-          playPromise
-            .then(() => {
-              this.setState('speaking');
-            })
-            .catch((err: any) => {
-              this.logger.warn(`[AskHayaVoiceService] Audio playback blocked by browser policy: ${err.message}`);
-              cleanup('answered');
-              this.showClickToListenNotice();
-            });
-        } else {
-          this.setState('speaking');
-        }
-      } catch (e: any) {
-        this.logger.warn(`[AskHayaVoiceService] HTML5 Audio instantiation error: ${e.message}`);
+      let settled = false;
+      const cleanup = (newState: OrbState = 'answered') => {
+        if (settled) return;
+        settled = true;
         this.currentAudio = null;
         try { URL.revokeObjectURL(audioUrl); } catch (_) {}
-        this.setState('answered');
-        this.showClickToListenNotice();
+        this.setState(newState);
         resolve();
+      };
+
+      targetAudio.onended = () => cleanup('answered');
+      targetAudio.onerror = (e) => {
+        this.logger.warn(`[AskHayaVoiceService] HTML5 Audio error: ${e}`);
+        cleanup('answered');
+      };
+
+      const playPromise = targetAudio.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise
+          .then(() => {
+            this.setState('speaking');
+            this.logger.info('[AskHayaVoiceService] Sarvam audio playback started successfully.');
+          })
+          .catch(async (err: any) => {
+            this.logger.warn(`[AskHayaVoiceService] HTML5 Audio playback blocked: ${err.message}. Trying Web Audio API fallback...`);
+            // Secondary Fallback: Web Audio API
+            if (this.audioContext) {
+              try {
+                if (this.audioContext.state === 'suspended') {
+                  await this.audioContext.resume();
+                }
+                const audioBuffer = await this.audioContext.decodeAudioData(bytes.buffer.slice(0));
+                const source = this.audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(this.audioContext.destination);
+                this.currentAudioSource = source;
+
+                this.setState('speaking');
+                source.onended = () => {
+                  if (this.currentAudioSource === source) {
+                    this.currentAudioSource = null;
+                  }
+                  cleanup('answered');
+                };
+                source.start(0);
+                return;
+              } catch (webAudioErr: any) {
+                this.logger.warn(`[AskHayaVoiceService] WebAudio fallback failed: ${webAudioErr.message}`);
+              }
+            }
+
+            cleanup('answered');
+            this.showClickToListenNotice();
+          });
+      } else {
+        this.setState('speaking');
       }
     });
   }
@@ -1539,13 +1536,13 @@ export class AskHayaVoiceOrb {
     if (this.domRoot) {
       const stateLabel = this.domRoot.querySelector('#askhaya-state-label');
       if (stateLabel) {
-        stateLabel.textContent = 'Audio Ready (Click ▶ to Listen)';
+        stateLabel.textContent = 'Counsel Ready (Click ▶ to Listen)';
       }
       const playBtn = this.domRoot.querySelector('#askhaya-action-play') as HTMLElement;
       if (playBtn) {
         playBtn.innerHTML = '<i class="fa fa-play-circle" style="color: #fbbf24;"></i> <span style="font-weight: 600; color: #fbbf24;">Listen</span>';
         playBtn.style.borderColor = 'rgba(245, 158, 11, 0.8)';
-        playBtn.style.boxShadow = '0 0 12px rgba(245, 158, 11, 0.4)';
+        playBtn.style.boxShadow = '0 0 12px rgba(245, 158, 11, 0.5)';
       }
     }
   }
@@ -1560,7 +1557,10 @@ export class AskHayaVoiceOrb {
     }
 
     this.updateSpokenDisplay(cleanSpoken);
-    this.setState('speaking');
+    const stateLabel = this.domRoot?.querySelector('#askhaya-state-label');
+    if (stateLabel) {
+      stateLabel.textContent = 'Synthesizing Audio...';
+    }
 
     const targetLang = languageCode || this.lastResult?.languageCode || this.activeLanguage || 'en-IN';
 
@@ -1599,6 +1599,10 @@ export class AskHayaVoiceOrb {
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         utterance.lang = targetLang;
+
+        utterance.onstart = () => {
+          this.setState('speaking');
+        };
 
         utterance.onend = () => {
           this.currentSpeechUtterance = null;
