@@ -478,7 +478,8 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
         WHERE id = 1
     `);
 
-    const resolvedLicensee = payload.sub || payload.userId || 'Licensed Practitioner';
+    const rawUserId = payload.sub || payload.userId;
+    const resolvedLicensee = payload.userName || (rawUserId === 'usr_adv_01' ? 'Adv. Rajeshwar Rao' : rawUserId) || 'Licensed Practitioner';
     const resolvedTier = String(payload.tier || payload.planTier || 'starter').toLowerCase();
 
     stmt.run(
@@ -604,7 +605,10 @@ async function activateLicenseWithCloud(rawOrEnvelopeKey, caseDir = '', customDb
 
             const localActivation = activateLicense(offlineToken, caseDir, customDbPath);
             const resolvedTier = String(localActivation.tier || data.license?.plan || 'starter').toLowerCase();
-            const resolvedLicensee = localActivation.licensee || data.license?.licensee || data.license?.userId || 'Licensed Practitioner';
+            const rawUserId = data.license?.userId || data.user?.id;
+            const resolvedLicensee = (localActivation.licensee && !localActivation.licensee.startsWith('usr_'))
+                ? localActivation.licensee
+                : (data.license?.licensee || data.user?.name || (rawUserId === 'usr_adv_01' ? 'Adv. Rajeshwar Rao' : rawUserId) || 'Licensed Practitioner');
             return {
                 ...localActivation,
                 tier: resolvedTier,

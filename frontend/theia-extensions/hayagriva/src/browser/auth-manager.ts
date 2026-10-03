@@ -150,6 +150,14 @@ export class AuthManager {
                         }
                     } catch (_) {}
 
+                    if (lic?.licensee && !lic.licensee.startsWith('usr_')) {
+                        practitionerName = lic.licensee;
+                    } else if (lic?.licensee === 'usr_adv_01') {
+                        practitionerName = 'Adv. Rajeshwar Rao';
+                        email = 'r.rao@insolvencylaw.in';
+                        org = 'Rao & Partners Insolvency Advocates';
+                    }
+
                     const tier = (lic?.tier || 'enterprise').toUpperCase();
 
                     this.currentSession = {
