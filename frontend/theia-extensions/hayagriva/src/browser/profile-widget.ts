@@ -323,6 +323,9 @@ export class ProfileWidget {
                 <div class="haya-popover-status-row">
                     <span>${statusText}</span>
                 </div>
+                <a href="https://app-apnet-net.onrender.com/dashboard/licenses" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; box-sizing: border-box; padding: 7px 12px; margin-bottom: 8px; background: rgba(212, 160, 23, 0.12); border: 1px solid rgba(212, 160, 23, 0.35); color: #d4a017; border-radius: 6px; font-size: 11.5px; font-weight: 600; text-align: center; text-decoration: none; transition: all 0.15s ease;">
+                    <span>🌐</span> Open Cloud Portal &amp; Licenses &rarr;
+                </a>
                 <button class="haya-popover-manage-btn" id="haya-popover-manage-btn" style="width: 100%; padding: 8px 12px; margin-bottom: 8px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
                     <span>⚙️</span> Manage Identity &amp; Chamber
                 </button>
@@ -358,6 +361,9 @@ export class ProfileWidget {
                 </div>
                 <div style="font-size: 12px; color: #94a3b8; line-height: 1.45; margin-bottom: 14px;">
                     Activate your Hayagriva License or configure your chamber credentials to unlock Autonomous AI Agents.
+                </div>
+                <div style="font-size: 11.5px; text-align: center; margin-bottom: 10px;">
+                    <a href="https://app-apnet-net.onrender.com/register" target="_blank" style="color: #38bdf8; text-decoration: none;">Don't have an account? Register on Portal &rarr;</a>
                 </div>
                 <button class="haya-popover-manage-btn" id="haya-popover-guest-manage-btn" style="width: 100%; padding: 8px 12px; margin-bottom: 8px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
                     <span>⚙️</span> Practitioner &amp; Chamber Settings
