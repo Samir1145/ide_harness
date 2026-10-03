@@ -160,13 +160,34 @@ class LightRagVoiceAgent {
 
         if (caseDir) lightRagClient.refreshConfig(caseDir);
 
+        const detectedScript = this.sarvamClient.detectScript(queryText);
+        const inputLang = options.languageCode || options.targetLanguage || detectedScript || 'en-IN';
+        let englishQuery = queryText;
+
+        // ── 1. Inbound Indic Translation (if non-English) ──────────────────────
+        if (inputLang !== 'en-IN' && inputLang !== 'en') {
+            try {
+                const trRes = await this.sarvamClient.translateText({
+                    text: queryText,
+                    sourceLanguage: inputLang,
+                    targetLanguage: 'en-IN',
+                    caseSettings: options.caseSettings
+                });
+                if (trRes && trRes.success && trRes.translatedText) {
+                    englishQuery = trRes.translatedText;
+                }
+            } catch (trErr) {
+                console.warn('[LightRagVoiceAgent] Inbound translation error:', trErr.message);
+            }
+        }
+
         let isLiveCloud = false;
         let fullAnswer = '';
         let citations = [];
 
-        // ── 1. Retrieve Precedent Synthesis from Online LightRAG ────────────────
+        // ── 2. Retrieve Precedent Synthesis from Online LightRAG ────────────────
         try {
-            const lrRes = await lightRagClient.queryPrecedents(queryText, {
+            const lrRes = await lightRagClient.queryPrecedents(englishQuery, {
                 mode: options.mode || lightRagClient.config.queryMode || 'mix',
                 top_k: options.top_k || 6,
                 timeoutMs: options.timeoutMs || 35000
@@ -196,11 +217,11 @@ class LightRagVoiceAgent {
             console.warn('[LightRagVoiceAgent] Online LightRAG query failed:', cloudErr.message);
         }
 
-        // ── 2. Air-Gapped Fallback: Statutory Bare Acts Vault ────────────────────
+        // ── 3. Air-Gapped Fallback: Statutory Bare Acts Vault ────────────────────
         if (!isLiveCloud) {
             let statutoryHits = [];
             try {
-                statutoryHits = await searchLaws(queryText, 4);
+                statutoryHits = await searchLaws(englishQuery, 4);
             } catch (_) {}
 
             if (statutoryHits && statutoryHits.length > 0) {
@@ -217,75 +238,66 @@ class LightRagVoiceAgent {
             }
         }
 
-        // ── 3. Spoken Ratio Extraction & Local LegalParam Reasoning ─────────────
-        let spokenText = '';
-        let legalParamUsed = false;
-        const isLegalParamOnline = await this.llamaProvider.isHealthy();
+        // ── 4. Spoken Ratio Extraction (Cleanly extracted directly from answer) ──
+        let englishSpokenText = this._extractSpokenProseFromAnswer(englishQuery, fullAnswer, citations, isLiveCloud);
+        let vernacularSpokenText = '';
 
-        if (isLegalParamOnline && fullAnswer) {
+        // ── 5. Outbound Indic Translation (if input was an Indian language) ────
+        if (inputLang !== 'en-IN' && inputLang !== 'en' && englishSpokenText) {
             try {
-                const systemPrompt = `You are HAYAGRIVA Voice Precedent Counsel, an elite Indian corporate and insolvency advocate assisting a practitioner via live audio.
-Synthesize the authoritative findings into a complete, clear spoken legal ratio (around 3 to 5 sentences, approximately 120 to 160 words).
-State the direct legal holding, the statutory threshold, and authoritative precedent. Never cut off mid-thought or end on a colon.
-Never use markdown, asterisks, bullet points, or citation brackets. Give the direct legal answer first.`;
-
-                const userPrompt = `Practitioner Inquest: "${queryText}"\n\nLegal Analysis:\n${fullAnswer.slice(0, 2000)}\n\nSynthesize your spoken counsel now:`;
-
-                const completion = await this.llamaProvider.complete([
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ], {
-                    maxTokens: 180,
-                    temperature: 0.1
+                const backTr = await this.sarvamClient.translateText({
+                    text: englishSpokenText,
+                    sourceLanguage: 'en-IN',
+                    targetLanguage: inputLang,
+                    caseSettings: options.caseSettings
                 });
-
-                if (completion && completion.text && completion.text.trim().length > 0) {
-                    spokenText = this.sanitizeForSpeech(completion.text);
-                    legalParamUsed = true;
+                if (backTr && backTr.success && backTr.translatedText) {
+                    vernacularSpokenText = this.sanitizeForSpeech(backTr.translatedText);
                 }
-            } catch (llmErr) {
-                console.warn('[LightRagVoiceAgent] LegalParam reasoning failed, using direct spoken extraction:', llmErr.message);
+            } catch (err) {
+                console.warn('[LightRagVoiceAgent] Outbound translation error:', err.message);
             }
         }
 
-        // ── 4. Deterministic Spoken Extraction from Synthesized Answer ──────────
-        if (!spokenText) {
-            spokenText = this._extractSpokenProseFromAnswer(queryText, fullAnswer, citations, isLiveCloud);
-        }
+        const finalSpokenText = vernacularSpokenText || englishSpokenText;
 
-        // ── 5. Format Professional Markdown Dossier for Chat / Monaco ──────────
-        const fullDossier = this._formatFullDossier(queryText, fullAnswer, spokenText, citations, isLiveCloud, legalParamUsed);
+        // ── 6. Format Professional Markdown Dossier for Chat / Monaco ──────────
+        const fullDossier = this._formatFullDossier(
+            queryText,
+            fullAnswer,
+            finalSpokenText,
+            citations,
+            isLiveCloud,
+            inputLang,
+            vernacularSpokenText
+        );
 
-        // ── 6. Immutable Audit Trail Recording ─────────────────────────────────
+        // ── 7. Immutable Audit Trail Recording ─────────────────────────────────
         if (caseDir && typeof auditTrailInstance.appendEntry === 'function') {
             try {
                 await auditTrailInstance.appendEntry(caseDir, {
                     actor: 'VOICE_PRECEDENT_AGENT',
                     event: 'PRECEDENT_VOICE_INQUEST',
                     verdict: 'COUNSEL_EMITTED',
-                    payload: {
-                        inquiry: queryText,
-                        source: isLiveCloud ? 'ResolutionBazaar LightRAG' : 'Air-Gapped Bare Acts Vault',
-                        legalParamUsed: legalParamUsed,
-                        citationsCount: citations.length,
-                        spokenWordCount: spokenText.split(/\s+/).length
-                    }
+                    inputLanguage: inputLang,
+                    englishQuery: englishQuery,
+                    isLiveCloud: isLiveCloud
                 });
             } catch (_) {}
         }
 
-        const totalLatencyMs = Date.now() - startTime;
-
         return {
             success: true,
-            spokenText: spokenText,
+            spokenText: finalSpokenText,
             fullDossier: fullDossier,
             citations: citations,
+            languageCode: inputLang,
+            originalQuery: queryText,
+            englishQuery: englishQuery,
             telemetry: {
-                latencyMs: totalLatencyMs,
+                latencyMs: Date.now() - startTime,
                 isLiveCloud: isLiveCloud,
-                legalParamUsed: legalParamUsed,
-                citationCount: citations.length
+                inputLang: inputLang
             }
         };
     }
@@ -348,20 +360,31 @@ Never use markdown, asterisks, bullet points, or citation brackets. Give the dir
     /**
      * Formats a formal, clean Precedent Intelligence Dossier for Monaco/Chat without raw references.
      */
-    _formatFullDossier(query, fullAnswer, spokenProse, citations, isLiveCloud, legalParamUsed) {
+    _formatFullDossier(query, fullAnswer, spokenProse, citations, isLiveCloud, inputLang = 'en-IN', vernacularHolding = '') {
         const sourceLabel = isLiveCloud
             ? 'ResolutionBazaar LightRAG Precedent Knowledge Graph (Live)'
             : 'Sovereign Statutory Bare Acts Vault (Offline Fallback)';
         const engineLabel = isLiveCloud 
             ? 'LightRAG Deep Precedent Graph Synthesis' 
-            : (legalParamUsed ? 'LegalParam-2.9B (Port 8090)' : 'Deterministic Statutory Retrieval (Lite Mode)');
+            : 'Deterministic Statutory Retrieval (Lite Mode)';
 
         let md = `## ⚖️ Precedent Voice Counsel Dossier\n`;
         md += `> **Oral Inquiry:** *"${query}"*\n`;
         md += `> **Precedent Source:** ${sourceLabel}\n`;
-        md += `> **Synthesis Engine:** ${engineLabel}\n\n`;
+        md += `> **Synthesis Engine:** ${engineLabel}\n`;
+        if (inputLang && inputLang !== 'en-IN' && inputLang !== 'en') {
+            md += `> **Language Bridge:** \`${inputLang}\` ⇄ \`en-IN\` (Bidirectional Sarvam AI)\n`;
+        }
+        md += `\n`;
 
-        if (spokenProse) {
+        if (vernacularHolding && inputLang && inputLang !== 'en-IN' && inputLang !== 'en') {
+            md += `### 🎙️ Operative Oral Ratio (${inputLang.toUpperCase()})\n`;
+            md += `> *${vernacularHolding}*\n\n`;
+            if (spokenProse && spokenProse !== vernacularHolding) {
+                md += `### 🗣️ Spoken Ratio (English Translation)\n`;
+                md += `> *${spokenProse}*\n\n`;
+            }
+        } else if (spokenProse) {
             md += `### 🎙️ Operative Oral Ratio\n`;
             md += `> *${spokenProse}*\n\n`;
         }
@@ -374,7 +397,7 @@ Never use markdown, asterisks, bullet points, or citation brackets. Give the dir
             .trim();
 
         if (cleanedAnswer) {
-            md += `### 📖 Authoritative Legal Synthesis\n\n`;
+            md += `### 📖 Supreme Court & Appellate Legal Synthesis (Official English Filing)\n\n`;
             md += `${cleanedAnswer}\n\n`;
         }
 
