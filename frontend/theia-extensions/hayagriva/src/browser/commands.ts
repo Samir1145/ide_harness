@@ -770,10 +770,31 @@ export class HayagrivaCommandContribution implements CommandContribution {
       { execute: async () => { await this.contribution.openCockpitPanel(undefined, 'license', 'onboarding'); }}
     );
 
+    // ── Unified Settings & Theia Preferences Interception ──
+    const openDisplaySettings = async () => { await this.contribution.openCockpitPanel(undefined, 'display'); };
+    const openIdentitySettings = async () => { await this.contribution.openCockpitPanel(undefined, 'license'); };
+    const openVaultsSettings = async () => { await this.contribution.openCockpitPanel(undefined, 'vaults'); };
+    const openChamberSettings = async () => { await this.contribution.openCockpitPanel(undefined, 'settings'); };
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openDisplaySettings`, label: 'Display & Legal Typography…', iconClass: 'fa fa-desktop' },
+      { execute: openDisplaySettings, isVisible: () => true }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openVaultsSettings`, label: 'Statutory Vaults & Suites…', iconClass: 'fa fa-university' },
+      { execute: openVaultsSettings, isVisible: () => true }
+    );
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:openIdentitySettings`, label: 'Practitioner Identity & Stamp…', iconClass: 'fa fa-id-card' },
+      { execute: openIdentitySettings, isVisible: () => true }
+    );
+
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openSettingsPanel`, label: 'Settings: Dashboard', iconClass: 'fa fa-cog' },
       { 
-        execute: async () => { await this.contribution.openCockpitPanel(undefined, 'settings'); },
+        execute: openChamberSettings,
         isVisible: () => true
       }
     );
@@ -781,10 +802,27 @@ export class HayagrivaCommandContribution implements CommandContribution {
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openSettingsDashboard`, label: 'Dashboard', iconClass: 'fa fa-tachometer' },
       { 
-        execute: async () => { await this.contribution.openCockpitPanel(undefined, 'settings'); },
+        execute: openChamberSettings,
         isVisible: () => true
       }
     );
+
+    // Override built-in Theia preference commands so Cmd+, routes to Display Cockpit
+    const interceptedPrefCommands = [
+      'preferences:open',
+      'preferences:openUserPreferences',
+      'preferences:openWorkspacePreferences',
+      'workbench.action.openSettings',
+      'workbench.action.openGlobalSettings'
+    ];
+    for (const cmdId of interceptedPrefCommands) {
+      try {
+        registry.registerCommand({ id: cmdId, label: 'Preferences' }, {
+          execute: openDisplaySettings,
+          isVisible: () => false
+        });
+      } catch (_) {}
+    }
 
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openChronology`, label: 'Open Case Chronology', iconClass: 'fa fa-calendar' },

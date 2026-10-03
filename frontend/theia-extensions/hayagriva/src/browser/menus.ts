@@ -5,6 +5,7 @@ import { NavigatorContextMenu } from '@theia/navigator/lib/browser/navigator-con
 
 const HAYAGRIVA_NS = 'hayagriva';
 const HAYAGRIVA_MAIN_MENU: MenuPath = [...MAIN_MENU_BAR, '3_hayagriva'];
+const SETTINGS_MAIN_MENU: MenuPath = [...MAIN_MENU_BAR, '36_settings'];
 
 export const NAVIGATOR_PRUNE_COMMAND_IDS = [
   'navigator.openWith',                   // Open With... (already in top File menu)
@@ -311,19 +312,14 @@ export class HayagrivaMenuContribution implements MenuContribution {
       order: '1'
     });
     registry.registerMenuAction(GOV_SUBMENU, {
-      commandId: `${HAYAGRIVA_NS}:openSettingsPanel`,
-      label: '⚙️ Practice Settings & AI Engines...',
-      order: '2'
-    });
-    registry.registerMenuAction(GOV_SUBMENU, {
       commandId: `${HAYAGRIVA_NS}:openLicensePanel`,
       label: '🔑 Software Licensing & Machine Identity...',
-      order: '3'
+      order: '2'
     });
     registry.registerMenuAction(GOV_SUBMENU, {
       commandId: `${HAYAGRIVA_NS}:openOnboardingModal`,
       label: '👤 Verify Practitioner Identity & Stamp…',
-      order: '4'
+      order: '3'
     });
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -438,6 +434,31 @@ export class HayagrivaMenuContribution implements MenuContribution {
     registry.registerSubmenu(TOOLS_DOCKET_SUBMENU, '📑 Docketing & Court Filing Preparation', { sortString: '4_docket' });
     registry.registerMenuAction(TOOLS_DOCKET_SUBMENU, { commandId: 'hayagriva.tool.bundleBuilder', label: '📑 Master Exhibit Numberer & Court Bundle Builder…', order: '1' });
     registry.registerMenuAction(TOOLS_DOCKET_SUBMENU, { commandId: 'hayagriva.tool.legalRedline', label: '⚖️ Blackline / Legal Redline Diff (Plans & Contracts)…', order: '2' });
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // 4.5. TOP-LEVEL "SETTINGS" MENU TAB
+    // ═════════════════════════════════════════════════════════════════════════
+    registry.registerSubmenu(SETTINGS_MAIN_MENU, 'Settings', { sortString: '36_settings' });
+    registry.registerMenuAction(SETTINGS_MAIN_MENU, {
+      commandId: `${HAYAGRIVA_NS}:openSettingsPanel`,
+      label: '📊 Chamber Governance & AI Engines…',
+      order: '1'
+    });
+    registry.registerMenuAction(SETTINGS_MAIN_MENU, {
+      commandId: `${HAYAGRIVA_NS}:openVaultsSettings`,
+      label: '🏛️ Statutory Vaults & Suites…',
+      order: '2'
+    });
+    registry.registerMenuAction(SETTINGS_MAIN_MENU, {
+      commandId: `${HAYAGRIVA_NS}:openIdentitySettings`,
+      label: '👤 Practitioner Identity & Stamp…',
+      order: '3'
+    });
+    registry.registerMenuAction(SETTINGS_MAIN_MENU, {
+      commandId: `${HAYAGRIVA_NS}:openDisplaySettings`,
+      label: '🖥️ Display & Legal Typography…',
+      order: '4'
+    });
 
     // ═════════════════════════════════════════════════════════════════════════
     // 5. ENHANCED "VIEW" MENU: READING PERSPECTIVES & SOVEREIGN PILLARS
