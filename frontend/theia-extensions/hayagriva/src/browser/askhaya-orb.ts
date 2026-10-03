@@ -21,6 +21,8 @@ export class AskHayaVoiceOrb {
   protected currentAudio: HTMLAudioElement | null = null;
   protected stateListeners: StateChangeListener[] = [];
   protected lastResult: { spokenText: string; fullDossier: string; query: string } | null = null;
+  protected silenceTimer: any = null;
+  protected accumulatedTranscript: string = '';
 
   // DOM Mount & Drag Physics State
   protected domRoot: HTMLElement | null = null;
@@ -405,7 +407,7 @@ export class AskHayaVoiceOrb {
           const val = fallbackInput.value ? fallbackInput.value.trim() : '';
           if (val) {
             fallbackInput.value = '';
-            this.dispatchToChat(val);
+            this.submitVoiceQuery(val);
           }
         }
       });
@@ -824,6 +826,25 @@ export class AskHayaVoiceOrb {
 
   // ── Speech Recognition & Audio Pipeline ─────────────────────────────────────
 
+  protected clearSilenceTimer(): void {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+  }
+
+  protected resetSilenceTimer(): void {
+    this.clearSilenceTimer();
+    this.silenceTimer = setTimeout(() => {
+      if (this.state === 'listening') {
+        const text = (this.accumulatedTranscript || this.getChatInputText() || '').replace(/^@AskHaya\s*/i, '').trim();
+        if (text) {
+          this.stopListening();
+        }
+      }
+    }, 1500);
+  }
+
   protected initSpeechRecognition(): void {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -834,26 +855,38 @@ export class AskHayaVoiceOrb {
 
     try {
       this.recognition = new SpeechRecognition();
-      this.recognition.continuous = false;
+      this.recognition.continuous = true;
       this.recognition.interimResults = true;
       this.recognition.lang = 'en-IN';
 
       this.recognition.onstart = () => {
         this.setState('listening');
+        this.clearSilenceTimer();
       };
 
       this.recognition.onresult = (event: any) => {
-        let transcript = '';
+        let interimTranscript = '';
+        let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
         }
 
-        this.updateChatInputText(transcript);
-        this.updateTranscriptDisplay(transcript);
+        const current = (finalTranscript || interimTranscript || '').trim();
+        if (current) {
+          this.accumulatedTranscript = current;
+          this.updateChatInputText(current);
+          this.updateTranscriptDisplay(current);
+          this.resetSilenceTimer();
+        }
       };
 
       this.recognition.onerror = (event: any) => {
         this.logger.warn(`[AskHayaVoiceService] Speech error: ${event.error}`);
+        this.clearSilenceTimer();
         if (event.error === 'network') {
           this.showAirGappedNotice('Speech recognition requires an internet connection in Chromium. You are in Air-Gapped / Offline Mode: please type your query.');
         } else if (event.error === 'not-allowed') {
@@ -863,10 +896,12 @@ export class AskHayaVoiceOrb {
       };
 
       this.recognition.onend = () => {
+        this.clearSilenceTimer();
         if (this.state === 'listening') {
-          const currentText = this.getChatInputText();
-          if (currentText && currentText.trim()) {
-            this.dispatchToChat(currentText.trim());
+          const recognized = this.accumulatedTranscript ? this.accumulatedTranscript.trim() : '';
+          const currentText = recognized || this.getChatInputText().replace(/^@AskHaya\s*/i, '').trim();
+          if (currentText) {
+            this.submitVoiceQuery(currentText);
           } else {
             this.setState('idle');
           }
@@ -878,6 +913,8 @@ export class AskHayaVoiceOrb {
   }
 
   cancel(): void {
+    this.clearSilenceTimer();
+    this.accumulatedTranscript = '';
     if (this.recognition) {
       try {
         this.recognition.abort();
@@ -888,13 +925,18 @@ export class AskHayaVoiceOrb {
   }
 
   startListening(): void {
+    // Instant barge-in interrupt: stop active audio immediately
     this.stopSpeaking();
+    this.clearSilenceTimer();
+    this.accumulatedTranscript = '';
     this.openInAskHayaPanel();
 
     const current = this.getChatInputText().trim();
     if (!current.startsWith('@')) {
       this.updateChatInputText('');
     }
+
+    this.updateTranscriptDisplay('Listening to your legal inquiry...');
 
     if (this.recognition) {
       try {
@@ -907,16 +949,87 @@ export class AskHayaVoiceOrb {
   }
 
   stopListening(): void {
+    this.clearSilenceTimer();
     if (this.recognition) {
       try {
         this.recognition.stop();
       } catch (_) {}
     }
-    const currentText = this.getChatInputText();
-    if (currentText && currentText.trim()) {
-      this.dispatchToChat(currentText.trim());
+    const recognized = this.accumulatedTranscript ? this.accumulatedTranscript.trim() : '';
+    const chatInput = this.getChatInputText();
+    const cleanChat = chatInput ? chatInput.replace(/^@AskHaya\s*/i, '').trim() : '';
+    const query = recognized || cleanChat;
+
+    if (query) {
+      this.submitVoiceQuery(query);
     } else {
       this.setState('idle');
+    }
+  }
+
+  async submitVoiceQuery(query: string): Promise<void> {
+    const clean = (query || '').replace(/^@AskHaya\s*/i, '').trim();
+    if (!clean) {
+      this.setState('idle');
+      return;
+    }
+
+    this.clearSilenceTimer();
+    this.stopSpeaking();
+    this.setState('processing');
+    this.updateTranscriptDisplay(clean);
+
+    try {
+      const currentCase = this.getActiveCaseDir();
+      const res = await fetch(`${this.getBackendUrl()}/api/hayagriva/voice/inquest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: clean,
+          case: currentCase,
+          top_k: 4,
+          mode: 'mix'
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`Inquest endpoint returned HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const spokenText = data.spokenText ? this.cleanForSpeech(data.spokenText) : (data.response ? this.cleanForSpeech(data.response) : 'No response returned from Voice Inquest.');
+      const fullDossier = data.fullDossier || data.response || spokenText;
+
+      this.setLastResult({
+        query: clean,
+        spokenText,
+        fullDossier
+      });
+
+      await this.speak(spokenText);
+
+      // Sync with active editor if draft was cited
+      const draftMatch = fullDossier.match(/(?:drafts|claims)[\/\\][a-zA-Z0-9_.\-]+\.md/i);
+      if (draftMatch && this.editorManager && currentCase) {
+        try {
+          const relPath = draftMatch[0].replace(/\\/g, '/');
+          const cleanCase = currentCase.replace(/\/+$/, '');
+          const targetUri = new URI(`file://${cleanCase}/${relPath}`);
+          setTimeout(() => {
+            this.editorManager?.open(targetUri);
+          }, 200);
+        } catch (_) {}
+      }
+    } catch (err: any) {
+      this.logger.error(`[AskHayaVoiceService] Voice inquest failed: ${err.message}`);
+      // Fallback to chat if inquest failed
+      try {
+        await this.dispatchToChat(clean);
+      } catch (_) {
+        if (this.state === 'processing') {
+          this.setState('idle');
+        }
+      }
     }
   }
 
