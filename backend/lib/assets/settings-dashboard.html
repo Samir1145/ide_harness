@@ -3542,7 +3542,7 @@
           <span id="voiceLightRagStatusChip" style="display: flex; align-items: center; gap: 5px;">
             <span id="voiceLightRagDot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
             <span style="color: var(--text-muted);">LightRAG:</span>
-            <strong id="voiceLightRagUrlLabel" style="color: var(--accent-cyan);">http://127.0.0.1:9621</strong>
+            <strong id="voiceLightRagUrlLabel" style="color: var(--accent-cyan);">http://20.198.0.59:9621</strong>
           </span>
           <span id="voiceLegalParamStatusChip" style="display: flex; align-items: center; gap: 5px;">
             <span id="voiceLegalParamDot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
@@ -3570,12 +3570,21 @@
       <div id="voiceEndpointSettingsPanel" style="display: none; padding: 14px 24px; background: var(--input-bg); border-bottom: 1px solid var(--card-border);">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: flex-end;">
           <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">LightRAG Server URL</label>
-            <input type="text" class="form-control" id="inputVoiceLightRagUrl" value="http://127.0.0.1:9621" placeholder="http://127.0.0.1:9621" style="font-size: 11px; padding: 6px 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 0;">LightRAG Server URL</label>
+              <div style="display: flex; gap: 4px;">
+                <button type="button" class="btn-header" onclick="setLightRagPreset('cloud')" title="Switch to Azure Live Production LightRAG (20.198.0.59)" style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(59, 130, 246, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); cursor: pointer;">☁️ Cloud Prod</button>
+                <button type="button" class="btn-header" onclick="setLightRagPreset('local')" title="Switch to Localhost Dev LightRAG (127.0.0.1)" style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); cursor: pointer;">💻 Local Dev</button>
+              </div>
+            </div>
+            <input type="text" class="form-control" id="inputVoiceLightRagUrl" value="http://20.198.0.59:9621" placeholder="http://20.198.0.59:9621" style="font-size: 11px; padding: 6px 10px;">
           </div>
           <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">LightRAG API Key (Optional)</label>
-            <input type="password" class="form-control" id="inputVoiceLightRagKey" placeholder="Bearer / Key" style="font-size: 11px; padding: 6px 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 0;">LightRAG API Key</label>
+              <span id="lightragKeyPresetBadge" style="font-size: 9px; color: #10b981; font-weight: 500;">✓ Prod Key Armed</span>
+            </div>
+            <input type="password" class="form-control" id="inputVoiceLightRagKey" value="20b8aa6253d9e09e9c70417d4938f8c7" placeholder="Bearer / Key" style="font-size: 11px; padding: 6px 10px;">
           </div>
           <div>
             <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Query Mode</label>
@@ -8202,8 +8211,8 @@ ${contacts}
           const lblSarvam = document.getElementById('voiceSarvamLabel');
 
           if (dotLightRag) dotLightRag.style.background = t.onlineLightRag ? '#10b981' : '#f59e0b';
-          if (lblLightRag) lblLightRag.textContent = t.lightRagUrl || 'http://127.0.0.1:9621';
-          if (badgeLightRag) badgeLightRag.textContent = t.onlineLightRag ? '9621 Online' : '9621 Ready';
+          if (lblLightRag) lblLightRag.textContent = t.lightRagUrl || 'http://20.198.0.59:9621';
+          if (badgeLightRag) badgeLightRag.textContent = t.onlineLightRag ? (t.lightRagUrl && t.lightRagUrl.includes('20.198.0.59') ? 'Cloud Prod Online' : '9621 Online') : '9621 Standby';
 
           if (dotBrain) dotBrain.style.background = t.localLegalParam ? '#10b981' : '#64748b';
           if (lblBrain) lblBrain.textContent = t.localLegalParam ? 'LegalParam-2.9B (Port 8090)' : 'Lite Mode Synthesizer';
@@ -8215,10 +8224,40 @@ ${contacts}
             const capSpeaker = speakerName.charAt(0).toUpperCase() + speakerName.slice(1);
             lblSarvam.textContent = sarvamActive ? `Sarvam AI: Bulbul (${capSpeaker})` : 'Sarvam AI: Browser Fallback';
           }
+
+          if (t.lightRagUrl) {
+            const inpUrl = document.getElementById('inputVoiceLightRagUrl');
+            if (inpUrl && (!inpUrl.dataset.userEdited || inpUrl.value === 'http://127.0.0.1:9621')) {
+              inpUrl.value = t.lightRagUrl;
+            }
+          }
           return t;
         }
       } catch (_) {}
       return null;
+    }
+
+    function setLightRagPreset(type) {
+      const inpUrl = document.getElementById('inputVoiceLightRagUrl');
+      const inpKey = document.getElementById('inputVoiceLightRagKey');
+      const badge = document.getElementById('lightragKeyPresetBadge');
+      if (type === 'cloud') {
+        if (inpUrl) inpUrl.value = 'http://20.198.0.59:9621';
+        if (inpKey) inpKey.value = '20b8aa6253d9e09e9c70417d4938f8c7';
+        if (badge) {
+          badge.textContent = '✓ Prod Key Armed';
+          badge.style.color = '#10b981';
+        }
+        showToast('Switched to Cloud Production (20.198.0.59:9621)');
+      } else {
+        if (inpUrl) inpUrl.value = 'http://127.0.0.1:9621';
+        if (inpKey) inpKey.value = '';
+        if (badge) {
+          badge.textContent = 'Localhost (No Auth)';
+          badge.style.color = '#94a3b8';
+        }
+        showToast('Switched to Local Dev (127.0.0.1:9621)');
+      }
     }
 
     function openVoiceStudioModal() {
@@ -8241,7 +8280,7 @@ ${contacts}
     }
 
     async function saveVoiceEndpointConfig() {
-      const url = document.getElementById('inputVoiceLightRagUrl')?.value || 'http://127.0.0.1:9621';
+      const url = document.getElementById('inputVoiceLightRagUrl')?.value || 'http://20.198.0.59:9621';
       const key = document.getElementById('inputVoiceLightRagKey')?.value || '';
       const mode = document.getElementById('selectVoiceQueryMode')?.value || 'mix';
       const sarvamKey = document.getElementById('inputVoiceSarvamKey')?.value || '';
@@ -8282,7 +8321,7 @@ ${contacts}
     }
 
     async function testCurrentLightRagConnection() {
-      const url = document.getElementById('inputVoiceLightRagUrl')?.value || 'http://127.0.0.1:9621';
+      const url = document.getElementById('inputVoiceLightRagUrl')?.value || 'http://20.198.0.59:9621';
       const key = document.getElementById('inputVoiceLightRagKey')?.value || '';
       const btn = document.getElementById('btnTestLightRagConnection');
       if (btn) btn.textContent = '⏳ Testing…';

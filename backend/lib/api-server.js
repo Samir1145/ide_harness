@@ -22,7 +22,7 @@ function startApiServer(docsRoot, port = 3210) {
 
         const parsedUrl = url.parse(req.url, true);
         const pathname = parsedUrl.pathname;
-        const method = req.method;
+        const method = req.method === 'HEAD' ? 'GET' : req.method;
 
         try {
             delete require.cache[require.resolve('./routes')];

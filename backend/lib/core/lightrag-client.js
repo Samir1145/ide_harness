@@ -15,14 +15,36 @@ const https = require('https');
 const url = require('url');
 const os = require('os');
 
+const DEFAULT_CLOUD_LIGHTRAG_URL = 'http://20.198.0.59:9621';
+const DEFAULT_CLOUD_LIGHTRAG_KEY = '20b8aa6253d9e09e9c70417d4938f8c7';
+
 class LightRagClient {
     constructor() {
         this.config = this._loadConfig();
     }
 
     _loadConfig(caseDir = null) {
-        let apiUrl = process.env.LIGHTRAG_API_URL || process.env.LIGHTRAG_URL || 'http://127.0.0.1:9621';
-        let apiKey = process.env.LIGHTRAG_API_KEY || '';
+        // Automatically read backend/.env if environment variables are not yet populated
+        const envPath = path.join(__dirname, '..', '..', '.env');
+        if (fs.existsSync(envPath)) {
+            try {
+                const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+                for (const line of lines) {
+                    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+                    if (match) {
+                        const key = match[1];
+                        let value = (match[2] || '').trim();
+                        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+                            value = value.slice(1, -1);
+                        }
+                        if (!process.env[key]) process.env[key] = value.trim();
+                    }
+                }
+            } catch (_) {}
+        }
+
+        let apiUrl = process.env.LIGHTRAG_API_URL || process.env.LIGHTRAG_URL || DEFAULT_CLOUD_LIGHTRAG_URL;
+        let apiKey = process.env.LIGHTRAG_API_KEY || (apiUrl === DEFAULT_CLOUD_LIGHTRAG_URL ? DEFAULT_CLOUD_LIGHTRAG_KEY : '');
         let workspace = process.env.LIGHTRAG_WORKSPACE || '';
         let queryMode = process.env.LIGHTRAG_QUERY_MODE || 'mix';
 
@@ -62,11 +84,12 @@ class LightRagClient {
         if (fs.existsSync(settingsPath)) {
             try {
                 const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-                if (!apiUrl || apiUrl === 'http://127.0.0.1:9621') {
-                    if (s.lightragApiUrl || s.resolutionbazaar_url) apiUrl = s.lightragApiUrl || s.resolutionbazaar_url;
+                // Only use legacy settings if not explicitly overridden by environment
+                if (!process.env.LIGHTRAG_API_URL && (s.lightragApiUrl || s.resolutionbazaar_url)) {
+                    apiUrl = s.lightragApiUrl || s.resolutionbazaar_url;
                 }
-                if (!apiKey) {
-                    if (s.lightragApiKey !== undefined) {
+                if (!process.env.LIGHTRAG_API_KEY) {
+                    if (s.lightragApiKey !== undefined && s.lightragApiKey !== '') {
                         apiKey = s.lightragApiKey;
                     } else if (s.resolutionbazaar_key || s.advisoryApiKey) {
                         apiKey = s.resolutionbazaar_key || s.advisoryApiKey;
@@ -75,6 +98,11 @@ class LightRagClient {
                 if (!workspace && s.lightragWorkspace) workspace = s.lightragWorkspace;
                 if (s.lightragQueryMode && queryMode === 'mix') queryMode = s.lightragQueryMode;
             } catch (_) {}
+        }
+
+        // Auto-supply default key if pointing to production cloud and key is missing
+        if (apiUrl.includes('20.198.0.59') && !apiKey) {
+            apiKey = DEFAULT_CLOUD_LIGHTRAG_KEY;
         }
 
         return {

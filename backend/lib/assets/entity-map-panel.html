@@ -317,14 +317,25 @@
       border: 1px solid #e2e8f0;
       color: #1e293b;
     }
-    body.theme-light .prop-row {
+    body.theme-light .meta-row {
       border-bottom-color: #f1f5f9;
     }
-    body.theme-light .prop-key {
+    body.theme-light .meta-label {
       color: #64748b;
     }
-    body.theme-light .prop-val {
+    body.theme-light .meta-val {
       color: #0f172a;
+    }
+    body.theme-light .micro-action-box {
+      border-top-color: #e2e8f0;
+    }
+    body.theme-light .micro-btn.secondary {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #1e293b;
+    }
+    body.theme-light .micro-btn.secondary:hover {
+      background: #e2e8f0;
     }
     body.theme-light .toast {
       background: #ffffff;
@@ -353,6 +364,7 @@
     </div>
     <div class="toolbar-right">
       <input type="text" class="search-box" id="nodeSearch" placeholder="🔍 Find name, DIN, CIN..." oninput="handleSearch(this.value)">
+      <button class="action-btn theme-toggle-btn" id="themeToggleBtn" onclick="toggleThemeManual(event)" oncontextmenu="event.preventDefault(); resetThemeToAuto();" title="Toggle Canvas Theme (Light / Dark)">☀️ Light</button>
       <button class="action-btn" onclick="loadGraphData()">⟳ Refresh</button>
       <button class="action-btn primary" onclick="runAutoVerification()">⚡ Verify All Probes</button>
     </div>
@@ -412,36 +424,106 @@
     const urlParams = new URLSearchParams(window.location.search);
     const caseName = urlParams.get('case') || 'active_case';
 
-    function applyTheme() {
-      const params = new URLSearchParams(window.location.search);
-      const themeParam = params.get('theme');
-      let isLight = false;
-      if (themeParam === 'light') {
-        isLight = true;
-      } else if (themeParam === 'dark') {
-        isLight = false;
-      } else {
-        try {
-          if (window.parent && window.parent.document && window.parent.document.body) {
-            const p = window.parent.document.body;
-            isLight = p.classList.contains('theia-light') || p.classList.contains('light-theia');
-          }
-        } catch (_) {}
-      }
+    function showToast(msg) {
+      const toast = document.getElementById('toastMsg');
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2400);
+    }
+
+    function updateThemeUI(isLight) {
       if (isLight) {
         document.body.classList.add('theme-light');
       } else {
         document.body.classList.remove('theme-light');
       }
+      const toggleBtn = document.getElementById('themeToggleBtn');
+      const manualPref = localStorage.getItem('hayagriva_entity_map_theme');
+      if (toggleBtn) {
+        toggleBtn.innerHTML = isLight ? '🌙 Dark' : '☀️ Light';
+        if (manualPref) {
+          toggleBtn.title = isLight 
+            ? 'Canvas Theme: Light (Manual Override) • Click for Dark, Right-Click / Shift-Click to Reset to Auto' 
+            : 'Canvas Theme: Dark (Manual Override) • Click for Light, Right-Click / Shift-Click to Reset to Auto';
+        } else {
+          toggleBtn.title = isLight 
+            ? 'Canvas Theme: Light (Auto Sync with IDE) • Click for Dark' 
+            : 'Canvas Theme: Dark (Auto Sync with IDE) • Click for Light';
+        }
+      }
+      // Dynamically update D3 elements if already rendered
+      if (typeof g !== 'undefined' && g) {
+        g.selectAll('.node circle').attr('stroke', isLight ? '#ffffff' : '#1e293b');
+        g.selectAll('.node text').attr('fill', isLight ? '#0f172a' : '#f8fafc');
+        g.selectAll('.link-label').attr('fill', isLight ? '#475569' : '#94a3b8');
+      }
+    }
+
+    function resetThemeToAuto() {
+      localStorage.removeItem('hayagriva_entity_map_theme');
+      applyTheme();
+      showToast('✓ Theme reset to Auto (Following IDE)');
+    }
+
+    function toggleThemeManual(event) {
+      if (event && (event.shiftKey || event.altKey)) {
+        resetThemeToAuto();
+        return;
+      }
+      const isCurrentlyLight = document.body.classList.contains('theme-light');
+      const newLight = !isCurrentlyLight;
+      localStorage.setItem('hayagriva_entity_map_theme', newLight ? 'light' : 'dark');
+      updateThemeUI(newLight);
+      showToast(newLight ? '☀️ Switched to Light Canvas (Manual)' : '🌙 Switched to Dark Canvas (Manual)');
+    }
+
+    function applyTheme() {
+      // 1. Manual user override in localStorage takes highest priority
+      const savedTheme = localStorage.getItem('hayagriva_entity_map_theme');
+      if (savedTheme === 'light') {
+        updateThemeUI(true);
+        return;
+      } else if (savedTheme === 'dark') {
+        updateThemeUI(false);
+        return;
+      }
+
+      // 2. URL parameter ?theme=light / dark (Passed by Theia parent)
+      const params = new URLSearchParams(window.location.search);
+      const themeParam = params.get('theme');
+      if (themeParam === 'light') {
+        updateThemeUI(true);
+        return;
+      } else if (themeParam === 'dark') {
+        updateThemeUI(false);
+        return;
+      }
+
+      // 3. Fallback: Check parent if accessible, else system preference
+      try {
+        if (window.parent && window.parent.document && window.parent.document.body) {
+          const p = window.parent.document.body;
+          if (p.classList.contains('theia-light') || p.classList.contains('light-theia')) {
+            updateThemeUI(true);
+            return;
+          }
+        }
+      } catch (_) {}
+
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      updateThemeUI(!prefersDark);
     }
     applyTheme();
 
     window.addEventListener('message', (e) => {
-      if (e.data && e.data.type === 'theme-change') {
-        if (e.data.theme === 'light') {
-          document.body.classList.add('theme-light');
-        } else {
-          document.body.classList.remove('theme-light');
+      if (e.data && (e.data.type === 'theme-change' || e.data.type === 'theia-theme-changed')) {
+        // If user hasn't locked a manual preference in localStorage, auto-sync with Theia
+        const savedTheme = localStorage.getItem('hayagriva_entity_map_theme');
+        if (!savedTheme) {
+          updateThemeUI(e.data.theme === 'light');
         }
       }
       if (e.data && e.data.type === 'select-case' && e.data.caseName && e.data.caseName !== caseName) {
@@ -590,10 +672,11 @@
           .on('end', dragended))
         .on('click', (event, d) => showInspector(d));
 
+      const isLightMode = document.body.classList.contains('theme-light');
       nodeElements.append('circle')
         .attr('r', d => d.r || 20)
         .attr('fill', d => d.color || '#38bdf8')
-        .attr('stroke', '#1e293b');
+        .attr('stroke', isLightMode ? '#ffffff' : '#1e293b');
 
       nodeElements.append('text')
         .attr('dy', d => (d.r || 20) + 14)

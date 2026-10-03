@@ -445,12 +445,25 @@ export class HayagrivaPreviewManager {
     widget.title.iconClass = 'fa fa-sitemap';
     widget.title.closable = true;
 
+    const isLight = document.body.classList.contains('theia-light');
+    const themeParam = isLight ? 'light' : 'dark';
+
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.border = 'none';
-    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/entity-map-panel?case=${encodeURIComponent(caseName)}`;
+    iframe.src = `http://127.0.0.1:${this.getApiPort()}/api/hayagriva/entity-map-panel?case=${encodeURIComponent(caseName)}&theme=${themeParam}`;
     widget.node.appendChild(iframe);
+
+    const observer = new MutationObserver(() => {
+      const currentLight = document.body.classList.contains('theia-light');
+      const currentTheme = currentLight ? 'light' : 'dark';
+      try {
+        iframe.contentWindow?.postMessage({ type: 'theme-change', theme: currentTheme }, '*');
+      } catch (_) {}
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    widget.disposed.connect(() => observer.disconnect());
 
     this.shell.addWidget(widget, { area: 'main' });
     this.shell.activateWidget(widget.id);

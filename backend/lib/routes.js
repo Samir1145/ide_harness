@@ -3128,8 +3128,8 @@ module.exports = {
                 },
                 resolutionBazaar: {
                     connected: Boolean(isRbConnected && (isRbConnected.online || isRbConnected === true)),
-                    url: saved.lightragApiUrl || 'http://127.0.0.1:9621',
-                    configured: !!(saved.lightragApiKey || saved.resolutionbazaar_key)
+                    url: saved.lightragApiUrl || lightRagClient.config.apiUrl || 'http://20.198.0.59:9621',
+                    configured: !!(saved.lightragApiKey || saved.resolutionbazaar_key || lightRagClient.config.apiKey)
                 },
                 coworkers: {
                     ...localCoworkers,
@@ -5280,8 +5280,8 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                         }
                     }
 
-                    const lightragApiKey = data.lightragApiKey !== undefined ? data.lightragApiKey : (data.advisoryApiKey || existing.lightragApiKey || existing.advisoryApiKey || '');
-                    const lightragApiUrl = data.lightragApiUrl !== undefined ? data.lightragApiUrl : (existing.lightragApiUrl || 'http://127.0.0.1:9621');
+                    const lightragApiKey = data.lightragApiKey !== undefined ? data.lightragApiKey : (data.advisoryApiKey || existing.lightragApiKey || existing.advisoryApiKey || process.env.LIGHTRAG_API_KEY || '');
+                    const lightragApiUrl = data.lightragApiUrl !== undefined ? data.lightragApiUrl : (existing.lightragApiUrl || process.env.LIGHTRAG_API_URL || 'http://20.198.0.59:9621');
 
                     const savedConfig = {
                         ...existing,
