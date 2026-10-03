@@ -14,6 +14,9 @@ import { HayagrivaLspClient } from './lsp-client';
 import { HayagrivaMonacoProviders } from './monaco-providers';
 import { HayagrivaPreviewManager } from './preview-manager';
 import { AskHayaVoiceOrb } from './askhaya-orb';
+import { AuthManager } from './auth-manager';
+import { AuthModal } from './auth-modal';
+import { ProfileWidget } from './profile-widget';
 import { NavigatorTreeDecorator } from '@theia/navigator/lib/browser/navigator-decorator-service';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
 import { hayagrivaPreferenceSchema } from './extension';
@@ -104,6 +107,9 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(HayagrivaMonacoProviders).toSelf().inSingletonScope();
   bind(HayagrivaPreviewManager).toSelf().inSingletonScope();
   bind(AskHayaVoiceOrb).toSelf().inSingletonScope();
+  bind(AuthManager).toSelf().inSingletonScope();
+  bind(AuthModal).toSelf().inSingletonScope();
+  bind(ProfileWidget).toSelf().inSingletonScope();
 
   // Bind File Tree Status color-coding decorator to the native NavigatorTreeDecorator
   bind(HayagrivaTreeDecorator).toSelf().inSingletonScope();

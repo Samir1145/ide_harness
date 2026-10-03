@@ -562,6 +562,14 @@ export class HayagrivaFrontendContribution
       }
     }
 
+    // Ensure the left panel is expanded and Files & Folders is active by default
+    try {
+      this.shell.expandPanel('left');
+      if (explorerWidget) {
+        this.shell.activateWidget(explorerWidget.id);
+      }
+    } catch (_) {}
+
     // Keep right panel collapsed
     try {
       this.shell.collapsePanel('right');

@@ -9,6 +9,8 @@ import { LanguageModelRequirement, AgentSpecificVariables, PromptVariantSet } fr
 import { OutputChannelManager } from '@theia/output/lib/browser/output-channel';
 import { EditorManager } from '@theia/editor/lib/browser';
 import { AskHayaVoiceOrb } from './askhaya-orb';
+import { AuthManager } from './auth-manager';
+import { AuthModal } from './auth-modal';
 
 @injectable()
 export abstract class BaseHayagrivaChatAgent implements ChatAgent {
@@ -36,7 +38,9 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
     @inject(ILogger) protected readonly logger: ILogger,
     @inject(EditorManager) @optional() protected readonly editorManager?: EditorManager,
     @inject(OutputChannelManager) @optional() protected readonly outputChannelManager?: OutputChannelManager,
-    @inject(AskHayaVoiceOrb) @optional() protected readonly voiceOrb?: AskHayaVoiceOrb
+    @inject(AskHayaVoiceOrb) @optional() protected readonly voiceOrb?: AskHayaVoiceOrb,
+    @inject(AuthManager) @optional() protected readonly authManager?: AuthManager,
+    @inject(AuthModal) @optional() protected readonly authModal?: AuthModal
   ) {}
 
   protected getBackendUrl(): string {
@@ -53,6 +57,16 @@ export abstract class BaseHayagrivaChatAgent implements ChatAgent {
   }
 
   async invoke(request: MutableChatRequestModel): Promise<void> {
+    if (this.authManager && !this.authManager.isAuthenticated()) {
+      if (this.authModal) {
+        this.authModal.show('Sign in with your chamber account to activate Hayagriva AI Agents.');
+      }
+      request.response.response.addContent(new MarkdownChatResponseContentImpl(
+        `🔒 **Chamber Authentication Required**\n\nHayagriva Autonomous AI Agents are gated to authenticated chamber accounts. Please click the **Profile Icon** at the bottom left of the activity bar to sign in.`
+      ));
+      return;
+    }
+
     const progress = request.response.addProgressMessage({ content: `Routing query to ${this.name}...` });
     
     const userMessage = request.request.text;
