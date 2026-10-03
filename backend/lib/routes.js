@@ -144,7 +144,6 @@ function ensureCaseSettings(caseDir) {
                 '**/concepts': true,
                 '**/conversions': true,
                 '**/summaries': true,
-                '**/reviews': true,
                 '**/*_conversions_haya': true,
                 '**/*_concepts_haya': true,
                 '**/*_wiki_haya': true,
@@ -157,15 +156,12 @@ function ensureCaseSettings(caseDir) {
                 'concepts': true,
                 'conversions': true,
                 'summaries': true,
-                'reviews': true,
                 '**/concepts/**': true,
                 '**/conversions/**': true,
                 '**/summaries/**': true,
-                '**/reviews/**': true,
                 'concepts/': true,
                 'conversions/': true,
                 'summaries/': true,
-                'reviews/': true,
                 '**/*.status': true,
                 '**/*.error': true,
                 '**/*.footer': true,
@@ -1108,10 +1104,6 @@ module.exports = {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ statuses: {} }));
                 return;
-            }
-            
-            if (fs.existsSync(caseDir)) {
-                ensureCaseSettings(caseDir);
             }
 
             const statuses = {};
