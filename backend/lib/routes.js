@@ -7955,7 +7955,7 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     const totalBuffer = Buffer.concat(rawChunks);
                     let audioBuffer = totalBuffer;
                     let mimeType = 'audio/webm';
-                    let language = 'en-IN';
+                    let language = parsedUrl.query.language || parsedUrl.query.languageCode || 'unknown';
                     let caseName = parsedUrl.query.case || null;
 
                     if (contentType.includes('application/json')) {
@@ -7964,7 +7964,7 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                             audioBuffer = Buffer.from(parsed.audioBase64, 'base64');
                         }
                         if (parsed.mimeType) mimeType = parsed.mimeType;
-                        if (parsed.language) language = parsed.language;
+                        if (parsed.language || parsed.languageCode) language = parsed.language || parsed.languageCode;
                         if (parsed.case) caseName = parsed.case;
                     } else if (contentType.includes('audio/')) {
                         mimeType = contentType.split(';')[0].trim();

@@ -384,9 +384,10 @@ class SarvamClient {
         formParts.push(audioBuffer);
         formParts.push(Buffer.from('\r\n'));
 
-        // Model field
+        // Model field (Saaras v4 - latest official flagship Indian legal STT model)
+        const model = params.model || 'saaras:v4';
         formParts.push(Buffer.from(
-            `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nsaaras:v2\r\n`
+            `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\n${model}\r\n`
         ));
 
         // Language code field
