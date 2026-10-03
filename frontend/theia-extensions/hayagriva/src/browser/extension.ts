@@ -1953,6 +1953,7 @@ export class HayagrivaFrontendContribution
         background: rgba(239, 68, 68, 0.15) !important;
         border: 1px solid rgba(239, 68, 68, 0.6) !important;
       }
+      .askhaya-composer-mic.processing,
       .askhaya-composer-mic.thinking {
         background: rgba(56, 189, 248, 0.15) !important;
         border: 1px solid rgba(56, 189, 248, 0.6) !important;
@@ -1968,13 +1969,13 @@ export class HayagrivaFrontendContribution
   // ── Inline Voice Mic Button in Chat Composer ─────────────────────────────
   protected initializeChatMicIntegration(): void {
     const updateButtonVisual = (micBtn: HTMLElement, state: string) => {
-      micBtn.classList.remove('online', 'offline', 'listening', 'thinking', 'speaking');
+      micBtn.classList.remove('online', 'offline', 'listening', 'processing', 'thinking', 'speaking');
       if (state === 'listening') {
         micBtn.classList.add('listening');
         micBtn.innerHTML = '<i class="fa fa-circle" style="color: #ef4444; font-size: 11px; animation: pulse 1s infinite;"></i><span style="color: #ef4444; font-size: 11px; font-weight: 600; margin-left: 5px;">Listening…</span>';
         micBtn.setAttribute('title', 'Listening to your inquiry... (Click to stop/send)');
-      } else if (state === 'thinking') {
-        micBtn.classList.add('thinking');
+      } else if (state === 'processing' || state === 'thinking') {
+        micBtn.classList.add('processing');
         micBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color: #38bdf8; font-size: 12px;"></i><span style="color: #38bdf8; font-size: 11px; font-weight: 600; margin-left: 5px;">Researching…</span>';
         micBtn.setAttribute('title', 'Consulting LightRAG graph & bare acts...');
       } else if (state === 'speaking') {
@@ -2046,8 +2047,8 @@ export class HayagrivaFrontendContribution
           } else if (state === 'listening') {
             // Push-to-talk toggle: Clicking while listening immediately captures and submits speech!
             this.voiceOrb.stopListening();
-          } else if (state === 'thinking') {
-            // Cancel thinking / stuck query
+          } else if (state === 'processing' || (state as any) === 'thinking') {
+            // Cancel processing / stuck query
             this.voiceOrb.cancel();
           } else {
             // Idle state: Check status asynchronously in background, but NEVER block the user from speaking!

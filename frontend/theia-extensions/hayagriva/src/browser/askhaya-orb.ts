@@ -7,7 +7,7 @@ import { CommandRegistry } from '@theia/core/lib/common/command';
 import { EditorManager } from '@theia/editor/lib/browser';
 import URI from '@theia/core/lib/common/uri';
 
-export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking';
+export type OrbState = 'idle' | 'listening' | 'processing' | 'speaking';
 
 export interface StateChangeListener {
   (state: OrbState): void;
@@ -49,6 +49,14 @@ export class AskHayaVoiceOrb {
 
   getState(): OrbState {
     return this.state;
+  }
+
+  getLastResult(): { spokenText: string; fullDossier: string; query: string } | null {
+    return this.lastResult;
+  }
+
+  setLastResult(result: { spokenText: string; fullDossier: string; query: string } | null): void {
+    this.lastResult = result;
   }
 
   onStateChanged(listener: StateChangeListener): { dispose: () => void } {
@@ -320,7 +328,7 @@ export class AskHayaVoiceOrb {
 
     // Ensure @AskHaya is explicitly prefixed so Theia Chat routing passes it to AskHayaChatAgent
     const targetQuery = clean.startsWith('@') ? clean : `@AskHaya ${clean}`;
-    this.setState('thinking');
+    this.setState('processing');
 
     try {
       const chatWidget = this.shell.getWidgets('left').find(w => w.id.includes('chat-view-widget') || w.id.includes('chat')) as any;
@@ -373,8 +381,8 @@ export class AskHayaVoiceOrb {
     } catch (err: any) {
       this.logger.error(`[AskHayaVoiceService] Direct agent call failed: ${err.message}`);
     } finally {
-      // Guaranteed recovery: reset state to idle when thinking completes unless speech actively starts
-      if (this.state === 'thinking') {
+      // Guaranteed recovery: reset state to idle when processing completes unless speech actively starts
+      if (this.state === 'processing') {
         this.setState('idle');
       }
     }
@@ -552,13 +560,13 @@ export class AskHayaVoiceOrb {
     // Update in-panel button visual state directly if present in DOM
     const micBtn = document.querySelector('.askhaya-composer-mic') as HTMLElement;
     if (micBtn) {
-      micBtn.classList.remove('online', 'offline', 'listening', 'thinking', 'speaking');
+      micBtn.classList.remove('online', 'offline', 'listening', 'processing', 'thinking', 'speaking');
       if (newState === 'listening') {
         micBtn.classList.add('listening');
         micBtn.innerHTML = '<i class="fa fa-circle" style="color: #ef4444; font-size: 11px; animation: pulse 1s infinite;"></i><span style="color: #ef4444; font-size: 11px; font-weight: 600; margin-left: 5px;">Listening…</span>';
         micBtn.setAttribute('title', 'Listening to your legal inquiry... (Click to send or stop)');
-      } else if (newState === 'thinking') {
-        micBtn.classList.add('thinking');
+      } else if (newState === 'processing') {
+        micBtn.classList.add('processing');
         micBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color: #38bdf8; font-size: 12px;"></i><span style="color: #38bdf8; font-size: 11px; font-weight: 600; margin-left: 5px;">Researching…</span>';
         micBtn.setAttribute('title', 'Consulting LightRAG graph & bare acts...');
       } else if (newState === 'speaking') {
