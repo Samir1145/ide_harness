@@ -135,8 +135,12 @@ class LightRagClient {
         const isLocal = this.config.apiUrl.includes('127.0.0.1') || this.config.apiUrl.includes('localhost');
         const isMockKey = Boolean(this.config.apiKey && this.config.apiKey.startsWith('rb_live'));
         if (this.config.apiKey && (!isLocal || !isMockKey) && !extra.forceNoAuth) {
-            headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+            // FastAPI expects X-API-Key. Do NOT send Authorization: Bearer unless explicitly specified in extra
+            // to avoid FastAPI OAuth2PasswordBearer JWT decoding 401 collisions.
             headers['X-API-Key'] = this.config.apiKey;
+            if (extra.useBearerAuth) {
+                headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+            }
         }
         if (this.config.workspace) {
             headers['LIGHTRAG-WORKSPACE'] = this.config.workspace;
