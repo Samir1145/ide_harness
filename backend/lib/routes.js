@@ -7749,11 +7749,21 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     const voiceAgent = require('./agents/lightrag-voice-agent');
                     const caseName = data.case || parsedUrl.query.case || null;
                     const caseDir = caseName ? resolveCaseDir(docsRoot, caseName) : null;
+                    let caseSettings = null;
+                    if (caseDir && fs.existsSync(caseDir)) {
+                        try {
+                            const sPath = path.join(caseDir, 'hayagriva_settings.json');
+                            if (fs.existsSync(sPath)) caseSettings = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+                        } catch (_) {}
+                    }
+                    const resolvedLang = data.languageCode || data.targetLanguage || data.language || (caseSettings && (caseSettings.voiceLanguage || caseSettings.sarvamLanguage)) || null;
 
                     const result = await voiceAgent.inquire(data.query, {
                         caseDir: caseDir,
                         mode: data.mode,
-                        top_k: data.top_k || 4
+                        top_k: data.top_k || 4,
+                        languageCode: resolvedLang,
+                        caseSettings: caseSettings
                     });
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });

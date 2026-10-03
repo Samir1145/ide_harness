@@ -70,7 +70,7 @@ class SarvamClient {
         if (caseSettings && caseSettings.sarvamEnabled === false) {
             return '';
         }
-        if (caseSettings && caseSettings.sarvamApiKey !== undefined && caseSettings.sarvamApiKey !== null) {
+        if (caseSettings && caseSettings.sarvamApiKey && String(caseSettings.sarvamApiKey).trim()) {
             return String(caseSettings.sarvamApiKey).trim();
         }
         if (this.hasExplicitApiKey) {
@@ -254,7 +254,7 @@ class SarvamClient {
         if (SPEAKER_ALIAS_MAP[speaker]) {
             speaker = SPEAKER_ALIAS_MAP[speaker];
         }
-        const targetLanguage = params.targetLanguage || params.caseSettings?.sarvamLanguage || this.detectScript(text) || this.defaultLanguage || 'en-IN';
+        const targetLanguage = params.targetLanguage || params.languageCode || params.caseSettings?.sarvamLanguage || this.detectScript(text) || this.defaultLanguage || 'en-IN';
         const pace = typeof params.pace === 'number' ? params.pace : 1.0;
         const pitch = typeof params.pitch === 'number' ? params.pitch : 0.0;
 
@@ -513,8 +513,8 @@ class SarvamClient {
         const sourceLanguage = params.sourceLanguage || this.detectScript(text);
         const targetLanguage = params.targetLanguage || 'en-IN';
 
-        // 1. Instant pass-through optimization: If source and target match or text is ASCII English
-        if (sourceLanguage === targetLanguage || (targetLanguage === 'en-IN' && !/[^\u0000-\u007F]/.test(text))) {
+        // 1. Instant pass-through optimization: If source and target match or source is already English
+        if (sourceLanguage === targetLanguage || (sourceLanguage === 'en-IN' && targetLanguage === 'en-IN') || (!params.sourceLanguage && targetLanguage === 'en-IN' && !/[^\u0000-\u007F]/.test(text))) {
             return {
                 success: true,
                 translatedText: text,

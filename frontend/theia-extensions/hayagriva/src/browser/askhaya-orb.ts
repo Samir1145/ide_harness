@@ -24,7 +24,8 @@ export class AskHayaVoiceOrb {
   protected lastAudioBase64: string | null = null;
   protected unlockedAudioElement: HTMLAudioElement | null = null;
   protected stateListeners: StateChangeListener[] = [];
-  protected lastResult: { spokenText: string; fullDossier: string; query: string } | null = null;
+  protected lastResult: { spokenText: string; fullDossier: string; query: string; languageCode?: string } | null = null;
+  protected activeLanguage: string = 'en-IN';
   protected silenceTimer: any = null;
   protected accumulatedTranscript: string = '';
 
@@ -74,11 +75,11 @@ export class AskHayaVoiceOrb {
     return this.state;
   }
 
-  getLastResult(): { spokenText: string; fullDossier: string; query: string } | null {
+  getLastResult(): { spokenText: string; fullDossier: string; query: string; languageCode?: string } | null {
     return this.lastResult;
   }
 
-  setLastResult(result: { spokenText: string; fullDossier: string; query: string } | null): void {
+  setLastResult(result: { spokenText: string; fullDossier: string; query: string; languageCode?: string } | null): void {
     this.lastResult = result;
   }
 
@@ -95,11 +96,17 @@ export class AskHayaVoiceOrb {
   }
 
   initialize(): void {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('hayagriva_voice_lang');
+        if (saved) this.activeLanguage = saved;
+      } catch (_) {}
+    }
     this.mountDom();
     this.initSpeechRecognition();
     this.bindKeyboardShortcuts();
     this.initLightRagStatusWatcher();
-    this.logger.info('[AskHayaVoiceService] Ambient Amber Voice Orb initialized & mounted.');
+    this.logger.info(`[AskHayaVoiceService] Ambient Amber Voice Orb initialized & mounted (lang=${this.activeLanguage}).`);
   }
 
   ensureAudioUnlocked(): void {
@@ -183,6 +190,7 @@ export class AskHayaVoiceOrb {
               <span class="wave-bar bar-5"></span>
             </div>
             <div class="orb-header-actions">
+              <button class="orb-btn orb-btn-lang" id="askhaya-btn-lang" title="Toggle Language (English / Hindi)">EN</button>
               <button class="orb-btn orb-btn-panel" id="askhaya-btn-panel" title="Open AskHaya Panel (Alt+Space)">
                 <i class="fa fa-columns"></i>
               </button>
@@ -227,6 +235,7 @@ export class AskHayaVoiceOrb {
     this.restorePosition();
     this.setupDraggability();
     this.setupEventListeners();
+    this.updateLanguageDisplay();
   }
 
   // ── Drag & Viewport Bounds Physics ──────────────────────────────────────────
@@ -429,6 +438,15 @@ export class AskHayaVoiceOrb {
       });
     }
 
+    // Language toggle button
+    const langBtn = this.domRoot.querySelector('#askhaya-btn-lang');
+    if (langBtn) {
+      langBtn.addEventListener('click', (e: MouseEvent) => {
+        e.stopPropagation();
+        this.toggleLanguage();
+      });
+    }
+
     // Play / Replay action button
     const actionPlay = this.domRoot.querySelector('#askhaya-action-play');
     if (actionPlay) {
@@ -442,7 +460,7 @@ export class AskHayaVoiceOrb {
             this.logger.warn(`[AskHayaVoiceService] Replay error: ${err}`);
           });
         } else if (this.lastResult?.spokenText) {
-          this.speak(this.lastResult.spokenText);
+          this.speak(this.lastResult.spokenText, this.lastResult?.languageCode);
         }
       });
     }
@@ -504,6 +522,46 @@ export class AskHayaVoiceOrb {
         }
       });
     }
+  }
+
+  updateLanguageDisplay(): void {
+    if (this.domRoot) {
+      const langBtn = this.domRoot.querySelector('#askhaya-btn-lang') as HTMLElement;
+      if (langBtn) {
+        if (this.activeLanguage === 'hi-IN') {
+          langBtn.innerHTML = 'HI';
+          langBtn.setAttribute('title', 'Language: Hindi (hi-IN) • Click to switch to English');
+          langBtn.classList.add('lang-hi');
+        } else {
+          langBtn.innerHTML = 'EN';
+          langBtn.setAttribute('title', 'Language: English (en-IN) • Click to switch to Hindi');
+          langBtn.classList.remove('lang-hi');
+        }
+      }
+    }
+  }
+
+  toggleLanguage(): void {
+    const nextLang = this.activeLanguage === 'hi-IN' ? 'en-IN' : 'hi-IN';
+    this.setLanguage(nextLang);
+  }
+
+  setLanguage(lang: string): void {
+    this.activeLanguage = lang;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('hayagriva_voice_lang', lang);
+      } catch (_) {}
+    }
+    if (this.recognition) {
+      this.recognition.lang = lang;
+    }
+    this.updateLanguageDisplay();
+    this.logger.info(`[AskHayaVoiceService] Voice language set to: ${lang}`);
+  }
+
+  getLanguage(): string {
+    return this.activeLanguage;
   }
 
   protected updateTranscriptDisplay(text: string): void {
@@ -742,6 +800,37 @@ export class AskHayaVoiceOrb {
         background: rgba(255, 255, 255, 0.15);
       }
 
+      .orb-btn-lang {
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        color: #fbbf24;
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        padding: 1px 5px;
+        min-width: 22px;
+        height: 18px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .orb-btn-lang:hover {
+        background: rgba(245, 158, 11, 0.35);
+        border-color: rgba(245, 158, 11, 0.8);
+        color: #fff;
+      }
+
+      .orb-btn-lang.lang-hi {
+        background: rgba(239, 68, 68, 0.25);
+        border-color: rgba(239, 68, 68, 0.7);
+        color: #fca5a5;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+      }
+
       /* Body & Transcript */
       .orb-body-row {
         width: 100%;
@@ -972,7 +1061,7 @@ export class AskHayaVoiceOrb {
       this.recognition = new SpeechRecognition();
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
-      this.recognition.lang = 'en-IN';
+      this.recognition.lang = this.activeLanguage;
 
       this.recognition.onstart = () => {
         this.setState('listening');
@@ -1055,6 +1144,7 @@ export class AskHayaVoiceOrb {
     this.updateTranscriptDisplay('Listening to your legal inquiry...');
 
     if (this.recognition) {
+      this.recognition.lang = this.activeLanguage;
       try {
         this.recognition.start();
         return;
@@ -1104,7 +1194,8 @@ export class AskHayaVoiceOrb {
           query: clean,
           case: currentCase,
           top_k: 4,
-          mode: 'mix'
+          mode: 'mix',
+          languageCode: this.activeLanguage
         })
       });
 
@@ -1115,14 +1206,16 @@ export class AskHayaVoiceOrb {
       const data = await res.json();
       const spokenText = data.spokenText ? this.cleanForSpeech(data.spokenText) : (data.response ? this.cleanForSpeech(data.response) : 'No response returned from Voice Inquest.');
       const fullDossier = data.fullDossier || data.response || spokenText;
+      const returnedLang = data.languageCode || this.activeLanguage;
 
       this.setLastResult({
         query: clean,
         spokenText,
-        fullDossier
+        fullDossier,
+        languageCode: returnedLang
       });
 
-      await this.speak(spokenText);
+      await this.speak(spokenText, returnedLang);
 
       // Sync with active editor if draft was cited
       const draftMatch = fullDossier.match(/(?:drafts|claims)[\/\\][a-zA-Z0-9_.\-]+\.md/i);
@@ -1457,7 +1550,7 @@ export class AskHayaVoiceOrb {
     }
   }
 
-  async speak(text: string): Promise<void> {
+  async speak(text: string, languageCode?: string): Promise<void> {
     this.stopSpeaking();
     this.ensureAudioUnlocked();
     const cleanSpoken = this.cleanForSpeech(text);
@@ -1469,6 +1562,8 @@ export class AskHayaVoiceOrb {
     this.updateSpokenDisplay(cleanSpoken);
     this.setState('speaking');
 
+    const targetLang = languageCode || this.lastResult?.languageCode || this.activeLanguage || 'en-IN';
+
     try {
       const currentCase = this.getActiveCaseDir();
       const ttsRes = await fetch(`${this.getBackendUrl()}/api/hayagriva/voice/tts`, {
@@ -1477,6 +1572,8 @@ export class AskHayaVoiceOrb {
         body: JSON.stringify({
           text: cleanSpoken,
           speaker: 'aditya',
+          languageCode: targetLang,
+          target_language_code: targetLang,
           case: currentCase
         })
       });
@@ -1501,7 +1598,7 @@ export class AskHayaVoiceOrb {
         const utterance = new SpeechSynthesisUtterance(cleanSpoken);
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
-        utterance.lang = 'en-IN';
+        utterance.lang = targetLang;
 
         utterance.onend = () => {
           this.currentSpeechUtterance = null;
