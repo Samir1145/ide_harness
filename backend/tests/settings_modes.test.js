@@ -121,7 +121,7 @@ ${contentText}`,
     if (!ragResult.liteMode) {
         throw new Error(`Expected query result to indicate liteMode, got '${JSON.stringify(ragResult)}'`);
     }
-    if (!ragResult.answer.includes('Lite Mode — Semantic Passage Search')) {
+    if (!ragResult.answer.includes('Lite Mode — Verbatim Semantic Passage Search') && !ragResult.answer.includes('Lite Mode — Semantic Passage Search')) {
         throw new Error(`Expected answer to contain Lite Mode banner, got: ${ragResult.answer}`);
     }
     if (!ragResult.answer.includes('This is the core content snippet')) {

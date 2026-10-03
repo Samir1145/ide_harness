@@ -47,6 +47,11 @@ const PRIORITY_ORDER = [
     'self_wake_scheduler.test.js',
     'tool_pairing_repair.test.js',
     'run_grants.test.js',
+    'test_askhaya_voice_orb_state.test.js',
+    'test_askhaya_orb_dom.test.js',
+    'test_askhaya_voice_inquest.test.js',
+    'test_askhaya_monaco_bridge.test.js',
+    'test_askhaya_orb_e2e.test.js',
     'comprehensive_sanity.test.js'
 ];
 

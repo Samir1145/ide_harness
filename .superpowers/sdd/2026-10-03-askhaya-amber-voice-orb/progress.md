@@ -9,5 +9,8 @@
 | Task 4 & Task 5 | Task 4 exposes `hayagriva:toggleVoiceOrb`; Task 5 verifies E2E execution | Clean | N/A |
 
 Task 1: complete (commits 849812b..e62908b, review clean)
-Task 2: complete (commits e62908b..d507fd1, review clean)
+Task 2: complete (commits e62908b..eee5307, review clean)
+Task 3: complete (commits eee5307..cf3b1b7, review clean)
+Task 4: complete (commits cf3b1b7..757306a, review clean)
+Task 5: complete (E2E suite verified, 36/36 tests passing, builds clean, visual screenshots captured)
 

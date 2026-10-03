@@ -592,10 +592,13 @@ async function runTests() {
   console.log('✓ AskHayaVoiceOrb.toggleVoiceOrb() operational.\n');
 
   console.log('=== ALL TASK 4 MONACO BRIDGE & ALT+SPACE TESTS PASSED! ===');
-  process.exit(0);
 }
 
-runTests().catch(err => {
-  console.error('\n❌ Task 4 Test Failed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  runTests().catch(err => {
+    console.error('\n❌ Task 4 Test Failed:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { run: runTests, runTests };

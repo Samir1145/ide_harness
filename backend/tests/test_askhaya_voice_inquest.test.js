@@ -559,10 +559,13 @@ async function runTests() {
   console.log('✓ STT interim transcript and silence auto-submit pipeline verified.\n');
 
   console.log('=== ALL TASK 3 ASK HAYA VOICE INQUEST TESTS PASSED! ===');
-  process.exit(0);
 }
 
-runTests().catch(err => {
-  console.error('\n❌ Task 3 Test Failed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  runTests().catch(err => {
+    console.error('\n❌ Task 3 Test Failed:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { run: runTests, runTests };
