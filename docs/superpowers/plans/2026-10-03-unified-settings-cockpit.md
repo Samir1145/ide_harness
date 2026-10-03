@@ -34,17 +34,17 @@
 - Modify: `backend/lib/routes.js`
 - Test: `backend/tests/test_unified_settings_api.test.js`
 
-- [ ] **Step 1.1: Write failing test for Display Preferences & Unified Profile API**
+- [x] **Step 1.1: Write failing test for Display Preferences & Unified Profile API**
   Create `backend/tests/test_unified_settings_api.test.js` testing `GET /api/hayagriva/settings/display`, `POST /api/hayagriva/settings/display`, and `GET /api/hayagriva/profile/full`.
-- [ ] **Step 1.2: Run test and ensure it fails**
+- [x] **Step 1.2: Run test and ensure it fails**
   Run `node backend/tests/test_unified_settings_api.test.js`.
-- [ ] **Step 1.3: Extend `profile-manager.js` with Display Defaults**
+- [x] **Step 1.3: Extend `profile-manager.js` with Display Defaults**
   Add `display` config defaults (`fontFamily: 'Merriweather'`, `fontSize: 14`, `lineHeight: 1.6`, `theme: 'dark'`, `wordWrap: 'on'`, `minimap: false`) to `getProfile()` and `saveProfile()`.
-- [ ] **Step 1.4: Add Display Endpoints in `routes.js`**
+- [x] **Step 1.4: Add Display Endpoints in `routes.js`**
   Implement `GET /api/hayagriva/settings/display` and `POST /api/hayagriva/settings/display` in `backend/lib/routes.js`.
-- [ ] **Step 1.5: Run test and verify it passes**
+- [x] **Step 1.5: Run test and verify it passes**
   Run `node backend/tests/test_unified_settings_api.test.js`.
-- [ ] **Step 1.6: Commit**
+- [x] **Step 1.6: Commit**
   `git add backend/lib/core/profile-manager.js backend/lib/routes.js backend/tests/test_unified_settings_api.test.js && git commit -m "feat(backend): add display preferences and unified profile endpoints"`
 
 ---
@@ -55,19 +55,19 @@
 - Modify: `backend/lib/assets/settings-dashboard.html`
 - Test: `backend/tests/test_settings_dashboard_tabs.test.js`
 
-- [ ] **Step 2.1: Write failing test for new tabs and universal search**
+- [x] **Step 2.1: Write failing test for new tabs and universal search**
   Create `backend/tests/test_settings_dashboard_tabs.test.js` asserting existence of `#pillDisplay`, `#pillIdentity`, `#tabPanelDisplay`, `#tabPanelIdentity`, and universal search input `#universalSettingsSearch`.
-- [ ] **Step 2.2: Run test and ensure it fails**
+- [x] **Step 2.2: Run test and ensure it fails**
   Run `node backend/tests/test_settings_dashboard_tabs.test.js`.
-- [ ] **Step 2.3: Implement Display & Typography Tab Panel in `settings-dashboard.html`**
+- [x] **Step 2.3: Implement Display & Typography Tab Panel in `settings-dashboard.html`**
   Add `#pillDisplay` nav button, `#tabPanelDisplay` container with font selector, font size slider (12px–22px), line height slider (1.4–1.8), theme picker (Dark / Clean Light / Sepia Legal Paper), and word wrap toggle.
-- [ ] **Step 2.4: Implement Universal Settings Search & Deep-Linking**
+- [x] **Step 2.4: Implement Universal Settings Search & Deep-Linking**
   Add `#universalSettingsSearch` input with real-time DOM card filtering across all tabs. Parse URL hash / query param (e.g. `?tab=display` or `#tab=identity`) on load to activate the designated tab automatically.
-- [ ] **Step 2.5: Add Webview postMessage dispatchers**
+- [x] **Step 2.5: Add Webview postMessage dispatchers**
   When typography or theme sliders move, emit `window.parent.postMessage({ type: 'set-workspace-preference', key, value }, '*')`.
-- [ ] **Step 2.6: Run test and verify it passes**
+- [x] **Step 2.6: Run test and verify it passes**
   Run `node backend/tests/test_settings_dashboard_tabs.test.js`.
-- [ ] **Step 2.7: Commit**
+- [x] **Step 2.7: Commit**
   `git add backend/lib/assets/settings-dashboard.html backend/tests/test_settings_dashboard_tabs.test.js && git commit -m "feat(ui): add display pillar and universal search to settings dashboard"`
 
 ---
@@ -78,16 +78,16 @@
 - Modify: `frontend/theia-extensions/hayagriva/src/browser/extension.ts`
 - Modify: `frontend/theia-extensions/hayagriva/src/browser/preview-manager.ts`
 
-- [ ] **Step 3.1: Support Tab Deep-Linking in `preview-manager.ts`**
+- [x] **Step 3.1: Support Tab Deep-Linking in `preview-manager.ts`**
   Update `openCockpitPanel(caseName, tab, action)` to append `?tab=${tab}` or `#tab=${tab}` to the iframe source URL.
-- [ ] **Step 3.2: Implement `set-workspace-preference` message handler in `extension.ts`**
+- [x] **Step 3.2: Implement `set-workspace-preference` message handler in `extension.ts`**
   In the webview `window.addEventListener('message')` listener in `extension.ts`, add handling for `set-workspace-preference`:
   - `editor.fontSize` ➔ `this.preferenceService.set('editor.fontSize', value)`
   - `editor.fontFamily` ➔ `this.preferenceService.set('editor.fontFamily', value)`
   - `editor.lineHeight` ➔ `this.preferenceService.set('editor.lineHeight', value)`
   - `editor.wordWrap` ➔ `this.preferenceService.set('editor.wordWrap', value)`
   - `workbench.colorTheme` ➔ `this.preferenceService.set('workbench.colorTheme', value)`
-- [ ] **Step 3.3: Commit**
+- [x] **Step 3.3: Commit**
   `git add frontend/theia-extensions/hayagriva/src/browser/extension.ts frontend/theia-extensions/hayagriva/src/browser/preview-manager.ts && git commit -m "feat(bridge): implement live preference synchronization between cockpit and theia"`
 
 ---
@@ -98,15 +98,15 @@
 - Modify: `frontend/theia-extensions/hayagriva/src/browser/commands.ts`
 - Modify: `frontend/theia-extensions/hayagriva/src/browser/menus.ts`
 
-- [ ] **Step 4.1: Intercept Built-In Preference Commands in `commands.ts`**
+- [x] **Step 4.1: Intercept Built-In Preference Commands in `commands.ts`**
   Register command handlers for `preferences:open`, `preferences:openUserPreferences`, `preferences:openWorkspacePreferences`, `workbench.action.openSettings` that execute `this.contribution.openCockpitPanel(undefined, 'display')`.
-- [ ] **Step 4.2: Restructure Top `Settings` Menu in `menus.ts`**
+- [x] **Step 4.2: Restructure Top `Settings` Menu in `menus.ts`**
   Update `SETTINGS_MAIN_MENU` entries to provide direct 4-pillar navigation:
   1. `📊 Chamber Governance & AI Engines…` (`tab=settings`)
   2. `🏛️ Statutory Vaults & Suites…` (`tab=vaults`)
   3. `👤 Practitioner Identity & Stamp…` (`tab=identity`)
   4. `🖥️ Display & Legal Typography…` (`tab=display`)
-- [ ] **Step 4.3: Commit**
+- [x] **Step 4.3: Commit**
   `git add frontend/theia-extensions/hayagriva/src/browser/commands.ts frontend/theia-extensions/hayagriva/src/browser/menus.ts && git commit -m "feat(menus): intercept theia preferences and restructure top settings menu"`
 
 ---
@@ -116,11 +116,11 @@
 **Files:**
 - Modify: `frontend/theia-extensions/hayagriva/src/browser/profile-widget.ts`
 
-- [ ] **Step 5.1: Add "Manage Identity & Chamber Settings" CTA to Profile Popover**
+- [x] **Step 5.1: Add "Manage Identity & Chamber Settings" CTA to Profile Popover**
   Add a primary action button in `profile-widget.ts` popover template that executes `hayagriva:openSettingsPanel` with `identity` tab.
-- [ ] **Step 5.2: Update Profile Popover Styling**
+- [x] **Step 5.2: Update Profile Popover Styling**
   Ensure cohesive styling with glassmorphism matching the chamber visual language.
-- [ ] **Step 5.3: Commit**
+- [x] **Step 5.3: Commit**
   `git add frontend/theia-extensions/hayagriva/src/browser/profile-widget.ts && git commit -m "feat(profile): connect profile widget cta directly to identity settings"`
 
 ---
@@ -130,13 +130,13 @@
 **Files:**
 - Create: `backend/tests/test_unified_settings_e2e.test.js`
 
-- [ ] **Step 6.1: Write complete End-to-End validation test**
+- [x] **Step 6.1: Write complete End-to-End validation test**
   Assert that:
   - Backend returns correct initial display and profile settings.
   - Updating display preferences persists and returns correct updated values.
   - Settings dashboard HTML includes all 3 sovereign pillars and script bridges.
   - Deep-link URLs resolve with proper tabs.
-- [ ] **Step 6.2: Run the complete test suite**
+- [x] **Step 6.2: Run the complete test suite**
   Run `node backend/tests/test_unified_settings_e2e.test.js` and `node backend/tests/run_all_tests.js`.
-- [ ] **Step 6.3: Commit**
+- [x] **Step 6.3: Commit**
   `git add backend/tests/test_unified_settings_e2e.test.js && git commit -m "test: add comprehensive e2e test suite for unified settings cockpit"`
