@@ -7479,11 +7479,14 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     return;
                 }
 
+                const tierName = String(result.tier || 'starter').toUpperCase();
+                const licenseeName = result.licensee || 'Practitioner';
+
                 if (caseDir && fs.existsSync(caseDir)) {
-                    writeLicenseToSettings(caseDir, result.tier, {
-                        sub: result.licensee,
+                    writeLicenseToSettings(caseDir, (result.tier || 'starter').toLowerCase(), {
+                        sub: licenseeName,
                         expiresAt: result.valid_until,
-                        allowed_packs: result.allowed_packs
+                        allowed_packs: result.allowed_packs || []
                     });
                 }
 
@@ -7496,9 +7499,9 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                         <body>
                           <div class="card">
                             <h2>✨ License Activated Successfully!</h2>
-                            <p class="sub">Welcome, <strong>${result.licensee}</strong>. Your Hayagriva IDE is now unlocked.</p>
+                            <p class="sub">Welcome, <strong>${licenseeName}</strong>. Your Hayagriva IDE is now unlocked.</p>
                             <div style="margin-bottom: 20px;">
-                              <div>Tier: <span class="badge">${result.tier.toUpperCase()}</span></div>
+                              <div>Tier: <span class="badge">${tierName}</span></div>
                               <div style="margin-top: 8px;">Active Suites:</div>
                               <div>
                                 ${(result.allowed_packs || []).map(p => `<span class="badge">✓ ${p}</span>`).join(' ') || '<span class="badge">All Suites</span>'}
@@ -7517,12 +7520,12 @@ This precedent dossier has been synthesized via Resolution Bazaar GraphRAG and i
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({
                         success: true,
-                        tier: result.tier,
-                        licensedTo: result.licensee,
-                        allowed_packs: result.allowed_packs,
+                        tier: (result.tier || 'starter').toLowerCase(),
+                        licensedTo: licenseeName,
+                        allowed_packs: result.allowed_packs || [],
                         expiresAt: result.valid_until,
                         cloudActivated: result.cloudActivated || false,
-                        message: `License activated successfully (${result.tier.toUpperCase()} tier).`
+                        message: `License activated successfully (${tierName} tier).`
                     }));
                 }
             };

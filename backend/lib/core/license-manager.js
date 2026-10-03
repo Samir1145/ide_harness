@@ -478,11 +478,14 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
         WHERE id = 1
     `);
 
+    const resolvedLicensee = payload.sub || payload.userId || 'Licensed Practitioner';
+    const resolvedTier = String(payload.tier || payload.planTier || 'starter').toLowerCase();
+
     stmt.run(
         licenseKey,
-        payload.sub || 'Licensed Practitioner',
-        payload.tier || 'starter',
-        payload.issued_at || new Date(now).toISOString(),
+        resolvedLicensee,
+        resolvedTier,
+        payload.issued_at || payload.issuedAt || new Date(now).toISOString(),
         stage2Expiry,
         stage2Expiry,
         payload.max_active_hours || DEFAULT_MAX_HOURS,
@@ -498,8 +501,8 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
         if (!fs.existsSync(entitlementsDir)) fs.mkdirSync(entitlementsDir, { recursive: true });
         const entitlementsPath = path.join(entitlementsDir, 'active_license_entitlements.json');
         const entitlementsData = {
-            licensee: payload.sub || 'Licensed Practitioner',
-            tier: payload.tier || 'starter',
+            licensee: resolvedLicensee,
+            tier: resolvedTier,
             allowed_packs: payload.allowed_packs || payload.allowedPacks || [
                 'suite_cirp', 'suite_finance', 'suite_liquidation', 'suite_msme', 'suite_guarantor', 'suite_litigation'
             ],
@@ -521,8 +524,8 @@ function activateLicense(licenseKey, caseDir = '', customDbPath = null) {
 
     return {
         success: true,
-        licensee: payload.sub,
-        tier: payload.tier,
+        licensee: resolvedLicensee,
+        tier: resolvedTier,
         allowed_packs: payload.allowed_packs || payload.allowedPacks || [],
         lightrag_api_key: payload.lightrag_api_key || payload.lightragApiKey ? 'Configured' : 'None',
         valid_until: stage2Expiry,
@@ -600,8 +603,12 @@ async function activateLicenseWithCloud(rawOrEnvelopeKey, caseDir = '', customDb
             }
 
             const localActivation = activateLicense(offlineToken, caseDir, customDbPath);
+            const resolvedTier = String(localActivation.tier || data.license?.plan || 'starter').toLowerCase();
+            const resolvedLicensee = localActivation.licensee || data.license?.licensee || data.license?.userId || 'Licensed Practitioner';
             return {
                 ...localActivation,
+                tier: resolvedTier,
+                licensee: resolvedLicensee,
                 cloudActivated: true,
                 rawKey: cleanKey,
                 mcpTokenConfigured: Boolean(data.tokens && data.tokens.mcpBearerToken)

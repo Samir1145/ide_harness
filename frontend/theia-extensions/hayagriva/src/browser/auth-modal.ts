@@ -375,7 +375,8 @@ export class AuthModal {
                     const res = await fetch(`${baseUrl}/api/hayagriva/license/activate`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ licenseKey: key })
+                        body: JSON.stringify({ licenseKey: key }),
+                        signal: AbortSignal.timeout(15000)
                     });
                     const data = await res.json();
                     if (data.success) {
