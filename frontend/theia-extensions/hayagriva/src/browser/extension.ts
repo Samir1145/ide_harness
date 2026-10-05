@@ -538,11 +538,11 @@ export class HayagrivaFrontendContribution
       this.logger.warn(`[Hayagriva] Failed to dock entity map widget on left: ${err.message}`);
     }
 
-    // Pillar 4: Notification Center (Statutory Compliances, LexAI Tasks, Approvals & Case Facts) - Rank 400
+    // Top Header Strip: Notification Center (Relocated from left bar)
     try {
-      this.initializeNotificationCenterWidget();
+      this.mountHeaderNotificationChip();
     } catch (err: any) {
-      this.logger.warn(`[Hayagriva] Failed to dock notification center widget on left: ${err.message}`);
+      this.logger.warn(`[Hayagriva] Failed to mount header notification chip: ${err.message}`);
     }
 
     // Pillar 5: Billing Center (Resolution Bazaar Diligence Ledger & Settlement) - Rank 500
@@ -1052,36 +1052,178 @@ export class HayagrivaFrontendContribution
   }
 
   initializeNotificationCenterWidget(): void {
-    if (this.notificationWidget) {
-      this.notificationWidget.title.label = 'Notification Center';
-      this.notificationWidget.title.caption = 'Statutory Compliances, LexAI Tasks, Approvals & Case Fact Alerts';
-      this.notificationWidget.title.iconClass = 'hayagriva-pillar5-icon';
-      this.shell.addWidget(this.notificationWidget, { area: 'left', rank: 400 });
+    this.mountHeaderNotificationChip();
+    this.toggleInboxSlideDownDrawer();
+  }
+
+  mountHeaderNotificationChip(): void {
+    if (document.getElementById('hayagriva-header-notif-chip')) return;
+
+    const topPanel = document.getElementById('theia-top-panel');
+    if (!topPanel) {
+      setTimeout(() => this.mountHeaderNotificationChip(), 500);
       return;
     }
 
-    const initialCase = this.getActiveCaseName();
-    const notifExplorer = new Widget();
-    notifExplorer.id = 'hayagriva-notification-center';
-    notifExplorer.title.label = 'Notification Center';
-    notifExplorer.title.caption = 'Statutory Compliances, LexAI Tasks, Approvals & Case Fact Alerts';
-    notifExplorer.title.iconClass = 'hayagriva-pillar5-icon';
-    notifExplorer.title.closable = false;
+    const notifChip = document.createElement('div');
+    notifChip.id = 'hayagriva-header-notif-chip';
+    notifChip.style.cssText = `
+      margin-left: auto;
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 14px;
+      padding: 3px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #fbbf24;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      z-index: 1000;
+    `;
+    notifChip.innerHTML = `
+      <span>🔔</span>
+      <span class="haya-notif-count">0</span>
+      <span style="color: #94a3b8; font-weight: 400;">Alerts</span>
+    `;
 
-    const isLight = this.isCurrentThemeLight();
-    const notifIframe = document.createElement('iframe');
-    notifIframe.style.width = '100%';
-    notifIframe.style.height = '100%';
-    notifIframe.style.border = 'none';
-    notifIframe.srcdoc = notificationCenterHtml(initialCase, this.getApiPort(), isLight);
-    notifExplorer.node.appendChild(notifIframe);
+    notifChip.addEventListener('mouseenter', () => {
+      notifChip.style.background = 'rgba(245, 158, 11, 0.2)';
+      notifChip.style.borderColor = '#fbbf24';
+    });
+    notifChip.addEventListener('mouseleave', () => {
+      notifChip.style.background = 'rgba(30, 41, 59, 0.7)';
+      notifChip.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+    });
 
-    this.notificationWidget = notifExplorer;
-    this.shell.addWidget(notifExplorer, { area: 'left', rank: 400 });
+    const updateCount = async () => {
+      try {
+        const res = await fetch(`http://127.0.0.1:${this.getApiPort()}/api/hayagriva/inbox`);
+        if (res.ok) {
+          const data = await res.json();
+          const items = Array.isArray(data.items) ? data.items : [];
+          const count = items.filter((it: any) => !it.resolved).length;
+          const countEl = notifChip.querySelector('.haya-notif-count');
+          if (countEl) countEl.textContent = String(count);
+          if (count > 0) {
+            notifChip.style.borderColor = '#f59e0b';
+            notifChip.style.boxShadow = '0 0 8px rgba(245, 158, 11, 0.4)';
+          } else {
+            notifChip.style.boxShadow = 'none';
+          }
+        }
+      } catch (_) {}
+    };
+
+    updateCount();
+    setInterval(updateCount, 15000);
+
+    notifChip.addEventListener('click', (e: MouseEvent) => {
+      e.stopPropagation();
+      this.toggleInboxSlideDownDrawer();
+    });
+
+    topPanel.appendChild(notifChip);
+  }
+
+  toggleInboxSlideDownDrawer(): void {
+    const existing = document.getElementById('hayagriva-inbox-drawer');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+
+    const drawer = document.createElement('div');
+    drawer.id = 'hayagriva-inbox-drawer';
+    drawer.style.cssText = `
+      position: fixed;
+      top: 34px;
+      right: 12px;
+      width: 360px;
+      max-height: 460px;
+      overflow-y: auto;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      padding: 14px;
+      z-index: 10005;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      animation: hayagrivaFadeIn 0.15s ease-out;
+    `;
+
+    drawer.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px;">
+        <div style="font-weight: 700; font-size: 13px; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+          <span>🔔</span> Case Action Inbox
+        </div>
+        <button id="haya-close-inbox-btn" style="background: transparent; border: none; color: #94a3b8; font-size: 14px; cursor: pointer;">✕</button>
+      </div>
+      <div id="haya-inbox-drawer-content" style="font-size: 12px; color: #cbd5e1; display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 12px; text-align: center; color: #94a3b8;">Loading case action items…</div>
+      </div>
+    `;
+
+    document.body.appendChild(drawer);
+
+    drawer.querySelector('#haya-close-inbox-btn')?.addEventListener('click', () => {
+      drawer.remove();
+    });
+
+    const loadItems = async () => {
+      try {
+        const res = await fetch(`http://127.0.0.1:${this.getApiPort()}/api/hayagriva/inbox`);
+        if (res.ok) {
+          const data = await res.json();
+          const items = Array.isArray(data.items) ? data.items : [];
+          const container = drawer.querySelector('#haya-inbox-drawer-content');
+          if (!container) return;
+
+          if (items.length === 0) {
+            container.innerHTML = `<div style="padding: 16px; text-align: center; color: #94a3b8;">✓ All statutory actions current. Zero pending alerts.</div>`;
+            return;
+          }
+
+          container.innerHTML = items.map((it: any) => `
+            <div style="padding: 8px 10px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;">
+              <div style="font-weight: 600; color: #f1f5f9; margin-bottom: 3px;">${it.title || 'Case Alert'}</div>
+              <div style="color: #94a3b8; font-size: 11.5px; margin-bottom: 6px;">${it.summary || it.description || ''}</div>
+              <div style="display: flex; gap: 6px;">
+                <button class="haya-inbox-ack-btn" data-id="${it.id}" style="padding: 3px 8px; font-size: 10.5px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 4px; cursor: pointer;">Acknowledge</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (err: any) {
+        const container = drawer.querySelector('#haya-inbox-drawer-content');
+        if (container) {
+          container.innerHTML = `<div style="color: #f87171; padding: 8px;">Error loading inbox: ${err.message}</div>`;
+        }
+      }
+    };
+
+    loadItems();
+
+    const dismissDrawer = (e: MouseEvent) => {
+      if (!drawer.contains(e.target as Node) && !(e.target as HTMLElement).closest('#hayagriva-header-notif-chip')) {
+        drawer.remove();
+        document.removeEventListener('click', dismissDrawer, true);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('click', dismissDrawer, true);
+    }, 50);
   }
 
   initializeInboxExplorerWidget(): void {
-    this.initializeNotificationCenterWidget();
+    this.mountHeaderNotificationChip();
   }
 
   initializeBillingExplorerWidget(): void {
