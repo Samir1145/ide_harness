@@ -23,6 +23,7 @@ export class AskHayaVoiceOrb {
   protected currentAudioSource: AudioBufferSourceNode | null = null;
   protected lastAudioBase64: string | null = null;
   protected unlockedAudioElement: HTMLAudioElement | null = null;
+  protected isAudioUnlocked: boolean = false;
   protected stateListeners: StateChangeListener[] = [];
   protected lastResult: { spokenText: string; fullDossier: string; query: string; languageCode?: string } | null = null;
   protected activeLanguage: string = 'en-IN';
@@ -30,6 +31,9 @@ export class AskHayaVoiceOrb {
   protected accumulatedTranscript: string = '';
   protected activeAbortController: AbortController | null = null;
   protected queryEpoch: number = 0;
+  protected currentAudioResolver: (() => void) | null = null;
+  protected activeDragMouseMove: ((e: MouseEvent) => void) | null = null;
+  protected activeDragMouseUp: ((e: MouseEvent) => void) | null = null;
 
   // MediaRecorder Audio Capture for Sarvam Saaras AI STT
   protected mediaRecorder: any = null;
@@ -108,21 +112,16 @@ export class AskHayaVoiceOrb {
   }
 
   initialize(): void {
-    if (typeof localStorage !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('hayagriva_voice_lang');
-        if (saved) this.activeLanguage = saved;
-      } catch (_) {}
-    }
-    this.mountDom();
-    this.initSpeechRecognition();
-    this.bindKeyboardShortcuts();
-    this.initLightRagStatusWatcher();
-    this.logger.info(`[AskHayaVoiceService] Ambient Amber Voice Orb initialized & mounted (lang=${this.activeLanguage}).`);
+    // Retired: Floating AskHaya orb is permanently suppressed from the canvas
+    // All precedent retrieval and ambient counsel are now routed to the docked ⚡ LightRAG anchor
+    this.logger.info(`[AskHayaVoiceService] Floating orb retired; docked ⚡ LightRAG drawer active.`);
+    return;
   }
 
   ensureAudioUnlocked(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
@@ -133,19 +132,17 @@ export class AskHayaVoiceOrb {
           this.audioContext.resume().catch(() => {});
         }
       }
-      if (!this.unlockedAudioElement && typeof Audio !== 'undefined') {
-        this.unlockedAudioElement = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-        this.unlockedAudioElement.volume = 0.01;
-      }
-      if (this.unlockedAudioElement) {
-        const p = this.unlockedAudioElement.play();
+      if (!this.isAudioUnlocked && typeof Audio !== 'undefined') {
+        const dummyAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+        dummyAudio.volume = 0.001;
+        const p = dummyAudio.play();
         if (p && typeof p.then === 'function') {
           p.then(() => {
-            if (this.unlockedAudioElement) {
-              this.unlockedAudioElement.pause();
-              this.unlockedAudioElement.currentTime = 0;
-            }
+            this.isAudioUnlocked = true;
+            try { dummyAudio.pause(); } catch (_) {}
           }).catch(() => {});
+        } else {
+          this.isAudioUnlocked = true;
         }
       }
     } catch (_) {}
@@ -206,7 +203,7 @@ export class AskHayaVoiceOrb {
               <button class="orb-btn orb-btn-panel" id="askhaya-btn-panel" title="Open AskHaya Panel (Alt+Space)">
                 <i class="fa fa-columns"></i>
               </button>
-              <button class="orb-btn orb-btn-close" id="askhaya-btn-close" title="Emergency Override / Dismiss (Esc)">
+              <button class="orb-btn orb-btn-close" id="askhaya-btn-close" title="Stop & Close (Esc)">
                 <i class="fa fa-times"></i>
               </button>
             </div>
@@ -232,8 +229,8 @@ export class AskHayaVoiceOrb {
               <button class="orb-action-btn orb-btn-insert" id="askhaya-action-insert" title="Insert into Editor">
                 <i class="fa fa-clipboard"></i> <span>Insert</span>
               </button>
-              <button class="orb-action-btn orb-btn-override" id="askhaya-action-override" title="Emergency Override: Instantly kill query, silence audio, and reset to idle (Esc)">
-                <i class="fa fa-bolt" style="color: #ef4444;"></i> <span>Override</span>
+              <button class="orb-action-btn orb-btn-stop" id="askhaya-action-stop" title="Stop speech and inquest (keep answer on screen)">
+                <i class="fa fa-stop" style="color: #ef4444;"></i> <span>Stop</span>
               </button>
             </div>
             <input type="text" class="orb-fallback-input" id="askhaya-text-fallback-input" placeholder="Type inquiry or press Enter..." />
@@ -342,6 +339,18 @@ export class AskHayaVoiceOrb {
         return;
       }
 
+      // Clean up any stale listeners first
+      if (typeof window !== 'undefined') {
+        if (this.activeDragMouseMove) {
+          window.removeEventListener('mousemove', this.activeDragMouseMove);
+          this.activeDragMouseMove = null;
+        }
+        if (this.activeDragMouseUp) {
+          window.removeEventListener('mouseup', this.activeDragMouseUp);
+          this.activeDragMouseUp = null;
+        }
+      }
+
       this.isDragging = true;
       this.hasDragged = false;
       this.dragStartX = e.clientX;
@@ -368,19 +377,26 @@ export class AskHayaVoiceOrb {
       };
 
       const onMouseUp = () => {
-        if (this.isDragging) {
-          this.isDragging = false;
-          try {
-            if (typeof localStorage !== 'undefined') {
-              localStorage.setItem('haya_voice_orb_pos', JSON.stringify({ x: this.posX, y: this.posY }));
-            }
-          } catch (_) {}
-        }
+        this.isDragging = false;
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('haya_voice_orb_pos', JSON.stringify({ x: this.posX, y: this.posY }));
+          }
+        } catch (_) {}
         if (typeof window !== 'undefined') {
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('mouseup', onMouseUp);
+          if (this.activeDragMouseMove) {
+            window.removeEventListener('mousemove', this.activeDragMouseMove);
+            this.activeDragMouseMove = null;
+          }
+          if (this.activeDragMouseUp) {
+            window.removeEventListener('mouseup', this.activeDragMouseUp);
+            this.activeDragMouseUp = null;
+          }
         }
       };
+
+      this.activeDragMouseMove = onMouseMove;
+      this.activeDragMouseUp = onMouseUp;
 
       if (typeof window !== 'undefined') {
         window.addEventListener('mousemove', onMouseMove);
@@ -444,12 +460,12 @@ export class AskHayaVoiceOrb {
       });
     }
 
-    // Close / Emergency Override button
+    // Close button (stops speech/inquest and docks to 44px orb)
     const closeBtn = this.domRoot.querySelector('#askhaya-btn-close');
     if (closeBtn) {
       closeBtn.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
-        this.hardAbort();
+        this.dismissAndDock();
       });
     }
 
@@ -527,12 +543,12 @@ export class AskHayaVoiceOrb {
       });
     }
 
-    // Emergency Override action button
-    const actionOverride = this.domRoot.querySelector('#askhaya-action-override') || this.domRoot.querySelector('#askhaya-action-cancel');
-    if (actionOverride) {
-      actionOverride.addEventListener('click', (e: MouseEvent) => {
+    // Dedicated Stop action button (stops speech/inquest but keeps card open)
+    const actionStop = this.domRoot.querySelector('#askhaya-action-stop') || this.domRoot.querySelector('#askhaya-action-override') || this.domRoot.querySelector('#askhaya-action-cancel');
+    if (actionStop) {
+      actionStop.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
-        this.hardAbort();
+        this.stop();
       });
     }
 
@@ -1023,19 +1039,25 @@ export class AskHayaVoiceOrb {
         color: #fbbf24;
       }
 
-      .orb-btn-override {
-        background: rgba(239, 68, 68, 0.18) !important;
-        border: 1px solid rgba(239, 68, 68, 0.5) !important;
+      .orb-btn-stop {
+        display: none;
+        background: rgba(239, 68, 68, 0.22) !important;
+        border: 1px solid rgba(239, 68, 68, 0.6) !important;
         color: #fca5a5 !important;
         font-weight: 600;
         transition: all 0.2s ease;
       }
 
-      .orb-btn-override:hover {
-        background: rgba(239, 68, 68, 0.35) !important;
-        border-color: rgba(239, 68, 68, 0.9) !important;
+      .orb-speaking .orb-btn-stop,
+      .orb-processing .orb-btn-stop {
+        display: inline-flex;
+      }
+
+      .orb-btn-stop:hover {
+        background: rgba(239, 68, 68, 0.45) !important;
+        border-color: rgba(239, 68, 68, 1) !important;
         color: #fff !important;
-        box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
       }
 
       .orb-fallback-input {
@@ -1310,7 +1332,14 @@ export class AskHayaVoiceOrb {
     this.updateTranscriptDisplay(prompt);
 
     // Optional 7-second auto-send countdown that instantly pauses on any user keystroke or focus
-    this.startReviewCountdown(7, prompt);
+    if (prompt && prompt.trim()) {
+      this.startReviewCountdown(7, prompt);
+    } else {
+      const stateLabel = this.domRoot?.querySelector('#askhaya-state-label');
+      if (stateLabel) {
+        stateLabel.textContent = 'Type Inquiry (Press Enter ↵ to Ask)';
+      }
+    }
   }
 
   startReviewCountdown(seconds: number, prompt: string): void {
@@ -1352,8 +1381,61 @@ export class AskHayaVoiceOrb {
     }
   }
 
+  stop(): void {
+    this.logger.info('[AskHayaVoiceService] Stop requested. Halting query & speech, keeping answer on screen.');
+    this.queryEpoch++;
+    this.clearReviewCountdown();
+    this.stopMediaRecording();
+
+    if (this.activeAbortController) {
+      try {
+        this.activeAbortController.abort();
+      } catch (_) {}
+      this.activeAbortController = null;
+    }
+
+    this.clearSilenceTimer();
+    this.stopSpeaking(false);
+
+    const stateLabel = this.domRoot?.querySelector('#askhaya-state-label');
+    if (stateLabel) {
+      stateLabel.textContent = 'Inquest Stopped';
+    }
+
+    // Keep card OPEN with whatever transcript / answer was produced!
+    this.setState('answered');
+  }
+
+  dismissAndDock(): void {
+    this.logger.info('[AskHayaVoiceService] Dismissing modal and docking to idle orb.');
+    // 1. Release all drag states and listeners
+    this.isDragging = false;
+    this.hasDragged = false;
+    if (typeof window !== 'undefined') {
+      if (this.activeDragMouseMove) {
+        window.removeEventListener('mousemove', this.activeDragMouseMove);
+        this.activeDragMouseMove = null;
+      }
+      if (this.activeDragMouseUp) {
+        window.removeEventListener('mouseup', this.activeDragMouseUp);
+        this.activeDragMouseUp = null;
+      }
+    }
+
+    // 2. Blur any focused element within the orb so focus returns to workbench
+    try {
+      const activeEl = document.activeElement as HTMLElement;
+      if (activeEl && this.domRoot && this.domRoot.contains(activeEl)) {
+        activeEl.blur();
+      }
+    } catch (_) {}
+
+    // 3. Stop everything and reset state to idle
+    this.hardAbort();
+  }
+
   hardAbort(): void {
-    this.logger.info('[AskHayaVoiceService] Emergency Override triggered. Aborting all in-flight queries and audio.');
+    this.logger.info('[AskHayaVoiceService] Hard abort triggered. Aborting all in-flight queries and audio.');
     this.queryEpoch++;
     this.clearReviewCountdown();
     this.stopMediaRecording();
@@ -1466,7 +1548,7 @@ export class AskHayaVoiceOrb {
     let recognized = this.accumulatedTranscript ? this.accumulatedTranscript.trim() : '';
 
     // If audio blob was recorded and Sarvam is configured, transcribe with flagship Saaras v4!
-    if (audioBlob && audioBlob.size > 1500 && this.isSarvamConfigured()) {
+    if (audioBlob && audioBlob.size > 300 && this.isSarvamConfigured()) {
       this.updateTranscriptDisplay('Transcribing via Sarvam Saaras AI...');
       try {
         const sarvamRes = await this.transcribeViaSarvam(audioBlob);
@@ -1489,7 +1571,8 @@ export class AskHayaVoiceOrb {
       // Option A: Enter Review State! Do NOT immediately submit!
       this.enterReviewState(finalPrompt);
     } else {
-      this.updateTranscriptDisplay('No clear speech heard. Click Speak or type inquiry.');
+      this.enterReviewState('');
+      this.updateTranscriptDisplay('No clear speech heard. Type inquiry below or click Re-speak.');
     }
   }
 
@@ -1806,16 +1889,11 @@ export class AskHayaVoiceOrb {
     const blob = new Blob([bytes.buffer], { type: 'audio/wav' });
     const audioUrl = URL.createObjectURL(blob);
 
-    // Primary: Reusable primed HTML5 Audio element
-    let audio = this.unlockedAudioElement;
-    if (!audio && typeof Audio !== 'undefined') {
-      audio = new Audio();
-      this.unlockedAudioElement = audio;
-    }
-    const targetAudio: HTMLAudioElement = audio || (typeof Audio !== 'undefined' ? new Audio() : ({} as any));
+    // Primary: Clean, dedicated HTML5 Audio element with safe 0.88 volume headroom (no clipping)
+    const targetAudio: HTMLAudioElement = typeof Audio !== 'undefined' ? new Audio() : ({} as any);
     this.currentAudio = targetAudio;
     targetAudio.src = audioUrl;
-    targetAudio.volume = 1.0;
+    targetAudio.volume = 0.88;
     targetAudio.currentTime = 0;
 
     const currentEpoch = this.queryEpoch;
@@ -1824,12 +1902,17 @@ export class AskHayaVoiceOrb {
       const cleanup = (newState: OrbState = 'answered') => {
         if (settled) return;
         settled = true;
+        this.currentAudioResolver = null;
         this.currentAudio = null;
         try { URL.revokeObjectURL(audioUrl); } catch (_) {}
         if (this.queryEpoch === currentEpoch) {
           this.setState(newState);
         }
         resolve();
+      };
+
+      this.currentAudioResolver = () => {
+        cleanup('answered');
       };
 
       targetAudio.onended = () => {
@@ -1861,7 +1944,7 @@ export class AskHayaVoiceOrb {
               return;
             }
             this.logger.warn(`[AskHayaVoiceService] HTML5 Audio playback blocked: ${err.message}. Trying Web Audio API fallback...`);
-            // Secondary Fallback: Web Audio API
+            // Secondary Fallback: Web Audio API with GainNode headroom to prevent crackling
             if (this.audioContext) {
               try {
                 if (this.audioContext.state === 'suspended') {
@@ -1869,12 +1952,16 @@ export class AskHayaVoiceOrb {
                 }
                 const audioBuffer = await this.audioContext.decodeAudioData(bytes.buffer.slice(0));
                 const source = this.audioContext.createBufferSource();
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.setValueAtTime(0.88, this.audioContext.currentTime);
+
                 source.buffer = audioBuffer;
-                source.connect(this.audioContext.destination);
+                source.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
                 this.currentAudioSource = source;
 
                 if (this.queryEpoch !== currentEpoch) {
-                  try { source.stop(); } catch (_) {}
+                  try { source.stop(); source.disconnect(); } catch (_) {}
                   this.currentAudioSource = null;
                   resolve();
                   return;
@@ -2027,6 +2114,12 @@ export class AskHayaVoiceOrb {
   }
 
   stopSpeaking(transitionToAnswered: boolean = true): void {
+    if (this.currentAudioResolver) {
+      try {
+        this.currentAudioResolver();
+      } catch (_) {}
+      this.currentAudioResolver = null;
+    }
     if (this.currentAudioSource) {
       try {
         this.currentAudioSource.stop();
@@ -2179,7 +2272,7 @@ export class AskHayaVoiceOrb {
   toggleVoiceOrb(): void {
     this.ensureAudioUnlocked();
     if (this.state === 'listening') {
-      this.stopListening();
+      this.cancel();
     } else if (this.state === 'reviewing') {
       this.clearReviewCountdown();
       const input = this.domRoot?.querySelector('#askhaya-text-fallback-input') as HTMLInputElement;

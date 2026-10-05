@@ -410,7 +410,7 @@ export class HayagrivaFrontendContribution
     } catch (_) {}
 
     this.registerGlobalEventListeners();
-    this.voiceOrb.initialize();
+    // Retired floating AskHayaVoiceOrb in favor of docked LightRAG slide-over drawer
     this.profileWidget.initialize();
     this.monacoProviders.registerAllProviders(() => this.getActiveCaseName());
     this.startBackendMonitor();

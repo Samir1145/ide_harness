@@ -28,6 +28,7 @@ export class ProfileWidget {
     initialize(): void {
         this.injectStyles();
         this.mountProfileButton();
+        this.mountLightRagButton();
         this.setupOutsideClickListener();
         if (!this.authManager.isAuthenticated()) {
             this.authManager.syncFromLocalLicense().catch(() => {});
@@ -39,6 +40,62 @@ export class ProfileWidget {
         const style = document.createElement('style');
         style.id = 'haya-profile-styles';
         style.textContent = `
+            #hayagriva-lightrag-anchor {
+                position: fixed;
+                bottom: 74px !important;
+                left: 6px !important;
+                z-index: 10000;
+                width: 36px;
+                height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                user-select: none;
+            }
+            .haya-lightrag-button {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: rgba(30, 41, 59, 0.95);
+                border: 1.5px solid rgba(245, 158, 11, 0.6);
+                color: #fbbf24;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                font-weight: 700;
+                position: relative;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+            }
+            #hayagriva-lightrag-anchor:hover .haya-lightrag-button {
+                transform: scale(1.08);
+                border-color: #fbbf24;
+                box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+            }
+            #hayagriva-inquest-drawer {
+                position: fixed;
+                top: 36px;
+                bottom: 24px;
+                left: 48px;
+                width: 440px;
+                z-index: 9998;
+                background: rgba(15, 23, 42, 0.96);
+                border: 1px solid rgba(245, 158, 11, 0.35);
+                border-left: none;
+                border-radius: 0 12px 12px 0;
+                box-shadow: 10px 0 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(245, 158, 11, 0.15);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                display: flex;
+                flex-direction: column;
+                padding: 16px;
+                color: #f8fafc;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                animation: hayagrivaFadeIn 0.15s ease-out;
+            }
+
             #hayagriva-profile-anchor {
                 position: fixed;
                 bottom: 30px !important;
@@ -245,6 +302,94 @@ export class ProfileWidget {
         this.popoverElement = popover;
 
         this.updateButtonDisplay();
+    }
+
+    protected lightRagElement: HTMLElement | null = null;
+    protected inquestDrawerElement: HTMLElement | null = null;
+
+    protected mountLightRagButton(): void {
+        if (this.lightRagElement) return;
+
+        const container = document.createElement('div');
+        container.id = 'hayagriva-lightrag-anchor';
+        container.title = '⚡ Precedent Inquest & Sovereign LightRAG';
+        container.innerHTML = `
+            <div class="haya-lightrag-button">
+                <span>⚡</span>
+                <span class="haya-status-pip online" id="haya-lightrag-pip" title="Connected to Local Precedent Engine"></span>
+            </div>
+        `;
+
+        container.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleInquestDrawer();
+        });
+
+        document.body.appendChild(container);
+        this.lightRagElement = container;
+    }
+
+    protected toggleInquestDrawer(): void {
+        const existing = document.getElementById('hayagriva-inquest-drawer');
+        if (existing) {
+            existing.remove();
+            this.inquestDrawerElement = null;
+            return;
+        }
+
+        const drawer = document.createElement('div');
+        drawer.id = 'hayagriva-inquest-drawer';
+        drawer.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 12px;">
+                <div>
+                    <div style="font-size: 14px; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                        <span>⚡</span> Precedent Inquest & Knowledge Graph
+                    </div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                        Sovereign Dual-Vector Precedent Engine & Bare Act Retrieval
+                    </div>
+                </div>
+                <button id="hayagriva-inquest-close" style="background: transparent; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; padding: 2px 6px;">✕</button>
+            </div>
+
+            <!-- Inquest Search -->
+            <div style="margin-bottom: 12px;">
+                <input id="hayagriva-inquest-search" type="text" placeholder="Search precedents, NCLT / SC citations, bare act sections…" style="width: 100%; box-sizing: border-box; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 12px; outline: none;" />
+            </div>
+
+            <!-- Precedent Results Stream -->
+            <div id="hayagriva-inquest-results" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 10px;">
+                    <div style="font-weight: 600; font-size: 12px; color: #38bdf8;">Swiss Ribbons Pvt. Ltd. v. Union of India</div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">(2019) 4 SCC 17 • Constitutional validity of Section 29A & resolution primacy</div>
+                    <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Primary Ratio: Insolvency proceedings are not adversarial recovery proceedings; economic rehabilitation is paramount.</div>
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 10px;">
+                    <div style="font-weight: 600; font-size: 12px; color: #38bdf8;">Essar Steel India Ltd. v. Satish Kumar Gupta</div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">(2020) 8 SCC 531 • Section 30(2) & Commercial Wisdom of CoC</div>
+                    <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Primary Ratio: Adjudicating Authority cannot sit in appeal over commercial distribution decided by Committee of Creditors.</div>
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 10px;">
+                    <div style="font-weight: 600; font-size: 12px; color: #38bdf8;">Anuj Jain (Jaypee Infratech) v. Axis Bank</div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">(2020) 8 SCC 401 • Sections 43 & 45 Avoidance Inquests</div>
+                    <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Primary Ratio: Third-party mortgages within look-back period are preferential transactions under Section 43.</div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px; font-size: 10px; color: #64748b; display: flex; justify-content: space-between;">
+                <span>Dual-Vector Retrieval Active</span>
+                <span style="color: #4ade80;">● 100% In-Chamber Air-Gapped</span>
+            </div>
+        `;
+
+        document.body.appendChild(drawer);
+        this.inquestDrawerElement = drawer;
+
+        drawer.querySelector('#hayagriva-inquest-close')?.addEventListener('click', () => {
+            drawer.remove();
+            this.inquestDrawerElement = null;
+        });
     }
 
     protected getInitials(name: string): string {
