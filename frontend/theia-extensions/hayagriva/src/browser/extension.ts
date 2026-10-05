@@ -545,12 +545,6 @@ export class HayagrivaFrontendContribution
       this.logger.warn(`[Hayagriva] Failed to mount header notification chip: ${err.message}`);
     }
 
-    // Pillar 5: Billing Center (Resolution Bazaar Diligence Ledger & Settlement) - Rank 500
-    try {
-      this.initializeBillingExplorerWidget();
-    } catch (err: any) {
-      this.logger.warn(`[Hayagriva] Failed to dock billing explorer widget on left: ${err.message}`);
-    }
 
     // Completely omit Outline & Search View Container: force close any instance
     try {
@@ -1227,41 +1221,7 @@ export class HayagrivaFrontendContribution
   }
 
   initializeBillingExplorerWidget(): void {
-    if (!this.authManager.isFeatureAllowed('billing')) {
-      if (this.billingWidget) {
-        try { this.billingWidget.close(); } catch (_) {}
-      }
-      return;
-    }
-
-    if (this.billingWidget) {
-      this.billingWidget.title.label = 'Estate Accounts';
-      this.billingWidget.title.caption = 'CIRP Costs, Creditor Ledgers & Diligence Settlement';
-      this.billingWidget.title.iconClass = 'hayagriva-pillar6-icon';
-      if (!this.shell.getWidgets('left').some(w => w.id === 'hayagriva-billing-explorer')) {
-        this.shell.addWidget(this.billingWidget, { area: 'left', rank: 500 });
-      }
-      return;
-    }
-
-    const initialCase = this.getActiveCaseName();
-    const billingExplorer = new Widget();
-    billingExplorer.id = 'hayagriva-billing-explorer';
-    billingExplorer.title.label = 'Estate Accounts';
-    billingExplorer.title.caption = 'CIRP Costs, Creditor Ledgers & Diligence Settlement';
-    billingExplorer.title.iconClass = 'hayagriva-pillar6-icon';
-    billingExplorer.title.closable = false;
-
-    const isLight = this.isCurrentThemeLight();
-    const billingIframe = document.createElement('iframe');
-    billingIframe.style.width = '100%';
-    billingIframe.style.height = '100%';
-    billingIframe.style.border = 'none';
-    billingIframe.srcdoc = billingExplorerHtml(initialCase, this.getApiPort(), isLight);
-    billingExplorer.node.appendChild(billingIframe);
-
-    this.billingWidget = billingExplorer;
-    this.shell.addWidget(billingExplorer, { area: 'left', rank: 500 });
+    this.commandRegistry.executeCommand('hayagriva.openTaskQueue');
   }
 
   syncFeatureGating(): void {

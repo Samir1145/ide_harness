@@ -321,6 +321,11 @@ export class HayagrivaMenuContribution implements MenuContribution {
       label: '👤 Verify Practitioner Identity & Stamp…',
       order: '3'
     });
+    registry.registerMenuAction(GOV_SUBMENU, {
+      commandId: 'hayagriva.openTaskQueue',
+      label: '💳 Estate Accounts & Reg 34B Fee Ledger…',
+      order: '4'
+    });
 
     // ═════════════════════════════════════════════════════════════════════════
     // 2. ENHANCED "FILE" MENU: MATTER LIFECYCLE & COURT DELIVERABLES
@@ -328,6 +333,11 @@ export class HayagrivaMenuContribution implements MenuContribution {
     registry.registerMenuAction([...CommonMenus.FILE, '0_case'], {
       commandId: `${HAYAGRIVA_NS}:openNewCaseWizard`,
       label: '➕ New Matter / CIRP Estate…',
+      order: '0'
+    });
+    registry.registerMenuAction([...CommonMenus.FILE, '1_draft'], {
+      commandId: `${HAYAGRIVA_NS}:addNewMilksheet`,
+      label: '✍️ New Legal Draft (Word View)…',
       order: '0'
     });
     registry.registerMenuAction([...CommonMenus.FILE, '1_draft'], {
@@ -519,6 +529,18 @@ export class HayagrivaMenuContribution implements MenuContribution {
 
     // ── Prune generic developer clutter from Explorer right-click ──
     pruneNavigatorContextMenu(registry);
+
+    // ── Primary Action: New Legal Draft (Word View) ──
+    registry.registerMenuAction(['navigator-context-menu', '0_new'], {
+      commandId: `${HAYAGRIVA_NS}:addNewMilksheet`,
+      label: '✍️ New Legal Draft (Word View)…',
+      order: '0'
+    });
+    registry.registerMenuAction(NavigatorContextMenu.MODIFICATION, {
+      commandId: `${HAYAGRIVA_NS}:addNewMilksheet`,
+      label: '✍️ New Legal Draft (Word View)…',
+      order: '0_new'
+    });
 
     // ── Submenu 1: View File ──
     const NAV_VIEW_SUBMENU: MenuPath = ['navigator-context-menu', '1_view_submenu'];
