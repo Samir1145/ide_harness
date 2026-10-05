@@ -11,6 +11,7 @@ import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { HayagrivaFrontendContribution } from './extension';
 import { HayagrivaTreeDecorator, safeDecodeURI } from './tree-decorator';
 import { AskHayaVoiceOrb } from './askhaya-orb';
+import { AgentDirectoryModal } from './agent-directory-modal';
 
 const HAYAGRIVA_NS = 'hayagriva';
 
@@ -31,7 +32,8 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
     @inject(MessageService) private readonly messageService: MessageService,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(AskHayaVoiceOrb) @optional() private readonly voiceOrb?: AskHayaVoiceOrb,
-    @inject(FileService) @optional() private readonly fileService?: FileService
+    @inject(FileService) @optional() private readonly fileService?: FileService,
+    @inject(AgentDirectoryModal) @optional() private readonly agentDirectoryModal?: AgentDirectoryModal
   ) {}
 
   private getRelativePath(uri: URI): string {
@@ -2475,8 +2477,11 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
       existing.remove();
       return;
     }
-    // Will be fully implemented with AgentCockpitManager in Task 5
-    this.messageService.info('👥 Opening Chamber Coworker Directory…');
+    if (this.agentDirectoryModal) {
+      this.agentDirectoryModal.open();
+    } else {
+      this.messageService.info('👥 Opening Chamber Coworker Directory…');
+    }
   }
 
   protected openTaskQueueModal(registry: CommandRegistry): void {
