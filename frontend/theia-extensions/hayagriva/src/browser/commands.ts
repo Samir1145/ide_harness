@@ -580,6 +580,18 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
     );
 
     registry.registerCommand(
+      { id: 'hayagriva.openMonacoMarkdown', label: '👁️ Open in Raw Monaco Markdown Editor' },
+      {
+        execute: async (targetPath?: string) => {
+          if (targetPath) {
+            const clean = targetPath.startsWith('/') ? `file://${targetPath}` : targetPath;
+            await this.editorManager.open(new URI(clean));
+          }
+        }
+      }
+    );
+
+    registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:viewAsHtml`, label: '✍️ Edit Document (Word View)' },
       {
         execute: handleOpenMilkdownEditor,

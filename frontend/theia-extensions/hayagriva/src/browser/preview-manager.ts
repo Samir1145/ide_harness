@@ -157,6 +157,37 @@ export class HayagrivaPreviewManager {
     widget.title.iconClass = 'fa fa-pencil-square-o';
     widget.title.closable = true;
 
+    const headerBar = document.createElement('div');
+    headerBar.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      font-size: 11px;
+      color: #94a3b8;
+    `;
+    headerBar.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: #fbbf24; font-weight: 700;">✍️ Legal Word View</span>
+        <span style="font-size: 10px; color: #64748b;">• Sovereign Document Formatter</span>
+      </div>
+      <button class="hayagriva-monaco-toggle-btn" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.2); color: #e2e8f0; padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+        <span>👁️</span> Raw Monaco Markdown
+      </button>
+    `;
+    headerBar.querySelector('.hayagriva-monaco-toggle-btn')?.addEventListener('click', async () => {
+      try {
+        const cleanUri = new URI(filePath.startsWith('/') ? `file://${filePath}` : filePath);
+        await this.editorManager.open(cleanUri);
+        widget.close();
+      } catch (err: any) {
+        this.logger.warn(`[Hayagriva] Failed to toggle Monaco editor: ${err.message}`);
+      }
+    });
+    widget.node.appendChild(headerBar);
+
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';
     iframe.style.height = '100%';
