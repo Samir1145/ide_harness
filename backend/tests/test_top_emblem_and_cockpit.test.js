@@ -13,7 +13,9 @@ const cmdContent = fs.readFileSync(commandsTsPath, 'utf8');
 // 1. Verify Option 3B Lord Hayagriva bust mask replaces the flowing stallion in .theia-icon
 const deityMaskSnippet = 'iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAWJ0lEQVR4nN1dC7hU1XX';
 const stallionMaskSnippet = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAMfUlEQVR4nO1ba6xdRRVe';
-const hayagrivaBustMaskSnippet = 'iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAT3UlEQVR42u1df4iOWx7';
+const b64ResourcePath = path.resolve(__dirname, '../../branding/resources/hayagriva_bust_no_crown_base64.txt');
+const hayagrivaBustB64 = fs.readFileSync(b64ResourcePath, 'utf8').trim();
+const hayagrivaBustMaskSnippet = hayagrivaBustB64.substring(0, 60);
 
 assert.strictEqual(
   extContent.includes(deityMaskSnippet),
