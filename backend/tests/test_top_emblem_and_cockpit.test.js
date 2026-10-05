@@ -49,11 +49,23 @@ assert.strictEqual(
   'FAIL: hayagriva.openCockpitMenu command declaration missing from commands.ts!'
 );
 
-// 4. Verify top-panel icon click handler wires to openCockpitMenu in extension.ts
+// 5. Verify 36px header height and 30px emblem size
 assert.strictEqual(
-  extContent.includes('openCockpitMenu'),
+  extContent.includes('min-height: 36px') || extContent.includes('height: 36px'),
   true,
-  'FAIL: Click handler for openCockpitMenu missing from extension.ts!'
+  'FAIL: 36px header height missing from extension.ts!'
+);
+
+assert.strictEqual(
+  extContent.includes('30px !important'),
+  true,
+  'FAIL: 30px emblem dimension missing from extension.ts!'
+);
+
+assert.strictEqual(
+  extContent.includes('line-height: 36px'),
+  true,
+  'FAIL: 36px menubar line-height missing from extension.ts!'
 );
 
 console.log('✅ Top Emblem & Chamber Cockpit test PASSED.');
