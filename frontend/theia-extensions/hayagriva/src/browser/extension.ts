@@ -1090,37 +1090,40 @@ export class HayagrivaFrontendContribution
 
     const notifChip = document.createElement('div');
     notifChip.id = 'hayagriva-header-notif-chip';
+    notifChip.title = 'Case Action Inbox & Notifications';
     notifChip.style.cssText = `
+      position: relative;
       margin-left: auto;
       margin-right: 12px;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      border-radius: 14px;
-      padding: 3px 10px;
-      font-size: 11.5px;
-      font-weight: 600;
-      color: #fbbf24;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--theia-menubar-foreground, #374151);
       cursor: pointer;
       user-select: none;
-      transition: all 0.2s ease;
+      transition: background 0.15s ease, color 0.15s ease;
       z-index: 1000;
     `;
     notifChip.innerHTML = `
-      <span>🔔</span>
-      <span class="haya-notif-count">0</span>
-      <span style="color: #94a3b8; font-weight: 400;">Alerts</span>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block;">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+      <span class="haya-notif-count" style="display: none; position: absolute; top: 1px; right: 1px; min-width: 14px; height: 14px; padding: 0 3px; font-size: 9.5px; font-weight: 700; line-height: 14px; text-align: center; color: #ffffff; background: #ef4444; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">0</span>
     `;
 
     notifChip.addEventListener('mouseenter', () => {
-      notifChip.style.background = 'rgba(245, 158, 11, 0.2)';
-      notifChip.style.borderColor = '#fbbf24';
+      notifChip.style.background = 'rgba(0, 0, 0, 0.06)';
+      notifChip.style.color = '#111827';
     });
     notifChip.addEventListener('mouseleave', () => {
-      notifChip.style.background = 'rgba(30, 41, 59, 0.7)';
-      notifChip.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+      notifChip.style.background = 'transparent';
+      notifChip.style.color = 'var(--theia-menubar-foreground, #374151)';
     });
 
     const updateCount = async () => {
@@ -1130,13 +1133,14 @@ export class HayagrivaFrontendContribution
           const data = await res.json();
           const items = Array.isArray(data.items) ? data.items : [];
           const count = items.filter((it: any) => !it.resolved).length;
-          const countEl = notifChip.querySelector('.haya-notif-count');
-          if (countEl) countEl.textContent = String(count);
-          if (count > 0) {
-            notifChip.style.borderColor = '#f59e0b';
-            notifChip.style.boxShadow = '0 0 8px rgba(245, 158, 11, 0.4)';
-          } else {
-            notifChip.style.boxShadow = 'none';
+          const countEl = notifChip.querySelector('.haya-notif-count') as HTMLElement | null;
+          if (countEl) {
+            countEl.textContent = count > 99 ? '99+' : String(count);
+            if (count > 0) {
+              countEl.style.display = 'inline-block';
+            } else {
+              countEl.style.display = 'none';
+            }
           }
         }
       } catch (_) {}
