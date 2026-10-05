@@ -91,14 +91,16 @@ function runTests() {
   assert(!content.includes('app-apnet-net.onrender.com'), 'Header contains zero legacy render app links');
 
   // 4. Action Cluster Assertions
-  console.log('\n--- 4. Action Cluster (Chamber Login + Download Hayagriva) ---');
+  console.log('\n--- 4. Action Cluster (Single Login Button) ---');
   assert(
-    content.includes('Chamber Login') && (content.includes('openAccountModal') || content.includes('#account-modal')),
-    'Action cluster has "Chamber Login" triggering account modal'
+    content.includes('id="btn-login"') && content.includes('Login</span>') && content.includes('openAccountModal'),
+    'Action cluster has "Login" button triggering openAccountModal()'
   );
+  const navMenuBlock = content.match(/<ul class="nav-menu"[\s\S]*?<\/ul>/i);
+  const navHtmlContent = navMenuBlock ? navMenuBlock[0] : '';
   assert(
-    content.includes('Download Hayagriva') && content.includes('openIdeDownloadModal'),
-    'Action cluster has "Download Hayagriva" triggering openIdeDownloadModal()'
+    !navHtmlContent.includes('Download Hayagriva'),
+    'Header nav-menu strictly omits "Download Hayagriva" button'
   );
 
   // 5. Link Integrity: Validate every relative href inside navigation
