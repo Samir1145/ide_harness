@@ -1,4 +1,4 @@
-import { injectable, inject } from '@theia/core/shared/inversify';
+import { injectable, inject, optional } from '@theia/core/shared/inversify';
 import {
   FrontendApplicationContribution,
   FrontendApplication,
@@ -27,6 +27,7 @@ import { AskHayaVoiceOrb } from './askhaya-orb';
 import { AuthManager } from './auth-manager';
 import { AuthModal } from './auth-modal';
 import { ProfileWidget } from './profile-widget';
+import { AgentCockpitManager } from './agent-cockpit-manager';
 import { safeDecodeURI } from './tree-decorator';
 
 const { inboxExplorerHtml, billingExplorerHtml, entityExplorerHtml, notificationCenterHtml, toolComingSoonHtml, TOOLS_CATALOG } = require('./templates');
@@ -89,7 +90,8 @@ export class HayagrivaFrontendContribution
     @inject(AskHayaVoiceOrb) protected readonly voiceOrb: AskHayaVoiceOrb,
     @inject(AuthManager) protected readonly authManager: AuthManager,
     @inject(AuthModal) protected readonly authModal: AuthModal,
-    @inject(ProfileWidget) protected readonly profileWidget: ProfileWidget
+    @inject(ProfileWidget) protected readonly profileWidget: ProfileWidget,
+    @inject(AgentCockpitManager) @optional() protected readonly agentCockpitManager?: AgentCockpitManager
   ) {}
 
   getApiPort(): number {
@@ -517,18 +519,16 @@ export class HayagrivaFrontendContribution
       await this.shell.addWidget(explorerWidget, { area: 'left', rank: 100 });
     }
 
-    // Pillar 2: Hayagriva Agents (AskHaya) - Rank 200
+    // Dynamic Coworker Middle Zone (Ranks 200–400)
     try {
-      const chatWidget = await this.widgetManager.getOrCreateWidget('chat-view-widget');
-      if (chatWidget) {
-        chatWidget.title.label = 'Hayagriva Agents';
-        chatWidget.title.caption = 'Hayagriva Agents';
-        chatWidget.title.iconClass = 'hayagriva-horse-icon';
-        chatWidget.title.closable = false;
-        await this.shell.addWidget(chatWidget, { area: 'left', rank: 200 });
+      await this.syncCoworkerActivityBar();
+      if (this.agentCockpitManager) {
+        this.agentCockpitManager.onActiveCoworkersChanged(async (activeIds) => {
+          await this.syncCoworkerActivityBar(activeIds);
+        });
       }
     } catch (err: any) {
-      this.logger.warn(`[Hayagriva] Failed to dock chat widget on left: ${err.message}`);
+      this.logger.warn(`[Hayagriva] Failed to initialize coworker activity bar: ${err.message}`);
     }
 
     // Pillar 3: Forensic Entity Map (Master Entity Directory & Topology) - Rank 300
@@ -577,6 +577,33 @@ export class HayagrivaFrontendContribution
     try {
       this.shell.collapsePanel('right');
     } catch (_) {}
+  }
+
+  async syncCoworkerActivityBar(activeIds?: string[]): Promise<void> {
+    const activeCoworkers = this.agentCockpitManager 
+      ? this.agentCockpitManager.getActiveCoworkers() 
+      : [
+          { id: '@Advisor', name: 'Strategy & CIRP Counsel', role: 'Master legal strategy', iconClass: 'hayagriva-advisor-icon' }
+        ];
+
+    for (let index = 0; index < activeCoworkers.length; index++) {
+      const cw = activeCoworkers[index];
+      const rank = 200 + index * 10;
+      try {
+        if (index === 0) {
+          const chatWidget = await this.widgetManager.getOrCreateWidget('chat-view-widget');
+          if (chatWidget) {
+            chatWidget.title.label = cw.name;
+            chatWidget.title.caption = `${cw.id}: ${cw.role}`;
+            chatWidget.title.iconClass = cw.iconClass;
+            chatWidget.title.closable = false;
+            await this.shell.addWidget(chatWidget, { area: 'left', rank });
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`[Hayagriva] Failed to sync coworker ${cw.id}: ${err.message}`);
+      }
+    }
   }
 
 
@@ -1620,6 +1647,11 @@ export class HayagrivaFrontendContribution
       .theia-tab-bar-container.left .p-TabBar-tab .p-TabBar-tabIcon::before,
       .theia-tab-bar-container.left .lm-TabBar-tab .lm-TabBar-tabIcon::before,
       .hayagriva-registry-icon::before,
+      .hayagriva-advisor-icon::before,
+      .hayagriva-document-icon::before,
+      .hayagriva-forms-icon::before,
+      .hayagriva-claims-icon::before,
+      .hayagriva-bank-icon::before,
       .hayagriva-pillar1-icon::before,
       .hayagriva-pillar2-icon::before,
       .hayagriva-horse-icon::before,
@@ -1690,6 +1722,87 @@ export class HayagrivaFrontendContribution
         mask-size: contain !important;
         vertical-align: middle !important;
         transition: color 0.15s ease, filter 0.15s ease !important;
+      }
+
+      /* Coworker Icons */
+      .hayagriva-advisor-icon,
+      i.hayagriva-advisor-icon,
+      .theia-tab-icon.hayagriva-advisor-icon,
+      .p-TabBar-tabIcon.hayagriva-advisor-icon,
+      .lm-TabBar-tabIcon.hayagriva-advisor-icon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTE2IDE2IDMtOCAzIDhjLS44Ny42NS0xLjkyIDEtMyAxcy0yLjEzLS4zNS0zLTFaIi8+PHBhdGggZD0ibTIgMTYgMy04IDMgOGMtLjg3LjY1LTEuOTIgMS0zIDFzLTIuMTMtLjM1LTMtMVoiLz48cGF0aCBkPSJNNyAyMWgxMCIvPjxwYXRoIGQ9Ik0xMiAzdjE4Ii8+PHBhdGggZD0iTTMgN2gyYzIgMCA1LTEgNy0yIDIgMSA1IDIgNyAyaDIiLz48L3N2Zz4=") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTE2IDE2IDMtOCAzIDhjLS44Ny42NS0xLjkyIDEtMyAxcy0yLjEzLS4zNS0zLTFaIi8+PHBhdGggZD0ibTIgMTYgMy04IDMgOGMtLjg3LjY1LTEuOTIgMS0zIDFzLTIuMTMtLjM1LTMtMVoiLz48cGF0aCBkPSJNNyAyMWgxMCIvPjxwYXRoIGQ9Ik0xMiAzdjE4Ii8+PHBhdGggZD0iTTMgN2gyYzIgMCA1LTEgNy0yIDIgMSA1IDIgNyAyaDIiLz48L3N2Zz4=") center / contain no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+      }
+
+      .hayagriva-document-icon,
+      i.hayagriva-document-icon,
+      .theia-tab-icon.hayagriva-document-icon,
+      .p-TabBar-tabIcon.hayagriva-document-icon,
+      .lm-TabBar-tabIcon.hayagriva-document-icon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4eiIvPjxwb2x5bGluZSBwb2ludHM9IjE0IDIgMTQgOCAyMCA4Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMTMiIHgyPSI4IiB5Mj0iMTMiLz48bGluZSB4MT0iMTYiIHkxPSIxNyIgeDI9IjgiIHkyPSIxNyIvPjxwb2x5bGluZSBwb2ludHM9IjEwIDkgOSA5IDggOSIvPjwvc3ZnPg==") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAwIDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4eiIvPjxwb2x5bGluZSBwb2ludHM9IjE0IDIgMTQgOCAyMCA4Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMTMiIHgyPSI4IiB5Mj0iMTMiLz48bGluZSB4MT0iMTYiIHkxPSIxNyIgeDI9IjgiIHkyPSIxNyIvPjxwb2x5bGluZSBwb2ludHM9IjEwIDkgOSA5IDggOSIvPjwvc3ZnPg==") center / contain no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+      }
+
+      .hayagriva-forms-icon,
+      i.hayagriva-forms-icon,
+      .theia-tab-icon.hayagriva-forms-icon,
+      .p-TabBar-tabIcon.hayagriva-forms-icon,
+      .lm-TabBar-tabIcon.hayagriva-forms-icon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTkgMTEgMyAzTDIyIDQiLz48cGF0aCBkPSJNMjEgMTJ2N2EyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJoMTEiLz48L3N2Zz4=") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTkgMTEgMyAzTDIyIDQiLz48cGF0aCBkPSJNMjEgMTJ2N2EyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJoMTEiLz48L3N2Zz4=") center / contain no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+      }
+
+      .hayagriva-claims-icon,
+      i.hayagriva-claims-icon,
+      .theia-tab-icon.hayagriva-claims-icon,
+      .p-TabBar-tabIcon.hayagriva-claims-icon,
+      .lm-TabBar-tabIcon.hayagriva-claims-icon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjE0IiB4PSIyIiB5PSI1IiByeD0iMiIvPjxsaW5lIHgxPSIyIiB4Mj0iMjIiIHkxPSIxMCIgeTI9IjEwIi8+PHBhdGggZD0iTTYgMTVoLjAxIi8+PHBhdGggZD0iTTEwIDE1aC4wMSIvPjxwYXRoIGQ9Ik0xNCAxNWguMDEiLz48cGF0aCBkPSJNMTggMTVoLjAxIi8+PC9zdmc+") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjE0IiB4PSIyIiB5PSI1IiByeD0iMiIvPjxsaW5lIHgxPSIyIiB4Mj0iMjIiIHkxPSIxMCIgeTI9IjEwIi8+PHBhdGggZD0iTTYgMTVoLjAxIi8+PHBhdGggZD0iTTEwIDE1aC4wMSIvPjxwYXRoIGQ9Ik0xNCAxNWguMDEiLz48cGF0aCBkPSJNMTggMTVoLjAxIi8+PC9zdmc+") center / contain no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
+      }
+
+      .hayagriva-bank-icon,
+      i.hayagriva-bank-icon,
+      .theia-tab-icon.hayagriva-bank-icon,
+      .p-TabBar-tabIcon.hayagriva-bank-icon,
+      .lm-TabBar-tabIcon.hayagriva-bank-icon {
+        display: inline-block !important;
+        width: 22px !important;
+        height: 22px !important;
+        background-color: currentColor !important;
+        -webkit-mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBvbHlnb24gcG9pbnRzPSIxMiAyIDIgNyAyMiA3IDEyIDIiLz48bGluZSB4MT0iMiIgeDI9IjIyIiB5MT0iMjAiIHkyPSIyMCIvPjxsaW5lIHgxPSI0IiB4Mj0iNCIgeTE9IjE3IiB5Mj0iNyIvPjxsaW5lIHgxPSI5IiB4Mj0iOSIgeTE9IjE3IiB5Mj0iNyIvPjxsaW5lIHgxPSIxNSIgeDI9IjE1IiB5MT0iMTciIHkyPSI3Ii8+PGxpbmUgeDE9IjIwIiB4Mj0iMjAiIHkxPSIxNyIgeTI9IjciLz48L3N2Zz4=") center / contain no-repeat !important;
+        mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBvbHlnb24gcG9pbnRzPSIxMiAyIDIgNyAyMiA3IDEyIDIiLz48bGluZSB4MT0iMiIgeDI9IjIyIiB5MT0iMjAiIHkyPSIyMCIvPjxsaW5lIHgxPSI0IiB4Mj0iNCIgeTE9IjE3IiB5Mj0iNyIvPjxsaW5lIHgxPSI5IiB4Mj0iOSIgeTE9IjE3IiB5Mj0iNyIvPjxsaW5lIHgxPSIxNSIgeDI9IjE1IiB5MT0iMTciIHkyPSI3Ii8+PGxpbmUgeDE9IjIwIiB4Mj0iMjAiIHkxPSIxNyIgeTI9IjciLz48L3N2Zz4=") center / contain no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+        vertical-align: middle !important;
       }
 
       /* Pillar 3: Forensic Entity Map (Radial Corporate Web / X-Nodes Network) */
