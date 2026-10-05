@@ -32,4 +32,6 @@ Pre-flight: all interfaces verified and aligned with spec.
 - [x] Visual Refinements:
   - Top-Left Stallion Emblem: Rendered in crisp solid black `#18181b` (Commit: `b0ae9c5`)
   - Top-Right Header Notifications: Replaced dark capsule pill with minimalist monochrome SVG Bell icon button and conditional red badge counter (Option 1, Commit: `4f441d5`)
+  - Option 3B Lord Hayagriva Bust Titlebar Emblem: Replaced flowing stallion with crownless Lord Hayagriva bust (alert natural ears, sacred Vaishnava Urdhva Pundra tilak, flowing mane, pearls necklace) in solid black `#18181b` (Plan: `docs/superpowers/plans/2026-10-05-hayagriva-bust-emblem.md`, Commits: `49a8746`, `8e7288c`, Recording: `hayagriva_bust_verify_1791210740244.webp`, Screenshot: `hayagriva_top_emblem_1791210787445.png`)
+
 
