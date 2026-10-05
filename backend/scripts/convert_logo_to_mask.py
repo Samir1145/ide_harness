@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-Convert Option 3B Lord Hayagriva artwork into a clean, antialiased transparent PNG mask
-and export base64 data URI string.
+Convert Option 3B Lord Hayagriva Front Bust artwork into a crisp, stroke-weighted transparent PNG
+and export base64 data URI string for the titlebar emblem.
 """
 import os
 import sys
 import base64
+import cv2
+import numpy as np
 from PIL import Image
 
 def main():
-    source_img_path = "/Users/atulgrover/.gemini/antigravity-ide/brain/f115d693-8975-4e5c-8ccc-587bed9dba38/hayagriva_profile_silhouette_1791211650783.jpg"
+    source_img_path = "/Users/atulgrover/.gemini/antigravity-ide/brain/f115d693-8975-4e5c-8ccc-587bed9dba38/hayagriva_no_crown_1791209970957.jpg"
     dest_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../branding/resources"))
     os.makedirs(dest_dir, exist_ok=True)
     dest_png_path = os.path.join(dest_dir, "hayagriva_bust_no_crown.png")
@@ -19,54 +21,41 @@ def main():
         print(f"Error: Source image not found: {source_img_path}", file=sys.stderr)
         sys.exit(1)
 
-    # Open image and convert to grayscale
-    img = Image.open(source_img_path).convert("L")
-    
-    # Crop to content bounding box to maximize fill
-    # Invert to find non-white pixels
-    inv = img.point(lambda p: 255 - p)
-    bbox = inv.getbbox()
-    if bbox:
-        # Add slight padding around content
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
-        pad = int(max(w, h) * 0.03)
-        c_box = (
-            max(0, bbox[0] - pad),
-            max(0, bbox[1] - pad),
-            min(img.width, bbox[2] + pad),
-            min(img.height, bbox[3] + pad)
-        )
-        img = img.crop(c_box)
+    # 1. Read grayscale
+    img = cv2.imread(source_img_path, cv2.IMREAD_GRAYSCALE)
 
-    # Resize to clean square (128x128 for crisp titlebar masking) with Lanczos
-    size = (128, 128)
-    img = img.resize(size, Image.Resampling.LANCZOS)
+    # 2. Invert so strokes are 255 and white background is 0
+    inv = 255 - img
 
-    # Create RGBA image: black strokes (RGB=24,24,27), alpha based on darkness
-    rgba = Image.new("RGBA", size, (0, 0, 0, 0))
-    pixels = img.load()
-    out_pixels = rgba.load()
+    # 3. Crop tight to bust bounding box
+    coords = cv2.findNonZero(inv)
+    x, y, w, h = cv2.boundingRect(coords)
+    pad = int(max(w, h) * 0.03)
+    x1 = max(0, x - pad)
+    y1 = max(0, y - pad)
+    x2 = min(inv.shape[1], x + w + pad)
+    y2 = min(inv.shape[0], y + h + pad)
+    cropped = inv[y1:y2, x1:x2]
 
-    for y in range(size[1]):
-        for x in range(size[0]):
-            lum = pixels[x, y]
-            if lum >= 220:
-                # White background -> fully transparent
-                out_pixels[x, y] = (0, 0, 0, 0)
-            elif lum <= 80:
-                # Dark strokes -> solid black
-                out_pixels[x, y] = (0, 0, 0, 255)
-            else:
-                # Smooth antialiased gradient between 80 and 220
-                alpha = int(255 * (220 - lum) / 140.0)
-                out_pixels[x, y] = (0, 0, 0, alpha)
+    # 4. Dilate strokes slightly (k=15 on ~1000px) so downscaled lines remain 1.5-2px crisp black
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    dilated = cv2.dilate(cropped, kernel)
 
-    # Save PNG
-    rgba.save(dest_png_path, "PNG", optimize=True)
+    # 5. Downscale to 128x128 with INTER_AREA for antialiased subpixel quality
+    res128 = cv2.resize(dilated, (128, 128), interpolation=cv2.INTER_AREA)
+
+    # 6. Create RGBA image: strokes are solid black #18181b (24, 24, 27) with alpha from intensity
+    rgba = np.zeros((128, 128, 4), dtype=np.uint8)
+    rgba[:, :, 0] = 24
+    rgba[:, :, 1] = 24
+    rgba[:, :, 2] = 27
+    rgba[:, :, 3] = res128
+
+    out_img = Image.fromarray(rgba, "RGBA")
+    out_img.save(dest_png_path, "PNG", optimize=True)
     print(f"Saved PNG mask to {dest_png_path}")
 
-    # Generate base64 string
+    # 7. Generate base64 string
     with open(dest_png_path, "rb") as f:
         b64_str = base64.b64encode(f.read()).decode("utf-8")
 
