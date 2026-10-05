@@ -29,4 +29,7 @@ Pre-flight: all interfaces verified and aligned with spec.
 - [x] Task 10: 3-Tier Collapsible Accordion Workstation Component - Option 2 Titles (Test: `backend/tests/test_agent_workstation_accordion.test.js`, Commit: `e9d6ebf`)
 - [x] Task 11: Sovereign Legal Word View First & Monaco Fallback Toggle (Test: `backend/tests/test_word_view_draft_delivery.test.js`, Commit: `1a8cfbd`)
 - [x] Task 12: E2E Integration Suite & Compilation Verification (Test: `backend/tests/test_sovereign_chamber_e2e.test.js`, Recording: `sovereign_chamber_demo_1791195661220.webp`)
+- [x] Visual Refinements:
+  - Top-Left Stallion Emblem: Rendered in crisp solid black `#18181b` (Commit: `b0ae9c5`)
+  - Top-Right Header Notifications: Replaced dark capsule pill with minimalist monochrome SVG Bell icon button and conditional red badge counter (Option 1, Commit: `4f441d5`)
 
