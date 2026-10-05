@@ -33,5 +33,7 @@ Pre-flight: all interfaces verified and aligned with spec.
   - Top-Left Stallion Emblem: Rendered in crisp solid black `#18181b` (Commit: `b0ae9c5`)
   - Top-Right Header Notifications: Replaced dark capsule pill with minimalist monochrome SVG Bell icon button and conditional red badge counter (Option 1, Commit: `4f441d5`)
   - Option 3B Lord Hayagriva Bust Titlebar Emblem: Replaced flowing stallion with crownless Lord Hayagriva bust (alert natural ears, sacred Vaishnava Urdhva Pundra tilak, flowing mane, pearls necklace) in solid black `#18181b` (Plan: `docs/superpowers/plans/2026-10-05-hayagriva-bust-emblem.md`, Commits: `49a8746`, `8e7288c`, Recording: `hayagriva_bust_verify_1791210740244.webp`, Screenshot: `hayagriva_top_emblem_1791210787445.png`)
+  - Front Profile Bust with Pearls & 36px Titlebar Expansion: Expanded `#theia-top-panel` to 36px with vertically centered menubar labels (`line-height: 36px`), and deployed bold stroke-weighted front profile Lord Hayagriva bust at 30×30px with pearls, upright natural ears, sacred tilak, and zero startup popups (Plan: `docs/superpowers/plans/2026-10-05-front-bust-header-36px.md`, Commits: `b68de08`, `b1f3640`, `0fcb3c7`, Screenshots: `full_viewport_36px_header_1791213558529.png`, `focused_titlebar_header_1791213559993.png`)
+
 
 
