@@ -434,6 +434,8 @@ export class HayagrivaFrontendContribution
           this.open(new URI(target.href));
         }
       }, true);
+    } catch (_) {}
+
     // Click interceptor for Top-Left Flowing Stallion window header emblem -> triggers Chamber Cockpit
     try {
       document.addEventListener('click', (e: MouseEvent) => {

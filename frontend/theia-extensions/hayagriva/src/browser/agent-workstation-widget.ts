@@ -3,7 +3,6 @@ import { Widget } from '@theia/core/lib/browser';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { CommandService } from '@theia/core/lib/common/command';
 import { ILogger } from '@theia/core/lib/common/logger';
-import { safeDecodeURI } from './tree-decorator';
 
 export interface CaseDocItem {
   name: string;

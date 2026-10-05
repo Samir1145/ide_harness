@@ -181,7 +181,7 @@ export class HayagrivaPreviewManager {
       try {
         const cleanUri = new URI(filePath.startsWith('/') ? `file://${filePath}` : filePath);
         await this.editorManager.open(cleanUri);
-        widget.close();
+        widget?.close();
       } catch (err: any) {
         this.logger.warn(`[Hayagriva] Failed to toggle Monaco editor: ${err.message}`);
       }

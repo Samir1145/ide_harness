@@ -1,5 +1,5 @@
 import { injectable, inject } from '@theia/core/shared/inversify';
-import { AgentCockpitManager, CoworkerSpec } from './agent-cockpit-manager';
+import { AgentCockpitManager } from './agent-cockpit-manager';
 import { ILogger } from '@theia/core/lib/common/logger';
 
 @injectable()
@@ -162,7 +162,7 @@ export class AgentDirectoryModal {
       btn.addEventListener('click', () => {
         const id = (btn as HTMLElement).dataset.id;
         if (id) {
-          const isActive = this.cockpitManager.toggleCoworker(id);
+          this.cockpitManager.toggleCoworker(id);
           this.renderCoworkerList(dialog);
         }
       });
