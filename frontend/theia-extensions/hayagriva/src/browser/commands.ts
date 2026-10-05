@@ -12,6 +12,7 @@ import { HayagrivaFrontendContribution } from './extension';
 import { HayagrivaTreeDecorator, safeDecodeURI } from './tree-decorator';
 import { AskHayaVoiceOrb } from './askhaya-orb';
 import { AgentDirectoryModal } from './agent-directory-modal';
+import { TaskQueueModal } from './task-queue-modal';
 
 const HAYAGRIVA_NS = 'hayagriva';
 
@@ -33,7 +34,8 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
     @inject(ILogger) private readonly logger: ILogger,
     @inject(AskHayaVoiceOrb) @optional() private readonly voiceOrb?: AskHayaVoiceOrb,
     @inject(FileService) @optional() private readonly fileService?: FileService,
-    @inject(AgentDirectoryModal) @optional() private readonly agentDirectoryModal?: AgentDirectoryModal
+    @inject(AgentDirectoryModal) @optional() private readonly agentDirectoryModal?: AgentDirectoryModal,
+    @inject(TaskQueueModal) @optional() private readonly taskQueueModal?: TaskQueueModal
   ) {}
 
   private getRelativePath(uri: URI): string {
@@ -2490,8 +2492,11 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
       existing.remove();
       return;
     }
-    // Will be fully implemented with TaskQueueModal in Task 6
-    this.messageService.info('📋 Opening Delegated Task Queue & Billing Ledger…');
+    if (this.taskQueueModal) {
+      this.taskQueueModal.open();
+    } else {
+      this.messageService.info('📋 Opening Delegated Task Queue & Billing Ledger…');
+    }
   }
 
   protected openChamberCockpit(registry: CommandRegistry): void {

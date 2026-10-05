@@ -19,6 +19,7 @@ import { AuthModal } from './auth-modal';
 import { ProfileWidget } from './profile-widget';
 import { AgentCockpitManager } from './agent-cockpit-manager';
 import { AgentDirectoryModal } from './agent-directory-modal';
+import { TaskQueueModal } from './task-queue-modal';
 import { NavigatorTreeDecorator } from '@theia/navigator/lib/browser/navigator-decorator-service';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
 import { hayagrivaPreferenceSchema } from './extension';
@@ -113,6 +114,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(ProfileWidget).toSelf().inSingletonScope();
   bind(AgentCockpitManager).toSelf().inSingletonScope();
   bind(AgentDirectoryModal).toSelf().inSingletonScope();
+  bind(TaskQueueModal).toSelf().inSingletonScope();
 
   // Bind File Tree Status color-coding decorator to the native NavigatorTreeDecorator
   bind(HayagrivaTreeDecorator).toSelf().inSingletonScope();
