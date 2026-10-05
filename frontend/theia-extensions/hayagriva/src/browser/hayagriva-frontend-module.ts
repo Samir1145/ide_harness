@@ -77,7 +77,12 @@ export class HayagrivaNavigatorWidgetFactory extends NavigatorWidgetFactory {
       id: EXPLORER_VIEW_CONTAINER_ID,
       progressLocationId: 'explorer'
     });
-    viewContainer.setTitleOptions(EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS);
+    viewContainer.setTitleOptions({
+      ...EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS,
+      label: '@Registry',
+      caption: 'Master Case Intake & Docket',
+      iconClass: 'hayagriva-registry-icon'
+    });
     const navigatorWidget = await this.widgetManager.getOrCreateWidget(FILE_NAVIGATOR_ID);
     viewContainer.addWidget(navigatorWidget, this.fileNavigatorWidgetOptions);
     // Permanently eliminate OpenEditorsWidget from Explorer ViewContainer

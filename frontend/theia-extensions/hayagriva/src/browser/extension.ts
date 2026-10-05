@@ -511,9 +511,9 @@ export class HayagrivaFrontendContribution
       } catch (_) {}
     }
     if (explorerWidget) {
-      explorerWidget.title.label = 'Files & Folders';
-      explorerWidget.title.caption = 'Files & Folders';
-      explorerWidget.title.iconClass = 'hayagriva-pillar1-icon';
+      explorerWidget.title.label = '@Registry';
+      explorerWidget.title.caption = 'Master Case Intake & Docket';
+      explorerWidget.title.iconClass = 'hayagriva-registry-icon';
       await this.shell.addWidget(explorerWidget, { area: 'left', rank: 100 });
     }
 
@@ -1619,6 +1619,7 @@ export class HayagrivaFrontendContribution
       /* Universal Reset for 6-Pillar Tab Icons (prevent font icon glyph clashing) */
       .theia-tab-bar-container.left .p-TabBar-tab .p-TabBar-tabIcon::before,
       .theia-tab-bar-container.left .lm-TabBar-tab .lm-TabBar-tabIcon::before,
+      .hayagriva-registry-icon::before,
       .hayagriva-pillar1-icon::before,
       .hayagriva-pillar2-icon::before,
       .hayagriva-horse-icon::before,
@@ -1628,7 +1629,12 @@ export class HayagrivaFrontendContribution
         content: "" !important;
       }
 
-      /* Pillar 1: Documents (Executive Tabbed Dossier Folder) */
+      /* Pillar 1: @Registry / Documents (Executive Tabbed Dossier Folder) */
+      .hayagriva-registry-icon,
+      i.hayagriva-registry-icon,
+      .theia-tab-icon.hayagriva-registry-icon,
+      .p-TabBar-tabIcon.hayagriva-registry-icon,
+      .lm-TabBar-tabIcon.hayagriva-registry-icon,
       .hayagriva-pillar1-icon,
       i.hayagriva-pillar1-icon,
       .theia-tab-icon.hayagriva-pillar1-icon,
@@ -1637,6 +1643,7 @@ export class HayagrivaFrontendContribution
       #theia-left-content-panel [data-id*="explorer-view-container"] [class*="tabIcon"],
       .theia-app-left [data-id*="explorer-view-container"] [class*="tabIcon"],
       [id*="explorer-view-container"] [class*="tabIcon"],
+      .theia-tab-bar-container.left [title*="@Registry"] [class*="tabIcon"],
       .theia-tab-bar-container.left [title*="Files & Folders"] [class*="tabIcon"],
       .theia-tab-bar-container.left [title*="Documents"] [class*="tabIcon"],
       .theia-tab-bar-container.left .p-TabBar-tab:nth-child(1) .p-TabBar-tabIcon,
