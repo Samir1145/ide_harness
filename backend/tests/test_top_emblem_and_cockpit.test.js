@@ -26,11 +26,11 @@ assert.strictEqual(
   'FAIL: Flowing Stallion silhouette mask is missing from extension.ts!'
 );
 
-// 2. Verify amber gold color #fbbf24 is applied to .theia-icon
+// 2. Verify crisp solid black color #18181b is applied to .theia-icon
 assert.strictEqual(
-  extContent.includes('#fbbf24'),
+  extContent.includes('#18181b'),
   true,
-  'FAIL: Amber gold #fbbf24 branding is missing from extension.ts!'
+  'FAIL: Solid black #18181b branding is missing from extension.ts!'
 );
 
 // 3. Verify hayagriva.openCockpitMenu command declaration in commands.ts
