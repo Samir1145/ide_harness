@@ -5,6 +5,7 @@ import { NavigatorContextMenu } from '@theia/navigator/lib/browser/navigator-con
 
 const HAYAGRIVA_NS = 'hayagriva';
 const HAYAGRIVA_MAIN_MENU: MenuPath = [...MAIN_MENU_BAR, '3_hayagriva'];
+const AGENTS_MAIN_MENU: MenuPath = [...MAIN_MENU_BAR, '34_agents'];
 const SETTINGS_MAIN_MENU: MenuPath = [...MAIN_MENU_BAR, '36_settings'];
 
 export const NAVIGATOR_PRUNE_COMMAND_IDS = [
@@ -263,6 +264,23 @@ export class HayagrivaMenuContribution implements MenuContribution {
   registerMenus(registry: MenuModelRegistry): void {
     installMenuGuard(registry);
     pruneDeveloperMenus(registry);
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // TOP-LEVEL "AGENTS" COWORKER SUITE MENU TAB
+    // ═════════════════════════════════════════════════════════════════════════
+    registry.registerSubmenu(AGENTS_MAIN_MENU, 'Agents', { sortString: '34_agents' });
+
+    registry.registerMenuAction(AGENTS_MAIN_MENU, {
+      commandId: 'hayagriva.manageAgents',
+      label: '👥 Manage Agents (Coworker Directory)…',
+      order: '1'
+    });
+
+    registry.registerMenuAction(AGENTS_MAIN_MENU, {
+      commandId: 'hayagriva.openTaskQueue',
+      label: '📋 Task Queue & Reg 34B Fee Ledger…',
+      order: '2'
+    });
 
     // ═════════════════════════════════════════════════════════════════════════
     // 1. TOP-LEVEL "HAYAGRIVA" SUITE MENU TAB

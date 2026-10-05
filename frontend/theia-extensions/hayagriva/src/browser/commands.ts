@@ -2451,6 +2451,42 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
         }
       }
     );
+    registry.registerCommand(
+      { id: 'hayagriva.manageAgents', label: '👥 Hayagriva: Manage Agents (Coworker Cockpit)' },
+      {
+        execute: async () => {
+          this.openManageAgentsModal(registry);
+        }
+      }
+    );
+    registry.registerCommand(
+      { id: 'hayagriva.openTaskQueue', label: '📋 Hayagriva: Open Task Queue & Reg 34B Ledger' },
+      {
+        execute: async () => {
+          this.openTaskQueueModal(registry);
+        }
+      }
+    );
+  }
+
+  protected openManageAgentsModal(registry: CommandRegistry): void {
+    const existing = document.getElementById('hayagriva-manage-agents-modal');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    // Will be fully implemented with AgentCockpitManager in Task 5
+    this.messageService.info('👥 Opening Chamber Coworker Directory…');
+  }
+
+  protected openTaskQueueModal(registry: CommandRegistry): void {
+    const existing = document.getElementById('hayagriva-task-queue-modal');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    // Will be fully implemented with TaskQueueModal in Task 6
+    this.messageService.info('📋 Opening Delegated Task Queue & Billing Ledger…');
   }
 
   protected openChamberCockpit(registry: CommandRegistry): void {
