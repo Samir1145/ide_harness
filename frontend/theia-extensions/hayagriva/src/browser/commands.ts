@@ -6,6 +6,8 @@ import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service
 import URI from '@theia/core/lib/common/uri';
 import { SelectionService } from '@theia/core/lib/common/selection-service';
 import { UriSelection } from '@theia/core/lib/common/selection';
+import { SingleTextInputDialog } from '@theia/core/lib/browser/dialogs';
+import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { HayagrivaFrontendContribution } from './extension';
 import { HayagrivaTreeDecorator, safeDecodeURI } from './tree-decorator';
 import { AskHayaVoiceOrb } from './askhaya-orb';
@@ -28,7 +30,8 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
     @inject(SelectionService) private readonly selectionService: SelectionService,
     @inject(MessageService) private readonly messageService: MessageService,
     @inject(ILogger) private readonly logger: ILogger,
-    @inject(AskHayaVoiceOrb) @optional() private readonly voiceOrb?: AskHayaVoiceOrb
+    @inject(AskHayaVoiceOrb) @optional() private readonly voiceOrb?: AskHayaVoiceOrb,
+    @inject(FileService) @optional() private readonly fileService?: FileService
   ) {}
 
   private getRelativePath(uri: URI): string {
@@ -463,6 +466,98 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
 
       await this.contribution.openMilkdownEditor(targetPath, caseDir);
     };
+
+    const handleAddNewMilksheet = async (uri?: any) => {
+      const caseDir = this.getCasePath();
+      const caseName = this.contribution.getCaseName(caseDir);
+
+      const dialog = new SingleTextInputDialog({
+        title: 'New Legal Draft (Word View)',
+        initialValue: 'Untitled_Pleading.md',
+        confirmButtonLabel: 'Create Draft',
+        validate: (input: string) => {
+          const val = (input || '').trim();
+          if (!val) {
+            return 'Draft name cannot be empty';
+          }
+          if (/[\\:*?"<>|]/.test(val)) {
+            return 'Draft name contains invalid characters (* ? " < > |)';
+          }
+          return '';
+        }
+      });
+
+      const entered = await dialog.open();
+      if (!entered || !entered.trim()) {
+        return;
+      }
+
+      let fileName = entered.trim();
+      if (!fileName.toLowerCase().endsWith('.md')) {
+        fileName += '.md';
+      }
+
+      // Determine target directory
+      let targetDir = `${caseDir}/drafts`;
+      const resourceUri = this.resolveUri(uri);
+      if (resourceUri) {
+        const decoded = safeDecodeURI(resourceUri.path.toString());
+        try {
+          if (this.fileService) {
+            const stat = await this.fileService.resolve(resourceUri);
+            if (stat.isDirectory) {
+              targetDir = decoded;
+            } else {
+              targetDir = decoded.substring(0, decoded.lastIndexOf('/'));
+            }
+          }
+        } catch (_) {
+          // fallback
+        }
+      }
+
+      const targetPath = `${targetDir}/${fileName}`;
+      const docTitle = fileName.replace(/\.md$/i, '').replace(/_/g, ' ');
+
+      // Save initial scaffold if file doesn't already exist
+      try {
+        const apiPort = this.contribution.getApiPort();
+        await fetch(`http://127.0.0.1:${apiPort}/api/hayagriva/save-file`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: targetPath,
+            caseName: caseName,
+            content: `# ${docTitle}\n\nType **/** to summon facts, statutes, or templates...\n`
+          })
+        });
+      } catch (err: any) {
+        this.messageService.error(`Failed to create draft: ${err.message}`);
+        return;
+      }
+
+      this.messageService.info(`✓ Created legal draft: ${fileName}`);
+      // Open immediately in formatted Word View (Milkdown)
+      await this.contribution.openMilkdownEditor(targetPath, caseDir);
+
+      // Refresh workspace tree decorator
+      try {
+        await this.treeDecorator.refreshStatuses();
+      } catch (_) {}
+    };
+
+    registry.registerCommand(
+      { id: `${HAYAGRIVA_NS}:addNewMilksheet`, label: '✍️ New Legal Draft (Word View)' },
+      {
+        execute: handleAddNewMilksheet
+      }
+    );
+
+    try {
+      registry.registerHandler('file.newFile', {
+        execute: handleAddNewMilksheet
+      });
+    } catch (_) {}
 
     registry.registerCommand(
       { id: `${HAYAGRIVA_NS}:openMilkdownEditor`, label: '✍️ Edit Document (Word View)' },
@@ -2348,12 +2443,131 @@ export class HayagrivaCommandContribution implements CommandContribution, Keybin
         }
       }
     );
+    registry.registerCommand(
+      { id: 'hayagriva.openCockpitMenu', label: '🐴 Hayagriva: Open Chamber Cockpit' },
+      {
+        execute: async () => {
+          this.openChamberCockpit(registry);
+        }
+      }
+    );
+  }
+
+  protected openChamberCockpit(registry: CommandRegistry): void {
+    const existing = document.getElementById('hayagriva-cockpit-popover');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+
+    const casePath = this.getCasePath();
+    const caseName = this.contribution.getCaseName(casePath) || 'Sovereign Chamber';
+
+    const popover = document.createElement('div');
+    popover.id = 'hayagriva-cockpit-popover';
+    popover.style.cssText = `
+      position: fixed;
+      top: 34px;
+      left: 8px;
+      z-index: 10005;
+      width: 290px;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(245, 158, 11, 0.2);
+      padding: 12px;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      animation: hayagrivaFadeIn 0.15s ease-out;
+    `;
+
+    popover.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 8px;">
+        <div style="font-weight: 700; font-size: 13px; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+          <span>🐴</span> Chamber Cockpit
+        </div>
+        <span style="font-size: 11px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">Active</span>
+      </div>
+      <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 10px; display: flex; justify-content: space-between;">
+        <span>Matter: <strong style="color: #f1f5f9;">${caseName}</strong></span>
+        <span>CIRP T-Clock: <strong style="color: #38bdf8;">T₀</strong></span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <button id="haya-cockpit-btn-case" style="text-align: left; padding: 7px 10px; background: transparent; border: none; border-radius: 5px; color: #e2e8f0; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>📂</span> Switch Matter / CIRP Estate…
+        </button>
+        <button id="haya-cockpit-btn-clock" style="text-align: left; padding: 7px 10px; background: transparent; border: none; border-radius: 5px; color: #e2e8f0; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>⏱️</span> CIRP Statutory Clock (T₀ → T₃₃₀)…
+        </button>
+        <button id="haya-cockpit-btn-billing" style="text-align: left; padding: 7px 10px; background: transparent; border: none; border-radius: 5px; color: #e2e8f0; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>💳</span> Estate Accounts & Reg 34B Fee Ledger…
+        </button>
+        <button id="haya-cockpit-btn-vault" style="text-align: left; padding: 7px 10px; background: transparent; border: none; border-radius: 5px; color: #e2e8f0; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>🏛️</span> Statutory Vaults & Bare Acts…
+        </button>
+        <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 4px 0;"></div>
+        <button id="haya-cockpit-btn-lock" style="text-align: left; padding: 7px 10px; background: transparent; border: none; border-radius: 5px; color: #f87171; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>🔒</span> Lock & Air-Gap Encrypt Chamber
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(popover);
+
+    // Hover styling
+    const btns = popover.querySelectorAll('button');
+    btns.forEach(b => {
+      b.addEventListener('mouseenter', () => {
+        b.style.background = 'rgba(255, 255, 255, 0.08)';
+      });
+      b.addEventListener('mouseleave', () => {
+        b.style.background = 'transparent';
+      });
+    });
+
+    popover.querySelector('#haya-cockpit-btn-case')?.addEventListener('click', () => {
+      popover.remove();
+      registry.executeCommand(`${HAYAGRIVA_NS}:openNewCaseWizard`);
+    });
+    popover.querySelector('#haya-cockpit-btn-clock')?.addEventListener('click', () => {
+      popover.remove();
+      registry.executeCommand('hayagriva.tool.cirpClock');
+    });
+    popover.querySelector('#haya-cockpit-btn-billing')?.addEventListener('click', () => {
+      popover.remove();
+      registry.executeCommand('hayagriva.openTaskQueue');
+    });
+    popover.querySelector('#haya-cockpit-btn-vault')?.addEventListener('click', () => {
+      popover.remove();
+      registry.executeCommand(`${HAYAGRIVA_NS}:openCaseVault`);
+    });
+    popover.querySelector('#haya-cockpit-btn-lock')?.addEventListener('click', () => {
+      popover.remove();
+      registry.executeCommand(`${HAYAGRIVA_NS}:archiveCase`);
+    });
+
+    // Outside click dismissal
+    const dismissHandler = (e: MouseEvent) => {
+      if (!popover.contains(e.target as Node) && !(e.target as HTMLElement).closest('.theia-icon, #theia-top-panel .theia-icon')) {
+        popover.remove();
+        document.removeEventListener('click', dismissHandler, true);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('click', dismissHandler, true);
+    }, 50);
   }
 
   registerKeybindings(keybindings: KeybindingRegistry): void {
     keybindings.registerKeybinding({
       command: `${HAYAGRIVA_NS}:toggleVoiceOrb`,
       keybinding: 'alt space'
+    });
+    keybindings.registerKeybinding({
+      command: `${HAYAGRIVA_NS}:addNewMilksheet`,
+      keybinding: 'alt n'
     });
   }
 }
