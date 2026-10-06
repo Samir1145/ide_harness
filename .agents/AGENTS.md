@@ -22,6 +22,7 @@ These guidelines document key architectural decisions and term alignments to kee
   - **Tab Right-Click Markdown Preview:** Right-clicking any `.md` editor tab must ALWAYS display `📖 View as HTML (Live Formatted Preview)`. Command URI resolvers (`resolveUri`) must ignore `MouseEvent` objects to ensure the active editor document is resolved.
   - **Surgical Edit Discipline:** Do not touch shared global files (`commands.ts`, `menus.ts`, `settings.json`) unless explicitly instructed. Never introduce collateral breakage to working features.
   - **5-Pillar Chamber Bar & AskHaya Fluid Glass Orb:** The left activity bar is structured into 5 sovereign pillars: `Documents` (rank 100), `Search` (rank 200), `AskHaya` (rank 300, Flowing Stallion icon, senior partner orchestrating LightRAG and specialist coworkers), `Compliances` (rank 400, Case Action Inbox), and `Entity Map` (rank 500, D3 corporate web & statutory forensic topology map). Generic IDE `outline-view` and `case_wiki` are omitted from the sidebar. Ambient voice counsel is delivered via the draggable frosted-glass **AskHaya Fluid Glass Orb** (`#hayagriva-askhaya-orb-root`, `Alt+Space`) floating above the workbench.
+  - **Portal & Gate URL Single Source of Truth:** The gate doorway link on the website (`#btn-login` in `header.html` and `js/header.js`) must ALWAYS point to the live production cloud URL `https://app-apnet-net.onrender.com/login` before shifting/pushing to Git. Never commit `localhost:3300` in public website portal links.
 
 ---
 

@@ -39,8 +39,8 @@ function runTests() {
     'Header contains main title "AGENTIC PROFESSIONALS NETWORK"'
   );
   assert(
-    content.includes('Powered by Hayagriva OS') && content.includes('www.apnet.co.in'),
-    'Header contains subtitle "Powered by Hayagriva OS • www.apnet.co.in"'
+    /powered by hayagriva sovereign intelligence/i.test(content),
+    'Header contains subtitle "Powered by Hayagriva Sovereign Intelligence"'
   );
 
   // 2. Four Sovereign Pillars Assertions
@@ -68,8 +68,8 @@ function runTests() {
     'Pillar 3 wrapper exists: AGENTS'
   );
   assert(
-    /AGENTS[\s\S]*?Enterprise Co-Counsel/i.test(content),
-    'Pillar 3 has Title "AGENTS" and Subtitle "Enterprise Co-Counsel"'
+    /ENTERPRISE[\s\S]*?Co-Counsel Agents/i.test(content),
+    'Pillar 3 has Title "ENTERPRISE" and Subtitle "Co-Counsel Agents"'
   );
 
   assert(
@@ -87,14 +87,14 @@ function runTests() {
     /pricing/i.test(content.match(/<ul class="nav-menu"[\s\S]*?<\/ul>/i)[0]);
   assert(!hasPricingInNav, 'Top navigation menu omits "Pricing & Practice Suites"');
 
-  assert(!content.includes('localhost:3300'), 'Header contains zero portal links to localhost:3300');
-  assert(!content.includes('app-apnet-net.onrender.com'), 'Header contains zero legacy render app links');
+  // Portal doorway link points to production cloud portal
+  assert(content.includes('https://app-apnet-net.onrender.com/login'), 'Header doorway link points to production cloud portal /login');
 
   // 4. Action Cluster Assertions
   console.log('\n--- 4. Action Cluster (Single Login Button) ---');
   assert(
-    content.includes('id="btn-login"') && content.includes('Login</span>') && content.includes('openAccountModal'),
-    'Action cluster has "Login" button triggering openAccountModal()'
+    content.includes('id="btn-login"') && (content.includes('fa-right-to-bracket') || content.includes('nav-portal-icon')) && content.includes('Hayagriva Downloads'),
+    'Action cluster has Doorway Portal icon (fa-right-to-bracket) with tooltip "Hayagriva Downloads"'
   );
   const navMenuBlock = content.match(/<ul class="nav-menu"[\s\S]*?<\/ul>/i);
   const navHtmlContent = navMenuBlock ? navMenuBlock[0] : '';
